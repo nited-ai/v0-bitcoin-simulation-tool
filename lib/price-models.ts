@@ -21,9 +21,14 @@ export type PowerLawLine = keyof typeof POWER_LAW_MODELS
  * @returns The number of days elapsed.
  */
 const getDaysSinceGenesis = (date: Date): number => {
-  const diffTime = Math.abs(date.getTime() - GENESIS_DATE.getTime())
+  if (date < GENESIS_DATE) {
+    console.warn(`Date ${date.toISOString()} is before Bitcoin genesis date. Using genesis date.`)
+    return 1 // Return minimum valid value instead of negative
+  }
+
+  const diffTime = date.getTime() - GENESIS_DATE.getTime()
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-  return diffDays
+  return Math.max(1, diffDays) // Ensure minimum of 1 day
 }
 
 /**

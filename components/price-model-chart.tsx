@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Brush } from "recharts"
 import { generatePowerLawChartData, GENESIS_DATE } from "@/lib/price-models"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -20,6 +21,7 @@ const getDaysSinceGenesis = (date: Date): number => {
 }
 
 export function PriceModelChart({ simulationMonths }: { simulationMonths: number }) {
+  const { t } = useTranslation()
   const [chartData, setChartData] = useState<PriceDataPoint[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -27,12 +29,10 @@ export function PriceModelChart({ simulationMonths }: { simulationMonths: number
     const fetchData = async () => {
       setIsLoading(true)
       try {
-        // 1. Define the full date range for the model
         const modelStartDate = new Date("2011-01-01")
         const modelEndDate = new Date()
         modelEndDate.setMonth(modelEndDate.getMonth() + simulationMonths)
 
-        // 2. Generate the base model data for the entire range
         const modelData = generatePowerLawChartData(modelStartDate, modelEndDate)
         const dataMap = new Map<string, PriceDataPoint>()
         modelData.forEach((point) => {
@@ -41,11 +41,9 @@ export function PriceModelChart({ simulationMonths }: { simulationMonths: number
           }
         })
 
-        // 3. Fetch historical data from a reliable source (CryptoCompare)
         const res = await fetch("https://min-api.cryptocompare.com/data/v2/histoday?fsym=BTC&tsym=EUR&allData=true")
         const json = await res.json()
 
-        // 4. Merge historical data into the model data map
         if (json.Response === "Success" && Array.isArray(json.Data?.Data)) {
           json.Data.Data.forEach((item: { time: number; close: number }) => {
             const date = new Date(item.time * 1000)
@@ -60,7 +58,6 @@ export function PriceModelChart({ simulationMonths }: { simulationMonths: number
           console.warn("CryptoCompare response did not contain valid price data.", json.Message)
         }
 
-        // 5. Convert map values to array for the chart
         setChartData(Array.from(dataMap.values()))
       } catch (err) {
         console.error("Failed to load chart data:", err)
@@ -82,7 +79,7 @@ export function PriceModelChart({ simulationMonths }: { simulationMonths: number
     if (!payload || payload.length === 0) return ""
     const dateString = payload[0].payload.date
     const date = new Date(dateString)
-    return date.toLocaleDateString("de-DE", {
+    return date.toLocaleDateString(undefined, {
       year: "numeric",
       month: "long",
       day: "numeric",
@@ -90,16 +87,14 @@ export function PriceModelChart({ simulationMonths }: { simulationMonths: number
   }
 
   if (isLoading) {
-    return <div className="h-96 flex items-center justify-center">Lade Chart-Daten...</div>
+    return <div className="h-96 flex items-center justify-center">{t("PriceModelChart.loading")}</div>
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Bitcoin Power Law Modell (Log-Log)</CardTitle>
-        <CardDescription>
-          Historischer Preis im Vergleich zum Power Law Modell auf einer logarithmischen Skala.
-        </CardDescription>
+        <CardTitle>{t("PriceModelChart.title")}</CardTitle>
+        <CardDescription>{t("PriceModelChart.description")}</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="h-96 w-full">
@@ -120,12 +115,12 @@ export function PriceModelChart({ simulationMonths }: { simulationMonths: number
                 type="number"
                 domain={["auto", "auto"]}
                 allowDataOverflow
-                tickFormatter={(value) => value.toLocaleString("de-DE", { notation: "compact" })}
+                tickFormatter={(value) => value.toLocaleString(undefined, { notation: "compact" })}
               />
               <Tooltip
                 labelFormatter={formatTooltipLabel}
                 formatter={(value: number, name: string) => [
-                  `${value.toLocaleString("de-DE", { maximumFractionDigits: 0 })} €`,
+                  `${value.toLocaleString(undefined, { maximumFractionDigits: 0 })} €`,
                   name,
                 ]}
               />
@@ -133,7 +128,7 @@ export function PriceModelChart({ simulationMonths }: { simulationMonths: number
               <Line
                 type="monotone"
                 dataKey="price"
-                name="Historischer Preis"
+                name={t("PriceModelChart.historicalPrice")}
                 stroke="#f97316"
                 strokeWidth={2}
                 dot={false}
@@ -142,16 +137,23 @@ export function PriceModelChart({ simulationMonths }: { simulationMonths: number
               <Line
                 type="monotone"
                 dataKey="resistance"
-                name="Resistance"
+                name={t("PriceModelChart.resistance")}
                 stroke="#8b5cf6"
                 strokeWidth={2}
                 dot={false}
               />
-              <Line type="monotone" dataKey="fit" name="Fit (Prognose)" stroke="#22c55e" strokeWidth={2} dot={false} />
+              <Line
+                type="monotone"
+                dataKey="fit"
+                name={t("PriceModelChart.fit")}
+                stroke="#22c55e"
+                strokeWidth={2}
+                dot={false}
+              />
               <Line
                 type="monotone"
                 dataKey="support"
-                name="Support (Sicherheit)"
+                name={t("PriceModelChart.support")}
                 stroke="#ef4444"
                 strokeWidth={2}
                 dot={false}
