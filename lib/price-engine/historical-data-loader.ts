@@ -2,8 +2,13 @@
 
 import Papa from "papaparse"
 import type { HistoricalDataPoint } from "./types"
+import { HistoricalDataCache } from "./cache-manager"
+import { PerformanceMonitor } from "./performance-monitor"
 
 const USD_TO_EUR_RATE = 0.92
+
+// Globale Cache-Instanz
+const cache = new HistoricalDataCache()
 
 /**
  * Loads historical Bitcoin price data from the local CSV file.
@@ -117,7 +122,7 @@ async function fetchRecentDailyPrices(daysToFetch: number): Promise<HistoricalDa
  *
  * @returns A promise that resolves to the complete historical price dataset.
  */
-export async function loadHistoricalPriceData(): Promise<HistoricalDataPoint[]> {
+async function loadHistoricalPriceDataOriginal(): Promise<HistoricalDataPoint[]> {
   try {
     // Start from the 2016 halving as a reasonable baseline for modern Bitcoin price behavior
     const HALVING_2016_TIMESTAMP_SECONDS = Math.floor(new Date("2016-07-09T00:00:00Z").getTime() / 1000)
@@ -163,4 +168,143 @@ export async function loadHistoricalPriceData(): Promise<HistoricalDataPoint[]> 
     console.error("Failed to load historical price data:", error)
     throw new Error("Could not load historical price data. Please check your connection and try again.")
   }
+}
+
+/**
+ * Optimierte Version der loadHistoricalPriceData Funktion mit intelligentem Caching
+ */
+export async function loadHistoricalPriceData(): Promise<HistoricalDataPoint[]> {
+  console.log("🚀 Loading historical price data...")
+  const startTime = performance.now()
+
+  try {
+    // 1. Cache prüfen
+    const cachedData = await cache.loadFromCache()
+    if (cachedData) {
+      const updateCheck = cache.needsUpdate()
+
+      if (!updateCheck.needsUpdate) {
+        const loadTime = performance.now() - startTime
+        PerformanceMonitor.recordLoadTime("cache-hit", loadTime)
+        console.log(`⚡ Data loaded from cache in ${Math.round(loadTime)}ms (${cachedData.length} points)`)
+        return cachedData
+      }
+
+      // Nur neue Daten laden
+      console.log("🔄 Cache found but needs update, loading incremental data...")
+      return await loadIncrementalData(cachedData, updateCheck.lastTimestamp)
+    }
+
+    // 2. Vollständiger Datenload (erster Besuch)
+    console.log("📥 Performing full data load...")
+    PerformanceMonitor.recordLoadTime("cache-miss", performance.now() - startTime)
+    return await loadFullDataWithCache()
+
+  } catch (error) {
+    console.error("❌ Cache load failed, falling back to original method:", error)
+    // Fallback zur ursprünglichen Methode
+    return await loadHistoricalPriceDataOriginal()
+  }
+}
+
+/**
+ * Lädt nur neue Daten seit dem letzten Cache-Update
+ */
+async function loadIncrementalData(
+  cachedData: HistoricalDataPoint[],
+  lastTimestamp?: number
+): Promise<HistoricalDataPoint[]> {
+  try {
+    const now = new Date()
+    now.setUTCHours(0, 0, 0, 0)
+
+    const lastCacheDate = lastTimestamp ? new Date(lastTimestamp * 1000) : new Date(0)
+    lastCacheDate.setUTCHours(0, 0, 0, 0)
+
+    const daysSinceLastUpdate = Math.floor((now.getTime() - lastCacheDate.getTime()) / (1000 * 60 * 60 * 24))
+
+    if (daysSinceLastUpdate <= 0) {
+      console.log("📊 Cache is up to date")
+      return cachedData
+    }
+
+    // Nur fehlende Tage von API laden
+    console.log(`📡 Fetching ${daysSinceLastUpdate} missing days from API...`)
+    const newData = await fetchRecentDailyPrices(daysSinceLastUpdate)
+
+    // Daten mergen
+    const mergedData = cache.mergeWithNewData(cachedData, newData)
+
+    // Cache aktualisieren
+    await cache.saveToCache(mergedData)
+
+    console.log(`✅ Updated cache with ${newData.length} new data points`)
+    return mergedData
+
+  } catch (error) {
+    console.error("Incremental load failed:", error)
+    // Bei Fehler cached Daten zurückgeben
+    return cachedData
+  }
+}
+
+/**
+ * Vollständiger Datenload mit anschließendem Caching
+ */
+async function loadFullDataWithCache(): Promise<HistoricalDataPoint[]> {
+  const startTime = performance.now()
+
+  // Ursprüngliche Logik verwenden
+  const data = await loadHistoricalPriceDataOriginal()
+
+  // Daten cachen für zukünftige Verwendung
+  await cache.saveToCache(data)
+
+  const loadTime = performance.now() - startTime
+  PerformanceMonitor.recordLoadTime("full-load", loadTime)
+  console.log(`💾 Full data loaded and cached in ${Math.round(loadTime)}ms (${data.length} points)`)
+
+  return data
+}
+
+/**
+ * Minimaler Fallback mit statischen Daten
+ */
+async function loadMinimalFallbackData(): Promise<HistoricalDataPoint[]> {
+  console.log("🆘 Using minimal fallback data")
+  // Minimaler Datensatz für Notfälle
+  const now = Math.floor(Date.now() / 1000)
+  return [
+    { time: now - 365 * 24 * 60 * 60, close: 30000 }, // 1 Jahr zurück
+    { time: now - 30 * 24 * 60 * 60, close: 50000 },  // 1 Monat zurück
+    { time: now, close: 100000 } // Heute
+  ]
+}
+
+/**
+ * Robuste Fehlerbehandlung mit mehreren Fallback-Strategien
+ */
+export async function loadHistoricalPriceDataWithFallbacks(): Promise<HistoricalDataPoint[]> {
+  const strategies = [
+    () => loadHistoricalPriceData(),
+    () => loadHistoricalPriceDataOriginal(),
+    () => loadMinimalFallbackData()
+  ]
+
+  for (const [index, strategy] of strategies.entries()) {
+    try {
+      console.log(`🔄 Trying strategy ${index + 1}/${strategies.length}`)
+      const result = await strategy()
+      if (result.length > 0) {
+        return result
+      }
+    } catch (error) {
+      console.warn(`Strategy ${index + 1} failed:`, error)
+      if (index === strategies.length - 1) {
+        throw error
+      }
+    }
+  }
+
+  throw new Error("All loading strategies failed")
 }

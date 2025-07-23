@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LineChart, Legend } from "recharts"
 import { Download, RefreshCw, AlertTriangle, TrendingUp, Bitcoin, Info } from "lucide-react"
+import { toast } from "sonner"
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { PriceModelChart } from "@/components/price-model-chart"
@@ -18,7 +19,9 @@ import { LocaleSwitcher } from "@/components/locale-switcher"
 
 import { loadCurrentBtcPrice } from "@/lib/load-btc-price"
 import { loadHistoricalPriceData } from "@/lib/price-engine/historical-data-loader"
-import { generatePriceChartData } from "@/lib/price-engine"
+import { PerformanceMonitor } from "@/lib/price-engine/performance-monitor"
+import { HistoricalDataCache } from "@/lib/price-engine/cache-manager"
+import { generatePriceChartData, clearChartCache, getChartCacheStats } from "@/lib/price-engine"
 import type {
   HistoricalDataPoint,
   PriceModel,
@@ -156,6 +159,8 @@ export default function BitcoinSimulator() {
   const [currentPage, setCurrentPage] = useState(1)
   const [historicalPriceData, setHistoricalPriceData] = useState<HistoricalDataPoint[]>([])
   const [priceChartData, setPriceChartData] = useState<PriceChartDataPoint[]>([])
+  const [cacheStatus, setCacheStatus] = useState<'loading' | 'cached' | 'fresh' | 'error'>('loading')
+  const [chartLoading, setChartLoading] = useState(false)
 
   const firstRun = useRef(true)
 
@@ -177,6 +182,7 @@ export default function BitcoinSimulator() {
     if (historicalPriceData.length === 0) return
 
     const generateData = async () => {
+      setChartLoading(true)
       setIsLoading(true)
       try {
         // Calculate historical patterns needed for specific models
@@ -210,11 +216,21 @@ export default function BitcoinSimulator() {
         setErrors((prev) => [...prev, "Failed to generate price model data."])
       } finally {
         setIsLoading(false)
+        setChartLoading(false)
       }
     }
 
     generateData()
   }, [params, historicalPriceData])
+
+  // Optimierung: Chart-Daten nur regenerieren wenn sich relevante Parameter ändern
+  const relevantParams = useMemo(() => ({
+    priceModel: params.priceModel,
+    initialBtcPrice: params.initialBtcPrice,
+    simulationMonths: params.simulationMonths,
+    annualGrowthRates: params.annualGrowthRates,
+    powerLawSettings: params.powerLawSettings,
+  }), [params.priceModel, params.initialBtcPrice, params.simulationMonths, params.annualGrowthRates, params.powerLawSettings])
 
   // The simulation now consumes the pre-generated price data.
   const runSimulation = useCallback(
@@ -268,14 +284,23 @@ export default function BitcoinSimulator() {
     [params, priceChartData, historicalPriceData],
   )
 
-  // This effect loads the initial historical data ONCE on component mount.
+  // This effect loads the initial historical data ONCE on component mount with caching optimization.
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true)
       setErrors([])
+      setCacheStatus('loading')
+
       try {
+        const startTime = performance.now()
         const data = await loadHistoricalPriceData()
+        const loadTime = performance.now() - startTime
+
         setHistoricalPriceData(data)
+
+        // Cache-Status basierend auf Ladezeit und Cache-Logs bestimmen
+        const isCacheHit = loadTime < 1000 // Großzügige Grenze für Cache-Hits
+        setCacheStatus(isCacheHit ? 'cached' : 'fresh')
 
         if (firstRun.current) {
           firstRun.current = false
@@ -283,8 +308,17 @@ export default function BitcoinSimulator() {
           const initialPrice = (await loadCurrentBtcPrice()) ?? latestPrice
           setParams((p) => ({ ...p, initialBtcPrice: initialPrice }))
         }
+
+        console.log(`📊 Historical data loaded: ${data.length} points in ${Math.round(loadTime)}ms`)
+
+        // Performance Report nach dem ersten Load
+        if (firstRun.current === false) {
+          PerformanceMonitor.logPerformanceReport()
+        }
+
       } catch (e) {
         console.error("Failed to load data:", e)
+        setCacheStatus('error')
         setErrors((prev) => [...prev, t("Errors.failedToLoadHistoricalData")])
         setIsLoading(false)
       }
@@ -387,6 +421,34 @@ export default function BitcoinSimulator() {
     setErrors([])
   }
 
+  const clearCache = async () => {
+    try {
+      // Beide Caches leeren
+      const cache = new HistoricalDataCache()
+      cache.clearCache()
+      clearChartCache()
+
+      setCacheStatus('loading')
+
+      // Daten neu laden
+      setIsLoading(true)
+      const data = await loadHistoricalPriceData()
+      setHistoricalPriceData(data)
+
+      // Chart-Daten werden automatisch neu generiert durch useEffect
+      setIsLoading(false)
+
+      // Cache-Statistiken loggen
+      const chartStats = getChartCacheStats()
+      console.log("📊 Cache cleared - Chart cache stats:", chartStats)
+
+      toast.success("All caches cleared and data reloaded successfully!")
+    } catch (error) {
+      console.error("Failed to clear cache:", error)
+      toast.error("Failed to clear cache")
+    }
+  }
+
   const formatEvent = (event: MonthlyEvent) => {
     switch (event.type) {
       case "withdrawal_skipped":
@@ -440,16 +502,6 @@ export default function BitcoinSimulator() {
                     <div>
                       <Label htmlFor="btcAmount">
                         {t("BasicParams.btcAmount")}
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Info className="w-4 h-4 ml-1 inline" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>{t("BasicParams.btcAmountTooltip")}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
                       </Label>
                       <Input
                         id="btcAmount"
@@ -463,7 +515,7 @@ export default function BitcoinSimulator() {
                     <div>
                       <Label htmlFor="initialBtcPrice">
                         {t("BasicParams.initialBtcPrice")}
-                        <TooltipProvider>
+
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Info className="w-4 h-4 ml-1 inline" />
@@ -472,7 +524,7 @@ export default function BitcoinSimulator() {
                               <p>{t("BasicParams.initialBtcPriceTooltip")}</p>
                             </TooltipContent>
                           </Tooltip>
-                        </TooltipProvider>
+
                       </Label>
                       <div className="flex gap-2">
                         <Input
@@ -503,7 +555,7 @@ export default function BitcoinSimulator() {
                     <div>
                       <Label htmlFor="loanTermMonths">
                         {t("BasicParams.loanTerm")}
-                        <TooltipProvider>
+
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Info className="w-4 h-4 ml-1 inline" />
@@ -512,7 +564,7 @@ export default function BitcoinSimulator() {
                               <p>{t("BasicParams.loanTermTooltip")}</p>
                             </TooltipContent>
                           </Tooltip>
-                        </TooltipProvider>
+
                       </Label>
                       <Input
                         id="loanTermMonths"
@@ -527,7 +579,7 @@ export default function BitcoinSimulator() {
                     <div>
                       <Label htmlFor="simulationMonths">
                         {t("BasicParams.simulationDuration")}
-                        <TooltipProvider>
+
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Info className="w-4 h-4 ml-1 inline" />
@@ -536,7 +588,7 @@ export default function BitcoinSimulator() {
                               <p>{t("BasicParams.simulationDurationTooltip")}</p>
                             </TooltipContent>
                           </Tooltip>
-                        </TooltipProvider>
+
                       </Label>
                       <Input
                         id="simulationMonths"
@@ -553,7 +605,7 @@ export default function BitcoinSimulator() {
                     <div>
                       <Label htmlFor="annualInterestRate">
                         {t("BasicParams.interestRate")}
-                        <TooltipProvider>
+
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Info className="w-4 h-4 ml-1 inline" />
@@ -562,7 +614,7 @@ export default function BitcoinSimulator() {
                               <p>{t("BasicParams.interestRateTooltip")}</p>
                             </TooltipContent>
                           </Tooltip>
-                        </TooltipProvider>
+
                       </Label>
                       <Input
                         id="annualInterestRate"
@@ -577,7 +629,7 @@ export default function BitcoinSimulator() {
                     <div>
                       <Label htmlFor="loanOriginationFeePercent">
                         {t("BasicParams.originationFee")}
-                        <TooltipProvider>
+
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Info className="w-4 h-4 ml-1 inline" />
@@ -586,7 +638,7 @@ export default function BitcoinSimulator() {
                               <p>{t("BasicParams.originationFeeTooltip")}</p>
                             </TooltipContent>
                           </Tooltip>
-                        </TooltipProvider>
+
                       </Label>
                       <Input
                         id="loanOriginationFeePercent"
@@ -637,7 +689,7 @@ export default function BitcoinSimulator() {
                     <div>
                       <Label htmlFor="monthlyWithdrawalAmount">
                         {t("Strategy.monthlyWithdrawal")}
-                        <TooltipProvider>
+
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Info className="w-4 h-4 ml-1 inline" />
@@ -646,7 +698,7 @@ export default function BitcoinSimulator() {
                               <p>{t("Strategy.monthlyWithdrawalTooltip")}</p>
                             </TooltipContent>
                           </Tooltip>
-                        </TooltipProvider>
+
                       </Label>
                       <Input
                         id="monthlyWithdrawalAmount"
@@ -669,7 +721,7 @@ export default function BitcoinSimulator() {
                       <div>
                         <Label htmlFor="targetLtv">
                           {t("RiskManagement.targetLtv")}
-                          <TooltipProvider>
+  
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Info className="w-4 h-4 ml-1 inline" />
@@ -678,7 +730,7 @@ export default function BitcoinSimulator() {
                                 <p>{t("RiskManagement.targetLtvTooltip")}</p>
                               </TooltipContent>
                             </Tooltip>
-                          </TooltipProvider>
+  
                         </Label>
                         <Input
                           id="targetLtv"
@@ -698,7 +750,7 @@ export default function BitcoinSimulator() {
                       <div>
                         <Label htmlFor="liquidationLtv">
                           {t("RiskManagement.liquidationLtv")}
-                          <TooltipProvider>
+  
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Info className="w-4 h-4 ml-1 inline" />
@@ -707,7 +759,7 @@ export default function BitcoinSimulator() {
                                 <p>{t("RiskManagement.liquidationLtvTooltip")}</p>
                               </TooltipContent>
                             </Tooltip>
-                          </TooltipProvider>
+  
                         </Label>
                         <Input
                           id="liquidationLtv"
@@ -771,7 +823,7 @@ export default function BitcoinSimulator() {
                     <div>
                       <Label htmlFor="ath-threshold">
                         {t("InvestmentStrategy.athThreshold")}
-                        <TooltipProvider>
+
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Info className="w-4 h-4 ml-1 inline" />
@@ -780,7 +832,7 @@ export default function BitcoinSimulator() {
                               <p>{t("InvestmentStrategy.athThresholdTooltip")}</p>
                             </TooltipContent>
                           </Tooltip>
-                        </TooltipProvider>
+
                       </Label>
                       <Input
                         id="ath-threshold"
@@ -814,7 +866,7 @@ export default function BitcoinSimulator() {
                       <div>
                         <Label htmlFor="ma-period">
                           {t("InvestmentStrategy.movingAveragePeriod")}
-                          <TooltipProvider>
+  
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Info className="w-4 h-4 ml-1 inline" />
@@ -823,7 +875,7 @@ export default function BitcoinSimulator() {
                                 <p>{t("InvestmentStrategy.movingAveragePeriodTooltip")}</p>
                               </TooltipContent>
                             </Tooltip>
-                          </TooltipProvider>
+  
                         </Label>
                         <Input
                           id="ma-period"
@@ -846,7 +898,7 @@ export default function BitcoinSimulator() {
                       <div>
                         <Label htmlFor="investment-multiplier">
                           {t("InvestmentStrategy.investmentMultiplier")}
-                          <TooltipProvider>
+  
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Info className="w-4 h-4 ml-1 inline" />
@@ -855,7 +907,7 @@ export default function BitcoinSimulator() {
                                 <p>{t("InvestmentStrategy.investmentMultiplierTooltip")}</p>
                               </TooltipContent>
                             </Tooltip>
-                          </TooltipProvider>
+  
                         </Label>
                         <Input
                           id="investment-multiplier"
@@ -964,6 +1016,28 @@ export default function BitcoinSimulator() {
             </Card>
 
 
+            {/* Cache Status Feedback */}
+            {isLoading && (
+              <div className="text-center py-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                <p className="text-sm text-muted-foreground">
+                  {cacheStatus === 'loading' && !chartLoading && "Loading historical data..."}
+                  {cacheStatus === 'cached' && !chartLoading && "Loading from cache..."}
+                  {cacheStatus === 'fresh' && !chartLoading && "Loading data..."}
+                  {chartLoading && "Generating chart from cache..."}
+                </p>
+              </div>
+            )}
+
+            {/* Cache Status Badge */}
+            {!isLoading && cacheStatus === 'cached' && (
+              <div className="flex justify-center mb-4">
+                <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                  📦 Data loaded from cache
+                </div>
+              </div>
+            )}
+
             <div className="flex flex-wrap gap-4">
               <Button onClick={() => runSimulation()} disabled={isLoading || priceChartData.length === 0}>
                 {isLoading ? (
@@ -980,6 +1054,9 @@ export default function BitcoinSimulator() {
               </Button>
               <Button variant="outline" onClick={resetParams}>
                 {t("Parameters.reset")}
+              </Button>
+              <Button variant="outline" onClick={clearCache} className="text-xs">
+                🗑️ Clear Cache
               </Button>
               {results.length > 0 && (
                 <Button variant="outline" onClick={exportToCsv} className="flex items-center gap-2 bg-transparent">

@@ -4,6 +4,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { GENESIS_DATE } from "@/lib/price-engine/models/power-law"
 import type { PriceChartDataPoint } from "@/lib/price-engine/types"
+import { useMemo } from "react"
 
 interface PriceModelChartProps {
   chartData: PriceChartDataPoint[]
@@ -12,6 +13,15 @@ interface PriceModelChartProps {
 
 export function PriceModelChart({ chartData, isLoading }: PriceModelChartProps) {
   const { t } = useTranslation()
+
+  // Optimierung: Reduziere Datenpunkte für bessere Performance
+  const optimizedChartData = useMemo(() => {
+    if (chartData.length <= 1000) return chartData
+
+    // Sample jeden n-ten Datenpunkt für bessere Performance
+    const sampleRate = Math.ceil(chartData.length / 1000)
+    return chartData.filter((_, index) => index % sampleRate === 0)
+  }, [chartData])
 
   const formatXAxis = (tickItem: number) => {
     // tickItem is now the number of days
@@ -46,7 +56,7 @@ export function PriceModelChart({ chartData, isLoading }: PriceModelChartProps) 
       <CardContent>
         <div className="h-96 w-full">
           <ResponsiveContainer>
-            <LineChart data={chartData}>
+            <LineChart data={optimizedChartData}>
               <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
               <XAxis
                 dataKey="days"
@@ -79,6 +89,7 @@ export function PriceModelChart({ chartData, isLoading }: PriceModelChartProps) 
                 strokeWidth={2}
                 dot={false}
                 connectNulls={false}
+                isAnimationActive={false}
               />
               <Line
                 type="monotone"
@@ -88,6 +99,7 @@ export function PriceModelChart({ chartData, isLoading }: PriceModelChartProps) 
                 strokeWidth={2}
                 dot={false}
                 connectNulls={false}
+                isAnimationActive={false}
               />
               <Line
                 type="monotone"
@@ -97,6 +109,7 @@ export function PriceModelChart({ chartData, isLoading }: PriceModelChartProps) 
                 strokeWidth={1.5}
                 dot={false}
                 strokeDasharray="5 5"
+                isAnimationActive={false}
               />
               <Line
                 type="monotone"
@@ -106,6 +119,7 @@ export function PriceModelChart({ chartData, isLoading }: PriceModelChartProps) 
                 strokeWidth={1.5}
                 dot={false}
                 strokeDasharray="5 5"
+                isAnimationActive={false}
               />
               <Line
                 type="monotone"
@@ -115,6 +129,7 @@ export function PriceModelChart({ chartData, isLoading }: PriceModelChartProps) 
                 strokeWidth={1.5}
                 dot={false}
                 strokeDasharray="5 5"
+                isAnimationActive={false}
               />
               <Brush dataKey="days" height={30} stroke="#8884d8" tickFormatter={formatXAxis} />
             </LineChart>
