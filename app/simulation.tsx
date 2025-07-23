@@ -305,27 +305,19 @@ export default function BitcoinSimulator() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [priceChartData])
 
-  // The old complex `chartData` useMemo is gone. We now create the data for the
-  // second chart by merging the financial results with the price chart data.
+  // Create chart data that only shows the simulation period (not historical data)
   const financialChartData = useMemo(() => {
-    if (results.length === 0 || priceChartData.length === 0) return []
+    if (results.length === 0) return []
 
-    const resultsMap = new Map(results.map((r) => [r.dateString, r]))
-
-    return priceChartData.map((p) => {
-      const date = new Date(p.date)
-      const dateString = `${(date.getUTCMonth() + 1).toString().padStart(2, "0")}/${date.getUTCFullYear()}`
-      const resultData = resultsMap.get(dateString)
-
-      return {
-        date: dateString,
-        collateralValue: resultData?.collateralValue,
-        lockedCollateralValue: resultData ? resultData.lockedBtc * resultData.btcPrice : undefined,
-        totalDebt: resultData?.totalDebt,
-        btcPrice: p.simulationPath || p.historicalPrice,
-      }
-    })
-  }, [results, priceChartData])
+    // Create chart data directly from simulation results
+    return results.map((result) => ({
+      date: result.dateString,
+      collateralValue: result.collateralValue,
+      lockedCollateralValue: result.lockedBtc * result.btcPrice,
+      totalDebt: result.totalDebt,
+      btcPrice: result.btcPrice,
+    }))
+  }, [results])
 
   const summary = useMemo(() => {
     if (results.length === 0) return null
