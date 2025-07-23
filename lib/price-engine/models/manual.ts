@@ -1,5 +1,35 @@
-// lib/price-engine/models/manual.ts
-// This file will contain the logic for the Manual Growth price model.
-// Implementation will follow in the next steps.
+import type { PriceEngineParams } from "../types"
 
-export {}
+interface PathPoint {
+  date: Date
+  price: number
+}
+
+/**
+ * Generates a future price path based on a series of manual annual growth rates.
+ * @param params - The parameters required for the engine, including initial price, duration, and growth rates.
+ * @returns An array of objects, each containing the date and the projected price for that date.
+ */
+export function generateManualPath(params: PriceEngineParams): PathPoint[] {
+  const { simulationMonths, initialBtcPrice, annualGrowthRates } = params
+  const path: PathPoint[] = []
+  const simulationStartDate = new Date()
+
+  let lastPrice = initialBtcPrice
+
+  for (let month = 1; month <= simulationMonths; month++) {
+    const currentDate = new Date(simulationStartDate)
+    currentDate.setMonth(currentDate.getMonth() + month - 1)
+
+    // Determine the annual growth rate for the current year of the simulation
+    const yearIndex = Math.min(Math.floor((month - 1) / 12), annualGrowthRates.length - 1)
+    const annualGrowthRate = annualGrowthRates[yearIndex] / 100
+    const monthlyGrowthRate = Math.pow(1 + annualGrowthRate, 1 / 12) - 1
+
+    const newPrice = lastPrice * (1 + monthlyGrowthRate)
+    path.push({ date: currentDate, price: newPrice })
+    lastPrice = newPrice
+  }
+
+  return path
+}
