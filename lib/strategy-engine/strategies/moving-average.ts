@@ -1,9 +1,10 @@
 // lib/strategy-engine/strategies/moving-average.ts
 
-import type { 
-  InvestmentStrategyInterface, 
-  StrategyContext, 
-  StrategyDecision 
+import type {
+  InvestmentStrategyInterface,
+  StrategyContext,
+  StrategyDecision,
+  StrategyMetadata
 } from "../types"
 
 /**
@@ -19,6 +20,27 @@ export class MovingAverageStrategy implements InvestmentStrategyInterface {
 
   getDescription(): string {
     return "Adjusts investment based on BTC price relative to long-term moving average. More aggressive above MA, conservative below."
+  }
+
+  getMetadata(): StrategyMetadata {
+    return {
+      securityRating: 3, // Moderate security - can be aggressive above MA
+      complexityRating: 4, // More complex with multiple parameters
+      suitableFor: ["advanced", "aggressive", "technical_analysis"],
+      criteria: ["moving_average", "price_trend", "investment_multiplier", "target_ltv"]
+    }
+  }
+
+  getDetailedDescription(): string {
+    return "The Moving Average Strategy uses technical analysis to adjust investment aggressiveness based on Bitcoin's price position relative to its long-term moving average. This strategy assumes that prices above the moving average indicate an uptrend, while prices below suggest a downtrend or consolidation phase."
+  }
+
+  getFunctionality(): string {
+    return "The strategy calculates a moving average (default: 200 weeks) from historical price data and compares the current price to this average. When price is above the MA, it allows normal or increased investment using a configurable multiplier. When below the MA, it reduces investment to be more conservative during potential downtrends."
+  }
+
+  getSuitability(): string {
+    return "Best suited for advanced investors who understand technical analysis and market trends. Ideal for those who want to be more aggressive during uptrends and conservative during downtrends. Requires careful parameter tuning and understanding of moving average concepts. Not recommended for beginners due to its complexity and potential for increased volatility in investment decisions."
   }
 
   /**

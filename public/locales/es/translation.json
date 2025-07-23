@@ -88,11 +88,21 @@
     "athThreshold": "Umbral ATH (%)",
     "athThresholdTooltip": "La inversión se bloquea cuando el precio de BTC excede este porcentaje del máximo histórico.",
     "movingAverageSettingsTitle": "Configuración de Estrategia de Media Móvil",
-    "movingAverageSettingsDescription": "Configura los ajustes de inversión basados en la media móvil.",
+    "movingAverageSettingsDescription": "Configura los ajustes de inversión basados en media móvil.",
     "movingAveragePeriod": "Período de Media Móvil (Semanas)",
     "movingAveragePeriodTooltip": "El período en semanas para calcular la media móvil (predeterminado: 200 semanas).",
     "investmentMultiplier": "Multiplicador de Inversión",
-    "investmentMultiplierTooltip": "Multiplicador base para la capacidad de inversión cuando está por encima de la media móvil."
+    "investmentMultiplierTooltip": "Multiplicador base para la capacidad de inversión cuando está por encima de la media móvil.",
+    "settingsTitle": "Configuración",
+    "explanationTitle": "Explicación de la Estrategia",
+    "functionality": "Cómo Funciona",
+    "suitability": "Idoneidad",
+    "criteria": "Criterios de Decisión",
+    "securityRating": "Calificación de Seguridad",
+    "complexityRating": "Calificación de Complejidad",
+    "securityTooltip": "1 = Muy arriesgado, 5 = Muy seguro",
+    "complexityTooltip": "1 = Muy simple, 5 = Muy complejo",
+    "ratingOutOf5": "de 5"
   },
   "Results": {
     "summaryTitle": "Resumen",
