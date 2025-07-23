@@ -11,8 +11,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Legend } from "recharts"
 import { Download, RefreshCw, AlertTriangle, TrendingUp, Bitcoin, Info } from "lucide-react"
 import { TooltipProvider } from "@/components/ui/tooltip"
-import { getPowerLawPrice, type PowerLawLine, getDaysSinceGenesis } from "@/lib/price-models/power-law"
-import { getCycleRepeatPrice } from "@/lib/price-models/cycle-repeat"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { PriceModelChart } from "@/components/price-model-chart"
 import { ModeToggle } from "@/components/mode-toggle"
@@ -20,41 +18,18 @@ import { LocaleSwitcher } from "@/components/locale-switcher"
 import i18n from "@/lib/i18n"
 import { loadCurrentBtcPrice } from "@/lib/load-btc-price"
 import { loadHistoricalPriceData } from "@/lib/price-engine/historical-data-loader"
-import type { HistoricalDataPoint } from "@/lib/price-engine/types"
+import { generatePriceChartData } from "@/lib/price-engine"
+import type {
+  HistoricalDataPoint,
+  PriceModel,
+  PowerLawLine,
+  PriceChartDataPoint,
+  PriceEngineParams,
+} from "@/lib/price-engine/types"
+import { getPowerLawPrice } from "@/lib/price-engine/models/power-law"
 
-// Types
-type PriceModel = "manual" | "powerLaw" | "cycleRepeat" | "cycleRepeatPowerLaw"
-type MonthlyEvent =
-  | { type: "withdrawal_skipped" }
-  | { type: "deleveraged"; amount: number }
-  | { type: "liquidated"; id: number }
-  | { type: "collateral_topped_up"; loanId: number; amount: number }
-
-interface PowerLawSettings {
-  prognosisLine: PowerLawLine
-}
-
-interface RiskManagementSettings {
-  targetLtv: number
-  liquidationLtv: number
-}
-
-interface SimulationParams {
-  btcAmount: number
-  initialBtcPrice: number
-  monthlyWithdrawalAmount: number
-  annualInterestRate: number
-  loanOriginationFeePercent: number
-  loanTermMonths: number
-  simulationMonths: number
-  maxLoanAmount: number
-  annualGrowthRates: number[]
-  priceModel: PriceModel
-  powerLawSettings: PowerLawSettings
-  riskManagement: RiskManagementSettings
-  expectedAnnualInflation: number
-}
-
+// All specific types are now imported from the engine's type definition file.
+// Financial-specific types remain here.
 interface Loan {
   id: number
   month: number
@@ -84,6 +59,33 @@ interface MonthlyResult {
   events: MonthlyEvent[]
 }
 
+type MonthlyEvent =
+  | { type: "withdrawal_skipped" }
+  | { type: "deleveraged"; amount: number }
+  | { type: "liquidated"; id: number }
+  | { type: "collateral_topped_up"; loanId: number; amount: number }
+
+interface SimulationParams {
+  btcAmount: number
+  initialBtcPrice: number
+  monthlyWithdrawalAmount: number
+  annualInterestRate: number
+  loanOriginationFeePercent: number
+  loanTermMonths: number
+  simulationMonths: number
+  maxLoanAmount: number
+  annualGrowthRates: number[]
+  priceModel: PriceModel
+  powerLawSettings: {
+    prognosisLine: PowerLawLine
+  }
+  riskManagement: {
+    targetLtv: number
+    liquidationLtv: number
+  }
+  expectedAnnualInflation: number
+}
+
 const PLATFORM_LTV_NEW_LOANS = 50
 
 const DEFAULT_PARAMS: SimulationParams = {
@@ -107,7 +109,7 @@ const DEFAULT_PARAMS: SimulationParams = {
   expectedAnnualInflation: 2,
 }
 
-const PARAMS_STORAGE_KEY = "btc-simulator-params-v18" // Final calibration
+const PARAMS_STORAGE_KEY = "btc-simulator-params-v19-engine-refactor"
 
 function BitcoinSimulator() {
   const { t, i18n } = useTranslation()
@@ -134,6 +136,7 @@ function BitcoinSimulator() {
   const [loadingBtcPrice, setLoadingBtcPrice] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [historicalPriceData, setHistoricalPriceData] = useState<HistoricalDataPoint[]>([])
+  const [priceChartData, setPriceChartData] = useState<PriceChartDataPoint[]>([])
 
   const firstRun = useRef(true)
 
@@ -149,316 +152,255 @@ function BitcoinSimulator() {
     }
   }, [params])
 
-  const historicalDailyMultipliers = useMemo(() => {
-    if (params.priceModel !== "cycleRepeat" || historicalPriceData.length < 2) {
-      return null
-    }
-    const multipliers: number[] = []
-    const relevantData = historicalPriceData.slice(-1458)
-    for (let i = 1; i < relevantData.length; i++) {
-      multipliers.push(relevantData[i].close / relevantData[i - 1].close)
-    }
-    return multipliers
-  }, [historicalPriceData, params.priceModel])
+  // This effect is now solely responsible for generating the complete price chart data
+  // by calling the new Price Engine whenever parameters change.
+  useEffect(() => {
+    if (historicalPriceData.length === 0) return
 
-  const historicalChannelPositions = useMemo(() => {
-    if (params.priceModel !== "cycleRepeatPowerLaw" || historicalPriceData.length === 0) {
-      return null
-    }
+    const generateData = async () => {
+      setIsLoading(true)
+      try {
+        // Calculate historical patterns needed for specific models
+        const historicalDailyMultipliers = historicalPriceData
+          .slice(-1458)
+          .map((p, i, arr) => (i > 0 ? p.close / arr[i - 1].close : 1))
+          .slice(1)
 
-    const positions = historicalPriceData.slice(-1458).map((dataPoint) => {
-      const date = new Date(dataPoint.time * 1000)
-      const price = dataPoint.close
-      const support = getPowerLawPrice(date, "support")
-      const resistance = getPowerLawPrice(date, "resistance")
-      const channelWidth = resistance - support
+        const historicalChannelPositions = historicalPriceData.slice(-1458).map((dataPoint) => {
+          const date = new Date(dataPoint.time * 1000)
+          const price = dataPoint.close
+          const support = getPowerLawPrice(date, "support")
+          const resistance = getPowerLawPrice(date, "resistance")
+          const channelWidth = resistance - support
+          if (channelWidth <= 0) return 0.5
+          return Math.max(0, Math.min(1, (price - support) / channelWidth))
+        })
 
-      if (channelWidth <= 0) {
-        return 0.5 // Default to fit line if channel is invalid
+        // Prepare parameters for the engine
+        const engineParams: PriceEngineParams = {
+          ...params,
+          historicalDailyMultipliers,
+          historicalChannelPositions,
+        }
+
+        // Call the engine to get the complete chart data
+        const chartData = await generatePriceChartData(engineParams, historicalPriceData)
+        setPriceChartData(chartData)
+      } catch (error) {
+        console.error("Error generating price chart data:", error)
+        setErrors((prev) => [...prev, "Failed to generate price model data."])
+      } finally {
+        setIsLoading(false)
       }
+    }
 
-      const position = (price - support) / channelWidth
-      // Clamp the value between 0 and 1 to handle historical breaches
-      return Math.max(0, Math.min(1, position))
-    })
+    generateData()
+  }, [params, historicalPriceData])
 
-    return positions
-  }, [historicalPriceData, params.priceModel])
-
+  // The simulation now consumes the pre-generated price data.
   const runSimulation = useCallback(
     async (initialBtcPriceOverride?: number) => {
+      if (priceChartData.length === 0) return // Don't run if price data isn't ready
+
       const currentParams = initialBtcPriceOverride ? { ...params, initialBtcPrice: initialBtcPriceOverride } : params
       setIsLoading(true)
       setErrors([])
 
       await new Promise((resolve) => setTimeout(resolve, 50))
 
-      try {
-        if (currentParams.priceModel === "cycleRepeat" && !historicalDailyMultipliers) {
-          setErrors((prev) => [...prev, t("Errors.historicalDataNotReady")])
-          setIsLoading(false)
-          return
+      // Create a fast lookup map for prices
+      const priceLookup = new Map<string, number>()
+      priceChartData.forEach((p) => {
+        if (p.simulationPath) {
+          priceLookup.set(p.date, p.simulationPath)
         }
-        if (currentParams.priceModel === "cycleRepeatPowerLaw" && !historicalChannelPositions) {
-          setErrors((prev) => [...prev, t("Errors.historicalDataNotReady")])
-          setIsLoading(false)
-          return
-        }
+      })
 
-        const tempResults: MonthlyResult[] = []
-        let activeLoans: Loan[] = []
-        let totalBtcAmount = currentParams.btcAmount
-        let nextLoanId = 1
-        const simulationStartDate = new Date()
-        const monthlyInflationRate = Math.pow(1 + currentParams.expectedAnnualInflation / 100, 1 / 12) - 1
-        let cumulativeInflationFactor = 1
+      const tempResults: MonthlyResult[] = []
+      let activeLoans: Loan[] = []
+      let totalBtcAmount = currentParams.btcAmount
+      let nextLoanId = 1
+      const simulationStartDate = new Date()
+      const monthlyInflationRate = Math.pow(1 + currentParams.expectedAnnualInflation / 100, 1 / 12) - 1
+      let cumulativeInflationFactor = 1
 
-        for (let month = 1; month <= currentParams.simulationMonths; month++) {
-          cumulativeInflationFactor *= 1 + monthlyInflationRate
-          const currentDate = new Date(simulationStartDate)
-          currentDate.setMonth(currentDate.getMonth() + month - 1)
-          const dateString = `${(currentDate.getMonth() + 1).toString().padStart(2, "0")}/${currentDate.getFullYear()}`
+      for (let month = 1; month <= currentParams.simulationMonths; month++) {
+        cumulativeInflationFactor *= 1 + monthlyInflationRate
+        const currentDate = new Date(simulationStartDate)
+        currentDate.setMonth(currentDate.getMonth() + month - 1)
+        const dateStringForTable = `${(currentDate.getMonth() + 1).toString().padStart(2, "0")}/${currentDate.getFullYear()}`
+        const dateStringForLookup = currentDate.toISOString().split("T")[0]
 
-          let btcPrice: number
-          if (currentParams.priceModel === "powerLaw") {
-            btcPrice =
-              month === 1
-                ? currentParams.initialBtcPrice
-                : getPowerLawPrice(currentDate, currentParams.powerLawSettings.prognosisLine)
-          } else if (currentParams.priceModel === "manual") {
-            const prevPrice = month > 1 ? tempResults[month - 2].btcPrice : currentParams.initialBtcPrice
-            const yearIndex = Math.min(Math.floor((month - 1) / 12), currentParams.annualGrowthRates.length - 1)
-            const annualGrowthRate = currentParams.annualGrowthRates[yearIndex] / 100
-            const monthlyGrowthRate = Math.pow(1 + annualGrowthRate, 1 / 12) - 1
-            btcPrice = prevPrice * (1 + monthlyGrowthRate)
-          } else if (currentParams.priceModel === "cycleRepeat") {
-            btcPrice = getCycleRepeatPrice(
-              month,
-              currentParams.initialBtcPrice,
-              historicalDailyMultipliers!,
-              currentParams.simulationMonths,
-            )
-          } else if (currentParams.priceModel === "cycleRepeatPowerLaw") {
-            const midMonthDate = new Date(currentDate)
-            midMonthDate.setDate(15)
+        // Get the pre-calculated BTC price from our lookup map.
+        // The complex price calculation logic is GONE from this function.
+        const btcPrice = priceLookup.get(dateStringForLookup) ?? currentParams.initialBtcPrice
 
-            const diffTime = midMonthDate.getTime() - simulationStartDate.getTime()
-            const daysIntoSimulation = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+        const monthlyEvents: MonthlyEvent[] = []
+        const collateralValue = totalBtcAmount * btcPrice
+        const debtCapacity = collateralValue * (currentParams.riskManagement.targetLtv / 100)
 
-            const positionIndex = daysIntoSimulation % historicalChannelPositions!.length
-            const channelPosition = historicalChannelPositions![positionIndex]
+        const maturingLoans = activeLoans.filter((l) => l.maturityMonth === month)
+        const repaymentDue = maturingLoans.reduce((sum, l) => sum + l.repaymentAmount, 0)
+        const debtFromOngoingLoans = activeLoans
+          .filter((l) => l.maturityMonth !== month)
+          .reduce((sum, l) => sum + l.repaymentAmount, 0)
+        let withdrawalThisMonth = currentParams.monthlyWithdrawalAmount
 
-            const futureSupport = getPowerLawPrice(midMonthDate, "support")
-            const futureResistance = getPowerLawPrice(midMonthDate, "resistance")
-            const futureChannelWidth = futureResistance - futureSupport
+        let principalForNeeds =
+          (repaymentDue + withdrawalThisMonth) / (1 - currentParams.loanOriginationFeePercent / 100)
+        let principalForReinvestment = 0
 
-            btcPrice = futureSupport + channelPosition * futureChannelWidth
-          } else {
-            btcPrice = currentParams.initialBtcPrice
-          }
-          const monthlyEvents: MonthlyEvent[] = []
+        const projectedDebtAfterNeeds = debtFromOngoingLoans + principalForNeeds
 
-          const collateralValue = totalBtcAmount * btcPrice
-          const debtCapacity = collateralValue * (currentParams.riskManagement.targetLtv / 100)
+        if (projectedDebtAfterNeeds <= debtCapacity) {
+          const remainingDebtCapacity = debtCapacity - projectedDebtAfterNeeds
+          principalForReinvestment = remainingDebtCapacity
+        } else {
+          principalForReinvestment = 0
+          withdrawalThisMonth = 0
+          monthlyEvents.push({ type: "withdrawal_skipped" })
 
-          const maturingLoans = activeLoans.filter((l) => l.maturityMonth === month)
-          const repaymentDue = maturingLoans.reduce((sum, l) => sum + l.repaymentAmount, 0)
-          const debtFromOngoingLoans = activeLoans
-            .filter((l) => l.maturityMonth !== month)
-            .reduce((sum, l) => sum + l.repaymentAmount, 0)
-          let withdrawalThisMonth = currentParams.monthlyWithdrawalAmount
+          principalForNeeds = repaymentDue / (1 - currentParams.loanOriginationFeePercent / 100)
+          const projectedDebtForRepaymentOnly = debtFromOngoingLoans + principalForNeeds
 
-          let principalForNeeds =
-            (repaymentDue + withdrawalThisMonth) / (1 - currentParams.loanOriginationFeePercent / 100)
-          let principalForReinvestment = 0
+          if (projectedDebtForRepaymentOnly > debtCapacity) {
+            const shortfall = projectedDebtForRepaymentOnly - debtCapacity
+            const btcToSell = shortfall / btcPrice
 
-          const projectedDebtAfterNeeds = debtFromOngoingLoans + principalForNeeds
-
-          if (projectedDebtAfterNeeds <= debtCapacity) {
-            const remainingDebtCapacity = debtCapacity - projectedDebtAfterNeeds
-            principalForReinvestment = remainingDebtCapacity
-          } else {
-            principalForReinvestment = 0
-            withdrawalThisMonth = 0
-            monthlyEvents.push({ type: "withdrawal_skipped" })
-
-            principalForNeeds = repaymentDue / (1 - currentParams.loanOriginationFeePercent / 100)
-            const projectedDebtForRepaymentOnly = debtFromOngoingLoans + principalForNeeds
-
-            if (projectedDebtForRepaymentOnly > debtCapacity) {
-              const shortfall = projectedDebtForRepaymentOnly - debtCapacity
-              const btcToSell = shortfall / btcPrice
-
-              if (totalBtcAmount > btcToSell) {
-                totalBtcAmount -= btcToSell
-                monthlyEvents.push({ type: "deleveraged", amount: btcToSell })
-                principalForNeeds = debtCapacity - debtFromOngoingLoans
-              } else {
-                totalBtcAmount = 0
-                activeLoans.forEach((l) => monthlyEvents.push({ type: "liquidated", id: l.id }))
-                principalForNeeds = 0
-              }
+            if (totalBtcAmount > btcToSell) {
+              totalBtcAmount -= btcToSell
+              monthlyEvents.push({ type: "deleveraged", amount: btcToSell })
+              principalForNeeds = debtCapacity - debtFromOngoingLoans
+            } else {
+              totalBtcAmount = 0
+              activeLoans.forEach((l) => monthlyEvents.push({ type: "liquidated", id: l.id }))
+              principalForNeeds = 0
             }
           }
-
-          activeLoans = activeLoans.filter((l) => l.maturityMonth !== month)
-
-          const totalNewPrincipal = principalForNeeds + principalForReinvestment
-          const interestFactor = 1 + (currentParams.annualInterestRate / 100) * (currentParams.loanTermMonths / 12)
-
-          let principalLeftToCreate = totalNewPrincipal
-          while (principalLeftToCreate > 1) {
-            const loanPrincipal = Math.min(principalLeftToCreate, currentParams.maxLoanAmount)
-            const newRepaymentAmount = loanPrincipal * interestFactor
-            const btcToLock = newRepaymentAmount / (btcPrice * (PLATFORM_LTV_NEW_LOANS / 100))
-
-            if (totalBtcAmount < btcToLock) break
-
-            activeLoans.push({
-              id: nextLoanId++,
-              month: month,
-              principal: loanPrincipal,
-              maturityMonth: month + currentParams.loanTermMonths,
-              repaymentAmount: newRepaymentAmount,
-              lockedBtc: btcToLock,
-            })
-            principalLeftToCreate -= loanPrincipal
-          }
-
-          let reinvestmentAmount = 0
-          if (principalForReinvestment > 0) {
-            const proceeds = principalForReinvestment * (1 - currentParams.loanOriginationFeePercent / 100)
-            const btcBought = proceeds / btcPrice
-            totalBtcAmount += btcBought
-            reinvestmentAmount = proceeds
-          }
-
-          const finalTotalDebt = activeLoans.reduce((sum, l) => sum + l.repaymentAmount, 0)
-          const finalCollateralValue = totalBtcAmount * btcPrice
-          const finalLockedBtc = activeLoans.reduce((sum, l) => sum + l.lockedBtc, 0)
-          const finalFreeBtc = totalBtcAmount - finalLockedBtc
-          const highestLtv =
-            activeLoans.length > 0
-              ? Math.max(...activeLoans.map((l) => (l.repaymentAmount / (l.lockedBtc * btcPrice)) * 100))
-              : 0
-
-          tempResults.push({
-            month,
-            dateString,
-            btcPrice: Math.round(btcPrice),
-            collateralValue: Math.round(finalCollateralValue),
-            realCollateralValue: Math.round(finalCollateralValue / cumulativeInflationFactor),
-            totalDebt: Math.round(finalTotalDebt),
-            realTotalDebt: Math.round(finalTotalDebt / cumulativeInflationFactor),
-            withdrawalAmount: Math.round(withdrawalThisMonth),
-            newLoanPrincipal: Math.round(totalNewPrincipal),
-            repaymentsDue: Math.round(repaymentDue),
-            reinvestment: Math.round(reinvestmentAmount),
-            currentBtcAmount: totalBtcAmount,
-            freeBtc: finalFreeBtc,
-            lockedBtc: finalLockedBtc,
-            loanCount: activeLoans.length,
-            highestLtv: isFinite(highestLtv) ? Math.round(highestLtv) : 0,
-            events: monthlyEvents,
-          })
         }
-        setResults(tempResults)
-      } catch (error) {
-        console.error("Simulation error:", error)
-        setErrors(["An unexpected error occurred during the simulation."])
-      } finally {
-        setIsLoading(false)
+
+        activeLoans = activeLoans.filter((l) => l.maturityMonth !== month)
+
+        const totalNewPrincipal = principalForNeeds + principalForReinvestment
+        const interestFactor = 1 + (currentParams.annualInterestRate / 100) * (currentParams.loanTermMonths / 12)
+
+        let principalLeftToCreate = totalNewPrincipal
+        while (principalLeftToCreate > 1) {
+          const loanPrincipal = Math.min(principalLeftToCreate, currentParams.maxLoanAmount)
+          const newRepaymentAmount = loanPrincipal * interestFactor
+          const btcToLock = newRepaymentAmount / (btcPrice * (PLATFORM_LTV_NEW_LOANS / 100))
+
+          if (totalBtcAmount < btcToLock) break
+
+          activeLoans.push({
+            id: nextLoanId++,
+            month: month,
+            principal: loanPrincipal,
+            maturityMonth: month + currentParams.loanTermMonths,
+            repaymentAmount: newRepaymentAmount,
+            lockedBtc: btcToLock,
+          })
+          principalLeftToCreate -= loanPrincipal
+        }
+
+        let reinvestmentAmount = 0
+        if (principalForReinvestment > 0) {
+          const proceeds = principalForReinvestment * (1 - currentParams.loanOriginationFeePercent / 100)
+          const btcBought = proceeds / btcPrice
+          totalBtcAmount += btcBought
+          reinvestmentAmount = proceeds
+        }
+
+        const finalTotalDebt = activeLoans.reduce((sum, l) => sum + l.repaymentAmount, 0)
+        const finalCollateralValue = totalBtcAmount * btcPrice
+        const finalLockedBtc = activeLoans.reduce((sum, l) => sum + l.lockedBtc, 0)
+        const finalFreeBtc = totalBtcAmount - finalLockedBtc
+        const highestLtv =
+          activeLoans.length > 0
+            ? Math.max(...activeLoans.map((l) => (l.repaymentAmount / (l.lockedBtc * btcPrice)) * 100))
+            : 0
+
+        tempResults.push({
+          month,
+          dateString: dateStringForTable,
+          btcPrice: Math.round(btcPrice),
+          collateralValue: Math.round(finalCollateralValue),
+          realCollateralValue: Math.round(finalCollateralValue / cumulativeInflationFactor),
+          totalDebt: Math.round(finalTotalDebt),
+          realTotalDebt: Math.round(finalTotalDebt / cumulativeInflationFactor),
+          withdrawalAmount: Math.round(withdrawalThisMonth),
+          newLoanPrincipal: Math.round(totalNewPrincipal),
+          repaymentsDue: Math.round(repaymentDue),
+          reinvestment: Math.round(reinvestmentAmount),
+          currentBtcAmount: totalBtcAmount,
+          freeBtc: finalFreeBtc,
+          lockedBtc: finalLockedBtc,
+          loanCount: activeLoans.length,
+          highestLtv: isFinite(highestLtv) ? Math.round(highestLtv) : 0,
+          events: monthlyEvents,
+        })
       }
+      setResults(tempResults)
+      setIsLoading(false)
     },
-    [params, historicalDailyMultipliers, historicalChannelPositions, t],
+    [params, priceChartData],
   )
 
+  // This effect loads the initial historical data ONCE on component mount.
   useEffect(() => {
-    const loadAndRun = async () => {
+    const loadData = async () => {
       setIsLoading(true)
       setErrors([])
       try {
-        const csvData = await loadHistoricalPriceData()
-        setHistoricalPriceData(csvData)
+        const data = await loadHistoricalPriceData()
+        setHistoricalPriceData(data)
 
-        const latestPrice = csvData.length > 0 ? csvData[csvData.length - 1].close : DEFAULT_PARAMS.initialBtcPrice
         if (firstRun.current) {
           firstRun.current = false
+          const latestPrice = data.length > 0 ? data[data.length - 1].close : DEFAULT_PARAMS.initialBtcPrice
           const initialPrice = (await loadCurrentBtcPrice()) ?? latestPrice
           setParams((p) => ({ ...p, initialBtcPrice: initialPrice }))
-        } else {
-          await runSimulation()
         }
       } catch (e) {
-        console.error("Failed to load data and run simulation:", e)
+        console.error("Failed to load data:", e)
         setErrors((prev) => [...prev, t("Errors.failedToLoadHistoricalData")])
-      } finally {
         setIsLoading(false)
       }
     }
 
-    loadAndRun()
+    loadData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [t])
 
+  // This effect runs the financial simulation whenever the price data is ready or changes.
   useEffect(() => {
-    if (!firstRun.current) {
+    if (priceChartData.length > 0) {
       runSimulation()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params, historicalPriceData])
+  }, [priceChartData])
 
-  const chartData = useMemo(() => {
-    const dataMap = new Map<string, any>()
+  // The old complex `chartData` useMemo is gone. We now create the data for the
+  // second chart by merging the financial results with the price chart data.
+  const financialChartData = useMemo(() => {
+    if (results.length === 0 || priceChartData.length === 0) return []
 
-    historicalPriceData.forEach((point) => {
-      const date = new Date(point.time * 1000)
-      const dateString = `${(date.getMonth() + 1).toString().padStart(2, "0")}/${date.getFullYear()}`
-      dataMap.set(dateString, {
-        date: dateString,
-        days: getDaysSinceGenesis(date),
-        historicalPrice: point.close,
-      })
-    })
+    const resultsMap = new Map(results.map((r) => [r.dateString, r]))
 
-    results.forEach((point) => {
-      const date = new Date(point.dateString.split("/")[1], Number(point.dateString.split("/")[0]) - 1)
-      const currentData = dataMap.get(point.dateString) || {}
-      dataMap.set(point.dateString, {
-        ...currentData,
-        date: point.dateString,
-        days: getDaysSinceGenesis(date),
-        simulationPath: point.btcPrice,
-      })
-    })
-
-    const combinedData = Array.from(dataMap.values())
-
-    combinedData.sort((a, b) => a.days - b.days)
-
-    return combinedData.map((point) => {
-      const dateForPL = new Date() // Dummy date, as getPowerLawPrice works with days
-      // We can't easily go from days back to a precise date, but we don't need to.
-      // The price function only needs the number of days.
-      const getPriceByDays = (days: number, line: PowerLawLine) => {
-        const model = {
-          fit: { slope: 5.68, intercept: -16.493 },
-          support: { slope: 5.85, intercept: -17.55 },
-          resistance: { slope: 5.57, intercept: -15.75 },
-        }[line]
-        const logPrice = model.slope * Math.log10(days) + model.intercept
-        const priceUsd = Math.pow(10, logPrice)
-        return priceUsd * 0.92
-      }
+    return priceChartData.map((p) => {
+      const date = new Date(p.date)
+      const dateString = `${(date.getUTCMonth() + 1).toString().padStart(2, "0")}/${date.getUTCFullYear()}`
+      const resultData = resultsMap.get(dateString)
 
       return {
-        ...point,
-        fit: getPriceByDays(point.days, "fit"),
-        support: getPriceByDays(point.days, "support"),
-        resistance: getPriceByDays(point.days, "resistance"),
+        date: dateString,
+        collateralValue: resultData?.collateralValue,
+        lockedCollateralValue: resultData ? resultData.lockedBtc * resultData.btcPrice : undefined,
+        totalDebt: resultData?.totalDebt,
+        btcPrice: p.simulationPath || p.historicalPrice,
       }
     })
-  }, [historicalPriceData, results])
+  }, [results, priceChartData])
 
   const summary = useMemo(() => {
     if (results.length === 0) return null
@@ -529,7 +471,6 @@ function BitcoinSimulator() {
     setParams(DEFAULT_PARAMS)
     setResults([])
     setErrors([])
-    runSimulation()
   }
 
   const formatEvent = (event: MonthlyEvent) => {
@@ -793,7 +734,7 @@ function BitcoinSimulator() {
                     )}
                   </div>
                   <div className="mt-4">
-                    <PriceModelChart chartData={chartData} isLoading={isLoading} />
+                    <PriceModelChart chartData={priceChartData} isLoading={isLoading} />
                   </div>
                   {params.priceModel === "manual" && (
                     <div className="space-y-2">
@@ -824,17 +765,18 @@ function BitcoinSimulator() {
             </Card>
 
             <div className="flex flex-wrap gap-4">
-              <Button
-                onClick={() => runSimulation()}
-                disabled={
-                  isLoading ||
-                  (params.priceModel === "cycleRepeat" && !historicalDailyMultipliers) ||
-                  (params.priceModel === "cycleRepeatPowerLaw" && !historicalChannelPositions)
-                }
-                className="flex items-center gap-2"
-              >
-                {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <TrendingUp className="w-4 h-4" />}
-                {isLoading ? t("Parameters.calculating") : t("Parameters.runSimulation")}
+              <Button onClick={runSimulation} disabled={isLoading || priceChartData.length === 0}>
+                {isLoading ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+                    {t("Parameters.calculating")}
+                  </>
+                ) : (
+                  <>
+                    <TrendingUp className="w-4 h-4 mr-2" />
+                    {t("Parameters.runSimulation")}
+                  </>
+                )}
               </Button>
               <Button variant="outline" onClick={resetParams}>
                 {t("Parameters.reset")}
@@ -1038,7 +980,7 @@ function BitcoinSimulator() {
           </TabsContent>
 
           <TabsContent value="chart" className="space-y-6">
-            {chartData.length > 0 && (
+            {financialChartData.length > 0 && (
               <Card>
                 <CardHeader>
                   <CardTitle>{t("Chart.debtVsCollateralTitle")}</CardTitle>
@@ -1047,7 +989,7 @@ function BitcoinSimulator() {
                 <CardContent>
                   <div className="h-96">
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={chartData}>
+                      <LineChart data={financialChartData}>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="date" minTickGap={30} />
                         <YAxis

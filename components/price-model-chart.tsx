@@ -2,20 +2,11 @@
 import { useTranslation } from "react-i18next"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Brush } from "recharts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { GENESIS_DATE } from "@/lib/price-models/power-law"
-
-interface PriceDataPoint {
-  date: string
-  days: number
-  historicalPrice?: number
-  simulationPath?: number
-  fit?: number
-  support?: number
-  resistance?: number
-}
+import { GENESIS_DATE } from "@/lib/price-engine/models/power-law"
+import type { PriceChartDataPoint } from "@/lib/price-engine/types"
 
 interface PriceModelChartProps {
-  chartData: PriceDataPoint[]
+  chartData: PriceChartDataPoint[]
   isLoading: boolean
 }
 
