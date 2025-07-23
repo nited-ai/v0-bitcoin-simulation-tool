@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
+import { Rating } from "@/components/ui/rating"
 import { Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LineChart, Legend } from "recharts"
 import { Download, RefreshCw, AlertTriangle, TrendingUp, Bitcoin, Info } from "lucide-react"
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
@@ -739,145 +741,232 @@ export default function BitcoinSimulator() {
                 </CardTitle>
                 <CardDescription>{t("InvestmentStrategy.description")}</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="investment-strategy">{t("InvestmentStrategy.selectStrategy")}</Label>
-                  <Select
-                    value={params.investmentStrategy}
-                    onValueChange={(value: InvestmentStrategy) =>
-                      setParams((prev) => ({ ...prev, investmentStrategy: value }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t("InvestmentStrategy.selectStrategy")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {getAvailableStrategies().map((strategy) => (
-                        <SelectItem key={strategy.id} value={strategy.id}>
-                          {t(`InvestmentStrategy.${strategy.id}Strategy`)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              <CardContent>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Left Side: Settings */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">{t("InvestmentStrategy.settingsTitle")}</h3>
 
-                {/* ATH-Based Strategy Settings */}
-                {params.investmentStrategy === "athBased" && (
-                  <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
                     <div>
-                      <h4 className="font-medium">{t("InvestmentStrategy.athSettingsTitle")}</h4>
-                      <p className="text-sm text-muted-foreground">{t("InvestmentStrategy.athSettingsDescription")}</p>
-                    </div>
-                    <div>
-                      <Label htmlFor="ath-threshold">
-                        {t("InvestmentStrategy.athThreshold")}
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Info className="w-4 h-4 ml-1 inline" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>{t("InvestmentStrategy.athThresholdTooltip")}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </Label>
-                      <Input
-                        id="ath-threshold"
-                        type="number"
-                        value={params.athBasedParams.athThresholdPercent}
-                        onChange={(e) =>
-                          setParams((prev) => ({
-                            ...prev,
-                            athBasedParams: {
-                              ...prev.athBasedParams,
-                              athThresholdPercent: parseFloat(e.target.value) || 80,
-                            },
-                          }))
+                      <Label htmlFor="investment-strategy">{t("InvestmentStrategy.selectStrategy")}</Label>
+                      <Select
+                        value={params.investmentStrategy}
+                        onValueChange={(value: InvestmentStrategy) =>
+                          setParams((prev) => ({ ...prev, investmentStrategy: value }))
                         }
-                        min="0"
-                        max="100"
-                        step="1"
-                      />
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={t("InvestmentStrategy.selectStrategy")} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {getAvailableStrategies().map((strategy) => (
+                            <SelectItem key={strategy.id} value={strategy.id}>
+                              {t(`InvestmentStrategy.${strategy.id}Strategy`)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
-                  </div>
-                )}
 
-                {/* Moving Average Strategy Settings */}
-                {params.investmentStrategy === "movingAverage" && (
-                  <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
-                    <div>
-                      <h4 className="font-medium">{t("InvestmentStrategy.movingAverageSettingsTitle")}</h4>
-                      <p className="text-sm text-muted-foreground">{t("InvestmentStrategy.movingAverageSettingsDescription")}</p>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="ma-period">
-                          {t("InvestmentStrategy.movingAveragePeriod")}
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Info className="w-4 h-4 ml-1 inline" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>{t("InvestmentStrategy.movingAveragePeriodTooltip")}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </Label>
-                        <Input
-                          id="ma-period"
-                          type="number"
-                          value={params.movingAverageParams.movingAveragePeriod}
-                          onChange={(e) =>
-                            setParams((prev) => ({
-                              ...prev,
-                              movingAverageParams: {
-                                ...prev.movingAverageParams,
-                                movingAveragePeriod: parseInt(e.target.value) || 200,
-                              },
-                            }))
-                          }
-                          min="1"
-                          max="1000"
-                          step="1"
-                        />
+                    {/* ATH-Based Strategy Settings */}
+                    {params.investmentStrategy === "athBased" && (
+                      <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
+                        <div>
+                          <h4 className="font-medium">{t("InvestmentStrategy.athSettingsTitle")}</h4>
+                          <p className="text-sm text-muted-foreground">{t("InvestmentStrategy.athSettingsDescription")}</p>
+                        </div>
+                        <div>
+                          <Label htmlFor="ath-threshold">
+                            {t("InvestmentStrategy.athThreshold")}
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Info className="w-4 h-4 ml-1 inline" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>{t("InvestmentStrategy.athThresholdTooltip")}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </Label>
+                          <Input
+                            id="ath-threshold"
+                            type="number"
+                            value={params.athBasedParams.athThresholdPercent}
+                            onChange={(e) =>
+                              setParams((prev) => ({
+                                ...prev,
+                                athBasedParams: {
+                                  ...prev.athBasedParams,
+                                  athThresholdPercent: parseFloat(e.target.value) || 80,
+                                },
+                              }))
+                            }
+                            min="0"
+                            max="100"
+                            step="1"
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <Label htmlFor="investment-multiplier">
-                          {t("InvestmentStrategy.investmentMultiplier")}
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Info className="w-4 h-4 ml-1 inline" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>{t("InvestmentStrategy.investmentMultiplierTooltip")}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </Label>
-                        <Input
-                          id="investment-multiplier"
-                          type="number"
-                          value={params.movingAverageParams.investmentMultiplier}
-                          onChange={(e) =>
-                            setParams((prev) => ({
-                              ...prev,
-                              movingAverageParams: {
-                                ...prev.movingAverageParams,
-                                investmentMultiplier: parseFloat(e.target.value) || 1.0,
-                              },
-                            }))
-                          }
-                          min="0"
-                          max="3"
-                          step="0.1"
-                        />
+                    )}
+
+                    {/* Moving Average Strategy Settings */}
+                    {params.investmentStrategy === "movingAverage" && (
+                      <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
+                        <div>
+                          <h4 className="font-medium">{t("InvestmentStrategy.movingAverageSettingsTitle")}</h4>
+                          <p className="text-sm text-muted-foreground">{t("InvestmentStrategy.movingAverageSettingsDescription")}</p>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="ma-period">
+                              {t("InvestmentStrategy.movingAveragePeriod")}
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Info className="w-4 h-4 ml-1 inline" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{t("InvestmentStrategy.movingAveragePeriodTooltip")}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </Label>
+                            <Input
+                              id="ma-period"
+                              type="number"
+                              value={params.movingAverageParams.movingAveragePeriod}
+                              onChange={(e) =>
+                                setParams((prev) => ({
+                                  ...prev,
+                                  movingAverageParams: {
+                                    ...prev.movingAverageParams,
+                                    movingAveragePeriod: parseInt(e.target.value) || 200,
+                                  },
+                                }))
+                              }
+                              min="1"
+                              max="1000"
+                              step="1"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="investment-multiplier">
+                              {t("InvestmentStrategy.investmentMultiplier")}
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Info className="w-4 h-4 ml-1 inline" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{t("InvestmentStrategy.investmentMultiplierTooltip")}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </Label>
+                            <Input
+                              id="investment-multiplier"
+                              type="number"
+                              value={params.movingAverageParams.investmentMultiplier}
+                              onChange={(e) =>
+                                setParams((prev) => ({
+                                  ...prev,
+                                  movingAverageParams: {
+                                    ...prev.movingAverageParams,
+                                    investmentMultiplier: parseFloat(e.target.value) || 1.0,
+                                  },
+                                }))
+                              }
+                              min="0"
+                              max="3"
+                              step="0.1"
+                            />
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
-                )}
+
+                  {/* Right Side: Strategy Explanation */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">{t("InvestmentStrategy.explanationTitle")}</h3>
+
+                    {(() => {
+                      const selectedStrategy = getAvailableStrategies().find(s => s.id === params.investmentStrategy)
+                      if (!selectedStrategy) return null
+
+                      return (
+                        <div className="space-y-4">
+                          {/* Strategy Name */}
+                          <div>
+                            <h4 className="font-medium text-lg">{t(`InvestmentStrategy.${selectedStrategy.id}Strategy`)}</h4>
+                            <p className="text-sm text-muted-foreground">{selectedStrategy.description}</p>
+                          </div>
+
+                          {/* Ratings */}
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label className="text-sm font-medium">
+                                {t("InvestmentStrategy.securityRating")}
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Info className="w-3 h-3 ml-1 inline" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>{t("InvestmentStrategy.securityTooltip")}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </Label>
+                              <Rating rating={selectedStrategy.metadata.securityRating} size="sm" />
+                            </div>
+                            <div>
+                              <Label className="text-sm font-medium">
+                                {t("InvestmentStrategy.complexityRating")}
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Info className="w-3 h-3 ml-1 inline" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>{t("InvestmentStrategy.complexityTooltip")}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </Label>
+                              <Rating rating={selectedStrategy.metadata.complexityRating} size="sm" />
+                            </div>
+                          </div>
+
+                          {/* Detailed Description */}
+                          <div>
+                            <h5 className="font-medium mb-2">{t("InvestmentStrategy.functionality")}</h5>
+                            <p className="text-sm text-muted-foreground">{selectedStrategy.functionality}</p>
+                          </div>
+
+                          {/* Suitability */}
+                          <div>
+                            <h5 className="font-medium mb-2">{t("InvestmentStrategy.suitability")}</h5>
+                            <p className="text-sm text-muted-foreground">{selectedStrategy.suitability}</p>
+                          </div>
+
+                          {/* Criteria */}
+                          <div>
+                            <h5 className="font-medium mb-2">{t("InvestmentStrategy.criteria")}</h5>
+                            <div className="flex flex-wrap gap-2">
+                              {selectedStrategy.metadata.criteria.map((criterion, index) => (
+                                <Badge key={index} variant="secondary" className="text-xs">
+                                  {criterion.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })()}
+                  </div>
+                </div>
               </CardContent>
             </Card>
 

@@ -11,7 +11,7 @@ The Bitcoin simulation tool's chart was displaying historical data starting from
 ## Solution Implemented
 
 ### Before (Problematic Code):
-```typescript
+\`\`\`typescript
 const financialChartData = useMemo(() => {
   if (results.length === 0 || priceChartData.length === 0) return []
 
@@ -31,7 +31,7 @@ const financialChartData = useMemo(() => {
     }
   })
 }, [results, priceChartData])
-```
+\`\`\`
 
 **Issues with this approach:**
 - Uses `priceChartData` which includes historical data from 2016
@@ -39,7 +39,7 @@ const financialChartData = useMemo(() => {
 - Results in a timeline from 2016-2037 regardless of simulation parameters
 
 ### After (Fixed Code):
-```typescript
+\`\`\`typescript
 const financialChartData = useMemo(() => {
   if (results.length === 0) return []
 
@@ -52,7 +52,7 @@ const financialChartData = useMemo(() => {
     btcPrice: result.btcPrice,
   }))
 }, [results])
-```
+\`\`\`
 
 **Benefits of this approach:**
 - Uses only simulation results data

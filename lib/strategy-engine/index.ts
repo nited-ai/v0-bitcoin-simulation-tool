@@ -219,22 +219,42 @@ export function getAvailableStrategies(): Array<{
   id: string
   name: string
   description: string
+  metadata: any
+  detailedDescription: string
+  functionality: string
+  suitability: string
 }> {
+  const defaultStrategy = new DefaultStrategy()
+  const athBasedStrategy = new AthBasedStrategy()
+  const movingAverageStrategy = new MovingAverageStrategy()
+
   return [
     {
       id: "default",
-      name: new DefaultStrategy().getName(),
-      description: new DefaultStrategy().getDescription()
+      name: defaultStrategy.getName(),
+      description: defaultStrategy.getDescription(),
+      metadata: defaultStrategy.getMetadata(),
+      detailedDescription: defaultStrategy.getDetailedDescription(),
+      functionality: defaultStrategy.getFunctionality(),
+      suitability: defaultStrategy.getSuitability()
     },
     {
-      id: "athBased", 
-      name: new AthBasedStrategy().getName(),
-      description: new AthBasedStrategy().getDescription()
+      id: "athBased",
+      name: athBasedStrategy.getName(),
+      description: athBasedStrategy.getDescription(),
+      metadata: athBasedStrategy.getMetadata(),
+      detailedDescription: athBasedStrategy.getDetailedDescription(),
+      functionality: athBasedStrategy.getFunctionality(),
+      suitability: athBasedStrategy.getSuitability()
     },
     {
       id: "movingAverage",
-      name: new MovingAverageStrategy().getName(), 
-      description: new MovingAverageStrategy().getDescription()
+      name: movingAverageStrategy.getName(),
+      description: movingAverageStrategy.getDescription(),
+      metadata: movingAverageStrategy.getMetadata(),
+      detailedDescription: movingAverageStrategy.getDetailedDescription(),
+      functionality: movingAverageStrategy.getFunctionality(),
+      suitability: movingAverageStrategy.getSuitability()
     }
   ]
 }

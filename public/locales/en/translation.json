@@ -92,7 +92,17 @@
     "movingAveragePeriod": "Moving Average Period (Weeks)",
     "movingAveragePeriodTooltip": "The period in weeks for calculating the moving average (default: 200 weeks).",
     "investmentMultiplier": "Investment Multiplier",
-    "investmentMultiplierTooltip": "Base multiplier for investment capacity when above moving average."
+    "investmentMultiplierTooltip": "Base multiplier for investment capacity when above moving average.",
+    "settingsTitle": "Settings",
+    "explanationTitle": "Strategy Explanation",
+    "functionality": "How It Works",
+    "suitability": "Suitability",
+    "criteria": "Decision Criteria",
+    "securityRating": "Security Rating",
+    "complexityRating": "Complexity Rating",
+    "securityTooltip": "1 = Very risky, 5 = Very safe",
+    "complexityTooltip": "1 = Very simple, 5 = Very complex",
+    "ratingOutOf5": "out of 5"
   },
   "Results": {
     "summaryTitle": "Summary",
