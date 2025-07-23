@@ -741,111 +741,6 @@ export default function BitcoinSimulator() {
               </div>
             </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>{t("EconomicAssumptions.title")}</CardTitle>
-                <CardDescription>{t("EconomicAssumptions.description")}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div>
-                  <Label htmlFor="expectedAnnualInflation">
-                    {t("EconomicAssumptions.inflation")}
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Info className="w-4 h-4 ml-1 inline" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{t("EconomicAssumptions.inflationTooltip")}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </Label>
-                  <Input
-                    id="expectedAnnualInflation"
-                    type="number"
-                    value={params.expectedAnnualInflation}
-                    onChange={(e) => setParams((p) => ({ ...p, expectedAnnualInflation: Number(e.target.value) }))}
-                    min="0"
-                    max="20"
-                    step="0.1"
-                  />
-                </div>
-                <div className="space-y-4">
-                  <Label>{t("PriceModel.title")}</Label>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
-                    <div className="md:col-span-1">
-                      <Label htmlFor="priceModel">{t("PriceModel.selectModel")}</Label>
-                      <Select
-                        value={params.priceModel}
-                        onValueChange={(value: PriceModel) => setParams((p) => ({ ...p, priceModel: value }))}
-                      >
-                        <SelectTrigger id="priceModel">
-                          <SelectValue placeholder={t("PriceModel.selectModel")} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="manual">{t("PriceModel.manualGrowth")}</SelectItem>
-                          <SelectItem value="powerLaw">{t("PriceModel.powerLaw")}</SelectItem>
-                          <SelectItem value="cycleRepeat">{t("PriceModel.cycleRepeat")}</SelectItem>
-                          <SelectItem value="cycleRepeatPowerLaw">{t("PriceModel.cycleRepeatPowerLaw")}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    {(params.priceModel === "powerLaw" || params.priceModel === "cycleRepeatPowerLaw") && (
-                      <div className="md:col-span-2">
-                        <Label htmlFor="prognosisLine">{t("PriceModel.prognosisLine")}</Label>
-                        <Select
-                          value={params.powerLawSettings.prognosisLine}
-                          onValueChange={(value: PowerLawLine) =>
-                            setParams((p) => ({
-                              ...p,
-                              powerLawSettings: { ...p.powerLawSettings, prognosisLine: value },
-                            }))
-                          }
-                        >
-                          <SelectTrigger id="prognosisLine">
-                            <SelectValue placeholder={t("PriceModel.prognosisLine")} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="fit">{t("PriceModel.fit")}</SelectItem>
-                            <SelectItem value="support">{t("PriceModel.support")}</SelectItem>
-                            <SelectItem value="resistance">{t("PriceModel.resistance")}</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
-                  </div>
-                  <div className="mt-4">
-                    <PriceModelChart chartData={priceChartData} isLoading={isLoading} />
-                  </div>
-                  {params.priceModel === "manual" && (
-                    <div className="space-y-2">
-                      <Label>{t("PriceModel.manualSettingsDescription")}</Label>
-                      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                        {params.annualGrowthRates.map((rate, index) => (
-                          <div key={index}>
-                            <Label htmlFor={`growth-${index}`}>
-                              {t("PriceModel.year")} {index + 1} (%)
-                            </Label>
-                            <Input
-                              id={`growth-${index}`}
-                              type="number"
-                              value={rate}
-                              onChange={(e) => {
-                                const newRates = [...params.annualGrowthRates]
-                                newRates[index] = Number(e.target.value)
-                                setParams((prev) => ({ ...prev, annualGrowthRates: newRates }))
-                              }}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
             {/* Investment Strategy Selection */}
             <Card>
               <CardHeader>
@@ -996,6 +891,112 @@ export default function BitcoinSimulator() {
                 )}
               </CardContent>
             </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>{t("EconomicAssumptions.title")}</CardTitle>
+                <CardDescription>{t("EconomicAssumptions.description")}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div>
+                  <Label htmlFor="expectedAnnualInflation">
+                    {t("EconomicAssumptions.inflation")}
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="w-4 h-4 ml-1 inline" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{t("EconomicAssumptions.inflationTooltip")}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </Label>
+                  <Input
+                    id="expectedAnnualInflation"
+                    type="number"
+                    value={params.expectedAnnualInflation}
+                    onChange={(e) => setParams((p) => ({ ...p, expectedAnnualInflation: Number(e.target.value) }))}
+                    min="0"
+                    max="20"
+                    step="0.1"
+                  />
+                </div>
+                <div className="space-y-4">
+                  <Label>{t("PriceModel.title")}</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
+                    <div className="md:col-span-1">
+                      <Label htmlFor="priceModel">{t("PriceModel.selectModel")}</Label>
+                      <Select
+                        value={params.priceModel}
+                        onValueChange={(value: PriceModel) => setParams((p) => ({ ...p, priceModel: value }))}
+                      >
+                        <SelectTrigger id="priceModel">
+                          <SelectValue placeholder={t("PriceModel.selectModel")} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="manual">{t("PriceModel.manualGrowth")}</SelectItem>
+                          <SelectItem value="powerLaw">{t("PriceModel.powerLaw")}</SelectItem>
+                          <SelectItem value="cycleRepeat">{t("PriceModel.cycleRepeat")}</SelectItem>
+                          <SelectItem value="cycleRepeatPowerLaw">{t("PriceModel.cycleRepeatPowerLaw")}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {(params.priceModel === "powerLaw" || params.priceModel === "cycleRepeatPowerLaw") && (
+                      <div className="md:col-span-2">
+                        <Label htmlFor="prognosisLine">{t("PriceModel.prognosisLine")}</Label>
+                        <Select
+                          value={params.powerLawSettings.prognosisLine}
+                          onValueChange={(value: PowerLawLine) =>
+                            setParams((p) => ({
+                              ...p,
+                              powerLawSettings: { ...p.powerLawSettings, prognosisLine: value },
+                            }))
+                          }
+                        >
+                          <SelectTrigger id="prognosisLine">
+                            <SelectValue placeholder={t("PriceModel.prognosisLine")} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="fit">{t("PriceModel.fit")}</SelectItem>
+                            <SelectItem value="support">{t("PriceModel.support")}</SelectItem>
+                            <SelectItem value="resistance">{t("PriceModel.resistance")}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-4">
+                    <PriceModelChart chartData={priceChartData} isLoading={isLoading} />
+                  </div>
+                  {params.priceModel === "manual" && (
+                    <div className="space-y-2">
+                      <Label>{t("PriceModel.manualSettingsDescription")}</Label>
+                      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                        {params.annualGrowthRates.map((rate, index) => (
+                          <div key={index}>
+                            <Label htmlFor={`growth-${index}`}>
+                              {t("PriceModel.year")} {index + 1} (%)
+                            </Label>
+                            <Input
+                              id={`growth-${index}`}
+                              type="number"
+                              value={rate}
+                              onChange={(e) => {
+                                const newRates = [...params.annualGrowthRates]
+                                newRates[index] = Number(e.target.value)
+                                setParams((prev) => ({ ...prev, annualGrowthRates: newRates }))
+                              }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
 
             <div className="flex flex-wrap gap-4">
               <Button onClick={() => runSimulation()} disabled={isLoading || priceChartData.length === 0}>
