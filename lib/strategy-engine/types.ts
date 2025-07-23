@@ -106,8 +106,7 @@ export interface StrategyEngineParams {
   loanTermMonths: number
   simulationMonths: number
   maxLoanAmount: number
-  expectedAnnualInflation: number
-  
+
   // Risk management
   riskManagement: RiskManagement
   

@@ -20,6 +20,8 @@ export interface HistoricalDataPoint {
 
 /**
  * Defines the complete set of input parameters required by the Price Engine.
+ * Note: PowerLaw model allows selection of which line to use as projected price.
+ * CycleRepeatPowerLaw uses a fixed "fit" line for channel calculations.
  */
 export interface PriceEngineParams {
   priceModel: PriceModel

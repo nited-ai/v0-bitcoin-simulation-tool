@@ -33,7 +33,9 @@ export const getPowerLawPrice = (date: Date, line: PowerLawLine): number => {
 
 /**
  * Generates a future price path based on the Power Law model.
- * @param params - The parameters required for the engine, including duration and which prognosis line to follow.
+ * Uses the selected prognosis line (fit/support/resistance) as the projected price
+ * for the Strategy Engine to make investment decisions.
+ * @param params - The parameters required for the engine, including duration and prognosis line selection.
  * @returns An array of objects, each containing the date and the projected price for that date.
  */
 export function generatePowerLawPath(params: PriceEngineParams): PathPoint[] {

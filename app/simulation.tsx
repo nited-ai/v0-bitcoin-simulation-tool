@@ -91,7 +91,6 @@ interface SimulationParams {
     targetLtv: number
     liquidationLtv: number
   }
-  expectedAnnualInflation: number
   // Strategy parameters
   investmentStrategy: InvestmentStrategy
   athBasedParams: AthBasedStrategyParams
@@ -118,7 +117,6 @@ const DEFAULT_PARAMS: SimulationParams = {
     targetLtv: 50,
     liquidationLtv: 95,
   },
-  expectedAnnualInflation: 2,
   // Strategy parameters
   investmentStrategy: "default",
   athBasedParams: {
@@ -240,7 +238,6 @@ export default function BitcoinSimulator() {
           loanTermMonths: currentParams.loanTermMonths,
           simulationMonths: currentParams.simulationMonths,
           maxLoanAmount: currentParams.maxLoanAmount,
-          expectedAnnualInflation: currentParams.expectedAnnualInflation,
           riskManagement: currentParams.riskManagement,
           investmentStrategy: currentParams.investmentStrategy,
           athBasedParams: currentParams.athBasedParams,
@@ -890,30 +887,7 @@ export default function BitcoinSimulator() {
                 <CardDescription>{t("EconomicAssumptions.description")}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div>
-                  <Label htmlFor="expectedAnnualInflation">
-                    {t("EconomicAssumptions.inflation")}
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Info className="w-4 h-4 ml-1 inline" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{t("EconomicAssumptions.inflationTooltip")}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </Label>
-                  <Input
-                    id="expectedAnnualInflation"
-                    type="number"
-                    value={params.expectedAnnualInflation}
-                    onChange={(e) => setParams((p) => ({ ...p, expectedAnnualInflation: Number(e.target.value) }))}
-                    min="0"
-                    max="20"
-                    step="0.1"
-                  />
-                </div>
+
                 <div className="space-y-4">
                   <Label>{t("PriceModel.title")}</Label>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
@@ -934,33 +908,34 @@ export default function BitcoinSimulator() {
                         </SelectContent>
                       </Select>
                     </div>
-                    {(params.priceModel === "powerLaw" || params.priceModel === "cycleRepeatPowerLaw") && (
-                      <div className="md:col-span-2">
-                        <Label htmlFor="prognosisLine">{t("PriceModel.prognosisLine")}</Label>
-                        <Select
-                          value={params.powerLawSettings.prognosisLine}
-                          onValueChange={(value: PowerLawLine) =>
-                            setParams((p) => ({
-                              ...p,
-                              powerLawSettings: { ...p.powerLawSettings, prognosisLine: value },
-                            }))
-                          }
-                        >
-                          <SelectTrigger id="prognosisLine">
-                            <SelectValue placeholder={t("PriceModel.prognosisLine")} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="fit">{t("PriceModel.fit")}</SelectItem>
-                            <SelectItem value="support">{t("PriceModel.support")}</SelectItem>
-                            <SelectItem value="resistance">{t("PriceModel.resistance")}</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
+
                   </div>
                   <div className="mt-4">
                     <PriceModelChart chartData={priceChartData} isLoading={isLoading} />
                   </div>
+                  {params.priceModel === "powerLaw" && (
+                    <div className="md:col-span-2 mt-4">
+                      <Label htmlFor="prognosisLine">{t("PriceModel.prognosisLine")}</Label>
+                      <Select
+                        value={params.powerLawSettings.prognosisLine}
+                        onValueChange={(value: PowerLawLine) =>
+                          setParams((p) => ({
+                            ...p,
+                            powerLawSettings: { ...p.powerLawSettings, prognosisLine: value },
+                          }))
+                        }
+                      >
+                        <SelectTrigger id="prognosisLine">
+                          <SelectValue placeholder={t("PriceModel.prognosisLine")} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="fit">{t("PriceModel.fit")}</SelectItem>
+                          <SelectItem value="support">{t("PriceModel.support")}</SelectItem>
+                          <SelectItem value="resistance">{t("PriceModel.resistance")}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                   {params.priceModel === "manual" && (
                     <div className="space-y-2">
                       <Label>{t("PriceModel.manualSettingsDescription")}</Label>
