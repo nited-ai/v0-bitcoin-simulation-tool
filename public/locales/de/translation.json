@@ -38,24 +38,16 @@
     "maxLoanAmountTooltip": "Die maximale Höhe eines einzelnen Kredits. Bei höherem Bedarf werden mehrere Kredite aufgenommen."
   },
   "Strategy": {
-    "title": "Strategie: Sichere Akkumulation & Entnahme",
-    "description": "Definieren Sie Ihre monatlichen Ziele und ob Überschüsse reinvestiert werden sollen.",
+    "title": "Strategie: Entnahme",
+    "description": "Definieren Sie Ihre monatlichen Ziele für die Entnahme.",
     "monthlyWithdrawal": "Monatlicher Entnahmebetrag (€)",
-    "monthlyWithdrawalTooltip": "Der Betrag, der monatlich als Liquidität für Lebenshaltungskosten entnommen werden soll.",
-    "reinvestSurplus": "Überschuss reinvestieren",
-    "reinvestSurplusTooltip": "Wenn aktiviert, wird die gesamte Liquidität, die nach Abzug der Kredittilgungen und Ihrer Entnahme übrig bleibt, automatisch in mehr Bitcoin reinvestiert."
+    "monthlyWithdrawalTooltip": "Der Betrag, der monatlich als Liquidität für Lebenshaltungskosten entnommen werden soll."
   },
   "RiskManagement": {
-    "title": "Risikomanagement & Aggressivität",
-    "description": "Definieren Sie Ihre persönliche Risikotoleranz und die Eskalationsstufen.",
-    "profilesTitle": "Risikoprofile (Presets)",
-    "safe": "Sicherheitsorientiert",
-    "balanced": "Ausgewogen",
-    "growth": "Wachstumsorientiert",
-    "maxPriceDrop": "Max. tolerierter Preisverfall vom Top (%)",
-    "maxPriceDropTooltip": "Definiert, um wie viel Prozent der Preis vom letzten relevanten Höchststand fallen darf, bevor Ihre Kredite die Liquidationsgrenze der Plattform erreichen.",
-    "deleveragingLtv": "Auffüll-/Verkaufsgrenze LTV (%)",
-    "deleveragingLtvTooltip": "Wenn der LTV eines Kredits diesen Wert überschreitet, wird versucht, Collateral nachzuschießen.",
+    "title": "Risikomanagement & Hebel",
+    "description": "Definieren Sie Ihre persönliche Risikotoleranz über den Ziel-Verschuldungsgrad.",
+    "targetLtv": "Ziel-Verschuldungsgrad (LTV) (%)",
+    "targetLtvTooltip": "Dies ist Ihre primäre Risikosteuerung. Die Simulation wird die Gesamtverschuldung unter diesem Prozentsatz des aktuellen Gesamt-Collateralwerts halten. Jegliche überschüssige Kreditkapazität wird für gehebelte Reinvestitionen genutzt.",
     "liquidationLtv": "Liquidationsgrenze der Plattform (%)",
     "liquidationLtvTooltip": "Die 'rote Linie' der Plattform. Wenn der LTV eines EINZELNEN Kredits diesen Wert erreicht, wird dessen Collateral als liquidiert betrachtet.",
     "liquidationFee": "Liquidationsgebühr (%)",
@@ -73,6 +65,8 @@
     "selectModel": "Modell auswählen",
     "manualGrowth": "Manuelle Wachstumsraten",
     "powerLaw": "Power Law Modell",
+    "cycleRepeat": "Zyklus-Wiederholung (Historisch)",
+    "cycleRepeatPowerLaw": "Zyklus-Wiederholung (Power Law)",
     "prognosisLine": "Prognose-Linie (Preis)",
     "prognosisLineTooltip": "Der BTC-Preis in der Simulation wird dieser Linie folgen.",
     "fit": "Fit (Grün)",
@@ -121,10 +115,9 @@
   },
   "Chart": {
     "debtVsCollateralTitle": "Portfolio-Übersicht: Vermögen, Schulden & Preis",
-    "debtVsCollateralDescription": "Detaillierte Ansicht von Vermögenswerten, Schulden und Preisentwicklung inklusive Ihrer persönlichen Risikoschwelle.",
+    "debtVsCollateralDescription": "Detaillierte Ansicht von Vermögenswerten, Schulden und Preisentwicklung.",
     "legendLockedCollateral": "Gesperrter Collateral-Wert",
     "legendBtcPrice": "BTC-Preis",
-    "legendLiquidationThreshold": "Liquidationsschwelle (Preis)",
     "btcPriceTitle": "Bitcoin-Preisentwicklung",
     "btcPriceDescription": "BTC-Preis über die Simulationsdauer",
     "amountInEur": "Betrag (€)",
@@ -137,8 +130,10 @@
   },
   "PriceModelChart": {
     "loading": "Lade Chart-Daten...",
-    "title": "Bitcoin Power Law Modell (Log-Log)",
-    "description": "Historischer Preis im Vergleich zum Power Law Modell auf einer logarithmischen Skala.",
+    "noData": "Keine Daten zum Anzeigen verfügbar. Bitte führen Sie eine Simulation durch.",
+    "title": "Bitcoin Preisprognose",
+    "description": "Historischer und projizierter Bitcoin-Preis basierend auf dem ausgewählten Modell.",
+    "projectedPrice": "Projizierter Preis",
     "historicalPrice": "Historischer Preis",
     "resistance": "Resistance",
     "fit": "Fit (Prognose)",
@@ -152,12 +147,16 @@
     "section1Text2": "Warum ist das potenziell vorteilhafter als ein Verkauf? Die Antwort liegt oft im Steuerrecht.",
     "section2Title": "2. Der Steuervorteil: Ein entscheidender Faktor",
     "section2Text1": "In vielen Ländern (auch in Deutschland, Österreich und der Schweiz) ist die Aufnahme eines Kredits kein steuerpflichtiges Ereignis. Sie realisieren keine Kapitalgewinne und zahlen daher keine Steuern auf die erhaltene Liquidität. Ein Verkauf hingegen löst in der Regel eine Steuerpflicht auf den erzielten Gewinn aus.",
-    "section2Text2": "Langfristig kommt das Konzept des 'Step-up in Basis' zum Tragen. Wenn Sie versterben, wird Ihr Vermögen an Ihre Erben übertragen. Diese erben die Vermögenswerte oft zum Marktwert am Todestag. Wenn sie dann einen kleinen Teil verkaufen, um die Kredite zu tilgen, ist die Steuerlast minimal oder null, da kaum ein zu versteuernder Gewinn zwischen Erbe und Verkauf entstanden ist. Die gesamte Wertsteigerung zu Ihren Lebzeiten bleibt somit oft steuerfrei.",
+    "section2Text2": "Langfristig kommt das Konzept des 'Step-up in Basis' zum Tragen. Wenn Sie versterben, wird Ihr Vermögen an Ihre Erben übertragen. Diese erben die Vermögenswerte oft zum Marktwert am Todestag. Wenn sie dann einen kleinen Teil verkaufen, um die Kredite zu tilgen, ist die Steuerlast minimal oder null, da kaum ein zu versteuerter Gewinn zwischen Erbe und Verkauf entstanden ist. Die gesamte Wertsteigerung zu Ihren Lebzeiten bleibt somit oft steuerfrei.",
     "section2Disclaimer": "Hinweis: Dies ist keine Steuerberatung. Die Gesetze sind komplex und können sich ändern. Konsultieren Sie immer einen qualifizierten Steuerberater.",
     "section3Title": "3. Das Risiko-Management: Volatilität kontrollieren",
     "section3Text1": "Die größte Gefahr dieser Strategie ist die hohe Volatilität von Bitcoin. Fällt der Preis Ihres Collaterals stark, kann Ihr Loan-to-Value (LTV) eine kritische Schwelle erreichen, was zu einem 'Margin Call' oder einer Zwangsliquidation führt. Dann wird Ihr Bitcoin zum ungünstigsten Zeitpunkt verkauft, um den Kredit zu decken.",
-    "section3Text2": "Genau hier setzt dieser Simulator an. Der wichtigste Parameter ist der 'Max. tolerierte Preisverfall'. Wenn Sie hier z.B. 80% eintragen, wird die Simulation nur so viel Kredit aufnehmen, dass Ihr LTV selbst bei einem Preissturz von 80% die Liquidationsgrenze der Plattform noch nicht erreicht. Dies ist Ihr Hauptwerkzeug, um das Risiko zu steuern.",
+    "section3Text2": "Genau hier setzt dieser Simulator an. Der wichtigste Parameter ist der 'Ziel-Verschuldungsgrad (LTV)'. Wenn Sie hier z.B. 50% eintragen, wird die Simulation die Gesamtverschuldung immer unter 50% des aktuellen Collateral-Wertes halten. Fällt der Preis, werden automatisch Reinvestitionen gestoppt und notfalls BTC verkauft, um unter der Grenze zu bleiben. Dies ist Ihr Hauptwerkzeug, um das Risiko zu steuern.",
     "section4Title": "4. Inflation: Der stille Freund des Schuldners",
     "section4Text1": "Während Zinsen Kosten verursachen, arbeitet die Inflation für Sie. Ein Kredit über 100.000 € hat in 10 Jahren bei 2% jährlicher Inflation nur noch eine Kaufkraft von ca. 82.000 €. Ihre Schulden werden real weniger wert. Unser Simulator ermöglicht es Ihnen, eine erwartete Inflation einzustellen, um den realen Wert Ihrer Schulden und Ihres Vermögens über die Zeit zu visualisieren. Im Idealfall übersteigt die Wertsteigerung Ihres Bitcoins die Summe aus Zinsen und Inflation bei weitem."
+  },
+  "Errors": {
+    "failedToLoadHistoricalData": "Historische Daten für das Preismodell konnten nicht geladen werden. Bitte versuchen Sie es erneut oder wählen Sie ein anderes Modell.",
+    "historicalDataNotReady": "Historische Daten für das Zyklus-Wiederholung Modell sind noch nicht bereit. Bitte warten Sie kurz und versuchen Sie es erneut."
   }
 }

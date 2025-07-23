@@ -1,84 +1,36 @@
 "use client"
-
-import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Brush } from "recharts"
-import { generatePowerLawChartData, GENESIS_DATE } from "@/lib/price-models"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { GENESIS_DATE } from "@/lib/price-models/power-law"
 
 interface PriceDataPoint {
   date: string
   days: number
-  price?: number
+  historicalPrice?: number
+  simulationPath?: number
   fit?: number
   support?: number
   resistance?: number
 }
 
-const getDaysSinceGenesis = (date: Date): number => {
-  const diffTime = Math.abs(date.getTime() - GENESIS_DATE.getTime())
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+interface PriceModelChartProps {
+  chartData: PriceDataPoint[]
+  isLoading: boolean
 }
 
-export function PriceModelChart({ simulationMonths }: { simulationMonths: number }) {
+export function PriceModelChart({ chartData, isLoading }: PriceModelChartProps) {
   const { t } = useTranslation()
-  const [chartData, setChartData] = useState<PriceDataPoint[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-
-  useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true)
-      try {
-        const modelStartDate = new Date("2011-01-01")
-        const modelEndDate = new Date()
-        modelEndDate.setMonth(modelEndDate.getMonth() + simulationMonths)
-
-        const modelData = generatePowerLawChartData(modelStartDate, modelEndDate)
-        const dataMap = new Map<string, PriceDataPoint>()
-        modelData.forEach((point) => {
-          if (point.days > 0) {
-            dataMap.set(point.date, point)
-          }
-        })
-
-        const res = await fetch("https://min-api.cryptocompare.com/data/v2/histoday?fsym=BTC&tsym=EUR&allData=true")
-        const json = await res.json()
-
-        if (json.Response === "Success" && Array.isArray(json.Data?.Data)) {
-          json.Data.Data.forEach((item: { time: number; close: number }) => {
-            const date = new Date(item.time * 1000)
-            const dateString = date.toISOString().split("T")[0]
-            if (dataMap.has(dateString)) {
-              const point = dataMap.get(dateString)!
-              point.price = item.close
-              dataMap.set(dateString, point)
-            }
-          })
-        } else {
-          console.warn("CryptoCompare response did not contain valid price data.", json.Message)
-        }
-
-        setChartData(Array.from(dataMap.values()))
-      } catch (err) {
-        console.error("Failed to load chart data:", err)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchData()
-  }, [simulationMonths])
 
   const formatXAxis = (tickItem: number) => {
-    const date = new Date(GENESIS_DATE)
-    date.setDate(date.getDate() + tickItem)
+    // tickItem is now the number of days
+    const date = new Date(GENESIS_DATE.getTime() + tickItem * 24 * 60 * 60 * 1000)
     return date.getFullYear().toString()
   }
 
-  const formatTooltipLabel = (label: number, payload: any[]) => {
-    if (!payload || payload.length === 0) return ""
-    const dateString = payload[0].payload.date
-    const date = new Date(dateString)
+  const formatTooltipLabel = (label: number) => {
+    // label is now the number of days
+    const date = new Date(GENESIS_DATE.getTime() + label * 24 * 60 * 60 * 1000)
     return date.toLocaleDateString(undefined, {
       year: "numeric",
       month: "long",
@@ -88,6 +40,10 @@ export function PriceModelChart({ simulationMonths }: { simulationMonths: number
 
   if (isLoading) {
     return <div className="h-96 flex items-center justify-center">{t("PriceModelChart.loading")}</div>
+  }
+
+  if (chartData.length === 0) {
+    return <div className="h-96 flex items-center justify-center">{t("PriceModelChart.noData")}</div>
   }
 
   return (
@@ -106,7 +62,6 @@ export function PriceModelChart({ simulationMonths }: { simulationMonths: number
                 type="number"
                 scale="log"
                 domain={["auto", "auto"]}
-                allowDataOverflow
                 tickFormatter={formatXAxis}
                 minTickGap={80}
               />
@@ -121,14 +76,23 @@ export function PriceModelChart({ simulationMonths }: { simulationMonths: number
                 labelFormatter={formatTooltipLabel}
                 formatter={(value: number, name: string) => [
                   `${value.toLocaleString(undefined, { maximumFractionDigits: 0 })} €`,
-                  name,
+                  t(`PriceModelChart.${name}`),
                 ]}
               />
               <Legend />
               <Line
                 type="monotone"
-                dataKey="price"
-                name={t("PriceModelChart.historicalPrice")}
+                dataKey="historicalPrice"
+                name="historicalPrice"
+                stroke="#6b7280"
+                strokeWidth={2}
+                dot={false}
+                connectNulls={false}
+              />
+              <Line
+                type="monotone"
+                dataKey="simulationPath"
+                name="projectedPrice"
                 stroke="#f97316"
                 strokeWidth={2}
                 dot={false}
@@ -137,26 +101,29 @@ export function PriceModelChart({ simulationMonths }: { simulationMonths: number
               <Line
                 type="monotone"
                 dataKey="resistance"
-                name={t("PriceModelChart.resistance")}
+                name="resistance"
                 stroke="#8b5cf6"
-                strokeWidth={2}
+                strokeWidth={1.5}
                 dot={false}
+                strokeDasharray="5 5"
               />
               <Line
                 type="monotone"
                 dataKey="fit"
-                name={t("PriceModelChart.fit")}
+                name="fit"
                 stroke="#22c55e"
-                strokeWidth={2}
+                strokeWidth={1.5}
                 dot={false}
+                strokeDasharray="5 5"
               />
               <Line
                 type="monotone"
                 dataKey="support"
-                name={t("PriceModelChart.support")}
+                name="support"
                 stroke="#ef4444"
-                strokeWidth={2}
+                strokeWidth={1.5}
                 dot={false}
+                strokeDasharray="5 5"
               />
               <Brush dataKey="days" height={30} stroke="#8884d8" tickFormatter={formatXAxis} />
             </LineChart>

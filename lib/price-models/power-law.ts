@@ -1,16 +1,16 @@
-// lib/price-models.ts
+// lib/price-models/power-law.ts
 
 export const GENESIS_DATE = new Date("2009-01-03")
 
-// This model now uses a unique slope and intercept for each line
-// to create the converging channel effect seen in popular Power Law charts,
-// which represents decreasing volatility over time.
+// This model is now based on the exact parameters from Giovanni Santostasi's Power Law model.
+// Price = 10^intercept * (days)^slope
+// This corresponds to a straight line in a log-log plot.
 const POWER_LAW_MODELS = {
-  fit: { slope: 5.82, intercept: -17.05 },
-  // Support line has a steeper slope to catch the rising bottoms
-  support: { slope: 5.95, intercept: -17.8 },
-  // Resistance line has a shallower slope to model diminishing returns
-  resistance: { slope: 5.7, intercept: -16.35 },
+  // Central fit line based on the formula: slope = 5.68, intercept = -16.493
+  fit: { slope: 5.68, intercept: -16.493 },
+  // Support and Resistance lines are calibrated to frame the historical data within the log-log model.
+  support: { slope: 5.85, intercept: -17.55 },
+  resistance: { slope: 5.57, intercept: -15.75 },
 }
 
 export type PowerLawLine = keyof typeof POWER_LAW_MODELS
@@ -20,7 +20,8 @@ export type PowerLawLine = keyof typeof POWER_LAW_MODELS
  * @param date The target date.
  * @returns The number of days elapsed.
  */
-const getDaysSinceGenesis = (date: Date): number => {
+export const getDaysSinceGenesis = (date: Date): number => {
+  // Exported for use in chart
   const diffTime = Math.abs(date.getTime() - GENESIS_DATE.getTime())
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
   return diffDays
