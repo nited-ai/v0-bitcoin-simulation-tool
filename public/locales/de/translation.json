@@ -54,8 +54,8 @@
     "liquidationFeeTooltip": "Die Gebühr, die die Plattform im Falle einer Liquidation vom verkauften Collateral einbehält."
   },
   "EconomicAssumptions": {
-    "title": "Wirtschaftliche Annahmen",
-    "description": "Definieren Sie Ihre Erwartungen für die Preisentwicklung und Inflation.",
+    "title": "Price Model",
+    "description": "Definieren Sie Ihre Erwartungen für die Preisentwicklung.",
     "inflation": "Erwartete jährliche Inflation (%)",
     "inflationTooltip": "Die erwartete jährliche Inflationsrate. Dieser Wert wird verwendet, um den realen (inflationsbereinigten) Wert von Vermögen und Schulden zu berechnen."
   },
@@ -67,7 +67,7 @@
     "powerLaw": "Power Law Modell",
     "cycleRepeat": "Zyklus-Wiederholung (Historisch)",
     "cycleRepeatPowerLaw": "Zyklus-Wiederholung (Power Law)",
-    "prognosisLine": "Prognose-Linie (Preis)",
+    "prognosisLine": "Select Price Projection Line",
     "prognosisLineTooltip": "Der BTC-Preis in der Simulation wird dieser Linie folgen.",
     "fit": "Fit (Grün)",
     "support": "Support (Rot)",
