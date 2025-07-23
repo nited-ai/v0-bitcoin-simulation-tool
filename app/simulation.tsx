@@ -100,7 +100,7 @@ const DEFAULT_PARAMS: SimulationParams = {
   loanTermMonths: 6,
   simulationMonths: 144,
   maxLoanAmount: 100000,
-  annualGrowthRates: [50, -50, -30, 110, 120, -50, -30, 110, 150, -50, -30, 110],
+  annualGrowthRates: [180, -60, -20, 210, 250, -60, -20, 170, 200, -65, -20, 110],
   priceModel: "manual",
   powerLawSettings: {
     prognosisLine: "fit",
