@@ -13,14 +13,14 @@ import { Download, RefreshCw, AlertTriangle, TrendingUp, Bitcoin, Info } from "l
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { getPowerLawPrice, type PowerLawLine, getDaysSinceGenesis } from "@/lib/price-models/power-law"
 import { getCycleRepeatPrice } from "@/lib/price-models/cycle-repeat"
-import { loadPriceHistoryFromCsv } from "@/lib/csv-loader"
-import { fetchRecentDailyPrices } from "@/lib/api/fetch-recent-prices"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { PriceModelChart } from "@/components/price-model-chart"
 import { ModeToggle } from "@/components/mode-toggle"
 import { LocaleSwitcher } from "@/components/locale-switcher"
 import i18n from "@/lib/i18n"
 import { loadCurrentBtcPrice } from "@/lib/load-btc-price"
+import { loadHistoricalPriceData } from "@/lib/price-engine/historical-data-loader"
+import type { HistoricalDataPoint } from "@/lib/price-engine/types"
 
 // Types
 type PriceModel = "manual" | "powerLaw" | "cycleRepeat" | "cycleRepeatPowerLaw"
@@ -82,11 +82,6 @@ interface MonthlyResult {
   loanCount: number
   highestLtv: number
   events: MonthlyEvent[]
-}
-
-interface HistoricalDataPoint {
-  time: number
-  close: number
 }
 
 const PLATFORM_LTV_NEW_LOANS = 50
@@ -383,39 +378,7 @@ function BitcoinSimulator() {
       setIsLoading(true)
       setErrors([])
       try {
-        const HALVING_2016_TIMESTAMP_SECONDS = Math.floor(new Date("2016-07-09T00:00:00Z").getTime() / 1000)
-
-        let csvData = await loadPriceHistoryFromCsv()
-        csvData = csvData.filter((d) => d.time >= HALVING_2016_TIMESTAMP_SECONDS)
-
-        const lastEntry = csvData.length > 0 ? csvData[csvData.length - 1] : null
-
-        if (lastEntry) {
-          const now = new Date()
-          now.setUTCHours(0, 0, 0, 0)
-          const lastDate = new Date(lastEntry.time * 1000)
-          lastDate.setUTCHours(0, 0, 0, 0)
-
-          const daysSinceLastEntry = Math.floor((now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24))
-
-          if (daysSinceLastEntry > 0) {
-            const newData = await fetchRecentDailyPrices(daysSinceLastEntry)
-            if (newData.length > 0) {
-              const combined = new Map(csvData.map((d) => [d.time, d]))
-              newData.forEach((d) => combined.set(d.time, d))
-              csvData = Array.from(combined.values()).sort((a, b) => a.time - b.time)
-            }
-          }
-        } else {
-          const now = new Date()
-          now.setUTCHours(0, 0, 0, 0)
-          const daysToFetch = Math.floor((now.getTime() / 1000 - HALVING_2016_TIMESTAMP_SECONDS) / (60 * 60 * 24))
-          const newData = await fetchRecentDailyPrices(daysToFetch)
-          if (newData.length > 0) {
-            csvData = newData.sort((a, b) => a.time - b.time)
-          }
-        }
-
+        const csvData = await loadHistoricalPriceData()
         setHistoricalPriceData(csvData)
 
         const latestPrice = csvData.length > 0 ? csvData[csvData.length - 1].close : DEFAULT_PARAMS.initialBtcPrice
