@@ -1,21 +1,21 @@
 "use client"
 
-import { useState, useEffect, useMemo, Suspense, useCallback, useRef } from "react"
-import { useTranslation, I18nextProvider } from "react-i18next"
+import { useState, useEffect, useMemo, useCallback, useRef } from "react"
+import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Legend } from "recharts"
+import { Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LineChart, Legend } from "recharts"
 import { Download, RefreshCw, AlertTriangle, TrendingUp, Bitcoin, Info } from "lucide-react"
-import { TooltipProvider } from "@/components/ui/tooltip"
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { PriceModelChart } from "@/components/price-model-chart"
 import { ModeToggle } from "@/components/mode-toggle"
 import { LocaleSwitcher } from "@/components/locale-switcher"
-import i18n from "@/lib/i18n"
+
 import { loadCurrentBtcPrice } from "@/lib/load-btc-price"
 import { loadHistoricalPriceData } from "@/lib/price-engine/historical-data-loader"
 import { generatePriceChartData } from "@/lib/price-engine"
@@ -27,6 +27,14 @@ import type {
   PriceEngineParams,
 } from "@/lib/price-engine/types"
 import { getPowerLawPrice } from "@/lib/price-engine/models/power-law"
+import { runStrategySimulation, getAvailableStrategies } from "@/lib/strategy-engine"
+import type {
+  InvestmentStrategy,
+  StrategyEngineParams,
+  MonthlyResult as StrategyMonthlyResult,
+  AthBasedStrategyParams,
+  MovingAverageStrategyParams
+} from "@/lib/strategy-engine/types"
 
 // All specific types are now imported from the engine's type definition file.
 // Financial-specific types remain here.
@@ -84,6 +92,10 @@ interface SimulationParams {
     liquidationLtv: number
   }
   expectedAnnualInflation: number
+  // Strategy parameters
+  investmentStrategy: InvestmentStrategy
+  athBasedParams: AthBasedStrategyParams
+  movingAverageParams: MovingAverageStrategyParams
 }
 
 const PLATFORM_LTV_NEW_LOANS = 50
@@ -107,11 +119,20 @@ const DEFAULT_PARAMS: SimulationParams = {
     liquidationLtv: 95,
   },
   expectedAnnualInflation: 2,
+  // Strategy parameters
+  investmentStrategy: "default",
+  athBasedParams: {
+    athThresholdPercent: 80,
+  },
+  movingAverageParams: {
+    movingAveragePeriod: 200,
+    investmentMultiplier: 1.0,
+  },
 }
 
 const PARAMS_STORAGE_KEY = "btc-simulator-params-v19-engine-refactor"
 
-function BitcoinSimulator() {
+export default function BitcoinSimulator() {
   const { t, i18n } = useTranslation()
 
   const [params, setParams] = useState<SimulationParams>(() => {
@@ -208,142 +229,46 @@ function BitcoinSimulator() {
 
       await new Promise((resolve) => setTimeout(resolve, 50))
 
-      // Create a fast lookup map for prices
-      const priceLookup = new Map<string, number>()
-      priceChartData.forEach((p) => {
-        if (p.simulationPath) {
-          priceLookup.set(p.date, p.simulationPath)
-        }
-      })
-
-      const tempResults: MonthlyResult[] = []
-      let activeLoans: Loan[] = []
-      let totalBtcAmount = currentParams.btcAmount
-      let nextLoanId = 1
-      const simulationStartDate = new Date()
-      const monthlyInflationRate = Math.pow(1 + currentParams.expectedAnnualInflation / 100, 1 / 12) - 1
-      let cumulativeInflationFactor = 1
-
-      for (let month = 1; month <= currentParams.simulationMonths; month++) {
-        cumulativeInflationFactor *= 1 + monthlyInflationRate
-        const currentDate = new Date(simulationStartDate)
-        currentDate.setMonth(currentDate.getMonth() + month - 1)
-        const dateStringForTable = `${(currentDate.getMonth() + 1).toString().padStart(2, "0")}/${currentDate.getFullYear()}`
-        const dateStringForLookup = currentDate.toISOString().split("T")[0]
-
-        // Get the pre-calculated BTC price from our lookup map.
-        // The complex price calculation logic is GONE from this function.
-        const btcPrice = priceLookup.get(dateStringForLookup) ?? currentParams.initialBtcPrice
-
-        const monthlyEvents: MonthlyEvent[] = []
-        const collateralValue = totalBtcAmount * btcPrice
-        const debtCapacity = collateralValue * (currentParams.riskManagement.targetLtv / 100)
-
-        const maturingLoans = activeLoans.filter((l) => l.maturityMonth === month)
-        const repaymentDue = maturingLoans.reduce((sum, l) => sum + l.repaymentAmount, 0)
-        const debtFromOngoingLoans = activeLoans
-          .filter((l) => l.maturityMonth !== month)
-          .reduce((sum, l) => sum + l.repaymentAmount, 0)
-        let withdrawalThisMonth = currentParams.monthlyWithdrawalAmount
-
-        let principalForNeeds =
-          (repaymentDue + withdrawalThisMonth) / (1 - currentParams.loanOriginationFeePercent / 100)
-        let principalForReinvestment = 0
-
-        const projectedDebtAfterNeeds = debtFromOngoingLoans + principalForNeeds
-
-        if (projectedDebtAfterNeeds <= debtCapacity) {
-          const remainingDebtCapacity = debtCapacity - projectedDebtAfterNeeds
-          principalForReinvestment = remainingDebtCapacity
-        } else {
-          principalForReinvestment = 0
-          withdrawalThisMonth = 0
-          monthlyEvents.push({ type: "withdrawal_skipped" })
-
-          principalForNeeds = repaymentDue / (1 - currentParams.loanOriginationFeePercent / 100)
-          const projectedDebtForRepaymentOnly = debtFromOngoingLoans + principalForNeeds
-
-          if (projectedDebtForRepaymentOnly > debtCapacity) {
-            const shortfall = projectedDebtForRepaymentOnly - debtCapacity
-            const btcToSell = shortfall / btcPrice
-
-            if (totalBtcAmount > btcToSell) {
-              totalBtcAmount -= btcToSell
-              monthlyEvents.push({ type: "deleveraged", amount: btcToSell })
-              principalForNeeds = debtCapacity - debtFromOngoingLoans
-            } else {
-              totalBtcAmount = 0
-              activeLoans.forEach((l) => monthlyEvents.push({ type: "liquidated", id: l.id }))
-              principalForNeeds = 0
-            }
-          }
+      try {
+        // Convert SimulationParams to StrategyEngineParams
+        const strategyParams: StrategyEngineParams = {
+          btcAmount: currentParams.btcAmount,
+          initialBtcPrice: currentParams.initialBtcPrice,
+          monthlyWithdrawalAmount: currentParams.monthlyWithdrawalAmount,
+          annualInterestRate: currentParams.annualInterestRate,
+          loanOriginationFeePercent: currentParams.loanOriginationFeePercent,
+          loanTermMonths: currentParams.loanTermMonths,
+          simulationMonths: currentParams.simulationMonths,
+          maxLoanAmount: currentParams.maxLoanAmount,
+          expectedAnnualInflation: currentParams.expectedAnnualInflation,
+          riskManagement: currentParams.riskManagement,
+          investmentStrategy: currentParams.investmentStrategy,
+          athBasedParams: currentParams.athBasedParams,
+          movingAverageParams: currentParams.movingAverageParams,
         }
 
-        activeLoans = activeLoans.filter((l) => l.maturityMonth !== month)
+        // Run the strategy simulation
+        const strategyResults = await runStrategySimulation(
+          strategyParams,
+          priceChartData,
+          historicalPriceData
+        )
 
-        const totalNewPrincipal = principalForNeeds + principalForReinvestment
-        const interestFactor = 1 + (currentParams.annualInterestRate / 100) * (currentParams.loanTermMonths / 12)
+        // Convert StrategyMonthlyResult to MonthlyResult (they should be compatible)
+        const convertedResults: MonthlyResult[] = strategyResults.map(result => ({
+          ...result,
+          liquidatedBtc: 0, // This field exists in MonthlyResult but not in StrategyMonthlyResult
+        }))
 
-        let principalLeftToCreate = totalNewPrincipal
-        while (principalLeftToCreate > 1) {
-          const loanPrincipal = Math.min(principalLeftToCreate, currentParams.maxLoanAmount)
-          const newRepaymentAmount = loanPrincipal * interestFactor
-          const btcToLock = newRepaymentAmount / (btcPrice * (PLATFORM_LTV_NEW_LOANS / 100))
-
-          if (totalBtcAmount < btcToLock) break
-
-          activeLoans.push({
-            id: nextLoanId++,
-            month: month,
-            principal: loanPrincipal,
-            maturityMonth: month + currentParams.loanTermMonths,
-            repaymentAmount: newRepaymentAmount,
-            lockedBtc: btcToLock,
-          })
-          principalLeftToCreate -= loanPrincipal
-        }
-
-        let reinvestmentAmount = 0
-        if (principalForReinvestment > 0) {
-          const proceeds = principalForReinvestment * (1 - currentParams.loanOriginationFeePercent / 100)
-          const btcBought = proceeds / btcPrice
-          totalBtcAmount += btcBought
-          reinvestmentAmount = proceeds
-        }
-
-        const finalTotalDebt = activeLoans.reduce((sum, l) => sum + l.repaymentAmount, 0)
-        const finalCollateralValue = totalBtcAmount * btcPrice
-        const finalLockedBtc = activeLoans.reduce((sum, l) => sum + l.lockedBtc, 0)
-        const finalFreeBtc = totalBtcAmount - finalLockedBtc
-        const highestLtv =
-          activeLoans.length > 0
-            ? Math.max(...activeLoans.map((l) => (l.repaymentAmount / (l.lockedBtc * btcPrice)) * 100))
-            : 0
-
-        tempResults.push({
-          month,
-          dateString: dateStringForTable,
-          btcPrice: Math.round(btcPrice),
-          collateralValue: Math.round(finalCollateralValue),
-          realCollateralValue: Math.round(finalCollateralValue / cumulativeInflationFactor),
-          totalDebt: Math.round(finalTotalDebt),
-          realTotalDebt: Math.round(finalTotalDebt / cumulativeInflationFactor),
-          withdrawalAmount: Math.round(withdrawalThisMonth),
-          newLoanPrincipal: Math.round(totalNewPrincipal),
-          repaymentsDue: Math.round(repaymentDue),
-          reinvestment: Math.round(reinvestmentAmount),
-          currentBtcAmount: totalBtcAmount,
-          freeBtc: finalFreeBtc,
-          lockedBtc: finalLockedBtc,
-          loanCount: activeLoans.length,
-          highestLtv: isFinite(highestLtv) ? Math.round(highestLtv) : 0,
-          events: monthlyEvents,
-        })
+        setResults(convertedResults)
+      } catch (error) {
+        console.error("Strategy simulation failed:", error)
+        setErrors(["Strategy simulation failed. Please check your parameters and try again."])
+      } finally {
+        setIsLoading(false)
       }
-      setResults(tempResults)
-      setIsLoading(false)
     },
-    [params, priceChartData],
+    [params, priceChartData, historicalPriceData],
   )
 
   // This effect loads the initial historical data ONCE on component mount.
@@ -524,16 +449,42 @@ function BitcoinSimulator() {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="btcAmount">{t("BasicParams.btcAmount")}</Label>
+                      <Label htmlFor="btcAmount">
+                        {t("BasicParams.btcAmount")}
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="w-4 h-4 ml-1 inline" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{t("BasicParams.btcAmountTooltip")}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </Label>
                       <Input
                         id="btcAmount"
                         type="number"
                         value={params.btcAmount}
                         onChange={(e) => setParams((p) => ({ ...p, btcAmount: Number(e.target.value) }))}
+                        min="0.001"
+                        step="0.001"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="initialBtcPrice">{t("BasicParams.initialBtcPrice")}</Label>
+                      <Label htmlFor="initialBtcPrice">
+                        {t("BasicParams.initialBtcPrice")}
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="w-4 h-4 ml-1 inline" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{t("BasicParams.initialBtcPriceTooltip")}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </Label>
                       <div className="flex gap-2">
                         <Input
                           id="initialBtcPrice"
@@ -561,36 +512,93 @@ function BitcoinSimulator() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="loanTermMonths">{t("BasicParams.loanTerm")}</Label>
+                      <Label htmlFor="loanTermMonths">
+                        {t("BasicParams.loanTerm")}
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="w-4 h-4 ml-1 inline" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{t("BasicParams.loanTermTooltip")}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </Label>
                       <Input
                         id="loanTermMonths"
                         type="number"
                         value={params.loanTermMonths}
                         onChange={(e) => setParams((p) => ({ ...p, loanTermMonths: Number(e.target.value) }))}
+                        min="1"
+                        max="60"
+                        step="1"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="simulationMonths">{t("BasicParams.simulationDuration")}</Label>
+                      <Label htmlFor="simulationMonths">
+                        {t("BasicParams.simulationDuration")}
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="w-4 h-4 ml-1 inline" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{t("BasicParams.simulationDurationTooltip")}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </Label>
                       <Input
                         id="simulationMonths"
                         type="number"
                         value={params.simulationMonths}
                         onChange={(e) => setParams((p) => ({ ...p, simulationMonths: Number(e.target.value) }))}
+                        min="12"
+                        max="600"
+                        step="1"
                       />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="annualInterestRate">{t("BasicParams.interestRate")}</Label>
+                      <Label htmlFor="annualInterestRate">
+                        {t("BasicParams.interestRate")}
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="w-4 h-4 ml-1 inline" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{t("BasicParams.interestRateTooltip")}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </Label>
                       <Input
                         id="annualInterestRate"
                         type="number"
                         value={params.annualInterestRate}
                         onChange={(e) => setParams((p) => ({ ...p, annualInterestRate: Number(e.target.value) }))}
+                        min="0"
+                        max="50"
+                        step="0.1"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="loanOriginationFeePercent">{t("BasicParams.originationFee")}</Label>
+                      <Label htmlFor="loanOriginationFeePercent">
+                        {t("BasicParams.originationFee")}
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="w-4 h-4 ml-1 inline" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{t("BasicParams.originationFeeTooltip")}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </Label>
                       <Input
                         id="loanOriginationFeePercent"
                         type="number"
@@ -598,16 +606,33 @@ function BitcoinSimulator() {
                         onChange={(e) =>
                           setParams((p) => ({ ...p, loanOriginationFeePercent: Number(e.target.value) }))
                         }
+                        min="0"
+                        max="10"
+                        step="0.1"
                       />
                     </div>
                   </div>
                   <div>
-                    <Label htmlFor="maxLoanAmount">{t("BasicParams.maxLoanAmount")}</Label>
+                    <Label htmlFor="maxLoanAmount">
+                      {t("BasicParams.maxLoanAmount")}
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="w-4 h-4 ml-1 inline" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{t("BasicParams.maxLoanAmountTooltip")}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </Label>
                     <Input
                       id="maxLoanAmount"
                       type="number"
                       value={params.maxLoanAmount}
                       onChange={(e) => setParams((p) => ({ ...p, maxLoanAmount: Number(e.target.value) }))}
+                      min="1000"
+                      step="1000"
                     />
                   </div>
                 </CardContent>
@@ -621,12 +646,26 @@ function BitcoinSimulator() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div>
-                      <Label htmlFor="monthlyWithdrawalAmount">{t("Strategy.monthlyWithdrawal")}</Label>
+                      <Label htmlFor="monthlyWithdrawalAmount">
+                        {t("Strategy.monthlyWithdrawal")}
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="w-4 h-4 ml-1 inline" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{t("Strategy.monthlyWithdrawalTooltip")}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </Label>
                       <Input
                         id="monthlyWithdrawalAmount"
                         type="number"
                         value={params.monthlyWithdrawalAmount}
                         onChange={(e) => setParams((p) => ({ ...p, monthlyWithdrawalAmount: Number(e.target.value) }))}
+                        min="0"
+                        step="100"
                       />
                     </div>
                   </CardContent>
@@ -639,7 +678,19 @@ function BitcoinSimulator() {
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="targetLtv">{t("RiskManagement.targetLtv")}</Label>
+                        <Label htmlFor="targetLtv">
+                          {t("RiskManagement.targetLtv")}
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="w-4 h-4 ml-1 inline" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{t("RiskManagement.targetLtvTooltip")}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </Label>
                         <Input
                           id="targetLtv"
                           type="number"
@@ -652,10 +703,23 @@ function BitcoinSimulator() {
                           }
                           min="0"
                           max="90"
+                          step="1"
                         />
                       </div>
                       <div>
-                        <Label htmlFor="liquidationLtv">{t("RiskManagement.liquidationLtv")}</Label>
+                        <Label htmlFor="liquidationLtv">
+                          {t("RiskManagement.liquidationLtv")}
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="w-4 h-4 ml-1 inline" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{t("RiskManagement.liquidationLtvTooltip")}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </Label>
                         <Input
                           id="liquidationLtv"
                           type="number"
@@ -666,6 +730,9 @@ function BitcoinSimulator() {
                               riskManagement: { ...p.riskManagement, liquidationLtv: Number(e.target.value) },
                             }))
                           }
+                          min="50"
+                          max="100"
+                          step="1"
                         />
                       </div>
                     </div>
@@ -681,12 +748,27 @@ function BitcoinSimulator() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div>
-                  <Label htmlFor="expectedAnnualInflation">{t("EconomicAssumptions.inflation")}</Label>
+                  <Label htmlFor="expectedAnnualInflation">
+                    {t("EconomicAssumptions.inflation")}
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="w-4 h-4 ml-1 inline" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{t("EconomicAssumptions.inflationTooltip")}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </Label>
                   <Input
                     id="expectedAnnualInflation"
                     type="number"
                     value={params.expectedAnnualInflation}
                     onChange={(e) => setParams((p) => ({ ...p, expectedAnnualInflation: Number(e.target.value) }))}
+                    min="0"
+                    max="20"
+                    step="0.1"
                   />
                 </div>
                 <div className="space-y-4">
@@ -764,8 +846,159 @@ function BitcoinSimulator() {
               </CardContent>
             </Card>
 
+            {/* Investment Strategy Selection */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5" />
+                  {t("InvestmentStrategy.title")}
+                </CardTitle>
+                <CardDescription>{t("InvestmentStrategy.description")}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="investment-strategy">{t("InvestmentStrategy.selectStrategy")}</Label>
+                  <Select
+                    value={params.investmentStrategy}
+                    onValueChange={(value: InvestmentStrategy) =>
+                      setParams((prev) => ({ ...prev, investmentStrategy: value }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={t("InvestmentStrategy.selectStrategy")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {getAvailableStrategies().map((strategy) => (
+                        <SelectItem key={strategy.id} value={strategy.id}>
+                          {t(`InvestmentStrategy.${strategy.id}Strategy`)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* ATH-Based Strategy Settings */}
+                {params.investmentStrategy === "athBased" && (
+                  <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
+                    <div>
+                      <h4 className="font-medium">{t("InvestmentStrategy.athSettingsTitle")}</h4>
+                      <p className="text-sm text-muted-foreground">{t("InvestmentStrategy.athSettingsDescription")}</p>
+                    </div>
+                    <div>
+                      <Label htmlFor="ath-threshold">
+                        {t("InvestmentStrategy.athThreshold")}
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="w-4 h-4 ml-1 inline" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{t("InvestmentStrategy.athThresholdTooltip")}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </Label>
+                      <Input
+                        id="ath-threshold"
+                        type="number"
+                        value={params.athBasedParams.athThresholdPercent}
+                        onChange={(e) =>
+                          setParams((prev) => ({
+                            ...prev,
+                            athBasedParams: {
+                              ...prev.athBasedParams,
+                              athThresholdPercent: parseFloat(e.target.value) || 80,
+                            },
+                          }))
+                        }
+                        min="0"
+                        max="100"
+                        step="1"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Moving Average Strategy Settings */}
+                {params.investmentStrategy === "movingAverage" && (
+                  <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
+                    <div>
+                      <h4 className="font-medium">{t("InvestmentStrategy.movingAverageSettingsTitle")}</h4>
+                      <p className="text-sm text-muted-foreground">{t("InvestmentStrategy.movingAverageSettingsDescription")}</p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="ma-period">
+                          {t("InvestmentStrategy.movingAveragePeriod")}
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="w-4 h-4 ml-1 inline" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{t("InvestmentStrategy.movingAveragePeriodTooltip")}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </Label>
+                        <Input
+                          id="ma-period"
+                          type="number"
+                          value={params.movingAverageParams.movingAveragePeriod}
+                          onChange={(e) =>
+                            setParams((prev) => ({
+                              ...prev,
+                              movingAverageParams: {
+                                ...prev.movingAverageParams,
+                                movingAveragePeriod: parseInt(e.target.value) || 200,
+                              },
+                            }))
+                          }
+                          min="1"
+                          max="1000"
+                          step="1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="investment-multiplier">
+                          {t("InvestmentStrategy.investmentMultiplier")}
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="w-4 h-4 ml-1 inline" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{t("InvestmentStrategy.investmentMultiplierTooltip")}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </Label>
+                        <Input
+                          id="investment-multiplier"
+                          type="number"
+                          value={params.movingAverageParams.investmentMultiplier}
+                          onChange={(e) =>
+                            setParams((prev) => ({
+                              ...prev,
+                              movingAverageParams: {
+                                ...prev.movingAverageParams,
+                                investmentMultiplier: parseFloat(e.target.value) || 1.0,
+                              },
+                            }))
+                          }
+                          min="0"
+                          max="3"
+                          step="0.1"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             <div className="flex flex-wrap gap-4">
-              <Button onClick={runSimulation} disabled={isLoading || priceChartData.length === 0}>
+              <Button onClick={() => runSimulation()} disabled={isLoading || priceChartData.length === 0}>
                 {isLoading ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin mr-2" />
@@ -1003,9 +1236,9 @@ function BitcoinSimulator() {
                           label={{ value: t("Chart.btcPriceInEur"), angle: 90, position: "insideRight" }}
                           tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
                         />
-                        <Tooltip
+                        <RechartsTooltip
                           formatter={(value: number, name: string) => [`${value.toLocaleString("de-DE")} €`, name]}
-                          labelFormatter={(date) => `${t("Chart.date")}: ${date}`}
+                          labelFormatter={(date: any) => `${t("Chart.date")}: ${date}`}
                         />
                         <Legend />
                         <Line
@@ -1079,12 +1312,5 @@ function BitcoinSimulator() {
   )
 }
 
-export default function Page() {
-  return (
-    <Suspense fallback={<div className="w-full h-screen animate-pulse bg-secondary" />}>
-      <I18nextProvider i18n={i18n}>
-        <BitcoinSimulator />
-      </I18nextProvider>
-    </Suspense>
-  )
-}
+// This export is not needed since BitcoinSimulator is already exported above
+// and page.tsx handles the I18nextProvider wrapper
