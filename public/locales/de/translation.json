@@ -92,7 +92,17 @@
     "movingAveragePeriod": "Gleitender Durchschnitt Periode (Wochen)",
     "movingAveragePeriodTooltip": "Die Periode in Wochen für die Berechnung des gleitenden Durchschnitts (Standard: 200 Wochen).",
     "investmentMultiplier": "Investitions-Multiplikator",
-    "investmentMultiplierTooltip": "Basis-Multiplikator für Investitionskapazität wenn über dem gleitenden Durchschnitt."
+    "investmentMultiplierTooltip": "Basis-Multiplikator für Investitionskapazität wenn über dem gleitenden Durchschnitt.",
+    "settingsTitle": "Einstellungen",
+    "explanationTitle": "Strategie-Erklärung",
+    "functionality": "Funktionsweise",
+    "suitability": "Eignung",
+    "criteria": "Entscheidungskriterien",
+    "securityRating": "Sicherheitsbewertung",
+    "complexityRating": "Komplexitätsbewertung",
+    "securityTooltip": "1 = Sehr riskant, 5 = Sehr sicher",
+    "complexityTooltip": "1 = Sehr einfach, 5 = Sehr komplex",
+    "ratingOutOf5": "von 5"
   },
   "Results": {
     "summaryTitle": "Zusammenfassung",

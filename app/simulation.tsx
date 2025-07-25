@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
+import { Rating } from "@/components/ui/rating"
 import { Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LineChart, Legend } from "recharts"
 import { Download, RefreshCw, AlertTriangle, TrendingUp, Bitcoin, Info } from "lucide-react"
 import { toast } from "sonner"
@@ -708,16 +710,14 @@ export default function BitcoinSimulator() {
                   <div>
                     <Label htmlFor="maxLoanAmount">
                       {t("BasicParams.maxLoanAmount")}
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Info className="w-4 h-4 ml-1 inline" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>{t("BasicParams.maxLoanAmountTooltip")}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="w-4 h-4 ml-1 inline" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{t("BasicParams.maxLoanAmountTooltip")}</p>
+                        </TooltipContent>
+                      </Tooltip>
                     </Label>
                     <Input
                       id="maxLoanAmount"
@@ -802,16 +802,14 @@ export default function BitcoinSimulator() {
                       <div>
                         <Label htmlFor="liquidationLtv">
                           {t("RiskManagement.liquidationLtv")}
-  
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Info className="w-4 h-4 ml-1 inline" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>{t("RiskManagement.liquidationLtvTooltip")}</p>
-                              </TooltipContent>
-                            </Tooltip>
-  
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="w-4 h-4 ml-1 inline" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{t("RiskManagement.liquidationLtvTooltip")}</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </Label>
                         <Input
                           id="liquidationLtv"
@@ -843,28 +841,36 @@ export default function BitcoinSimulator() {
                 </CardTitle>
                 <CardDescription>{t("InvestmentStrategy.description")}</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="investment-strategy">{t("InvestmentStrategy.selectStrategy")}</Label>
-                  <Select
-                    value={params.investmentStrategy}
-                    onValueChange={(value: InvestmentStrategy) =>
-                      setParams((prev) => ({ ...prev, investmentStrategy: value }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t("InvestmentStrategy.selectStrategy")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {getAvailableStrategies().map((strategy) => (
-                        <SelectItem key={strategy.id} value={strategy.id}>
-                          {t(`InvestmentStrategy.${strategy.id}Strategy`)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              <CardContent>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Left Side: Settings */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">{t("InvestmentStrategy.settingsTitle")}</h3>
 
+                    <div>
+                      <Label htmlFor="investment-strategy">{t("InvestmentStrategy.selectStrategy")}</Label>
+                      <Select
+                        value={params.investmentStrategy}
+                        onValueChange={(value: InvestmentStrategy) =>
+                          setParams((prev) => ({ ...prev, investmentStrategy: value }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={t("InvestmentStrategy.selectStrategy")} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {getAvailableStrategies().map((strategy) => (
+                            <SelectItem key={strategy.id} value={strategy.id}>
+                              {t(`InvestmentStrategy.${strategy.id}Strategy`)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Right Side: Conditional Strategy Settings */}
+                  <div className="space-y-4">
                 {/* ATH-Based Strategy Settings */}
                 {params.investmentStrategy === "athBased" && (
                   <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
@@ -1114,6 +1120,8 @@ export default function BitcoinSimulator() {
                     </div>
                   </div>
                 )}
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
@@ -1544,6 +1552,3 @@ export default function BitcoinSimulator() {
     </TooltipProvider>
   )
 }
-
-// This export is not needed since BitcoinSimulator is already exported above
-// and page.tsx handles the I18nextProvider wrapper

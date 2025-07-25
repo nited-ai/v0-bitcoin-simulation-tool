@@ -1,9 +1,10 @@
 // lib/strategy-engine/strategies/default.ts
 
-import type { 
-  InvestmentStrategyInterface, 
-  StrategyContext, 
-  StrategyDecision 
+import type {
+  InvestmentStrategyInterface,
+  StrategyContext,
+  StrategyDecision,
+  StrategyMetadata
 } from "../types"
 
 /**
@@ -17,6 +18,27 @@ export class DefaultStrategy implements InvestmentStrategyInterface {
 
   getDescription(): string {
     return "Standard investment approach with no additional restrictions. Invests up to target LTV."
+  }
+
+  getMetadata(): StrategyMetadata {
+    return {
+      securityRating: 3, // Moderate security - depends on target LTV setting
+      complexityRating: 1, // Very simple - no additional parameters
+      suitableFor: ["beginners", "conservative", "moderate"],
+      criteria: ["target_ltv", "debt_capacity", "basic_needs"]
+    }
+  }
+
+  getDetailedDescription(): string {
+    return "The Default Strategy is the simplest investment approach that maintains the original behavior of the simulation. It focuses purely on maintaining your target debt ratio (LTV) without any market timing considerations."
+  }
+
+  getFunctionality(): string {
+    return "This strategy invests the maximum available amount up to your target LTV whenever debt capacity is available after covering basic needs (loan repayments and withdrawals). It does not consider market conditions, price trends, or timing factors."
+  }
+
+  getSuitability(): string {
+    return "Ideal for beginners who want a straightforward approach without complex market analysis. Suitable for conservative investors who prefer consistent, predictable behavior regardless of market conditions. Good for those who want to focus on risk management through LTV control rather than market timing."
   }
 
   makeDecision(context: StrategyContext): StrategyDecision {

@@ -231,12 +231,24 @@ export function getAvailableStrategies(): Array<{
   id: string
   name: string
   description: string
+  metadata: any
+  detailedDescription: string
+  functionality: string
+  suitability: string
 }> {
+  const defaultStrategy = new DefaultStrategy()
+  const athBasedStrategy = new AthBasedStrategy()
+  const movingAverageStrategy = new MovingAverageStrategy()
+
   return [
     {
       id: "default",
-      name: new DefaultStrategy().getName(),
-      description: new DefaultStrategy().getDescription()
+      name: defaultStrategy.getName(),
+      description: defaultStrategy.getDescription(),
+      metadata: defaultStrategy.getMetadata(),
+      detailedDescription: defaultStrategy.getDetailedDescription(),
+      functionality: defaultStrategy.getFunctionality(),
+      suitability: defaultStrategy.getSuitability()
     },
     {
       id: "athBased",

@@ -1,9 +1,10 @@
 // lib/strategy-engine/strategies/ath-based.ts
 
-import type { 
-  InvestmentStrategyInterface, 
-  StrategyContext, 
-  StrategyDecision 
+import type {
+  InvestmentStrategyInterface,
+  StrategyContext,
+  StrategyDecision,
+  StrategyMetadata
 } from "../types"
 
 /**
@@ -19,6 +20,27 @@ export class AthBasedStrategy implements InvestmentStrategyInterface {
 
   getDescription(): string {
     return "Limits investment when BTC price is above a percentage of All-Time High. More conservative near price peaks."
+  }
+
+  getMetadata(): StrategyMetadata {
+    return {
+      securityRating: 4, // Higher security through market timing
+      complexityRating: 2, // Simple concept but requires ATH threshold configuration
+      suitableFor: ["intermediate", "conservative", "market_aware"],
+      criteria: ["all_time_high", "price_proximity", "target_ltv", "debt_capacity"]
+    }
+  }
+
+  getDetailedDescription(): string {
+    return "The ATH-Based Strategy implements a market timing approach that becomes more conservative when Bitcoin prices approach historical peaks. It tracks the All-Time High (ATH) and reduces or eliminates new investments when the current price exceeds a configurable percentage of the ATH."
+  }
+
+  getFunctionality(): string {
+    return "When the current BTC price is below the ATH threshold (e.g., 80% of ATH), the strategy behaves like the default strategy. When the price exceeds this threshold, investment is blocked or reduced, helping to avoid taking on new debt near market tops. The strategy continuously tracks the ATH from both historical and projected price data."
+  }
+
+  getSuitability(): string {
+    return "Perfect for investors who want to avoid leveraging near market peaks. Suitable for those who believe in market cycles and want to be more conservative during potential bubble phases. Good for intermediate investors who understand market timing concepts but want a systematic approach rather than emotional decision-making."
   }
 
   /**

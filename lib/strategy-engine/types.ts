@@ -166,6 +166,16 @@ export interface StrategyDecision {
 }
 
 /**
+ * Metadata for strategy ratings and characteristics
+ */
+export interface StrategyMetadata {
+  securityRating: number // 1-5 (1 = very risky, 5 = very safe)
+  complexityRating: number // 1-5 (1 = very simple, 5 = very complex)
+  suitableFor: string[] // e.g. ["beginners", "advanced", "conservative"]
+  criteria: string[] // Main criteria used for decision making
+}
+
+/**
  * Interface that all investment strategies must implement
  */
 export interface InvestmentStrategyInterface {
@@ -173,14 +183,34 @@ export interface InvestmentStrategyInterface {
    * Make investment and withdrawal decisions for a given month
    */
   makeDecision(context: StrategyContext): StrategyDecision
-  
+
   /**
    * Get the display name of this strategy
    */
   getName(): string
-  
+
   /**
    * Get a description of this strategy
    */
   getDescription(): string
+
+  /**
+   * Get detailed metadata about this strategy
+   */
+  getMetadata(): StrategyMetadata
+
+  /**
+   * Get detailed description of how this strategy works
+   */
+  getDetailedDescription(): string
+
+  /**
+   * Get information about strategy functionality
+   */
+  getFunctionality(): string
+
+  /**
+   * Get information about strategy suitability
+   */
+  getSuitability(): string
 }
