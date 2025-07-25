@@ -7,11 +7,13 @@ import { generateManualPath } from "./models/manual"
 import { generatePowerLawPath, getDaysSinceGenesis, getPowerLawPrice } from "./models/power-law"
 import { generateCycleRepeatPath } from "./models/cycle-repeat"
 import { generateCycleRepeatPowerLawPath } from "./models/cycle-repeat-power-law"
-import { ChartDataCache } from "./chart-cache-manager"
 import { PerformanceMonitor } from "./performance-monitor"
+import { HistoricalChartDataCache } from "./historical-chart-cache"
+import { generateProjectionPath } from "./projection-generator"
+import { mergeHistoricalAndProjection, addPowerLawLines } from "./chart-merger"
 
-// Globale Cache-Instanz
-const chartCache = new ChartDataCache()
+// Global cache instance for historical chart data
+const historicalChartCache = new HistoricalChartDataCache()
 
 /**
  * The main dispatcher for the Price Engine.
@@ -34,18 +36,24 @@ async function generatePriceChartDataOriginal(
   let futurePath: { date: Date; price: number }[] = []
 
   // Step 1 & 2: Select model and generate the future price path
+  console.log(`🎯 PriceEngine: Generating path for model "${params.priceModel}"`)
+
   switch (params.priceModel) {
     case "manual":
       futurePath = generateManualPath(params)
+      console.log(`📈 Manual path generated: ${futurePath.length} points`)
       break
     case "powerLaw":
       futurePath = generatePowerLawPath(params)
+      console.log(`📈 Power Law path generated: ${futurePath.length} points (line: ${params.powerLawSettings.prognosisLine})`)
       break
     case "cycleRepeat":
       futurePath = generateCycleRepeatPath(params)
+      console.log(`📈 Cycle Repeat path generated: ${futurePath.length} points`)
       break
     case "cycleRepeatPowerLaw":
       futurePath = generateCycleRepeatPowerLawPath(params)
+      console.log(`📈 Cycle Repeat Power Law path generated: ${futurePath.length} points`)
       break
     default:
       throw new Error(`Unknown price model: ${params.priceModel}`)
@@ -97,54 +105,63 @@ async function generatePriceChartDataOriginal(
 }
 
 /**
- * Optimierte Version der generatePriceChartData Funktion mit intelligentem Caching
+ * Optimized price chart data generation.
+ * Separates expensive historical data processing from fast projection generation.
+ *
+ * @param params - The complete set of parameters for the price generation.
+ * @param historicalData - The pre-loaded historical price data.
+ * @returns A promise that resolves to an array of `PriceChartDataPoint`.
+ */
+async function generatePriceChartDataOptimized(
+  params: PriceEngineParams,
+  historicalData: HistoricalDataPoint[],
+): Promise<PriceChartDataPoint[]> {
+
+  // Step 1: Get cached historical chart data (fast after first time)
+  const historicalChartData = await historicalChartCache.getHistoricalChartData(historicalData)
+
+  // Step 2: Get the last historical price to connect projection properly
+  const lastHistoricalPoint = historicalData[historicalData.length - 1]
+  const lastHistoricalPrice = lastHistoricalPoint?.price || params.initialBtcPrice
+  const lastHistoricalDate = lastHistoricalPoint?.date || new Date()
+
+  // Step 3: Generate projection path starting from last historical point (fast)
+  const projectionParams = {
+    ...params,
+    initialBtcPrice: lastHistoricalPrice,
+    projectionStartDate: lastHistoricalDate
+  }
+  const projectionPath = generateProjectionPath(projectionParams)
+
+  // Step 4: Merge cached historical data with new projection (fast)
+  const chartData = mergeHistoricalAndProjection(historicalChartData, projectionPath)
+
+  // Step 5: Always add Power Law reference lines (fast, deterministic)
+  addPowerLawLines(chartData, params)
+
+  return chartData
+}
+
+/**
+ * Simplified version that always generates fresh price projections
+ * Historical data is cached separately in the historical-data-loader
  */
 export async function generatePriceChartData(
   params: PriceEngineParams,
   historicalData: HistoricalDataPoint[],
 ): Promise<PriceChartDataPoint[]> {
-  console.log("🚀 Generating price chart data...")
+  console.log("🚀 Generating optimized price chart data...")
   const startTime = performance.now()
 
-  try {
-    // 1. Cache prüfen
-    const cachedData = await chartCache.loadFromCache(params)
-    if (cachedData) {
-      const loadTime = performance.now() - startTime
-      PerformanceMonitor.recordLoadTime("chart-cache-hit", loadTime)
-      console.log(`⚡ Chart data loaded from cache in ${Math.round(loadTime)}ms (${cachedData.length} points)`)
-      return cachedData
-    }
+  // Use optimized version that caches historical data processing
+  const data = await generatePriceChartDataOptimized(params, historicalData)
 
-    // 2. Daten generieren (Cache Miss)
-    console.log("📊 Generating new chart data...")
-    PerformanceMonitor.recordLoadTime("chart-cache-miss", performance.now() - startTime)
+  const totalTime = performance.now() - startTime
+  PerformanceMonitor.recordLoadTime("chart-generation", totalTime)
+  console.log(`✅ Optimized chart data generated in ${Math.round(totalTime)}ms (${data.length} points)`)
 
-    const data = await generatePriceChartDataOriginal(params, historicalData)
-
-    // 3. Daten cachen für zukünftige Verwendung
-    await chartCache.saveToCache(params, data)
-
-    const totalTime = performance.now() - startTime
-    PerformanceMonitor.recordLoadTime("chart-generation", totalTime)
-    console.log(`💾 Chart data generated and cached in ${Math.round(totalTime)}ms (${data.length} points)`)
-
-    return data
-
-  } catch (error) {
-    console.error("❌ Chart generation failed, trying without cache:", error)
-    // Fallback zur ursprünglichen Methode
-    return await generatePriceChartDataOriginal(params, historicalData)
-  }
+  return data
 }
 
-/**
- * Cache-Management-Funktionen für externe Verwendung
- */
-export function clearChartCache(): void {
-  chartCache.clearAllCache()
-}
-
-export function getChartCacheStats() {
-  return chartCache.getCacheStats()
-}
+// Chart caching removed - projections are always generated fresh
+// Historical data caching is handled separately in historical-data-loader.ts

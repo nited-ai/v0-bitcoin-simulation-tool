@@ -114,6 +114,7 @@
     "tableHighestLtv": "Highest LTV (%)",
     "tableBtcAmount": "BTC Amount",
     "tableLiquidatedBtc": "Liquidated (BTC)",
+    "tableMaxSafeDebt": "Max Safe Debt (€)",
     "tableLoanCount": "Loan Count",
     "tableEvents": "Events",
     "tableNewLoans": "New Loans (€)",

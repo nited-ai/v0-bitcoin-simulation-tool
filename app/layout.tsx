@@ -23,6 +23,10 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <Suspense fallback={<div className="w-full h-screen animate-pulse bg-secondary" />}>{children}</Suspense>
         </ThemeProvider>
+        {/* Development testing script */}
+        {process.env.NODE_ENV === 'development' && (
+          <script src="/test-price-switching.js" async />
+        )}
       </body>
     </html>
   )

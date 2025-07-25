@@ -21,7 +21,7 @@ import { loadCurrentBtcPrice } from "@/lib/load-btc-price"
 import { loadHistoricalPriceData } from "@/lib/price-engine/historical-data-loader"
 import { PerformanceMonitor } from "@/lib/price-engine/performance-monitor"
 import { HistoricalDataCache } from "@/lib/price-engine/cache-manager"
-import { generatePriceChartData, clearChartCache, getChartCacheStats } from "@/lib/price-engine"
+import { generatePriceChartData } from "@/lib/price-engine"
 import type {
   HistoricalDataPoint,
   PriceModel,
@@ -36,7 +36,8 @@ import type {
   StrategyEngineParams,
   MonthlyResult as StrategyMonthlyResult,
   AthBasedStrategyParams,
-  MovingAverageStrategyParams
+  MovingAverageStrategyParams,
+  AthCollateralStrategyParams
 } from "@/lib/strategy-engine/types"
 
 // All specific types are now imported from the engine's type definition file.
@@ -67,6 +68,7 @@ interface MonthlyResult {
   lockedBtc: number
   loanCount: number
   highestLtv: number
+  maxSafeDebt?: number // Maximum safe debt limit (for ATH-based strategies)
   events: MonthlyEvent[]
 }
 
@@ -98,6 +100,7 @@ interface SimulationParams {
   investmentStrategy: InvestmentStrategy
   athBasedParams: AthBasedStrategyParams
   movingAverageParams: MovingAverageStrategyParams
+  athCollateralParams: AthCollateralStrategyParams
 }
 
 const PLATFORM_LTV_NEW_LOANS = 50
@@ -128,6 +131,12 @@ const DEFAULT_PARAMS: SimulationParams = {
   movingAverageParams: {
     movingAveragePeriod: 200,
     investmentMultiplier: 1.0,
+  },
+  athCollateralParams: {
+    maxDrawdownPercent: 82,    // Optimized: +2% for better accumulation
+    collateralMultiplier: 1.9, // Optimized: -0.1 for better capital efficiency
+    athLookbackMonths: 30,     // Optimized: -6 for better market responsiveness
+    emergencyCollateralBuffer: 1.15, // Optimized: -0.05 for better capital efficiency
   },
 }
 
@@ -161,6 +170,7 @@ export default function BitcoinSimulator() {
   const [priceChartData, setPriceChartData] = useState<PriceChartDataPoint[]>([])
   const [cacheStatus, setCacheStatus] = useState<'loading' | 'cached' | 'fresh' | 'error'>('loading')
   const [chartLoading, setChartLoading] = useState(false)
+  const [initialDataLoaded, setInitialDataLoaded] = useState(false)
 
   const firstRun = useRef(true)
 
@@ -168,22 +178,58 @@ export default function BitcoinSimulator() {
     document.documentElement.lang = i18n.language
   }, [i18n.language])
 
+  // No cache invalidation needed - projections are always generated fresh
+
   useEffect(() => {
     try {
-      localStorage.setItem(PARAMS_STORAGE_KEY, JSON.stringify(params))
+      // Safe serialization to avoid circular references
+      const safeParams = {
+        btcAmount: params?.btcAmount,
+        initialBtcPrice: params?.initialBtcPrice,
+        monthlyWithdrawalAmount: params?.monthlyWithdrawalAmount,
+        annualInterestRate: params?.annualInterestRate,
+        loanOriginationFeePercent: params?.loanOriginationFeePercent,
+        loanTermMonths: params?.loanTermMonths,
+        simulationMonths: params?.simulationMonths,
+        maxLoanAmount: params?.maxLoanAmount,
+        annualGrowthRates: params?.annualGrowthRates || [],
+        priceModel: params?.priceModel,
+        powerLawSettings: {
+          prognosisLine: params?.powerLawSettings?.prognosisLine || 'fit'
+        },
+        riskManagement: params?.riskManagement,
+        strategyType: params?.strategyType,
+        athCollateralParams: params?.athCollateralParams
+      }
+      localStorage.setItem(PARAMS_STORAGE_KEY, JSON.stringify(safeParams))
     } catch (error) {
       console.error("Error saving params to localStorage:", error)
+      // If JSON.stringify fails, try without localStorage
     }
-  }, [params])
+  }, [
+    params?.priceModel,
+    params?.powerLawSettings?.prognosisLine,
+    params?.initialBtcPrice,
+    params?.simulationMonths
+  ])
 
   // This effect is now solely responsible for generating the complete price chart data
-  // by calling the new Price Engine whenever parameters change.
+  // by calling the new Price Engine whenever CHART-RELEVANT parameters change.
   useEffect(() => {
     if (historicalPriceData.length === 0) return
+    if (!initialDataLoaded) return // Wait for initial data loading to complete
+
+    console.log(`🔄 Chart generation useEffect triggered for model: ${params.priceModel}`)
 
     const generateData = async () => {
+      // Show loading for chart generation
       setChartLoading(true)
-      setIsLoading(true)
+
+      console.log(`🔄 Regenerating chart data for price model: ${params.priceModel}`)
+      if (params.priceModel === 'powerLaw') {
+        console.log(`   📊 Power Law prognosis line: ${params.powerLawSettings?.prognosisLine || 'fit'}`)
+      }
+
       try {
         // Calculate historical patterns needed for specific models
         const historicalDailyMultipliers = historicalPriceData
@@ -201,7 +247,7 @@ export default function BitcoinSimulator() {
           return Math.max(0, Math.min(1, (price - support) / channelWidth))
         })
 
-        // Prepare parameters for the engine
+        // Prepare parameters for the engine using the full params object
         const engineParams: PriceEngineParams = {
           ...params,
           historicalDailyMultipliers,
@@ -211,32 +257,30 @@ export default function BitcoinSimulator() {
         // Call the engine to get the complete chart data
         const chartData = await generatePriceChartData(engineParams, historicalPriceData)
         setPriceChartData(chartData)
+        console.log(`✅ Chart data generated: ${chartData.length} points for model ${params.priceModel}`)
       } catch (error) {
         console.error("Error generating price chart data:", error)
         setErrors((prev) => [...prev, "Failed to generate price model data."])
       } finally {
-        setIsLoading(false)
         setChartLoading(false)
       }
     }
 
     generateData()
-  }, [params, historicalPriceData])
-
-  // Optimierung: Chart-Daten nur regenerieren wenn sich relevante Parameter ändern
-  const relevantParams = useMemo(() => ({
-    priceModel: params.priceModel,
-    initialBtcPrice: params.initialBtcPrice,
-    simulationMonths: params.simulationMonths,
-    annualGrowthRates: params.annualGrowthRates,
-    powerLawSettings: params.powerLawSettings,
-  }), [params.priceModel, params.initialBtcPrice, params.simulationMonths, params.annualGrowthRates, params.powerLawSettings])
+  }, [
+    params.priceModel,
+    params.initialBtcPrice,
+    params.simulationMonths,
+    params.powerLawSettings?.prognosisLine,
+    JSON.stringify(params.annualGrowthRates || []), // Stable string representation
+    historicalPriceData.length,
+    initialDataLoaded
+  ])
 
   // The simulation now consumes the pre-generated price data.
   const runSimulation = useCallback(
     async (initialBtcPriceOverride?: number) => {
       if (priceChartData.length === 0) return // Don't run if price data isn't ready
-
       const currentParams = initialBtcPriceOverride ? { ...params, initialBtcPrice: initialBtcPriceOverride } : params
       setIsLoading(true)
       setErrors([])
@@ -254,10 +298,12 @@ export default function BitcoinSimulator() {
           loanTermMonths: currentParams.loanTermMonths,
           simulationMonths: currentParams.simulationMonths,
           maxLoanAmount: currentParams.maxLoanAmount,
+          expectedAnnualInflation: 2.0, // Default 2% inflation
           riskManagement: currentParams.riskManagement,
           investmentStrategy: currentParams.investmentStrategy,
           athBasedParams: currentParams.athBasedParams,
           movingAverageParams: currentParams.movingAverageParams,
+          athCollateralParams: currentParams.athCollateralParams,
         }
 
         // Run the strategy simulation
@@ -296,30 +342,38 @@ export default function BitcoinSimulator() {
         const data = await loadHistoricalPriceData()
         const loadTime = performance.now() - startTime
 
-        setHistoricalPriceData(data)
-
         // Cache-Status basierend auf Ladezeit und Cache-Logs bestimmen
         const isCacheHit = loadTime < 1000 // Großzügige Grenze für Cache-Hits
         setCacheStatus(isCacheHit ? 'cached' : 'fresh')
 
+        console.log(`📊 Historical data loaded: ${data.length} points in ${Math.round(loadTime)}ms`)
+
+        // Set historical data first
+        setHistoricalPriceData(data)
+
+        // Update initial price only on first run, but do it after historical data is set
         if (firstRun.current) {
           firstRun.current = false
           const latestPrice = data.length > 0 ? data[data.length - 1].close : DEFAULT_PARAMS.initialBtcPrice
           const initialPrice = (await loadCurrentBtcPrice()) ?? latestPrice
+          console.log(`💰 Setting initial BTC price: ${initialPrice}`)
           setParams((p) => ({ ...p, initialBtcPrice: initialPrice }))
         }
-
-        console.log(`📊 Historical data loaded: ${data.length} points in ${Math.round(loadTime)}ms`)
 
         // Performance Report nach dem ersten Load
         if (firstRun.current === false) {
           PerformanceMonitor.logPerformanceReport()
         }
 
+        // Mark initial data as loaded and stop initial loading
+        setInitialDataLoaded(true)
+        setIsLoading(false)
+
       } catch (e) {
         console.error("Failed to load data:", e)
         setCacheStatus('error')
         setErrors((prev) => [...prev, t("Errors.failedToLoadHistoricalData")])
+        setInitialDataLoaded(true) // Also set this in error case to prevent hanging
         setIsLoading(false)
       }
     }
@@ -423,31 +477,29 @@ export default function BitcoinSimulator() {
 
   const clearCache = async () => {
     try {
-      // Beide Caches leeren
+      // Only clear historical data cache (projections are never cached)
       const cache = new HistoricalDataCache()
       cache.clearCache()
-      clearChartCache()
 
       setCacheStatus('loading')
+      console.log("🗑️ Historical data cache cleared")
 
-      // Daten neu laden
+      // Reload historical data
       setIsLoading(true)
       const data = await loadHistoricalPriceData()
       setHistoricalPriceData(data)
 
-      // Chart-Daten werden automatisch neu generiert durch useEffect
+      // Chart data will be regenerated automatically by useEffect
       setIsLoading(false)
 
-      // Cache-Statistiken loggen
-      const chartStats = getChartCacheStats()
-      console.log("📊 Cache cleared - Chart cache stats:", chartStats)
-
-      toast.success("All caches cleared and data reloaded successfully!")
+      toast.success("Historical data cache cleared and reloaded!")
     } catch (error) {
       console.error("Failed to clear cache:", error)
       toast.error("Failed to clear cache")
     }
   }
+
+  // Debug functions removed - no longer needed with simplified caching
 
   const formatEvent = (event: MonthlyEvent) => {
     switch (event.type) {
@@ -930,6 +982,138 @@ export default function BitcoinSimulator() {
                     </div>
                   </div>
                 )}
+
+                {/* ATH Collateral Strategy Settings */}
+                {params.investmentStrategy === "athCollateral" && (
+                  <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
+                    <div>
+                      <h4 className="font-medium">{t("InvestmentStrategy.athCollateralSettingsTitle")}</h4>
+                      <p className="text-sm text-muted-foreground">{t("InvestmentStrategy.athCollateralSettingsDescription")}</p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="max-drawdown">
+                          {t("InvestmentStrategy.maxDrawdown")}
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="w-4 h-4 ml-1 inline" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{t("InvestmentStrategy.maxDrawdownTooltip")}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </Label>
+                        <Input
+                          id="max-drawdown"
+                          type="number"
+                          value={params.athCollateralParams.maxDrawdownPercent}
+                          onChange={(e) =>
+                            setParams((prev) => ({
+                              ...prev,
+                              athCollateralParams: {
+                                ...prev.athCollateralParams,
+                                maxDrawdownPercent: parseInt(e.target.value) || 80,
+                              },
+                            }))
+                          }
+                          min="10"
+                          max="95"
+                          step="5"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="collateral-multiplier">
+                          {t("InvestmentStrategy.collateralMultiplier")}
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="w-4 h-4 ml-1 inline" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{t("InvestmentStrategy.collateralMultiplierTooltip")}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </Label>
+                        <Input
+                          id="collateral-multiplier"
+                          type="number"
+                          value={params.athCollateralParams.collateralMultiplier}
+                          onChange={(e) =>
+                            setParams((prev) => ({
+                              ...prev,
+                              athCollateralParams: {
+                                ...prev.athCollateralParams,
+                                collateralMultiplier: parseFloat(e.target.value) || 2.0,
+                              },
+                            }))
+                          }
+                          min="1.1"
+                          max="5.0"
+                          step="0.1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="ath-lookback">
+                          {t("InvestmentStrategy.athLookback")}
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="w-4 h-4 ml-1 inline" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{t("InvestmentStrategy.athLookbackTooltip")}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </Label>
+                        <Input
+                          id="ath-lookback"
+                          type="number"
+                          value={params.athCollateralParams.athLookbackMonths}
+                          onChange={(e) =>
+                            setParams((prev) => ({
+                              ...prev,
+                              athCollateralParams: {
+                                ...prev.athCollateralParams,
+                                athLookbackMonths: parseInt(e.target.value) || 36,
+                              },
+                            }))
+                          }
+                          min="6"
+                          max="120"
+                          step="6"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="emergency-buffer">
+                          {t("InvestmentStrategy.emergencyBuffer")}
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="w-4 h-4 ml-1 inline" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{t("InvestmentStrategy.emergencyBufferTooltip")}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </Label>
+                        <Input
+                          id="emergency-buffer"
+                          type="number"
+                          value={params.athCollateralParams.emergencyCollateralBuffer}
+                          onChange={(e) =>
+                            setParams((prev) => ({
+                              ...prev,
+                              athCollateralParams: {
+                                ...prev.athCollateralParams,
+                                emergencyCollateralBuffer: parseFloat(e.target.value) || 1.2,
+                              },
+                            }))
+                          }
+                          min="1.0"
+                          max="2.0"
+                          step="0.1"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -963,13 +1147,14 @@ export default function BitcoinSimulator() {
                       <div>
                         <Label htmlFor="prognosisLine">{t("PriceModel.prognosisLine")}</Label>
                         <Select
-                          value={params.powerLawSettings.prognosisLine}
-                          onValueChange={(value: PowerLawLine) =>
+                          value={params.powerLawSettings?.prognosisLine || 'fit'}
+                          onValueChange={(value: PowerLawLine) => {
+                            console.log(`🔄 Prognosis line changed to ${value}`)
                             setParams((p) => ({
                               ...p,
-                              powerLawSettings: { ...p.powerLawSettings, prognosisLine: value },
+                              powerLawSettings: { ...(p?.powerLawSettings || {}), prognosisLine: value },
                             }))
-                          }
+                          }}
                         >
                           <SelectTrigger id="prognosisLine">
                             <SelectValue placeholder={t("PriceModel.prognosisLine")} />
@@ -1161,6 +1346,7 @@ export default function BitcoinSimulator() {
                             <th className="p-2">{t("Results.tableTotalDebt")}</th>
                             <th className="p-2">{t("Results.tableLockedCollateral")}</th>
                             <th className="p-2">{t("Results.tableHighestLtv")}</th>
+                            <th className="p-2">{t("Results.tableMaxSafeDebt")}</th>
                             <th className="p-2">{t("Results.tableNewLoans")}</th>
                             <th className="p-2">{t("Results.tableRepayments")}</th>
                             <th className="p-2">{t("Results.tableWithdrawal")}</th>
@@ -1190,6 +1376,9 @@ export default function BitcoinSimulator() {
                                 }`}
                               >
                                 {r.highestLtv}%
+                              </td>
+                              <td className="p-2">
+                                {r.maxSafeDebt !== undefined ? r.maxSafeDebt.toLocaleString("de-DE") : "-"}
                               </td>
                               <td className="p-2">{r.newLoanPrincipal.toLocaleString("de-DE")}</td>
                               <td className="p-2">{r.repaymentsDue.toLocaleString("de-DE")}</td>

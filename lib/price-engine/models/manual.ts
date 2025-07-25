@@ -10,16 +10,18 @@ interface PathPoint {
  * @param params - The parameters required for the engine, including initial price, duration, and growth rates.
  * @returns An array of objects, each containing the date and the projected price for that date.
  */
-export function generateManualPath(params: PriceEngineParams): PathPoint[] {
-  const { simulationMonths, initialBtcPrice, annualGrowthRates } = params
+export function generateManualPath(params: PriceEngineParams & {
+  projectionStartDate?: Date
+}): PathPoint[] {
+  const { simulationMonths, initialBtcPrice, annualGrowthRates, projectionStartDate } = params
   const path: PathPoint[] = []
-  const simulationStartDate = new Date()
+  const simulationStartDate = projectionStartDate || new Date()
 
   let lastPrice = initialBtcPrice
 
   for (let month = 1; month <= simulationMonths; month++) {
     const currentDate = new Date(simulationStartDate)
-    currentDate.setMonth(currentDate.getMonth() + month - 1)
+    currentDate.setMonth(currentDate.getMonth() + month)
 
     // Determine the annual growth rate for the current year of the simulation
     const yearIndex = Math.min(Math.floor((month - 1) / 12), annualGrowthRates.length - 1)

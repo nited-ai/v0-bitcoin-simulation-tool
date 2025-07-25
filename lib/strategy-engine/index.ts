@@ -14,6 +14,7 @@ import type {
 import { DefaultStrategy } from "./strategies/default"
 import { AthBasedStrategy } from "./strategies/ath-based"
 import { MovingAverageStrategy } from "./strategies/moving-average"
+import { AthCollateralStrategy } from "./strategies/ath-collateral"
 
 // Platform constants
 const PLATFORM_LTV_NEW_LOANS = 50
@@ -59,7 +60,8 @@ export async function runStrategySimulation(
 
     const monthlyEvents: MonthlyEvent[] = []
     const collateralValue = totalBtcAmount * btcPrice
-    const debtCapacity = collateralValue * (params.riskManagement.targetLtv / 100)
+    // Default debt capacity based on target LTV
+    let debtCapacity = collateralValue * (params.riskManagement.targetLtv / 100)
 
     // Create strategy context
     const strategyContext: StrategyContext = {
@@ -77,6 +79,11 @@ export async function runStrategySimulation(
 
     // Get strategy decision
     const decision = strategy.makeDecision(strategyContext)
+
+    // Apply strategy's debt capacity override if provided
+    if (decision.maxDebtOverride !== undefined) {
+      debtCapacity = decision.maxDebtOverride
+    }
 
     // Process loan maturities
     const maturingLoans = activeLoans.filter((l) => l.maturityMonth === month)
@@ -188,8 +195,11 @@ export async function runStrategySimulation(
       lockedBtc: finalLockedBtc,
       loanCount: activeLoans.length,
       highestLtv: isFinite(highestLtv) ? Math.round(highestLtv) : 0,
+      maxSafeDebt: decision.maxDebtOverride !== undefined ? Math.round(decision.maxDebtOverride) : undefined,
       events: monthlyEvents,
     })
+
+
   }
 
   return tempResults
@@ -206,6 +216,8 @@ function getStrategyInstance(strategyType: string): InvestmentStrategyInterface 
       return new AthBasedStrategy()
     case "movingAverage":
       return new MovingAverageStrategy()
+    case "athCollateral":
+      return new AthCollateralStrategy()
     default:
       console.warn(`Unknown strategy type: ${strategyType}, falling back to default`)
       return new DefaultStrategy()
@@ -227,14 +239,19 @@ export function getAvailableStrategies(): Array<{
       description: new DefaultStrategy().getDescription()
     },
     {
-      id: "athBased", 
+      id: "athBased",
       name: new AthBasedStrategy().getName(),
       description: new AthBasedStrategy().getDescription()
     },
     {
       id: "movingAverage",
-      name: new MovingAverageStrategy().getName(), 
+      name: new MovingAverageStrategy().getName(),
       description: new MovingAverageStrategy().getDescription()
+    },
+    {
+      id: "athCollateral",
+      name: new AthCollateralStrategy().getName(),
+      description: new AthCollateralStrategy().getDescription()
     }
   ]
 }

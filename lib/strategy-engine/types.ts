@@ -3,7 +3,7 @@
 /**
  * Defines the available investment strategies.
  */
-export type InvestmentStrategy = "default" | "athBased" | "movingAverage"
+export type InvestmentStrategy = "default" | "athBased" | "movingAverage" | "athCollateral"
 
 /**
  * Loan structure used in the simulation
@@ -46,6 +46,7 @@ export interface MonthlyResult {
   lockedBtc: number
   loanCount: number
   highestLtv: number
+  maxSafeDebt?: number // Maximum safe debt limit (for ATH-based strategies)
   events: MonthlyEvent[]
 }
 
@@ -94,6 +95,16 @@ export interface MovingAverageStrategyParams {
 }
 
 /**
+ * Strategy-specific parameters for ATH Collateral strategy
+ */
+export interface AthCollateralStrategyParams {
+  maxDrawdownPercent: number // Maximum drawdown from ATH to tolerate (optimized default: 82)
+  collateralMultiplier: number // Target collateral as multiple of debt (optimized default: 1.9)
+  athLookbackMonths: number // How many months to look back for ATH calculation (optimized default: 30)
+  emergencyCollateralBuffer: number // Additional buffer for emergency situations (optimized default: 1.15)
+}
+
+/**
  * Complete set of parameters required by the Strategy Engine
  */
 export interface StrategyEngineParams {
@@ -106,6 +117,7 @@ export interface StrategyEngineParams {
   loanTermMonths: number
   simulationMonths: number
   maxLoanAmount: number
+  expectedAnnualInflation: number
 
   // Risk management
   riskManagement: RiskManagement
@@ -114,6 +126,7 @@ export interface StrategyEngineParams {
   investmentStrategy: InvestmentStrategy
   athBasedParams?: AthBasedStrategyParams
   movingAverageParams?: MovingAverageStrategyParams
+  athCollateralParams?: AthCollateralStrategyParams
 }
 
 /**
@@ -146,7 +159,8 @@ export interface StrategyDecision {
   
   // Risk management overrides
   targetLtvOverride?: number
-  
+  maxDebtOverride?: number // Absolute maximum debt amount (overrides LTV calculation)
+
   // Additional context for logging/debugging
   reasoning?: string
 }

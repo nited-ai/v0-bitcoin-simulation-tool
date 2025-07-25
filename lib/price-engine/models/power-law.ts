@@ -43,12 +43,21 @@ export function generatePowerLawPath(params: PriceEngineParams): PathPoint[] {
   const path: PathPoint[] = []
   const simulationStartDate = new Date()
 
+  console.log(`📈 Power Law path generation using prognosis line: ${powerLawSettings.prognosisLine}`)
+
   for (let month = 1; month <= simulationMonths; month++) {
     const currentDate = new Date(simulationStartDate)
     currentDate.setMonth(currentDate.getMonth() + month - 1)
 
     const newPrice = getPowerLawPrice(currentDate, powerLawSettings.prognosisLine)
     path.push({ date: currentDate, price: newPrice })
+  }
+
+  // Log sample prices for verification
+  if (path.length > 0) {
+    const firstPrice = path[0].price
+    const lastPrice = path[path.length - 1].price
+    console.log(`   📊 Power Law ${powerLawSettings.prognosisLine} prices: ${firstPrice.toFixed(0)} → ${lastPrice.toFixed(0)}`)
   }
 
   return path
