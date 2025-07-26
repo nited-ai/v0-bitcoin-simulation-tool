@@ -5,6 +5,11 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { PriceModelSelector } from '../price-models/PriceModelSelector'
 import { UnifiedPriceChart } from '../charts/UnifiedPriceChart'
+import { SimplifiedManualGrowthInterface } from '../price-models/manual/SimplifiedManualGrowthInterface'
+import { GrowthRateAnalysis } from '../price-models/manual/GrowthRateAnalysis'
+import { CustomGrowthRateSliders } from '../price-models/manual/CustomGrowthRateSliders'
+import { useSimulation } from '../../context/SimulationContext'
+import { Settings, TrendingUp } from 'lucide-react'
 // import { CsvUpdatePanel } from '../admin/CsvUpdatePanel' // Disabled for production
 
 export type TabValue = 'parameters' | 'price-projection' | 'strategy' | 'results'
@@ -16,6 +21,7 @@ interface TabNavigationProps {
 export function TabNavigation({ children }: TabNavigationProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { params } = useSimulation()
 
   // Get initial tab from URL or default to parameters
   const getInitialTab = (): TabValue => {
@@ -72,16 +78,27 @@ export function TabNavigation({ children }: TabNavigationProps) {
         
         <TabsContent value="price-projection" className="mt-6">
           <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold">Price Projection</h2>
-              <p className="text-muted-foreground">Select and configure Bitcoin price prediction models.</p>
-            </div>
 
             {/* Price Model Selection */}
             <PriceModelSelector />
 
+            {/* Simplified Manual Growth Interface (when manual model is selected) */}
+            {params.priceModel === 'manual' && (
+              <SimplifiedManualGrowthInterface />
+            )}
+
             {/* Unified Price Chart */}
             <UnifiedPriceChart />
+
+            {/* Custom Growth Rate Sliders (when manual model and custom preset are selected) */}
+            {params.priceModel === 'manual' && (
+              <CustomGrowthRateSliders />
+            )}
+
+            {/* Growth Rate Analysis (when manual model is selected) */}
+            {params.priceModel === 'manual' && (
+              <GrowthRateAnalysis />
+            )}
 
             {/* Admin Panel - Completely disabled for clean UI */}
             {/*

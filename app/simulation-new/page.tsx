@@ -1,4 +1,4 @@
-import SimulationPage from "../simulation/SimulationPage"
+import BitcoinSimulator from "../simulation"
 
 /**
  * Temporary route to test the new modular simulation structure
@@ -9,5 +9,5 @@ import SimulationPage from "../simulation/SimulationPage"
  * the existing monolithic version for comparison.
  */
 export default function NewSimulationPage() {
-  return <SimulationPage />
+  return <BitcoinSimulator />
 }

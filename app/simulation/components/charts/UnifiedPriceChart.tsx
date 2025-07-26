@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from 'recharts'
-import { AlertCircle, Loader2 } from 'lucide-react'
+import { AlertCircle, Loader2, TrendingUp } from 'lucide-react'
 import { useSimulation } from '../../context/SimulationContext'
 import { priceModelRegistry } from '../../price-models/PriceModelRegistry'
 import { loadHistoricalData, convertToEur } from '../../data/historicalDataLoader'
@@ -227,7 +227,10 @@ export function UnifiedPriceChart({ className }: UnifiedPriceChartProps) {
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle>Bitcoin Price Forecast</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5" />
+            Bitcoin Price Forecast
+          </CardTitle>
           <CardDescription>Historical and projected Bitcoin price based on the selected model.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -246,7 +249,10 @@ export function UnifiedPriceChart({ className }: UnifiedPriceChartProps) {
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle>Bitcoin Price Forecast</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5" />
+            Bitcoin Price Forecast
+          </CardTitle>
           <CardDescription>Error loading chart data</CardDescription>
         </CardHeader>
         <CardContent>
@@ -264,7 +270,10 @@ export function UnifiedPriceChart({ className }: UnifiedPriceChartProps) {
   return (
     <Card className={className}>
       <CardHeader>
-        <CardTitle>Bitcoin Price Forecast</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <TrendingUp className="h-5 w-5" />
+          Bitcoin Price Forecast
+        </CardTitle>
         <CardDescription>
           Historical and projected Bitcoin price based on the selected model.
         </CardDescription>

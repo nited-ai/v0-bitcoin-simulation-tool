@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { AlertCircle, Loader2 } from 'lucide-react'
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { AlertCircle, Loader2, Settings } from 'lucide-react'
 import { priceModelRegistry } from '../../price-models/PriceModelRegistry'
 import { useSimulation } from '../../context/SimulationContext'
 
@@ -49,7 +49,7 @@ export function PriceModelSelector({ className }: PriceModelSelectorProps) {
 
   const handleModelChange = (modelId: string) => {
     console.log('🔄 Price model changed to:', modelId)
-    setParams((prev) => ({ ...prev, priceModel: modelId }))
+    setParams((prev) => ({ ...prev, priceModel: modelId as any }))
   }
 
   const renderSelectContent = () => {
@@ -81,7 +81,7 @@ export function PriceModelSelector({ className }: PriceModelSelectorProps) {
 
     return models.map((model) => (
       <SelectItem key={model.id} value={model.id}>
-        <div className="flex flex-col">
+        <div className="flex flex-col text-left">
           <span className="font-medium">{model.name}</span>
           <span className="text-sm text-muted-foreground">{model.description}</span>
         </div>
@@ -89,41 +89,59 @@ export function PriceModelSelector({ className }: PriceModelSelectorProps) {
     ))
   }
 
+  // Get the currently selected model for display
+  const selectedModel = models.find(model => model.id === params.priceModel)
+
   return (
     <Card className={className}>
       <CardHeader>
-        <CardTitle>Select Model</CardTitle>
-        <CardDescription>
-          Choose a price prediction model for your Bitcoin projections
-        </CardDescription>
+        <div className="flex items-start gap-6">
+          <div className="w-1/2">
+            <CardTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5" />
+              Select Price Projection Model
+            </CardTitle>
+            <CardDescription className="mt-2">
+              Select and configure Bitcoin price projection models
+            </CardDescription>
+          </div>
+
+          <div className="w-1/2">
+            <Select
+              value={params.priceModel || ''}
+              onValueChange={handleModelChange}
+              disabled={loading || error !== null || models.length === 0}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Choose price prediction model">
+                  {selectedModel && (
+                    <div className="flex flex-col text-left">
+                      <span className="font-medium">{selectedModel.name}</span>
+                      <span className="text-sm text-muted-foreground">{selectedModel.description}</span>
+                    </div>
+                  )}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {renderSelectContent()}
+              </SelectContent>
+            </Select>
+
+            {error && (
+              <div className="mt-2 flex items-center text-sm text-destructive">
+                <AlertCircle className="h-4 w-4 mr-1" />
+                {error}
+              </div>
+            )}
+
+            {!loading && !error && models.length === 0 && (
+              <div className="mt-2 text-sm text-muted-foreground">
+                No price models are currently available. Please check the model registry.
+              </div>
+            )}
+          </div>
+        </div>
       </CardHeader>
-      <CardContent>
-        <Select
-          value={params.priceModel || ''}
-          onValueChange={handleModelChange}
-          disabled={loading || error !== null || models.length === 0}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Choose price prediction model" />
-          </SelectTrigger>
-          <SelectContent>
-            {renderSelectContent()}
-          </SelectContent>
-        </Select>
-        
-        {error && (
-          <div className="mt-2 flex items-center text-sm text-destructive">
-            <AlertCircle className="h-4 w-4 mr-1" />
-            {error}
-          </div>
-        )}
-        
-        {!loading && !error && models.length === 0 && (
-          <div className="mt-2 text-sm text-muted-foreground">
-            No price models are currently available. Please check the model registry.
-          </div>
-        )}
-      </CardContent>
     </Card>
   )
 }

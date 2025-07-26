@@ -140,28 +140,7 @@ export function BasicParametersCard() {
             />
           </div>
           
-          <div>
-            <Label htmlFor="simulationMonths">
-              {t("BasicParams.simulationDuration")}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info className="w-4 h-4 ml-1 inline" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{t("BasicParams.simulationDurationTooltip")}</p>
-                </TooltipContent>
-              </Tooltip>
-            </Label>
-            <Input
-              id="simulationMonths"
-              type="number"
-              value={params.simulationMonths}
-              onChange={(e) => setParams((p) => ({ ...p, simulationMonths: Number(e.target.value) }))}
-              min="12"
-              max="600"
-              step="1"
-            />
-          </div>
+          {/* Simulation duration moved to Price Projection tab */}
         </div>
 
         {/* Interest Rate and Origination Fee */}
