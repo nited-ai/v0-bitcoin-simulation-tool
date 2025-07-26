@@ -15,12 +15,12 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 1.5 Add keyboard navigation and accessibility features
   - [ ] 1.6 Verify all tab navigation tests pass
 
-- [ ] 2. Create Price Model Selection Interface
-  - [ ] 2.1 Write tests for PriceModelSelector component
-  - [ ] 2.2 Implement shadcn/ui Select component with model descriptions
-  - [ ] 2.3 Create model registry integration for dynamic model loading
-  - [ ] 2.4 Add model selection state management
-  - [ ] 2.5 Implement loading states and error handling
+- [x] 2. Create Price Model Selection Interface
+  - [x] 2.1 Write tests for PriceModelSelector component
+  - [x] 2.2 Implement shadcn/ui Select component with model descriptions
+  - [x] 2.3 Create model registry integration for dynamic model loading
+  - [x] 2.4 Add model selection state management
+  - [x] 2.5 Implement loading states and error handling
   - [ ] 2.6 Verify all price model selection tests pass
 
 - [ ] 3. Build Unified Price Chart Component

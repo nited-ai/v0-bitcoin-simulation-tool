@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { PriceModelSelector } from '../price-models/PriceModelSelector'
 
 export type TabValue = 'parameters' | 'price-projection' | 'strategy' | 'results'
 
@@ -73,8 +74,12 @@ export function TabNavigation({ children }: TabNavigationProps) {
               <h2 className="text-2xl font-bold">Price Projection</h2>
               <p className="text-muted-foreground">Select and configure Bitcoin price prediction models.</p>
             </div>
+
+            {/* Price Model Selection */}
+            <PriceModelSelector />
+
             <div className="p-6 border rounded-lg">
-              <p>Price projection content will be implemented here</p>
+              <p>Additional price projection features will be implemented here</p>
             </div>
           </div>
         </TabsContent>
