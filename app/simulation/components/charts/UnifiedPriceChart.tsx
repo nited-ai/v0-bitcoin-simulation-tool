@@ -25,6 +25,64 @@ interface UnifiedPriceChartProps {
   className?: string
 }
 
+/**
+ * Calculate support line by connecting the lowest bottoms in historical data
+ * Returns a straight line in log-log view connecting major bottoms
+ */
+function calculateSupportLine(historicalData: HistoricalDataPoint[]): { timestamp: number; supportPrice: number }[] {
+  if (historicalData.length === 0) return []
+
+  // Find major bottoms (local minima with significant drops)
+  const bottoms: { timestamp: number; price: number }[] = []
+  const windowSize = 90 // 90-day window for finding bottoms
+
+  for (let i = windowSize; i < historicalData.length - windowSize; i++) {
+    const currentPrice = historicalData[i].close
+    const isBottom = historicalData.slice(i - windowSize, i + windowSize)
+      .every(point => point.close >= currentPrice * 0.95) // Allow 5% tolerance
+
+    if (isBottom && currentPrice > 0) {
+      bottoms.push({
+        timestamp: historicalData[i].timestamp,
+        price: currentPrice
+      })
+    }
+  }
+
+  // If we have at least 2 bottoms, create a support line
+  if (bottoms.length >= 2) {
+    const firstBottom = bottoms[0]
+    const lastBottom = bottoms[bottoms.length - 1]
+
+    // Calculate slope in log space for straight line in log-log view
+    const logSlope = (Math.log(lastBottom.price) - Math.log(firstBottom.price)) /
+                     (lastBottom.timestamp - firstBottom.timestamp)
+
+    // Generate support line points
+    return historicalData.map(point => ({
+      timestamp: point.timestamp,
+      supportPrice: Math.exp(
+        Math.log(firstBottom.price) +
+        logSlope * (point.timestamp - firstBottom.timestamp)
+      )
+    }))
+  }
+
+  // Fallback: simple trend line from first to last point
+  const firstPoint = historicalData[0]
+  const lastPoint = historicalData[historicalData.length - 1]
+  const logSlope = (Math.log(lastPoint.close) - Math.log(firstPoint.close)) /
+                   (lastPoint.timestamp - firstPoint.timestamp)
+
+  return historicalData.map(point => ({
+    timestamp: point.timestamp,
+    supportPrice: Math.exp(
+      Math.log(firstPoint.close) +
+      logSlope * (point.timestamp - firstPoint.timestamp)
+    ) * 0.3 // Support line below main trend
+  }))
+}
+
 export function UnifiedPriceChart({ className }: UnifiedPriceChartProps) {
   const { params } = useSimulation()
   const [historicalData, setHistoricalData] = useState<HistoricalDataPoint[]>([])
@@ -41,10 +99,11 @@ export function UnifiedPriceChart({ className }: UnifiedPriceChartProps) {
         
         let data = await loadHistoricalData()
         data = convertToEur(data, 0.92) // Convert to EUR
-        
-        // Limit to last 2 years for performance
-        const twoYearsAgo = Date.now() - (2 * 365 * 24 * 60 * 60 * 1000)
-        data = data.filter(point => point.timestamp >= twoYearsAgo)
+
+        // Use all historical data from 2013 onwards for proper Bitcoin analysis
+        // Filter out any data before 2013 (Bitcoin's early days)
+        const year2013 = new Date('2013-01-01').getTime()
+        data = data.filter(point => point.timestamp >= year2013)
         
         setHistoricalData(data)
         console.log(`✅ Historical data loaded: ${data.length} points`)
@@ -111,16 +170,21 @@ export function UnifiedPriceChart({ className }: UnifiedPriceChartProps) {
   const chartData = useMemo(() => {
     const data: ChartDataPoint[] = []
     const currentDate = new Date()
-    
+
+    // Calculate support line from historical data
+    const supportLineData = calculateSupportLine(historicalData)
+    const supportMap = new Map(supportLineData.map(point => [point.timestamp, point.supportPrice]))
+
     // Add historical data (left side of chart)
     historicalData.forEach(point => {
       data.push({
-        date: new Date(point.timestamp).toLocaleDateString('de-DE', { 
-          year: 'numeric', 
-          month: 'short' 
+        date: new Date(point.timestamp).toLocaleDateString('de-DE', {
+          year: 'numeric',
+          month: 'short'
         }),
         timestamp: point.timestamp,
         historicalPrice: Math.round(point.close),
+        support: supportMap.get(point.timestamp) ? Math.round(supportMap.get(point.timestamp)!) : undefined,
         isHistorical: true
       })
     })
@@ -129,15 +193,15 @@ export function UnifiedPriceChart({ className }: UnifiedPriceChartProps) {
     if (projection) {
       projection.projectionPoints.forEach(point => {
         data.push({
-          date: new Date(point.timestamp).toLocaleDateString('de-DE', { 
-            year: 'numeric', 
-            month: 'short' 
+          date: new Date(point.timestamp).toLocaleDateString('de-DE', {
+            year: 'numeric',
+            month: 'short'
           }),
           timestamp: point.timestamp,
           projectedPrice: Math.round(point.price),
-          support: point.support ? Math.round(point.support) : undefined,
+          // For projections, only use model-generated support/resistance if available
+          // The historical support line will be extended separately
           resistance: point.resistance ? Math.round(point.resistance) : undefined,
-          fit: point.price ? Math.round(point.price) : undefined,
           isHistorical: false
         })
       })
@@ -206,28 +270,52 @@ export function UnifiedPriceChart({ className }: UnifiedPriceChartProps) {
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
               
-              <XAxis 
-                dataKey="date" 
+              <XAxis
+                dataKey="timestamp"
+                type="number"
+                scale="time"
+                domain={['dataMin', 'dataMax']}
+                tickFormatter={(timestamp) => {
+                  const date = new Date(timestamp)
+                  return date.toLocaleDateString('de-DE', {
+                    year: 'numeric',
+                    month: 'short'
+                  })
+                }}
                 minTickGap={50}
                 angle={-45}
                 textAnchor="end"
                 height={60}
               />
-              
-              <YAxis 
-                tickFormatter={(value) => `€${(value / 1000).toFixed(0)}k`}
-                domain={['dataMin * 0.9', 'dataMax * 1.1']}
+
+              <YAxis
+                scale="log"
+                type="number"
+                domain={['dataMin * 0.5', 'dataMax * 2']}
+                tickFormatter={(value) => {
+                  if (value >= 1000000) return `€${(value / 1000000).toFixed(1)}M`
+                  if (value >= 1000) return `€${(value / 1000).toFixed(0)}k`
+                  return `€${value.toFixed(0)}`
+                }}
+                allowDataOverflow
               />
               
-              <Tooltip 
+              <Tooltip
                 formatter={(value: number, name: string) => [
-                  `€${value.toLocaleString('de-DE')}`, 
+                  `€${value.toLocaleString('de-DE')}`,
                   name === 'historicalPrice' ? 'Historical Price' :
                   name === 'projectedPrice' ? 'Projected Price' :
                   name === 'support' ? 'Support Line' :
-                  name === 'resistance' ? 'Resistance Line' : 'Fit Line'
+                  name === 'resistance' ? 'Resistance Line' : name
                 ]}
-                labelFormatter={(date: string) => `Date: ${date}`}
+                labelFormatter={(timestamp: number) => {
+                  const date = new Date(timestamp)
+                  return `Date: ${date.toLocaleDateString('de-DE', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}`
+                }}
               />
               
               <Legend />

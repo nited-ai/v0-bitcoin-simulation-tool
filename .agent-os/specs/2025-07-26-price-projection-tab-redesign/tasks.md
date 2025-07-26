@@ -31,6 +31,14 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 3.5 Add responsive chart behavior for different screen sizes
   - [ ] 3.6 Verify all price chart tests pass
 
+- [x] 3.7 Chart Improvements and Bug Fixes (Amendment Tasks)
+  - [x] 3.7.1 Implement logarithmic scale for both X and Y axes
+  - [x] 3.7.2 Fix tooltip bug - show correct line names instead of "Fit Line"
+  - [x] 3.7.3 Extend historical data range to start from 2013 (first available data)
+  - [x] 3.7.4 Implement proper support line calculation connecting lowest bottoms
+  - [x] 3.7.5 Update chart performance for extended historical data range
+  - [x] 3.7.6 Verify all chart improvements work correctly
+
 - [ ] 4. Implement Price Line Selection System
   - [ ] 4.1 Write tests for PriceLineSelector component
   - [ ] 4.2 Create interactive chart legend with clickable price lines
