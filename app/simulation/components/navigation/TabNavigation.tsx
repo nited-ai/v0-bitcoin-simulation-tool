@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { PriceModelSelector } from '../price-models/PriceModelSelector'
 import { UnifiedPriceChart } from '../charts/UnifiedPriceChart'
+// import { CsvUpdatePanel } from '../admin/CsvUpdatePanel' // Disabled for production
 
 export type TabValue = 'parameters' | 'price-projection' | 'strategy' | 'results'
 
@@ -81,6 +82,16 @@ export function TabNavigation({ children }: TabNavigationProps) {
 
             {/* Unified Price Chart */}
             <UnifiedPriceChart />
+
+            {/* Admin Panel - Completely disabled for clean UI */}
+            {/*
+            {process.env.NODE_ENV === 'development' && (
+              <div className="mt-8">
+                <h3 className="text-lg font-semibold mb-4">Data Management (Dev Only)</h3>
+                <CsvUpdatePanel />
+              </div>
+            )}
+            */}
           </div>
         </TabsContent>
         

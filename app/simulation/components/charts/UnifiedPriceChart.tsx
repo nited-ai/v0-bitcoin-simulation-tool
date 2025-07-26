@@ -13,12 +13,14 @@ import type { HistoricalDataPoint } from '../../data/historicalDataLoader'
 interface ChartDataPoint {
   date: string
   timestamp: number
-  historicalPrice?: number
-  projectedPrice?: number
+  // Single continuous price line
+  price: number
+  // Model-generated support/resistance lines
   support?: number
   resistance?: number
-  fit?: number
+  // Metadata
   isHistorical: boolean
+  confidence?: number
 }
 
 interface UnifiedPriceChartProps {
@@ -128,9 +130,18 @@ export function UnifiedPriceChart({ className }: UnifiedPriceChartProps) {
         
         console.log(`🚀 Generating projection for unified chart: ${params.priceModel}`)
         
-        // Prepare model parameters
+        // Get the last known price (current price) as starting point for projections
+        // This should be the most recent price from our complete historical dataset (CSV + API gap data)
+        const lastKnownPrice = historicalData.length > 0
+          ? historicalData[historicalData.length - 1].close
+          : params.initialBtcPrice
+
+        console.log(`📊 Using last known price as projection start: €${lastKnownPrice.toFixed(0)}`)
+        console.log(`📅 Last known price date: ${historicalData[historicalData.length - 1]?.date || 'unknown'}`)
+
+        // Prepare model parameters with current price as starting point
         const modelParams = {
-          startPrice: params.initialBtcPrice,
+          startPrice: lastKnownPrice,
           projectionMonths: params.simulationMonths,
           modelSpecificParams: {}
         }
@@ -166,16 +177,11 @@ export function UnifiedPriceChart({ className }: UnifiedPriceChartProps) {
     generateProjection()
   }, [historicalData, params.priceModel, params.initialBtcPrice, params.simulationMonths, params.annualGrowthRates, params.powerLawSettings])
 
-  // Merge historical and projection data
+  // Merge historical and projection data into continuous timeline
   const chartData = useMemo(() => {
     const data: ChartDataPoint[] = []
-    const currentDate = new Date()
 
-    // Calculate support line from historical data
-    const supportLineData = calculateSupportLine(historicalData)
-    const supportMap = new Map(supportLineData.map(point => [point.timestamp, point.supportPrice]))
-
-    // Add historical data (left side of chart)
+    // Add historical data
     historicalData.forEach(point => {
       data.push({
         date: new Date(point.timestamp).toLocaleDateString('de-DE', {
@@ -183,13 +189,13 @@ export function UnifiedPriceChart({ className }: UnifiedPriceChartProps) {
           month: 'short'
         }),
         timestamp: point.timestamp,
-        historicalPrice: Math.round(point.close),
-        support: supportMap.get(point.timestamp) ? Math.round(supportMap.get(point.timestamp)!) : undefined,
-        isHistorical: true
+        price: Math.round(point.close),
+        isHistorical: true,
+        confidence: 1.0 // Historical data has full confidence
       })
     })
-    
-    // Add projection data (right side of chart)
+
+    // Add projection data (continues from historical data)
     if (projection) {
       projection.projectionPoints.forEach(point => {
         data.push({
@@ -198,16 +204,16 @@ export function UnifiedPriceChart({ className }: UnifiedPriceChartProps) {
             month: 'short'
           }),
           timestamp: point.timestamp,
-          projectedPrice: Math.round(point.price),
-          // For projections, only use model-generated support/resistance if available
-          // The historical support line will be extended separately
+          price: Math.round(point.price),
+          support: point.support ? Math.round(point.support) : undefined,
           resistance: point.resistance ? Math.round(point.resistance) : undefined,
-          isHistorical: false
+          isHistorical: false,
+          confidence: point.confidence
         })
       })
     }
-    
-    // Sort by timestamp
+
+    // Sort by timestamp to ensure continuous timeline
     return data.sort((a, b) => a.timestamp - b.timestamp)
   }, [historicalData, projection])
 
@@ -303,8 +309,7 @@ export function UnifiedPriceChart({ className }: UnifiedPriceChartProps) {
               <Tooltip
                 formatter={(value: number, name: string) => [
                   `€${value.toLocaleString('de-DE')}`,
-                  name === 'historicalPrice' ? 'Historical Price' :
-                  name === 'projectedPrice' ? 'Projected Price' :
+                  name === 'price' ? 'Bitcoin Price' :
                   name === 'support' ? 'Support Line' :
                   name === 'resistance' ? 'Resistance Line' : name
                 ]}
@@ -330,25 +335,14 @@ export function UnifiedPriceChart({ className }: UnifiedPriceChartProps) {
                 />
               )}
               
-              {/* Historical price line */}
+              {/* Continuous Bitcoin price line */}
               <Line
                 type="monotone"
-                dataKey="historicalPrice"
-                stroke="#6b7280"
-                strokeWidth={2}
-                dot={false}
-                name="Historical Price"
-                connectNulls={false}
-              />
-              
-              {/* Projected price line */}
-              <Line
-                type="monotone"
-                dataKey="projectedPrice"
+                dataKey="price"
                 stroke="#f97316"
                 strokeWidth={2}
                 dot={false}
-                name="Projected Price"
+                name="Bitcoin Price"
                 connectNulls={false}
               />
               

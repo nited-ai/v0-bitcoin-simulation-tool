@@ -16,23 +16,213 @@ export interface HistoricalDataPoint {
 }
 
 /**
- * Load historical Bitcoin price data
- * For now, we'll use mock data until CSV integration is complete
+ * Load complete historical Bitcoin price data from database (2013-current)
  */
 export async function loadHistoricalData(): Promise<HistoricalDataPoint[]> {
-  console.log('📊 Loading historical Bitcoin price data...')
-  
+  console.log('📊 Loading complete Bitcoin price history (2013-current)...')
+
   try {
-    // Mock historical data for development
-    // In production, this would load from CSV files or API
-    const mockData: HistoricalDataPoint[] = generateMockHistoricalData()
-    
-    console.log(`✅ Historical data loaded: ${mockData.length} points`)
-    return mockData
-    
+    // Step 1: Initialize database with CSV integration and current price update
+    console.log('🗄️ Initializing database with complete historical data...')
+    const { databaseManager } = await import('./database/DatabaseManager')
+    const { autoUpdateService } = await import('./AutoUpdateService')
+
+    // Start auto-update service (includes current price update)
+    await autoUpdateService.start()
+
+    // Step 2: Load complete historical data (CSV + API data)
+    const databaseData = await databaseManager.getHistoricalData()
+
+    // Convert database format to our format
+    const historicalData: HistoricalDataPoint[] = databaseData.map(row => ({
+      timestamp: row.timestamp,
+      date: row.date,
+      open: row.open,
+      high: row.high,
+      low: row.low,
+      close: row.close,
+      volume: row.volume
+    }))
+
+    console.log(`✅ Complete historical data loaded: ${historicalData.length} points`)
+    console.log(`📅 Full timeline: ${historicalData[0]?.date} to ${historicalData[historicalData.length - 1]?.date}`)
+
+    // Verify we have complete data from 2013
+    const startYear = new Date(historicalData[0]?.date || '').getFullYear()
+    if (startYear > 2013) {
+      console.warn(`⚠️ Historical data starts from ${startYear}, expected 2013`)
+    } else {
+      console.log(`✅ Complete historical timeline confirmed: ${startYear}-${new Date().getFullYear()}`)
+    }
+
+    return historicalData
+
   } catch (error) {
-    console.error('❌ Failed to load historical data:', error)
-    throw new Error('Failed to load historical Bitcoin price data')
+    console.error('❌ Database loading failed:', error)
+    console.log('🔄 Falling back to CSV loading...')
+
+    try {
+      // Fallback: try basic CSV loading
+      const csvData = await loadCSVData()
+      const historicalData = csvData.map(row => ({
+        timestamp: new Date(row.Date).getTime(),
+        date: row.Date,
+        open: row['24h Open (USD)'],
+        high: row['24h High (USD)'],
+        low: row['24h Low (USD)'],
+        close: row['Closing Price (USD)'],
+        volume: undefined
+      }))
+
+      console.log(`✅ Fallback CSV data loaded: ${historicalData.length} points`)
+      return historicalData
+
+    } catch (csvError) {
+      console.error('❌ CSV fallback also failed:', csvError)
+      console.log('🔄 Using mock data for development...')
+
+      const mockData = generateMockHistoricalData()
+      console.log(`✅ Mock data loaded: ${mockData.length} points`)
+      return mockData
+    }
+  }
+}
+
+/**
+ * CSV data structure from public/btc-price-history.csv
+ */
+interface CSVDataPoint {
+  Currency: string
+  Date: string
+  'Closing Price (USD)': number
+  '24h Open (USD)': number
+  '24h High (USD)': number
+  '24h Low (USD)': number
+}
+
+/**
+ * Load and parse CSV data from public/btc-price-history.csv
+ */
+async function loadCSVData(): Promise<CSVDataPoint[]> {
+  const response = await fetch('/btc-price-history.csv')
+  if (!response.ok) {
+    throw new Error(`Failed to fetch CSV: ${response.status} ${response.statusText}`)
+  }
+
+  const csvText = await response.text()
+  const lines = csvText.trim().split('\n')
+
+  if (lines.length < 2) {
+    throw new Error('CSV file appears to be empty or invalid')
+  }
+
+  // Parse header
+  const header = lines[0].split(',')
+  const data: CSVDataPoint[] = []
+
+  // Parse data rows
+  for (let i = 1; i < lines.length; i++) {
+    const values = lines[i].split(',')
+    if (values.length !== header.length) continue // Skip malformed rows
+
+    const row: any = {}
+    header.forEach((col, index) => {
+      const value = values[index]?.trim()
+      if (col === 'Currency' || col === 'Date') {
+        row[col] = value
+      } else {
+        row[col] = parseFloat(value) || 0
+      }
+    })
+
+    data.push(row as CSVDataPoint)
+  }
+
+  return data
+}
+
+/**
+ * Fetch gap data from CoinGecko API to bridge CSV end date to current date
+ */
+async function fetchGapData(startTimestamp: number, endTimestamp: number): Promise<HistoricalDataPoint[]> {
+  try {
+    // CoinGecko API expects timestamps in seconds, not milliseconds
+    const fromTimestamp = Math.floor(startTimestamp / 1000)
+    const toTimestamp = Math.floor(endTimestamp / 1000)
+
+    console.log(`🌐 Fetching CoinGecko data from ${new Date(startTimestamp).toISOString().split('T')[0]} to ${new Date(endTimestamp).toISOString().split('T')[0]}`)
+
+    // CoinGecko historical data endpoint
+    const url = `https://api.coingecko.com/api/v3/coins/bitcoin/market_chart/range?vs_currency=usd&from=${fromTimestamp}&to=${toTimestamp}`
+
+    const response = await fetch(url)
+    if (!response.ok) {
+      throw new Error(`CoinGecko API error: ${response.status} ${response.statusText}`)
+    }
+
+    const data = await response.json()
+
+    if (!data.prices || !Array.isArray(data.prices)) {
+      throw new Error('Invalid CoinGecko API response format')
+    }
+
+    // Convert CoinGecko format to our HistoricalDataPoint format
+    const gapData: HistoricalDataPoint[] = data.prices.map((pricePoint: [number, number]) => {
+      const timestamp = pricePoint[0] // CoinGecko returns timestamp in milliseconds
+      const price = pricePoint[1]
+      const date = new Date(timestamp)
+
+      return {
+        timestamp,
+        date: date.toISOString().split('T')[0], // YYYY-MM-DD format
+        open: price, // CoinGecko doesn't provide OHLC in this endpoint, using price for all
+        high: price,
+        low: price,
+        close: price,
+        volume: undefined
+      }
+    })
+
+    // Filter out any data points that might overlap with CSV data
+    const filteredGapData = gapData.filter(point => point.timestamp > startTimestamp)
+
+    console.log(`✅ CoinGecko gap data processed: ${filteredGapData.length} points`)
+    return filteredGapData
+
+  } catch (error) {
+    console.error('❌ Failed to fetch gap data from CoinGecko:', error)
+
+    // Try alternative: fetch just current price and create minimal gap bridge
+    try {
+      console.log('🔄 Attempting to fetch current price as fallback...')
+      const currentPriceResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd')
+
+      if (currentPriceResponse.ok) {
+        const currentPriceData = await currentPriceResponse.json()
+        const currentPrice = currentPriceData.bitcoin?.usd
+
+        if (currentPrice) {
+          const now = Date.now()
+          const currentDate = new Date(now).toISOString().split('T')[0]
+
+          console.log(`✅ Current price fallback: $${currentPrice}`)
+
+          return [{
+            timestamp: now,
+            date: currentDate,
+            open: currentPrice,
+            high: currentPrice,
+            low: currentPrice,
+            close: currentPrice,
+            volume: undefined
+          }]
+        }
+      }
+    } catch (fallbackError) {
+      console.error('❌ Fallback current price fetch also failed:', fallbackError)
+    }
+
+    return [] // Return empty array if all attempts fail
   }
 }
 
@@ -42,10 +232,23 @@ export async function loadHistoricalData(): Promise<HistoricalDataPoint[]> {
 export async function appendCurrentPrice(historicalData: HistoricalDataPoint[]): Promise<HistoricalDataPoint[]> {
   try {
     console.log('📡 Fetching current Bitcoin price...')
-    
-    // Mock current price for development
-    // In production, this would fetch from CoinGecko or similar API
-    const currentPrice = 45000 // Mock current price in USD
+
+    // Try to fetch real current price from CoinGecko API
+    let currentPrice = 45000 // Fallback price
+
+    try {
+      const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd')
+      if (response.ok) {
+        const data = await response.json()
+        currentPrice = data.bitcoin?.usd || currentPrice
+        console.log(`✅ Current Bitcoin price fetched: $${currentPrice}`)
+      } else {
+        console.log('⚠️ CoinGecko API unavailable, using fallback price')
+      }
+    } catch (apiError) {
+      console.log('⚠️ Failed to fetch current price, using fallback:', apiError)
+    }
+
     const now = new Date()
     
     const currentDataPoint: HistoricalDataPoint = {
