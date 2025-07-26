@@ -63,7 +63,7 @@ const STORAGE_KEYS = {
 
 export function SimplifiedManualGrowthInterface({ className }: SimplifiedManualGrowthInterfaceProps) {
   const { params, setParams } = useSimulation()
-  const [selectedPreset, setSelectedPreset] = useState<string>('aggressive')
+  const [selectedPreset, setSelectedPreset] = useState<string>('optimistic')
   const [customRates, setCustomRates] = useState<number[]>([])
   const [tempCustomRates, setTempCustomRates] = useState<number[]>([]) // Temporary state for sliders
   const [showCustomControls, setShowCustomControls] = useState(false)

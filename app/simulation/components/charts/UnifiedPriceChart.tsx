@@ -3,7 +3,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from 'recharts'
-import { AlertCircle, Loader2, TrendingUp } from 'lucide-react'
+import { AlertCircle, Loader2, TrendingUp, Download } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { useSimulation } from '../../context/SimulationContext'
 import { priceModelRegistry } from '../../price-models/PriceModelRegistry'
 import { loadHistoricalData, convertToEur } from '../../data/historicalDataLoader'
@@ -25,6 +26,7 @@ interface ChartDataPoint {
 
 interface UnifiedPriceChartProps {
   className?: string
+  onProjectionChange?: (projection: PriceProjectionResult | null) => void
 }
 
 /**
@@ -85,12 +87,13 @@ function calculateSupportLine(historicalData: HistoricalDataPoint[]): { timestam
   }))
 }
 
-export function UnifiedPriceChart({ className }: UnifiedPriceChartProps) {
+export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartProps) {
   const { params } = useSimulation()
   const [historicalData, setHistoricalData] = useState<HistoricalDataPoint[]>([])
   const [projection, setProjection] = useState<PriceProjectionResult | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isDownloading, setIsDownloading] = useState(false)
 
   // Load historical data on mount
   useEffect(() => {
@@ -164,6 +167,7 @@ export function UnifiedPriceChart({ className }: UnifiedPriceChartProps) {
         )
         
         setProjection(result)
+        onProjectionChange?.(result)
         console.log(`✅ Projection generated: ${result.projectionPoints.length} points`)
 
       } catch (err) {
@@ -223,15 +227,91 @@ export function UnifiedPriceChart({ className }: UnifiedPriceChartProps) {
     return chartData.findIndex(point => point.timestamp > currentTime)
   }, [chartData])
 
+  // CSV download functionality
+  const downloadCSV = async () => {
+    if (chartData.length === 0) return
+
+    setIsDownloading(true)
+
+    try {
+      // Generate CSV content with proper escaping
+      const headers = ['Date', 'Price (EUR)', 'Data Type', 'Support Line', 'Resistance Line']
+      const csvRows = [headers.join(',')]
+
+      chartData.forEach(point => {
+        const row = [
+          `"${point.date}"`,
+          point.price.toFixed(2),
+          `"${point.isHistorical ? 'Historical' : 'Projected'}"`,
+          point.support ? point.support.toFixed(2) : '',
+          point.resistance ? point.resistance.toFixed(2) : ''
+        ]
+        csvRows.push(row.join(','))
+      })
+
+      const csvContent = csvRows.join('\n')
+
+      // Create and download file with improved method
+      const currentDate = new Date().toISOString().split('T')[0]
+      const filename = `bitcoin-price-forecast-${params.priceModel}-${currentDate}.csv`
+
+      // Add BOM for proper UTF-8 encoding
+      const BOM = '\uFEFF'
+      const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' })
+
+      // Use modern download approach
+      if (window.navigator && window.navigator.msSaveOrOpenBlob) {
+        // IE/Edge
+        window.navigator.msSaveOrOpenBlob(blob, filename)
+      } else {
+        // Modern browsers
+        const link = document.createElement('a')
+        const url = URL.createObjectURL(blob)
+
+        link.href = url
+        link.download = filename
+        link.style.display = 'none'
+
+        document.body.appendChild(link)
+        link.click()
+
+        // Clean up
+        setTimeout(() => {
+          document.body.removeChild(link)
+          URL.revokeObjectURL(url)
+        }, 100)
+      }
+
+      console.log(`📥 CSV download initiated: ${filename}`)
+    } catch (err) {
+      console.error('❌ Error generating CSV:', err)
+    } finally {
+      setIsDownloading(false)
+    }
+  }
+
   if (loading) {
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
-            Bitcoin Price Forecast
-          </CardTitle>
-          <CardDescription>Historical and projected Bitcoin price based on the selected model.</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                Bitcoin Price Forecast
+              </CardTitle>
+              <CardDescription>Historical and projected Bitcoin price based on the selected model.</CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={true}
+              className="flex items-center gap-2 text-xs"
+            >
+              <Download className="h-3 w-3" />
+              CSV
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="h-96 flex items-center justify-center">
@@ -249,11 +329,24 @@ export function UnifiedPriceChart({ className }: UnifiedPriceChartProps) {
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
-            Bitcoin Price Forecast
-          </CardTitle>
-          <CardDescription>Error loading chart data</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                Bitcoin Price Forecast
+              </CardTitle>
+              <CardDescription>Error loading chart data</CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={true}
+              className="flex items-center gap-2 text-xs"
+            >
+              <Download className="h-3 w-3" />
+              CSV
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="h-96 flex items-center justify-center">
@@ -270,13 +363,27 @@ export function UnifiedPriceChart({ className }: UnifiedPriceChartProps) {
   return (
     <Card className={className}>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <TrendingUp className="h-5 w-5" />
-          Bitcoin Price Forecast
-        </CardTitle>
-        <CardDescription>
-          Historical and projected Bitcoin price based on the selected model.
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              Bitcoin Price Forecast
+            </CardTitle>
+            <CardDescription>
+              Historical and projected Bitcoin price based on the selected model.
+            </CardDescription>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={downloadCSV}
+            disabled={isDownloading || chartData.length === 0}
+            className="flex items-center gap-2 text-xs"
+          >
+            <Download className="h-3 w-3" />
+            {isDownloading ? 'Downloading...' : 'CSV'}
+          </Button>
+        </div>
       </CardHeader>
       
       <CardContent>

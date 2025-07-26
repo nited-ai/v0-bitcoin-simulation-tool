@@ -6,10 +6,11 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { PriceModelSelector } from '../price-models/PriceModelSelector'
 import { UnifiedPriceChart } from '../charts/UnifiedPriceChart'
 import { SimplifiedManualGrowthInterface } from '../price-models/manual/SimplifiedManualGrowthInterface'
-import { GrowthRateAnalysis } from '../price-models/manual/GrowthRateAnalysis'
+import { GrowthRateAnalysis } from '../price-models/GrowthRateAnalysis'
 import { CustomGrowthRateSliders } from '../price-models/manual/CustomGrowthRateSliders'
 import { useSimulation } from '../../context/SimulationContext'
 import { Settings, TrendingUp } from 'lucide-react'
+import type { PriceProjectionResult } from '../../price-models/types'
 // import { CsvUpdatePanel } from '../admin/CsvUpdatePanel' // Disabled for production
 
 export type TabValue = 'parameters' | 'price-projection' | 'strategy' | 'results'
@@ -22,6 +23,9 @@ export function TabNavigation({ children }: TabNavigationProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { params } = useSimulation()
+
+  // State for projection data from UnifiedPriceChart
+  const [projection, setProjection] = useState<PriceProjectionResult | null>(null)
 
   // Get initial tab from URL or default to parameters
   const getInitialTab = (): TabValue => {
@@ -88,17 +92,18 @@ export function TabNavigation({ children }: TabNavigationProps) {
             )}
 
             {/* Unified Price Chart */}
-            <UnifiedPriceChart />
+            <UnifiedPriceChart onProjectionChange={setProjection} />
 
             {/* Custom Growth Rate Sliders (when manual model and custom preset are selected) */}
             {params.priceModel === 'manual' && (
               <CustomGrowthRateSliders />
             )}
 
-            {/* Growth Rate Analysis (when manual model is selected) */}
-            {params.priceModel === 'manual' && (
-              <GrowthRateAnalysis />
-            )}
+            {/* Universal Growth Rate Analysis (for all models) */}
+            <GrowthRateAnalysis
+              projection={projection}
+              startPrice={params.initialBtcPrice}
+            />
 
             {/* Admin Panel - Completely disabled for clean UI */}
             {/*
