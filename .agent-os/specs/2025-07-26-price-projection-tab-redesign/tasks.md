@@ -23,12 +23,12 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 2.5 Implement loading states and error handling
   - [ ] 2.6 Verify all price model selection tests pass
 
-- [ ] 3. Build Unified Price Chart Component
-  - [ ] 3.1 Write tests for PriceChart component
-  - [ ] 3.2 Extend existing Recharts implementation for historical + projected data
-  - [ ] 3.3 Add visual separator between historical and projected sections
-  - [ ] 3.4 Implement proper Y-axis scaling for combined data
-  - [ ] 3.5 Add responsive chart behavior for different screen sizes
+- [x] 3. Build Unified Price Chart Component
+  - [x] 3.1 Write tests for PriceChart component
+  - [x] 3.2 Extend existing Recharts implementation for historical + projected data
+  - [x] 3.3 Add visual separator between historical and projected sections
+  - [x] 3.4 Implement proper Y-axis scaling for combined data
+  - [x] 3.5 Add responsive chart behavior for different screen sizes
   - [ ] 3.6 Verify all price chart tests pass
 
 - [ ] 4. Implement Price Line Selection System

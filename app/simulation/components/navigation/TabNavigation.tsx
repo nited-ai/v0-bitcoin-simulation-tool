@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { PriceModelSelector } from '../price-models/PriceModelSelector'
+import { UnifiedPriceChart } from '../charts/UnifiedPriceChart'
 
 export type TabValue = 'parameters' | 'price-projection' | 'strategy' | 'results'
 
@@ -78,9 +79,8 @@ export function TabNavigation({ children }: TabNavigationProps) {
             {/* Price Model Selection */}
             <PriceModelSelector />
 
-            <div className="p-6 border rounded-lg">
-              <p>Additional price projection features will be implemented here</p>
-            </div>
+            {/* Unified Price Chart */}
+            <UnifiedPriceChart />
           </div>
         </TabsContent>
         
