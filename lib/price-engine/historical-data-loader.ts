@@ -5,7 +5,7 @@ import type { HistoricalDataPoint } from "./types"
 import { HistoricalDataCache } from "./cache-manager"
 import { PerformanceMonitor } from "./performance-monitor"
 
-const USD_TO_EUR_RATE = 0.92
+// No conversion needed - keeping prices in USD
 
 // Globale Cache-Instanz
 const cache = new HistoricalDataCache()
@@ -49,7 +49,7 @@ async function loadPriceHistoryFromCsv(): Promise<HistoricalDataPoint[]> {
 
               return {
                 time: Math.floor(date.getTime() / 1000),
-                close: priceUsd * USD_TO_EUR_RATE,
+                close: priceUsd, // Keep USD price as-is
               }
             })
             .filter((item): item is HistoricalDataPoint => item !== null)

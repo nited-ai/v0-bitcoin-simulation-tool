@@ -9,7 +9,7 @@ const POWER_LAW_MODELS = {
   resistance: { slope: 5.57, intercept: -15.75 },
 }
 
-const USD_TO_EUR_RATE = 0.92
+// No conversion needed - keeping prices in USD
 
 interface PathPoint {
   date: Date
@@ -28,7 +28,7 @@ export const getPowerLawPrice = (date: Date, line: PowerLawLine): number => {
   const model = POWER_LAW_MODELS[line]
   const logPrice = model.slope * Math.log10(days) + model.intercept
   const priceUsd = Math.pow(10, logPrice)
-  return priceUsd * USD_TO_EUR_RATE
+  return priceUsd // Return USD price directly
 }
 
 /**
