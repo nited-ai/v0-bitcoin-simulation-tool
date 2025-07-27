@@ -24,7 +24,7 @@ export function HistoricalDataChart() {
         setIsLoading(true)
         setError(null)
         
-        console.log('📊 Loading historical Bitcoin price data...')
+
         
         // Load static historical data
         let data = await loadHistoricalData()
@@ -46,7 +46,7 @@ export function HistoricalDataChart() {
         }
         
         setHistoricalData(data)
-        console.log(`✅ Historical data loaded: ${data.length} points from ${data[0]?.date} to ${data[data.length - 1]?.date}`)
+
         
       } catch (err) {
         console.error('❌ Failed to load historical data:', err)
