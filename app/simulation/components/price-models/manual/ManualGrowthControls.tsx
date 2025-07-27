@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
-import { Input } from '@/components/ui/input'
+import { NumberInput } from '@/shared/ui/forms/NumberInput'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
@@ -265,13 +265,14 @@ export function ManualGrowthControls({
                       className="w-full"
                     />
                   ) : (
-                    <Input
-                      type="number"
+                    <NumberInput
                       value={rate}
-                      onChange={(e) => handleInputChange(index, e.target.value)}
+                      onChange={(value) => handleSliderChange(index, [value])}
                       min={-100}
                       max={500}
                       step={5}
+                      decimals={0}
+                      suffix="%"
                       className="w-full"
                     />
                   )}
