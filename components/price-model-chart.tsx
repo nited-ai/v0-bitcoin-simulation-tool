@@ -139,7 +139,7 @@ const PriceModelChart = memo(function PriceModelChart({ chartData, isLoading }: 
               <Tooltip
                 labelFormatter={formatTooltipLabel}
                 formatter={(value: number, name: string) => [
-                  `${value.toLocaleString(undefined, { maximumFractionDigits: 0 })} €`,
+                  `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}`,
                   t(`PriceModelChart.${name}`),
                 ]}
               />

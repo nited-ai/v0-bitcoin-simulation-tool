@@ -1304,7 +1304,7 @@ export default function BitcoinSimulator() {
                     <CardTitle className="text-sm font-medium">{t("Results.maxDebt")}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{summary.maxDebt.toLocaleString("de-DE")} €</div>
+                    <div className="text-2xl font-bold">${summary.maxDebt.toLocaleString("en-US")}</div>
                   </CardContent>
                 </Card>
                 <Card>
@@ -1312,7 +1312,7 @@ export default function BitcoinSimulator() {
                     <CardTitle className="font-medium text-sm">{t("Results.finalCollateral")}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{summary.finalCollateralValue.toLocaleString("de-DE")} €</div>
+                    <div className="text-2xl font-bold">${summary.finalCollateralValue.toLocaleString("en-US")}</div>
                   </CardContent>
                 </Card>
                 <Card>
@@ -1320,7 +1320,7 @@ export default function BitcoinSimulator() {
                     <CardTitle className="font-medium text-sm">{t("Results.finalNetWorth")}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{summary.finalNetWorth.toLocaleString("de-DE")} €</div>
+                    <div className="text-2xl font-bold">${summary.finalNetWorth.toLocaleString("en-US")}</div>
                   </CardContent>
                 </Card>
                 <Card>

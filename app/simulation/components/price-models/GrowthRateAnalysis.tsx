@@ -186,7 +186,7 @@ export function GrowthRateAnalysis({ className, projection, startPrice = 108629 
             
             <div className="text-center p-4 bg-green-50 rounded-lg">
               <div className="text-2xl font-bold text-green-600">
-                €{Math.round(metrics.finalPrice).toLocaleString()}
+                ${Math.round(metrics.finalPrice).toLocaleString()}
               </div>
               <div className="text-sm text-muted-foreground">Final Price</div>
             </div>

@@ -190,7 +190,7 @@ export function ManualGrowthModelInterface({
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold text-blue-600">
-                      €{startingPrice.toLocaleString()}
+                      ${startingPrice.toLocaleString()}
                     </div>
                     <p className="text-sm text-muted-foreground">
                       Current Bitcoin price
@@ -204,7 +204,7 @@ export function ManualGrowthModelInterface({
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold text-green-600">
-                      €{finalPrice.toLocaleString()}
+                      ${finalPrice.toLocaleString()}
                     </div>
                     <p className="text-sm text-muted-foreground">
                       12-year projection

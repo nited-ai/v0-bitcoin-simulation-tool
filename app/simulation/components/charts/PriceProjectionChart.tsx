@@ -290,8 +290,8 @@ export function PriceProjectionChart() {
                   📈 Growth Projection
                 </h4>
                 <div className="text-sm text-green-700 dark:text-green-300 space-y-1">
-                  <p>Start Price: <strong>€{params.initialBtcPrice.toLocaleString('de-DE')}</strong></p>
-                  <p>End Price: <strong>€{chartData[chartData.length - 1]?.volatile.toLocaleString('de-DE')}</strong></p>
+                  <p>Start Price: <strong>${params.initialBtcPrice.toLocaleString('en-US')}</strong></p>
+                  <p>End Price: <strong>${chartData[chartData.length - 1]?.volatile.toLocaleString('en-US')}</strong></p>
                   <p>Total Growth: <strong>{projection.metadata.totalGrowth.toFixed(1)}%</strong></p>
                   <p>Monthly Avg: <strong>{projection.metadata.averageMonthlyGrowth.toFixed(1)}%</strong></p>
                 </div>
@@ -303,8 +303,8 @@ export function PriceProjectionChart() {
                 </h4>
                 <div className="text-sm text-orange-700 dark:text-orange-300 space-y-1">
                   <p>Price Line: <strong>{selectedPriceLine}</strong></p>
-                  <p>Current Value: <strong>€{chartData[0]?.[selectedPriceLine]?.toLocaleString('de-DE')}</strong></p>
-                  <p>Final Value: <strong>€{chartData[chartData.length - 1]?.[selectedPriceLine]?.toLocaleString('de-DE')}</strong></p>
+                  <p>Current Value: <strong>${chartData[0]?.[selectedPriceLine]?.toLocaleString('en-US')}</strong></p>
+                  <p>Final Value: <strong>${chartData[chartData.length - 1]?.[selectedPriceLine]?.toLocaleString('en-US')}</strong></p>
                   <p>Strategy Ready: <strong>✅ Yes</strong></p>
                 </div>
               </div>

@@ -42,20 +42,20 @@ export function LoanParametersCard() {
   }
 
   /**
-   * Calculate max loan amount in euros based on percentage of BTC stack
+   * Calculate max loan amount in USD based on percentage of BTC stack
    */
-  const maxLoanAmountEuros = (params.maxLoanAmountPercent / 100) * (params.btcAmount * params.initialBtcPrice)
+  const maxLoanAmountUsd = (params.maxLoanAmountPercent / 100) * (params.btcAmount * params.initialBtcPrice)
 
   /**
    * Calculate collateral BTC amount based on Initial LTV
    */
-  const collateralBtcAmount = maxLoanAmountEuros / (params.initialBtcPrice * (params.riskManagement.targetLtv / 100))
+  const collateralBtcAmount = maxLoanAmountUsd / (params.initialBtcPrice * (params.riskManagement.targetLtv / 100))
 
   /**
    * Calculate correct liquidation price
    * Formula: liquidation_price = loan_amount / (collateral_btc_amount * liquidation_ltv)
    */
-  const liquidationPrice = maxLoanAmountEuros / (collateralBtcAmount * (params.riskManagement.liquidationLtv / 100))
+  const liquidationPrice = maxLoanAmountUsd / (collateralBtcAmount * (params.riskManagement.liquidationLtv / 100))
 
   return (
     <div className="space-y-6">
@@ -126,7 +126,7 @@ export function LoanParametersCard() {
 
           {/* Full-width helper text for Max Loan Amount */}
           <div className="text-xs text-muted-foreground !mt-2">
-            = €{Math.round(maxLoanAmountEuros).toLocaleString()} (based on {params.btcAmount} BTC × €{params.initialBtcPrice.toLocaleString()}). Needed collateral: {collateralBtcAmount.toFixed(4)} BTC at {params.riskManagement.targetLtv}% Initial LTV
+            = ${Math.round(maxLoanAmountUsd).toLocaleString()} (based on {params.btcAmount} BTC × ${params.initialBtcPrice.toLocaleString()}). Needed collateral: {collateralBtcAmount.toFixed(4)} BTC at {params.riskManagement.targetLtv}% Initial LTV
           </div>
 
           {/* Row 1: Annual Interest Rate + Origination Fee */}
@@ -135,6 +135,14 @@ export function LoanParametersCard() {
               <Label className="flex items-center gap-2">
                 <Percent className="w-4 h-4" />
                 Annual Interest Rate
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Yearly interest rate charged on the loan amount, compounded over the loan term</p>
+                  </TooltipContent>
+                </Tooltip>
               </Label>
               <NumberInput
                 value={params.annualInterestRate}
@@ -151,6 +159,14 @@ export function LoanParametersCard() {
               <Label className="flex items-center gap-2">
                 <DollarSign className="w-4 h-4" />
                 Origination Fee
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>One-time fee charged when the loan is originated, calculated as percentage of loan amount</p>
+                  </TooltipContent>
+                </Tooltip>
               </Label>
               <NumberInput
                 value={params.loanOriginationFeePercent}
@@ -192,7 +208,7 @@ export function LoanParametersCard() {
               <div className="text-xs text-muted-foreground mt-1">
                 {(() => {
                   const percentageDrop = ((params.initialBtcPrice - liquidationPrice) / params.initialBtcPrice) * 100
-                  return `If you take a loan of €${Math.round(maxLoanAmountEuros).toLocaleString()}, BTC needs to drop ${percentageDrop.toFixed(1)}% (from €${params.initialBtcPrice.toLocaleString()} to €${Math.round(liquidationPrice).toLocaleString()}) to trigger liquidation (if you do not top up the collateral)`
+                  return `If you take a loan of $${Math.round(maxLoanAmountUsd).toLocaleString()}, BTC needs to drop ${percentageDrop.toFixed(1)}% (from $${params.initialBtcPrice.toLocaleString()} to $${Math.round(liquidationPrice).toLocaleString()}) to trigger liquidation (if you do not top up the collateral)`
                 })()}
               </div>
             </div>
@@ -201,6 +217,14 @@ export function LoanParametersCard() {
               <Label className="flex items-center gap-2">
                 <Percent className="w-4 h-4" />
                 Liquidation Fee
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Fee charged when BTC collateral is liquidated to cover the loan, calculated as percentage of liquidated amount</p>
+                  </TooltipContent>
+                </Tooltip>
               </Label>
               <NumberInput
                 value={params.liquidationFeePercent}
@@ -221,6 +245,14 @@ export function LoanParametersCard() {
             <Label className="flex items-center gap-2">
               <Calendar className="w-4 h-4" />
               Loan Term
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Duration of the loan repayment period. Choose 'Infinity' for interest-only loans with no fixed repayment schedule</p>
+                </TooltipContent>
+              </Tooltip>
             </Label>
             <Select
               value={params.loanTermMonths === Infinity ? "infinity" : params.loanTermMonths.toString()}

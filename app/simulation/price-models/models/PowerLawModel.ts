@@ -32,8 +32,7 @@ export class PowerLawModel implements PriceProjectionModel {
     resistance: { slope: 5.57, intercept: -15.75 },
   }
   
-  // EUR conversion rate (simplified)
-  private readonly USD_TO_EUR_RATE = 0.92
+  // No conversion needed - keeping prices in USD
   
   /**
    * Calculate days since Bitcoin genesis
@@ -53,7 +52,7 @@ export class PowerLawModel implements PriceProjectionModel {
     const model = this.POWER_LAW_MODELS[line]
     const logPrice = model.slope * Math.log10(days) + model.intercept
     const priceUsd = Math.pow(10, logPrice)
-    return priceUsd * this.USD_TO_EUR_RATE
+    return priceUsd // Return USD price directly
   }
   
   /**

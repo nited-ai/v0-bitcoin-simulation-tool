@@ -3,18 +3,20 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { Fish, Zap, Info } from "lucide-react"
+import { Fish, Zap, Info, Settings, ExternalLink } from "lucide-react"
 import { useSimulation } from "../../context/SimulationContext"
 import type { Platform } from "../../types/simulation"
 
 interface PlatformOption {
-  id: Platform
+  id: Platform | "custom"
   name: string
   description: string
   icon: React.ReactNode
   badge: string
   badgeClassName: string
   features: string[]
+  disabled?: boolean
+  url?: string
 }
 
 /**
@@ -36,7 +38,8 @@ export function PlatformSelector() {
       icon: <Fish className="w-5 h-5" />,
       badge: "Flexible",
       badgeClassName: "border-transparent bg-blue-500 text-white hover:bg-blue-600",
-      features: ["Flexible terms", "Competitive rates", "Multiple loan types"]
+      features: [],
+      url: "https://firefish.io/"
     },
     {
       id: "strike",
@@ -45,7 +48,18 @@ export function PlatformSelector() {
       icon: <Zap className="w-5 h-5" />,
       badge: "Fast",
       badgeClassName: "border-transparent bg-yellow-500 text-white hover:bg-yellow-600",
-      features: ["Instant approval", "Lightning network", "Low fees"]
+      features: [],
+      url: "https://strike.me/lending/"
+    },
+    {
+      id: "custom",
+      name: "Custom Platform",
+      description: "Configure your own lending platform parameters",
+      icon: <Settings className="w-5 h-5" />,
+      badge: "Coming Soon",
+      badgeClassName: "border-transparent bg-gray-500 text-white",
+      features: [],
+      disabled: true
     }
   ]
 
@@ -60,6 +74,14 @@ export function PlatformSelector() {
       ...current,
       platform
     }))
+  }
+
+  /**
+   * Handle external link clicks
+   */
+  const handleExternalLinkClick = (e: React.MouseEvent, url: string) => {
+    e.stopPropagation() // Prevent card selection when clicking the link
+    window.open(url, '_blank', 'noopener,noreferrer')
   }
 
   return (
@@ -83,19 +105,21 @@ export function PlatformSelector() {
       </CardHeader>
       
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {platforms.map((platform) => {
             const isSelected = currentPlatform === platform.id
             
             return (
               <div
                 key={platform.id}
-                className={`relative p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
-                  isSelected 
-                    ? "border-primary bg-primary/5 shadow-sm" 
-                    : "border-border hover:border-primary/50"
+                className={`relative p-4 border rounded-lg transition-all ${
+                  platform.disabled
+                    ? "border-muted bg-muted/20 cursor-not-allowed opacity-60"
+                    : isSelected
+                      ? "border-primary bg-primary/5 shadow-sm cursor-pointer"
+                      : "border-border hover:border-primary/50 cursor-pointer hover:shadow-md"
                 }`}
-                onClick={() => handlePlatformChange(platform.id)}
+                onClick={() => !platform.disabled && platform.id !== "custom" && handlePlatformChange(platform.id as Platform)}
               >
                 {/* Badge */}
                 <Badge 
@@ -118,15 +142,20 @@ export function PlatformSelector() {
                   {platform.description}
                 </p>
 
-                {/* Features */}
-                <div className="space-y-1">
-                  {platform.features.map((feature, index) => (
-                    <div key={index} className="text-xs text-muted-foreground flex items-center gap-1">
-                      <div className="w-1 h-1 bg-muted-foreground rounded-full" />
-                      {feature}
-                    </div>
-                  ))}
-                </div>
+                {/* External Link */}
+                {platform.url && (
+                  <div className="flex justify-end">
+                    <button
+                      onClick={(e) => handleExternalLinkClick(e, platform.url!)}
+                      className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
+                      title={`Visit ${platform.name} website`}
+                    >
+                      <span>Visit Platform</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
+
               </div>
             )
           })}

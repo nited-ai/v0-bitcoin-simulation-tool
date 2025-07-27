@@ -7,7 +7,7 @@ import { AlertCircle, Loader2, TrendingUp, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useSimulation } from '../../context/SimulationContext'
 import { priceModelRegistry } from '../../price-models/PriceModelRegistry'
-import { loadHistoricalData, convertToEur } from '../../data/historicalDataLoader'
+import { loadHistoricalData, keepUsdPrices } from '../../data/historicalDataLoader'
 import type { PriceProjectionResult } from '../../price-models/types'
 import type { HistoricalDataPoint } from '../../data/historicalDataLoader'
 
@@ -16,6 +16,11 @@ interface ChartDataPoint {
   timestamp: number
   // Single continuous price line
   price: number
+  // OHLC data for CSV export
+  open?: number
+  high?: number
+  low?: number
+  close: number
   // Model-generated support/resistance lines
   support?: number
   resistance?: number
@@ -101,9 +106,9 @@ export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPric
       try {
         setError(null)
         console.log('📊 Loading historical data for unified chart...')
-        
+
         let data = await loadHistoricalData()
-        data = convertToEur(data, 0.92) // Convert to EUR
+        data = keepUsdPrices(data) // Keep USD prices as-is
 
         // Use all historical data from 2013 onwards for proper Bitcoin analysis
         // Filter out any data before 2013 (Bitcoin's early days)
@@ -139,7 +144,7 @@ export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPric
           ? historicalData[historicalData.length - 1].close
           : params.initialBtcPrice
 
-        console.log(`📊 Using last known price as projection start: €${lastKnownPrice.toFixed(0)}`)
+        console.log(`📊 Using last known price as projection start: $${lastKnownPrice.toFixed(0)}`)
         console.log(`📅 Last known price date: ${historicalData[historicalData.length - 1]?.date || 'unknown'}`)
 
         // Prepare model parameters with current price as starting point
@@ -185,7 +190,7 @@ export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPric
   const chartData = useMemo(() => {
     const data: ChartDataPoint[] = []
 
-    // Add historical data
+    // Add historical data with complete OHLC information
     historicalData.forEach(point => {
       data.push({
         date: new Date(point.timestamp).toLocaleDateString('de-DE', {
@@ -194,6 +199,11 @@ export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPric
         }),
         timestamp: point.timestamp,
         price: Math.round(point.close),
+        // Include OHLC data for CSV export
+        open: point.open,
+        high: point.high,
+        low: point.low,
+        close: point.close,
         isHistorical: true,
         confidence: 1.0 // Historical data has full confidence
       })
@@ -201,7 +211,23 @@ export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPric
 
     // Add projection data (continues from historical data)
     if (projection) {
-      projection.projectionPoints.forEach(point => {
+      projection.projectionPoints.forEach((point, index) => {
+        // For projected data, calculate OHLC based on price movement
+        const prevHistoricalPoint = historicalData[historicalData.length - 1]
+        const prevProjectedPoint = index > 0 ? projection.projectionPoints[index - 1] : null
+        const prevPrice = prevProjectedPoint ? prevProjectedPoint.price : prevHistoricalPoint?.close || point.price
+
+        // Calculate realistic OHLC for projected data
+        const volatility = 0.02 // 2% daily volatility
+        const priceChange = (point.price - prevPrice) / prevPrice
+
+        // Open price (close to previous close with small gap)
+        const open = prevPrice * (1 + (Math.random() - 0.5) * 0.005)
+
+        // High and Low based on volatility and price direction
+        const high = Math.max(open, point.price) * (1 + Math.abs(priceChange) * 0.5 + Math.random() * volatility)
+        const low = Math.min(open, point.price) * (1 - Math.abs(priceChange) * 0.5 - Math.random() * volatility)
+
         data.push({
           date: new Date(point.timestamp).toLocaleDateString('de-DE', {
             year: 'numeric',
@@ -209,6 +235,11 @@ export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPric
           }),
           timestamp: point.timestamp,
           price: Math.round(point.price),
+          // Calculated OHLC for projected data
+          open: open,
+          high: high,
+          low: low,
+          close: point.price,
           support: point.support ? Math.round(point.support) : undefined,
           resistance: point.resistance ? Math.round(point.resistance) : undefined,
           isHistorical: false,
@@ -227,24 +258,60 @@ export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPric
     return chartData.findIndex(point => point.timestamp > currentTime)
   }, [chartData])
 
-  // CSV download functionality
+  // No currency conversion needed - data is already in USD
+  const getUsdRate = async (): Promise<number> => {
+    // Since we're now using USD throughout, no conversion is needed
+    return 1.0
+  }
+
+  // CSV download functionality with complete OHLC data
   const downloadCSV = async () => {
     if (chartData.length === 0) return
 
     setIsDownloading(true)
 
     try {
-      // Generate CSV content with proper escaping
-      const headers = ['Date', 'Price (EUR)', 'Data Type', 'Support Line', 'Resistance Line']
+      // No conversion needed - data is already in USD
+      const USD_RATE = await getUsdRate()
+      console.log(`💰 Using USD prices directly (rate: ${USD_RATE})`)
+
+      // Generate CSV content with complete OHLC data matching original format
+      const headers = ['Currency', 'Date', 'Closing Price (USD)', '24h Open (USD)', '24h High (USD)', '24h Low (USD)', 'Data_Type']
       const csvRows = [headers.join(',')]
 
-      chartData.forEach(point => {
+      chartData.forEach((point, index) => {
+        // Convert timestamp to proper YYYY-MM-DD format
+        const date = new Date(point.timestamp).toISOString().split('T')[0]
+
+        // Use actual OHLC data if available, otherwise calculate
+        let openUSD: number, highUSD: number, lowUSD: number, closeUSD: number
+
+        if (point.isHistorical && point.open && point.high && point.low) {
+          // Use actual historical OHLC data (already in USD)
+          openUSD = point.open
+          highUSD = point.high
+          lowUSD = point.low
+          closeUSD = point.close
+        } else {
+          // For projected data or missing historical OHLC, use calculated values
+          closeUSD = point.price
+          openUSD = point.open || point.price
+          highUSD = point.high || point.price
+          lowUSD = point.low || point.price
+
+          // Ensure OHLC logic: Low <= Open,Close <= High
+          lowUSD = Math.min(lowUSD, openUSD, closeUSD)
+          highUSD = Math.max(highUSD, openUSD, closeUSD)
+        }
+
         const row = [
-          `"${point.date}"`,
-          point.price.toFixed(2),
-          `"${point.isHistorical ? 'Historical' : 'Projected'}"`,
-          point.support ? point.support.toFixed(2) : '',
-          point.resistance ? point.resistance.toFixed(2) : ''
+          'BTC',
+          date,
+          closeUSD.toFixed(2),
+          openUSD.toFixed(2),
+          highUSD.toFixed(2),
+          lowUSD.toFixed(2),
+          point.isHistorical ? 'Historical' : 'Projected'
         ]
         csvRows.push(row.join(','))
       })
@@ -253,7 +320,7 @@ export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPric
 
       // Create and download file with improved method
       const currentDate = new Date().toISOString().split('T')[0]
-      const filename = `bitcoin-price-forecast-${params.priceModel}-${currentDate}.csv`
+      const filename = `bitcoin-price-forecast-complete-${params.priceModel}-${currentDate}.csv`
 
       // Add BOM for proper UTF-8 encoding
       const BOM = '\uFEFF'
@@ -282,9 +349,16 @@ export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPric
         }, 100)
       }
 
-      console.log(`📥 CSV download initiated: ${filename}`)
+      console.log(`📥 Enhanced CSV download initiated: ${filename}`)
+      console.log(`📊 Exported ${chartData.length} data points with complete OHLC data`)
+
+      // Log data summary
+      const historicalCount = chartData.filter(p => p.isHistorical).length
+      const projectedCount = chartData.filter(p => !p.isHistorical).length
+      console.log(`📈 Historical: ${historicalCount} points, Projected: ${projectedCount} points`)
+
     } catch (err) {
-      console.error('❌ Error generating CSV:', err)
+      console.error('❌ Error generating enhanced CSV:', err)
     } finally {
       setIsDownloading(false)
     }
@@ -415,23 +489,23 @@ export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPric
                 type="number"
                 domain={['dataMin * 0.5', 'dataMax * 2']}
                 tickFormatter={(value) => {
-                  if (value >= 1000000) return `€${(value / 1000000).toFixed(1)}M`
-                  if (value >= 1000) return `€${(value / 1000).toFixed(0)}k`
-                  return `€${value.toFixed(0)}`
+                  if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`
+                  if (value >= 1000) return `$${(value / 1000).toFixed(0)}k`
+                  return `$${value.toFixed(0)}`
                 }}
                 allowDataOverflow
               />
               
               <Tooltip
                 formatter={(value: number, name: string) => [
-                  `€${value.toLocaleString('de-DE')}`,
+                  `$${value.toLocaleString('en-US')}`,
                   name === 'price' ? 'Bitcoin Price' :
                   name === 'support' ? 'Support Line' :
                   name === 'resistance' ? 'Resistance Line' : name
                 ]}
                 labelFormatter={(timestamp: number) => {
                   const date = new Date(timestamp)
-                  return `Date: ${date.toLocaleDateString('de-DE', {
+                  return `Date: ${date.toLocaleDateString('en-US', {
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric'

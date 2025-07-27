@@ -277,17 +277,17 @@ export async function appendCurrentPrice(historicalData: HistoricalDataPoint[]):
 }
 
 /**
- * Convert USD prices to EUR
+ * Keep USD prices as-is (no conversion needed)
  */
-export function convertToEur(data: HistoricalDataPoint[], usdToEurRate: number = 0.92): HistoricalDataPoint[] {
-  console.log(`💱 Converting prices to EUR (rate: ${usdToEurRate})`)
-  
+export function keepUsdPrices(data: HistoricalDataPoint[]): HistoricalDataPoint[] {
+  console.log(`💰 Using USD prices directly (no conversion)`)
+
   return data.map(point => ({
     ...point,
-    open: point.open * usdToEurRate,
-    high: point.high * usdToEurRate,
-    low: point.low * usdToEurRate,
-    close: point.close * usdToEurRate
+    open: point.open,
+    high: point.high,
+    low: point.low,
+    close: point.close
   }))
 }
 

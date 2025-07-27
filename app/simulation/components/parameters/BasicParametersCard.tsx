@@ -123,7 +123,7 @@ export function BasicParametersCard() {
                   <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Starting Bitcoin price in EUR for the simulation</p>
+                  <p>Starting Bitcoin price in USD for the simulation</p>
                 </TooltipContent>
               </Tooltip>
             </Label>
@@ -135,7 +135,7 @@ export function BasicParametersCard() {
                 max={10000000}
                 step={100}
                 decimals={0}
-                suffix="€"
+                suffix="$"
                 placeholder="100,000"
                 className="flex-1"
               />
@@ -159,6 +159,14 @@ export function BasicParametersCard() {
             <Label className="flex items-center gap-2">
               <DollarSign className="w-4 h-4 text-blue-500" />
               Monthly Withdrawal
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Amount withdrawn monthly from your BTC stack for living expenses or other purposes</p>
+                </TooltipContent>
+              </Tooltip>
             </Label>
             <NumberInput
               value={params.monthlyWithdrawalAmount}
