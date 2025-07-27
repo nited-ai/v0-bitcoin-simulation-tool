@@ -1,9 +1,7 @@
 "use client"
 
-import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useSimulation } from "../../context/SimulationContext"
-import { useResultsSummary } from "../../hooks/useResultsSummary"
 
 /**
  * Results Summary Component
@@ -12,10 +10,6 @@ import { useResultsSummary } from "../../hooks/useResultsSummary"
  * Shows first liquidation, max debt, final collateral, net worth, and BTC amount.
  */
 export function ResultsSummary() {
-  // Temporarily disable translations and complex hooks to avoid infinite loops
-  // const { t } = useTranslation()
-  // const { results } = useSimulation()
-  // const summary = useResultsSummary(results)
   const { params } = useSimulation()
 
   // Simple fallback function for translations
