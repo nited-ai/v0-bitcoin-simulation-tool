@@ -6,12 +6,12 @@ import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
 import {
   TrendingUp,
   TrendingDown,
   Activity,
   Zap,
-  Calendar,
   Target,
   Settings,
   Rocket
@@ -67,8 +67,6 @@ export function SimplifiedManualGrowthInterface({ className }: SimplifiedManualG
   const [customRates, setCustomRates] = useState<number[]>([])
   const [tempCustomRates, setTempCustomRates] = useState<number[]>([]) // Temporary state for sliders
   const [showCustomControls, setShowCustomControls] = useState(false)
-  const [tempSimulationYears, setTempSimulationYears] = useState<number>(12) // Temporary state for length slider
-  const [isDragging, setIsDragging] = useState(false)
   const debounceTimeoutRef = useRef<NodeJS.Timeout>()
 
   // Convert months to years for display
@@ -88,9 +86,6 @@ export function SimplifiedManualGrowthInterface({ className }: SimplifiedManualG
         setShowCustomControls(true)
       }
     }
-
-    // Initialize temp simulation years
-    setTempSimulationYears(simulationYears)
   }, [])
 
   // Get current growth rates
@@ -110,19 +105,6 @@ export function SimplifiedManualGrowthInterface({ className }: SimplifiedManualG
   }
   if (adjustedGrowthRates.length > simulationYears) {
     adjustedGrowthRates.splice(simulationYears)
-  }
-
-  // Handle length slider changes (only visual feedback during drag)
-  const handleYearsChange = (years: number[]) => {
-    setTempSimulationYears(years[0])
-    setIsDragging(true)
-  }
-
-  // Apply length changes when dragging stops
-  const handleYearsChangeCommit = () => {
-    const months = tempSimulationYears * 12
-    setParams(prev => ({ ...prev, simulationMonths: months }))
-    setIsDragging(false)
   }
 
   // Handle custom rate slider changes (only visual feedback)
@@ -186,19 +168,7 @@ export function SimplifiedManualGrowthInterface({ className }: SimplifiedManualG
     }
   }
 
-  // Update temp rates when simulation years change
-  useEffect(() => {
-    if (selectedPreset === 'custom' && tempCustomRates.length > 0) {
-      const adjustedTempRates = [...tempCustomRates]
-      while (adjustedTempRates.length < tempSimulationYears) {
-        adjustedTempRates.push(50)
-      }
-      if (adjustedTempRates.length > tempSimulationYears) {
-        adjustedTempRates.splice(tempSimulationYears)
-      }
-      setTempCustomRates(adjustedTempRates)
-    }
-  }, [tempSimulationYears, selectedPreset])
+
 
   return (
     <div className={className}>
@@ -214,53 +184,66 @@ export function SimplifiedManualGrowthInterface({ className }: SimplifiedManualG
         </CardHeader>
 
         <CardContent className="space-y-8">
-          {/* Simulation Length Control */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <Label className="text-base font-medium flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                Simulation Length: {isDragging ? tempSimulationYears : simulationYears} Years
-              </Label>
-              <div className="text-sm text-muted-foreground">
-                {isDragging ? tempSimulationYears * 12 : params.simulationMonths} months • End: {new Date().getFullYear() + (isDragging ? tempSimulationYears : simulationYears)}
-              </div>
-            </div>
-
-            <Slider
-              value={[isDragging ? tempSimulationYears : simulationYears]}
-              onValueChange={handleYearsChange}
-              onValueCommit={handleYearsChangeCommit}
-              min={1}
-              max={25}
-              step={1}
-              className="w-full"
-            />
-            
-
-          </div>
-
           {/* Quick Presets */}
           <div className="space-y-4">
             <Label className="text-base font-medium">Quick Presets</Label>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
               {Object.entries(PRESETS).map(([key, preset]) => {
                 const Icon = preset.icon
                 const isSelected = selectedPreset === key
-                
+
+                // Define badge colors for each preset
+                const getBadgeConfig = (presetKey: string) => {
+                  switch (presetKey) {
+                    case 'conservative':
+                      return { badge: 'Safe', className: 'border-transparent bg-green-500 text-white hover:bg-green-600' }
+                    case 'moderate':
+                      return { badge: 'Balanced', className: 'border-transparent bg-lime-500 text-white hover:bg-lime-600' }
+                    case 'optimistic':
+                      return { badge: 'Growth', className: 'border-transparent bg-orange-500 text-white hover:bg-orange-600' }
+                    case 'moonshot':
+                      return { badge: 'High Risk', className: 'border-transparent bg-red-500 text-white hover:bg-red-600' }
+                    case 'custom':
+                      return { badge: 'Custom', className: 'border-transparent bg-purple-500 text-white hover:bg-purple-600' }
+                    default:
+                      return { badge: 'Default', className: 'border-transparent bg-gray-500 text-white hover:bg-gray-600' }
+                  }
+                }
+
+                const badgeConfig = getBadgeConfig(key)
+
                 return (
-                  <Button
+                  <div
                     key={key}
-                    variant={isSelected ? "default" : "outline"}
+                    className={`relative p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
+                      isSelected
+                        ? "border-primary bg-primary/5 shadow-sm"
+                        : "border-border hover:border-primary/50"
+                    }`}
                     onClick={() => handlePresetSelect(key)}
-                    className="h-auto p-4 flex flex-col items-center gap-2"
                   >
-                    <Icon className="h-5 w-5" />
-                    <div className="text-center">
-                      <div className="font-medium">{preset.name}</div>
-                      <div className="text-xs opacity-75">{preset.description}</div>
+                    {/* Badge */}
+                    <Badge
+                      className={`absolute -top-2 -right-2 text-xs ${badgeConfig.className}`}
+                    >
+                      {badgeConfig.badge}
+                    </Badge>
+
+                    {/* Header */}
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="text-primary"><Icon className="w-5 h-5" /></div>
+                      <h3 className="font-medium">{preset.name}</h3>
+                      {isSelected && (
+                        <div className="w-2 h-2 bg-primary rounded-full ml-auto" />
+                      )}
                     </div>
-                  </Button>
+
+                    {/* Description */}
+                    <p className="text-sm text-muted-foreground">
+                      {preset.description}
+                    </p>
+                  </div>
                 )
               })}
             </div>
