@@ -59,16 +59,20 @@ export function PriceProjectionChart() {
       let modelParams = {
         startPrice: params.initialBtcPrice,
         projectionMonths: params.simulationMonths,
-        modelSpecificParams: {}
+        modelSpecificParams: {
+          riskLevel: params.riskLevel || 'optimistic' // Pass risk level to all models
+        }
       }
-      
+
       // Add model-specific parameters
       if (selectedModel === 'manual') {
         modelParams.modelSpecificParams = {
+          ...modelParams.modelSpecificParams,
           annualGrowthRates: params.annualGrowthRates || [20, 15, 10, 8, 5]
         }
       } else if (selectedModel === 'powerLaw') {
         modelParams.modelSpecificParams = {
+          ...modelParams.modelSpecificParams,
           prognosisLine: 'fit' // Default to fit line
         }
       }

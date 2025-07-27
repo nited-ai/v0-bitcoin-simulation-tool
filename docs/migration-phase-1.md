@@ -118,21 +118,22 @@ export function LoadingSpinner({ message }: { message?: string }) {
 ### **Schritt 5: Migration Checklist**
 
 #### **Woche 1:**
-- [ ] Ordnerstruktur erstellen
-- [ ] BasicParametersCard extrahieren
-- [ ] RiskManagementCard extrahieren
-- [ ] SimulationHeader extrahieren
-- [ ] SimulationContext erstellen
-- [ ] useSimulationState Hook erstellen
+- [x] Ordnerstruktur erstellen
+- [x] BasicParametersCard extrahieren
+- [x] RiskManagementCard extrahieren
+- [x] SimulationHeader extrahieren
+- [x] SimulationContext erstellen
+- [x] useSimulationState Hook erstellen
 
 #### **Woche 2:**
-- [ ] ResultsSummary extrahieren
-- [ ] ResultsTable extrahieren
-- [ ] PriceChart extrahieren
-- [ ] useHistoricalData Hook erstellen
-- [ ] usePriceGeneration Hook erstellen
-- [ ] Shared UI Components erstellen
-- [ ] Erste Tests schreiben
+- [x] ResultsSummary extrahieren
+- [x] ResultsTable extrahieren
+- [x] PriceChart extrahieren
+- [x] useHistoricalData Hook erstellen
+- [x] usePriceGeneration Hook erstellen
+- [x] useSimulationRunner Hook erstellen
+- [x] Shared UI Components erstellen (NumberInput)
+- [x] Erste Tests schreiben
 
 ### **Schritt 6: Validierung**
 

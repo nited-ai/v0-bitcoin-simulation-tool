@@ -8,6 +8,10 @@ import { UnifiedPriceChart } from '../charts/UnifiedPriceChart'
 import { SimplifiedManualGrowthInterface } from '../price-models/manual/SimplifiedManualGrowthInterface'
 import { GrowthRateAnalysis } from '../price-models/GrowthRateAnalysis'
 import { CustomGrowthRateSliders } from '../price-models/manual/CustomGrowthRateSliders'
+import { BasicParametersCard } from '../parameters/BasicParametersCard'
+import { ValidationSummary } from '../parameters/ValidationSummary'
+import { RiskLevelSelector } from '../parameters/RiskLevelSelector'
+import { LoanParametersCard } from '../parameters/LoanParametersCard'
 import { useSimulation } from '../../context/SimulationContext'
 import { Settings, TrendingUp } from 'lucide-react'
 import type { PriceProjectionResult } from '../../price-models/types'
@@ -70,12 +74,21 @@ export function TabNavigation({ children }: TabNavigationProps) {
         
         <TabsContent value="parameters" className="mt-6">
           <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold">Parameters</h2>
-              <p className="text-muted-foreground">Configure your loan parameters and investment settings.</p>
-            </div>
-            <div className="p-6 border rounded-lg">
-              <p>Parameters content will be implemented here</p>
+            {/* Validation Summary - Only show if parameters are not valid */}
+            <ValidationSummary />
+
+            {/* Parameter Cards in Grid Layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Left Column */}
+              <div className="space-y-6">
+                <BasicParametersCard />
+                <RiskLevelSelector />
+              </div>
+
+              {/* Right Column */}
+              <div className="space-y-6">
+                <LoanParametersCard />
+              </div>
             </div>
           </div>
         </TabsContent>

@@ -113,11 +113,11 @@ export class ManualGrowthModel implements PriceProjectionModel {
   ): Promise<PriceProjectionResult> {
     
     console.log(`🚀 Manual Growth Model: Generating projection for ${params.projectionMonths} months`)
-    
+
     const annualGrowthRates = params.modelSpecificParams?.annualGrowthRates || []
     const projectionPoints: ProjectionPoint[] = []
     const startDate = new Date()
-    
+
     let currentPrice = params.startPrice
     
     // Generate monthly projections

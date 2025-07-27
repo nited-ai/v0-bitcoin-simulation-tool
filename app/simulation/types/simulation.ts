@@ -12,6 +12,12 @@ import type {
 } from "@/lib/strategy-engine/types"
 
 /**
+ * Type definitions
+ */
+export type RiskLevel = "conservative" | "moderate" | "optimistic" | "moonshots"
+export type Platform = "firefish" | "strike"
+
+/**
  * Loan interface for tracking individual loans
  */
 export interface Loan {
@@ -65,6 +71,7 @@ export interface SimulationParams {
   monthlyWithdrawalAmount: number
   annualInterestRate: number
   loanOriginationFeePercent: number
+  liquidationFeePercent: number
   loanTermMonths: number
   simulationMonths: number
   maxLoanAmount: number
@@ -77,6 +84,11 @@ export interface SimulationParams {
     targetLtv: number
     liquidationLtv: number
   }
+  // Additional parameters
+  btcAccumulation: boolean
+  riskLevel: RiskLevel
+  platform: Platform
+  maxLoanAmountPercent: number // Percentage of BTC stack value
   // Strategy parameters
   investmentStrategy: InvestmentStrategy
   athBasedParams: AthBasedStrategyParams
@@ -121,9 +133,10 @@ export const DEFAULT_PARAMS: SimulationParams = {
   monthlyWithdrawalAmount: 0,
   annualInterestRate: 6.5,
   loanOriginationFeePercent: 1.5,
+  liquidationFeePercent: 5.0, // Updated from 2.0 to 5.0
   loanTermMonths: 6,
   simulationMonths: 144,
-  maxLoanAmount: 100000,
+  maxLoanAmount: 15000, // Updated from 100000 to 15000
   annualGrowthRates: [180, -60, -20, 210, 250, -60, -20, 170, 200, -65, -20, 110],
   priceModel: "manual",
   powerLawSettings: {
@@ -131,8 +144,13 @@ export const DEFAULT_PARAMS: SimulationParams = {
   },
   riskManagement: {
     targetLtv: 50,
-    liquidationLtv: 80,
+    liquidationLtv: 95, // Updated from 80 to 95
   },
+  // Add BTC accumulation default
+  btcAccumulation: true,
+  riskLevel: "optimistic",
+  platform: "firefish",
+  maxLoanAmountPercent: 15, // 15% of BTC stack value
   investmentStrategy: "athBased",
   athBasedParams: {
     athThresholdPercent: 80,

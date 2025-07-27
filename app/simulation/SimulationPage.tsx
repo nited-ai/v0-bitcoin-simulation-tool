@@ -5,11 +5,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { SimulationProvider } from "./context/SimulationContext"
 import { SimulationHeader } from "./components/layout/SimulationHeader"
 import { BasicParametersCard } from "./components/parameters/BasicParametersCard"
+import { ParameterPresets } from "./components/parameters/ParameterPresets"
+import { ValidationSummary } from "./components/parameters/ValidationSummary"
 import { StrategyCard } from "./components/parameters/StrategyCard"
 import { RiskManagementCard } from "./components/parameters/RiskManagementCard"
 import { InvestmentStrategyCard } from "./components/parameters/InvestmentStrategyCard"
 import { EconomicAssumptionsCard } from "./components/parameters/EconomicAssumptionsCard"
 import { ResultsSummary } from "./components/results/ResultsSummary"
+import { ResultsTable } from "./components/results/ResultsTable"
 import { FinancialChart } from "./components/charts/FinancialChart"
 import { PriceChart } from "./components/charts/PriceChart"
 import { HowItWorksContent } from "./components/how-it-works/HowItWorksContent"
@@ -40,6 +43,12 @@ function SimulationContent() {
 
         {/* Parameters Tab */}
         <TabsContent value="parameters" className="space-y-6">
+          {/* Parameter Presets - Full Width */}
+          <ParameterPresets />
+
+          {/* Validation Summary - Full Width */}
+          <ValidationSummary />
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Left Column */}
             <div className="space-y-6">
@@ -59,14 +68,7 @@ function SimulationContent() {
         {/* Results Tab */}
         <TabsContent value="results" className="space-y-6">
           <ResultsSummary />
-
-          {/* Placeholder for detailed results table */}
-          <div className="p-4 border rounded-lg bg-muted/50">
-            <h3 className="font-medium mb-2">🚧 Detailed Results Table Coming Soon</h3>
-            <p className="text-sm text-muted-foreground">
-              The detailed results table will be extracted in the next migration steps.
-            </p>
-          </div>
+          <ResultsTable />
         </TabsContent>
 
         {/* Chart Tab */}
