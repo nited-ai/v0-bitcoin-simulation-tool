@@ -23,7 +23,7 @@ export default function SimulationPage() {
       <TooltipProvider>
         <SimulationProvider>
           <StrategyProvider>
-            <div className="container mx-auto p-4 max-w-7xl">
+            <div className="w-full p-4">
               {/* Header with title and controls */}
               <SimulationHeader />
               
