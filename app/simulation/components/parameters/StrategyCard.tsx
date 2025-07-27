@@ -59,7 +59,7 @@ export function StrategyCard() {
             max={50000}
             step={100}
             decimals={0}
-            suffix="€"
+            suffix="$"
             placeholder="0"
           />
         </div>
