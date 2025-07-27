@@ -2,10 +2,10 @@
 
 import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { Info } from "lucide-react"
+import { NumberInput } from "@/shared/ui/forms/NumberInput"
 import { useSimulation } from "../../context/SimulationContext"
 
 /**
@@ -52,13 +52,15 @@ export function StrategyCard() {
               </TooltipContent>
             </Tooltip>
           </Label>
-          <Input
-            id="monthlyWithdrawalAmount"
-            type="number"
+          <NumberInput
             value={params.monthlyWithdrawalAmount}
-            onChange={(e) => setParams((p) => ({ ...p, monthlyWithdrawalAmount: Number(e.target.value) }))}
-            min="0"
-            step="100"
+            onChange={(value) => setParams((p) => ({ ...p, monthlyWithdrawalAmount: value }))}
+            min={0}
+            max={50000}
+            step={100}
+            decimals={0}
+            suffix="€"
+            placeholder="0"
           />
         </div>
       </CardContent>
