@@ -1,6 +1,6 @@
 // lib/price-engine/index.ts
-// Main entry point and dispatcher for the price engine.
-// Updated to support SQL database integration for historical data.
+// This will be the main entry point and dispatcher for the price engine.
+// Implementation will follow in the next steps.
 
 import type { PriceEngineParams, HistoricalDataPoint, PriceChartDataPoint } from "./types"
 import { generateManualPath } from "./models/manual"
@@ -36,24 +36,18 @@ async function generatePriceChartDataOriginal(
   let futurePath: { date: Date; price: number }[] = []
 
   // Step 1 & 2: Select model and generate the future price path
-  console.log(`🎯 PriceEngine: Generating path for model "${params.priceModel}"`)
-
   switch (params.priceModel) {
     case "manual":
       futurePath = generateManualPath(params)
-      console.log(`📈 Manual path generated: ${futurePath.length} points`)
       break
     case "powerLaw":
       futurePath = generatePowerLawPath(params)
-      console.log(`📈 Power Law path generated: ${futurePath.length} points (line: ${params.powerLawSettings.prognosisLine})`)
       break
     case "cycleRepeat":
       futurePath = generateCycleRepeatPath(params)
-      console.log(`📈 Cycle Repeat path generated: ${futurePath.length} points`)
       break
     case "cycleRepeatPowerLaw":
       futurePath = generateCycleRepeatPowerLawPath(params)
-      console.log(`📈 Cycle Repeat Power Law path generated: ${futurePath.length} points`)
       break
     default:
       throw new Error(`Unknown price model: ${params.priceModel}`)
@@ -150,7 +144,6 @@ export async function generatePriceChartData(
   params: PriceEngineParams,
   historicalData: HistoricalDataPoint[],
 ): Promise<PriceChartDataPoint[]> {
-  console.log("🚀 Generating optimized price chart data...")
   const startTime = performance.now()
 
   // Use optimized version that caches historical data processing
@@ -158,7 +151,6 @@ export async function generatePriceChartData(
 
   const totalTime = performance.now() - startTime
   PerformanceMonitor.recordLoadTime("chart-generation", totalTime)
-  console.log(`✅ Optimized chart data generated in ${Math.round(totalTime)}ms (${data.length} points)`)
 
   return data
 }

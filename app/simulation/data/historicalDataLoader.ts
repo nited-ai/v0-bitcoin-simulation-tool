@@ -16,32 +16,36 @@ export interface HistoricalDataPoint {
 }
 
 /**
- * Load complete historical Bitcoin price data from database (2013-current)
+ * Load complete historical Bitcoin price data from database API (2013-current)
  */
 export async function loadHistoricalData(): Promise<HistoricalDataPoint[]> {
-  console.log('📊 Loading complete Bitcoin price history (2013-current)...')
+  console.log('📊 Loading complete Bitcoin price history from database API...')
 
   try {
-    // Step 1: Initialize database with CSV integration and current price update
-    console.log('🗄️ Initializing database with complete historical data...')
-    const { databaseManager } = await import('./database/DatabaseManager')
-    const { autoUpdateService } = await import('./AutoUpdateService')
+    // Step 1: Fetch all historical data from database API
+    console.log('🗄️ Fetching historical data from database...')
 
-    // Start auto-update service (includes current price update)
-    await autoUpdateService.start()
+    const response = await fetch('/api/bitcoin-prices/historical')
 
-    // Step 2: Load complete historical data (CSV + API data)
-    const databaseData = await databaseManager.getHistoricalData()
+    if (!response.ok) {
+      throw new Error(`Database API error: ${response.status}`)
+    }
 
-    // Convert database format to our format
-    const historicalData: HistoricalDataPoint[] = databaseData.map(row => ({
-      timestamp: row.timestamp,
-      date: row.date,
-      open: row.open,
-      high: row.high,
-      low: row.low,
-      close: row.close,
-      volume: row.volume
+    const result = await response.json()
+
+    if (!result.success || !Array.isArray(result.data)) {
+      throw new Error('Invalid database API response')
+    }
+
+    // Convert API response to our format
+    const historicalData: HistoricalDataPoint[] = result.data.map((record: any) => ({
+      timestamp: record.timestamp,
+      date: record.date,
+      open: record.open,
+      high: record.high,
+      low: record.low,
+      close: record.close,
+      volume: record.volume
     }))
 
     console.log(`✅ Complete historical data loaded: ${historicalData.length} points`)

@@ -171,10 +171,25 @@ async function loadHistoricalPriceDataOriginal(): Promise<HistoricalDataPoint[]>
 }
 
 /**
- * Optimierte Version der loadHistoricalPriceData Funktion mit intelligentem Caching
+ * Main export - now uses database-based loader with CSV fallback
  */
 export async function loadHistoricalPriceData(): Promise<HistoricalDataPoint[]> {
-  console.log("🚀 Loading historical price data...")
+  try {
+    // Use the new database-based loader
+    const { loadHistoricalPriceData: databaseLoader } = await import('./database-historical-loader')
+    return await databaseLoader()
+  } catch (error) {
+    console.error("❌ Database loader failed, using original CSV method:", error)
+    // Fallback to original CSV-based method
+    return await loadHistoricalPriceDataWithCaching()
+  }
+}
+
+/**
+ * CSV-based loader with caching (renamed for fallback use)
+ */
+async function loadHistoricalPriceDataWithCaching(): Promise<HistoricalDataPoint[]> {
+  console.log("🚀 Loading historical price data from CSV...")
   const startTime = performance.now()
 
   try {
@@ -201,9 +216,9 @@ export async function loadHistoricalPriceData(): Promise<HistoricalDataPoint[]> 
     return await loadFullDataWithCache()
 
   } catch (error) {
-    console.error("❌ Cache load failed, falling back to original method:", error)
-    // Fallback zur ursprünglichen Methode
-    return await loadHistoricalPriceDataOriginal()
+    console.error("❌ Cache load failed, falling back to basic CSV load:", error)
+    // Final fallback to basic CSV loading
+    return await loadPriceHistoryFromCsv()
   }
 }
 
@@ -287,7 +302,7 @@ async function loadMinimalFallbackData(): Promise<HistoricalDataPoint[]> {
 export async function loadHistoricalPriceDataWithFallbacks(): Promise<HistoricalDataPoint[]> {
   const strategies = [
     () => loadHistoricalPriceData(),
-    () => loadHistoricalPriceDataOriginal(),
+    () => loadHistoricalPriceDataWithCaching(),
     () => loadMinimalFallbackData()
   ]
 
