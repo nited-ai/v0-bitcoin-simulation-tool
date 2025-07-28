@@ -1,7 +1,6 @@
 "use client"
 
 import { useTranslation } from "react-i18next"
-import { Bitcoin } from "lucide-react"
 import { ModeToggle } from "@/components/mode-toggle"
 import { LocaleSwitcher } from "@/components/locale-switcher"
 
@@ -30,11 +29,10 @@ export function SimulationHeader() {
       
       {/* Center: Title and Description */}
       <div className="flex-1 text-center">
-        <h1 className="text-4xl font-bold mb-2 flex items-center justify-center gap-2">
-          <Bitcoin className="w-8 h-8 text-orange-500" />
-          {safeT("Page.title", "Bitcoin Simulation Tool")}
+        <h1 className="text-4xl font-bold mb-2">
+          {safeT("Page.title", "FIRE hodl Simulator")}
         </h1>
-        <p className="text-muted-foreground">{safeT("Page.description", "Simulate Bitcoin-backed loan strategies")}</p>
+        <p className="text-muted-foreground">{safeT("Page.description", "Simulate savings, withdrawals and loans secured by Bitcoin")}</p>
       </div>
       
       {/* Right: Controls */}

@@ -11,7 +11,9 @@ import { CustomGrowthRateSliders } from '../price-models/manual/CustomGrowthRate
 import { BasicParametersCard } from '../parameters/BasicParametersCard'
 import { ValidationSummary } from '../parameters/ValidationSummary'
 import { RiskLevelSelector } from '../parameters/RiskLevelSelector'
+import { CollateralAnalysisCard } from '../parameters/CollateralAnalysisCard'
 import { LoanParametersCard } from '../parameters/LoanParametersCard'
+import { PlatformSelector } from '../parameters/PlatformSelector'
 import { useSimulation } from '../../context/SimulationContext'
 import { Settings, TrendingUp } from 'lucide-react'
 import type { PriceProjectionResult } from '../../price-models/types'
@@ -82,13 +84,19 @@ export function TabNavigation({ children }: TabNavigationProps) {
               {/* Left Column */}
               <div className="space-y-6">
                 <BasicParametersCard />
-                <RiskLevelSelector />
+                <PlatformSelector />
               </div>
 
               {/* Right Column */}
               <div className="space-y-6">
+                <RiskLevelSelector />
                 <LoanParametersCard />
               </div>
+            </div>
+
+            {/* Full Width Bottom Section */}
+            <div className="mt-6">
+              <CollateralAnalysisCard />
             </div>
           </div>
         </TabsContent>

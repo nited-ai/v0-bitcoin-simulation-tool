@@ -46,17 +46,21 @@ export function BasicParametersCard() {
   }, []) // Empty dependency array means this runs once on mount
 
   /**
-   * Get investment mode description based on checkbox and withdrawal amount
+   * Get investment mode description based on checkbox and savings/withdrawal amount
    */
   const getInvestmentModeDescription = () => {
     if (btcAccumulation && params.monthlyWithdrawalAmount === 0) {
       return "Accumulate more BTC only (reinvest all loan proceeds)"
-    } else if (!btcAccumulation && params.monthlyWithdrawalAmount > 0) {
-      return "Live from BTC stack only (withdraw specific amount, no reinvestment)"
     } else if (btcAccumulation && params.monthlyWithdrawalAmount > 0) {
+      return "Hybrid approach (add monthly savings AND reinvest remaining loan proceeds into BTC)"
+    } else if (btcAccumulation && params.monthlyWithdrawalAmount < 0) {
       return "Hybrid approach (withdraw specific amount AND reinvest remaining loan proceeds into BTC)"
+    } else if (!btcAccumulation && params.monthlyWithdrawalAmount > 0) {
+      return "Monthly savings only (add specific amount, no loan reinvestment)"
+    } else if (!btcAccumulation && params.monthlyWithdrawalAmount < 0) {
+      return "Live from BTC stack only (withdraw specific amount, no reinvestment)"
     } else {
-      return "No withdrawals, no reinvestment"
+      return "No savings/withdrawals, no reinvestment"
     }
   }
 
@@ -153,35 +157,35 @@ export function BasicParametersCard() {
           </div>
         </div>
 
-        {/* Second Row: Monthly Withdrawal + BTC Accumulation */}
+        {/* Second Row: Monthly Savings/Withdrawal + BTC Accumulation */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <DollarSign className="w-4 h-4 text-blue-500" />
-              Monthly Withdrawal
+              Monthly Savings/Withdrawal
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Amount withdrawn monthly from your BTC stack for living expenses or other purposes</p>
+                  <p>Positive values: Monthly savings added to BTC stack. Negative values: Monthly withdrawals from BTC stack for living expenses.</p>
                 </TooltipContent>
               </Tooltip>
             </Label>
             <NumberInput
               value={params.monthlyWithdrawalAmount}
               onChange={(value) => setParams((p) => ({ ...p, monthlyWithdrawalAmount: value }))}
-              min={0}
+              min={-50000}
               max={50000}
               step={100}
               decimals={0}
               suffix="$"
-              placeholder="0"
+              placeholder="150"
             />
           </div>
 
           <div className="space-y-2">
-            {/* Empty label space to align with Monthly Withdrawal label */}
+            {/* Empty label space to align with Monthly Savings/Withdrawal label */}
             <div className="h-6"></div>
             <div className="flex items-center space-x-2">
               <Checkbox
@@ -211,7 +215,7 @@ export function BasicParametersCard() {
         {/* Investment Mode Description */}
         <div className="p-3 bg-muted/50 rounded-lg">
           <p className="text-sm text-muted-foreground">
-            <strong>Current Mode:</strong> {getInvestmentModeDescription()}
+            {getInvestmentModeDescription()}
           </p>
         </div>
 

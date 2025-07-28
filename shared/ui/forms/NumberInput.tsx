@@ -146,9 +146,9 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
           </Label>
         )}
         
-        <div className="relative">
+        <div className="relative flex items-center">
           {prefix && (
-            <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-muted-foreground z-10 pointer-events-none">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground z-10">
               {prefix}
             </div>
           )}
@@ -165,6 +165,7 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
             placeholder={placeholder}
             disabled={disabled}
             className={cn(
+              "relative",
               hasError && "border-destructive focus-visible:ring-destructive",
               hasWarning && "border-yellow-500 focus-visible:ring-yellow-500",
               prefix && "pl-8",
@@ -174,7 +175,7 @@ export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
           />
 
           {suffix && (
-            <div className="absolute inset-y-0 right-0 flex items-center pr-3 text-sm text-muted-foreground z-10 pointer-events-none">
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground z-10 pointer-events-none">
               {suffix}
             </div>
           )}

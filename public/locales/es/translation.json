@@ -3,8 +3,8 @@
     "placeholder": "Idioma"
   },
   "Page": {
-    "title": "Simulador de Préstamos Bullet de Bitcoin",
-    "description": "Simula préstamos bullet rotativos garantizados por Bitcoin"
+    "title": "FIRE hodl Simulator",
+    "description": "Simula ahorros, retiros y préstamos garantizados por Bitcoin"
   },
   "Tabs": {
     "parameters": "Parámetros",
@@ -38,10 +38,10 @@
     "maxLoanAmountTooltip": "La cantidad máxima de un solo préstamo. Si se necesitan cantidades mayores, se tomarán múltiples préstamos."
   },
   "Strategy": {
-    "title": "Estrategia: Retiro",
-    "description": "Define tus objetivos de retiro mensual.",
-    "monthlyWithdrawal": "Cantidad de Retiro Mensual (€)",
-    "monthlyWithdrawalTooltip": "La cantidad a retirar mensualmente como liquidez para gastos de vida."
+    "title": "Estrategia: Ahorro/Retiro",
+    "description": "Define tus objetivos de ahorro o retiro mensual.",
+    "monthlyWithdrawal": "Cantidad de Ahorro/Retiro Mensual ($)",
+    "monthlyWithdrawalTooltip": "Valores positivos: Ahorros mensuales añadidos al stack de BTC. Valores negativos: Retiros mensuales del stack de BTC para gastos de vida."
   },
   "RiskManagement": {
     "title": "Gestión de Riesgos y Apalancamiento",

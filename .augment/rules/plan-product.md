@@ -1,3 +1,7 @@
+---
+type: "agent_requested"
+description: "Example description"
+---
 # Plan Product
 
 Plan a new product and install Agent OS in its codebase.

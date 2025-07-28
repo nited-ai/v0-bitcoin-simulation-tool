@@ -2,6 +2,7 @@
 
 import { useMemo } from "react"
 import type { SimulationParams } from "../types/simulation"
+import { getPlatformConfig } from "../constants/platformPresets"
 
 export interface ValidationError {
   field: keyof SimulationParams | string
@@ -27,6 +28,9 @@ export function useParameterValidation(params: SimulationParams): ValidationResu
     const errors: ValidationError[] = []
     const warnings: ValidationError[] = []
     const infos: ValidationError[] = []
+
+    // Get platform configuration for validation
+    const platformConfig = getPlatformConfig(params.platform)
 
     // BTC Amount Validation
     if (params.btcAmount <= 0) {
@@ -82,27 +86,34 @@ export function useParameterValidation(params: SimulationParams): ValidationResu
       })
     }
 
-    // Monthly Withdrawal Validation
-    if (params.monthlyWithdrawalAmount < 0) {
-      errors.push({
-        field: "monthlyWithdrawalAmount",
-        message: "Monthly withdrawal cannot be negative",
-        severity: "error"
-      })
-    } else if (params.monthlyWithdrawalAmount > params.maxLoanAmount) {
+    // Monthly Savings/Withdrawal Validation
+    if (Math.abs(params.monthlyWithdrawalAmount) > params.maxLoanAmount) {
       warnings.push({
         field: "monthlyWithdrawalAmount",
-        message: "Monthly withdrawal exceeds max loan amount",
+        message: "Monthly savings/withdrawal amount exceeds max loan amount",
         severity: "warning"
       })
-    } else if (params.monthlyWithdrawalAmount > 0) {
+    } else if (params.monthlyWithdrawalAmount < 0) {
+      // Negative values are withdrawals
       const totalCollateralValue = params.btcAmount * params.initialBtcPrice
       const maxSafeWithdrawal = totalCollateralValue * 0.1 // 10% of collateral per month
-      
-      if (params.monthlyWithdrawalAmount > maxSafeWithdrawal) {
+
+      if (Math.abs(params.monthlyWithdrawalAmount) > maxSafeWithdrawal) {
         warnings.push({
           field: "monthlyWithdrawalAmount",
           message: "High withdrawal rate may increase liquidation risk",
+          severity: "warning"
+        })
+      }
+    } else if (params.monthlyWithdrawalAmount > 0) {
+      // Positive values are savings - validate reasonable savings amounts
+      const totalCollateralValue = params.btcAmount * params.initialBtcPrice
+      const maxReasonableSavings = totalCollateralValue * 0.2 // 20% of collateral per month
+
+      if (params.monthlyWithdrawalAmount > maxReasonableSavings) {
+        warnings.push({
+          field: "monthlyWithdrawalAmount",
+          message: "Very high monthly savings rate - ensure this is sustainable",
           severity: "warning"
         })
       }
@@ -207,6 +218,27 @@ export function useParameterValidation(params: SimulationParams): ValidationResu
       })
     }
 
+    // Platform-specific LTV validation
+    if (params.riskManagement.targetLtv > platformConfig.maxInitialLtv) {
+      errors.push({
+        field: "riskManagement.targetLtv",
+        message: `Initial LTV cannot exceed ${platformConfig.maxInitialLtv}% for ${platformConfig.name} platform`,
+        severity: "error"
+      })
+    }
+
+    // Platform-specific loan term validation
+    const currentLoanTerm = params.loanTermMonths === Infinity ? 'infinity' : params.loanTermMonths
+    const isValidLoanTerm = platformConfig.availableLoanTerms.includes(currentLoanTerm)
+
+    if (!isValidLoanTerm) {
+      warnings.push({
+        field: "loanTermMonths",
+        message: `Selected loan term (${currentLoanTerm === 'infinity' ? 'Infinity' : currentLoanTerm + ' months'}) is not available for ${platformConfig.name} platform`,
+        severity: "warning"
+      })
+    }
+
     if (params.riskManagement.liquidationLtv <= 0 || params.riskManagement.liquidationLtv > 100) {
       errors.push({
         field: "riskManagement.liquidationLtv",
@@ -233,6 +265,19 @@ export function useParameterValidation(params: SimulationParams): ValidationResu
         field: "maxLoanAmountPercent",
         message: "Max loan amount is much higher than collateral value allows at current LTV",
         severity: "warning"
+      })
+    }
+
+    // Collateral Sufficiency Validation
+    const currentLoanAmount = calculatedMaxLoanAmount
+    const btcLockedAsCollateral = currentLoanAmount / (params.riskManagement.targetLtv / 100) / params.initialBtcPrice
+
+    if (btcLockedAsCollateral > params.btcAmount) {
+      const shortfall = btcLockedAsCollateral - params.btcAmount
+      errors.push({
+        field: "collateralSufficiency",
+        message: `Insufficient collateral: Need ${btcLockedAsCollateral.toFixed(4)} BTC but only have ${params.btcAmount.toFixed(4)} BTC available (shortfall: ${shortfall.toFixed(4)} BTC)`,
+        severity: "error"
       })
     }
 

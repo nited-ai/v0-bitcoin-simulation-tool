@@ -24,9 +24,9 @@ export function StrategyCard() {
   const t = (key: string) => {
     const translations: Record<string, string> = {
       "Strategy.title": "Strategy",
-      "Strategy.description": "Configure monthly withdrawal strategy",
-      "Strategy.monthlyWithdrawalAmount": "Monthly Withdrawal Amount (€)",
-      "Strategy.monthlyWithdrawalDescription": "Amount to withdraw monthly from the loan",
+      "Strategy.description": "Configure monthly savings/withdrawal strategy",
+      "Strategy.monthlyWithdrawalAmount": "Monthly Savings/Withdrawal Amount ($)",
+      "Strategy.monthlyWithdrawalDescription": "Positive values: Monthly savings added to BTC stack. Negative values: Monthly withdrawals from BTC stack.",
     }
     return translations[key] || key
   }
@@ -39,7 +39,7 @@ export function StrategyCard() {
       </CardHeader>
       
       <CardContent className="space-y-4">
-        {/* Monthly Withdrawal Amount */}
+        {/* Monthly Savings/Withdrawal Amount */}
         <div>
           <Label htmlFor="monthlyWithdrawalAmount">
             {t("Strategy.monthlyWithdrawal")}
@@ -55,12 +55,12 @@ export function StrategyCard() {
           <NumberInput
             value={params.monthlyWithdrawalAmount}
             onChange={(value) => setParams((p) => ({ ...p, monthlyWithdrawalAmount: value }))}
-            min={0}
+            min={-50000}
             max={50000}
             step={100}
             decimals={0}
             suffix="$"
-            placeholder="0"
+            placeholder="150"
           />
         </div>
       </CardContent>

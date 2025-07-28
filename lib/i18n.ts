@@ -7,8 +7,8 @@ const fallbackTranslations = {
     placeholder: "Language",
   },
   Page: {
-    title: "Bitcoin Bullet Loan Simulator",
-    description: "Simulate rolling bullet loans secured by Bitcoin",
+    title: "FIRE hodl Simulator",
+    description: "Simulate savings, withdrawals and loans secured by Bitcoin",
   },
   Tabs: {
     parameters: "Parameters",
@@ -43,10 +43,10 @@ const fallbackTranslations = {
       "The maximum amount of a single loan. If higher amounts are needed, multiple loans will be taken.",
   },
   Strategy: {
-    title: "Strategy: Withdrawal",
-    description: "Define your monthly withdrawal goals.",
-    monthlyWithdrawal: "Monthly Withdrawal Amount ($)",
-    monthlyWithdrawalTooltip: "The amount to be withdrawn monthly as liquidity for living expenses.",
+    title: "Strategy: Savings/Withdrawal",
+    description: "Define your monthly savings or withdrawal goals.",
+    monthlyWithdrawal: "Monthly Savings/Withdrawal Amount ($)",
+    monthlyWithdrawalTooltip: "Positive values: Monthly savings added to BTC stack. Negative values: Monthly withdrawals from BTC stack for living expenses.",
   },
   RiskManagement: {
     title: "Risk Management & Leverage",

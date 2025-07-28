@@ -2,13 +2,20 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { Fish, Zap, Info, Settings, ExternalLink } from "lucide-react"
+import { Fish, Zap, Info, Settings, ExternalLink, Edit, Save, X, ChevronDown, Plus, Trash2 } from "lucide-react"
+import { NumberInput } from "@/shared/ui/forms/NumberInput"
+import { useState, useEffect } from "react"
 import { useSimulation } from "../../context/SimulationContext"
 import type { Platform } from "../../types/simulation"
+import { getPlatformConfig, saveCustomPlatformConfig } from "../../constants/platformPresets"
 
 interface PlatformOption {
-  id: Platform | "custom"
+  id: Platform | "custom" | string
   name: string
   description: string
   icon: React.ReactNode
@@ -17,6 +24,8 @@ interface PlatformOption {
   features: string[]
   disabled?: boolean
   url?: string
+  isCustom?: boolean
+  createdAt?: number
 }
 
 /**
@@ -28,15 +37,53 @@ interface PlatformOption {
  * specific loan rules and terms.
  */
 export function PlatformSelector() {
-  const { params, setParams } = useSimulation()
+  const { params, applyPlatformConfig, updatePlatformConfig } = useSimulation()
+  const [editingPlatform, setEditingPlatform] = useState<string | null>(null)
+  const [editValues, setEditValues] = useState<{
+    name?: string
+    originationFeePercent?: number
+    liquidationLtv?: number
+    liquidationFeePercent?: number
+    maxInitialLtv?: number
+    availableLoanTerms?: (number | 'infinity')[]
+  }>({})
 
-  const platforms: PlatformOption[] = [
+  const [loanTermsInput, setLoanTermsInput] = useState<string>('')
+  const [customPlatforms, setCustomPlatforms] = useState<PlatformOption[]>([])
+  const [customPlatformName, setCustomPlatformName] = useState<string>('')
+  const [customPlatformDescription, setCustomPlatformDescription] = useState<string>('')
+
+  // localStorage utility functions
+  const saveCustomPlatforms = (platforms: PlatformOption[]) => {
+    try {
+      localStorage.setItem('customPlatforms', JSON.stringify(platforms))
+    } catch (error) {
+      console.error('Failed to save custom platforms:', error)
+    }
+  }
+
+  const loadCustomPlatforms = (): PlatformOption[] => {
+    try {
+      const saved = localStorage.getItem('customPlatforms')
+      return saved ? JSON.parse(saved) : []
+    } catch (error) {
+      console.error('Failed to load custom platforms:', error)
+      return []
+    }
+  }
+
+  // Load custom platforms on component mount
+  useEffect(() => {
+    setCustomPlatforms(loadCustomPlatforms())
+  }, [])
+
+  const basePlatforms: PlatformOption[] = [
     {
       id: "firefish",
       name: "Firefish",
       description: "Flexible lending platform with competitive rates",
       icon: <Fish className="w-5 h-5" />,
-      badge: "Flexible",
+      badge: "Non Custodial",
       badgeClassName: "border-transparent bg-blue-500 text-white hover:bg-blue-600",
       features: [],
       url: "https://firefish.io/"
@@ -46,34 +93,53 @@ export function PlatformSelector() {
       name: "Strike",
       description: "Lightning-fast loans with instant approval",
       icon: <Zap className="w-5 h-5" />,
-      badge: "Fast",
+      badge: "High LTV",
       badgeClassName: "border-transparent bg-yellow-500 text-white hover:bg-yellow-600",
       features: [],
       url: "https://strike.me/lending/"
     },
     {
       id: "custom",
-      name: "Custom Platform",
-      description: "Configure your own lending platform parameters",
-      icon: <Settings className="w-5 h-5" />,
-      badge: "Coming Soon",
-      badgeClassName: "border-transparent bg-gray-500 text-white",
+      name: "Custom",
+      description: "Configure your own platform parameters",
+      icon: <Plus className="w-5 h-5" />,
+      badge: "Custom",
+      badgeClassName: "border-transparent bg-purple-500 text-white hover:bg-purple-600",
       features: [],
-      disabled: true
+      disabled: false
     }
+  ]
+
+  // Combine base platforms with custom platforms
+  const platforms: PlatformOption[] = [
+    ...basePlatforms,
+    ...customPlatforms
   ]
 
   // Get current platform from params (default to firefish)
   const currentPlatform = params.platform || "firefish"
 
+  // Custom platform management functions
+
+  const deleteCustomPlatform = (platformId: string) => {
+    if (confirm('Are you sure you want to delete this custom platform?')) {
+      const updatedCustomPlatforms = customPlatforms.filter(p => p.id !== platformId)
+      setCustomPlatforms(updatedCustomPlatforms)
+      saveCustomPlatforms(updatedCustomPlatforms)
+
+      // If the deleted platform was selected, switch to firefish
+      if (currentPlatform === platformId) {
+        applyPlatformConfig('firefish')
+      }
+    }
+  }
+
   /**
    * Handle platform selection
    */
   const handlePlatformChange = (platform: Platform) => {
-    setParams((current) => ({
-      ...current,
-      platform
-    }))
+    // Apply the platform configuration which will update platform-specific parameters
+    applyPlatformConfig(platform)
   }
 
   /**
@@ -84,24 +150,144 @@ export function PlatformSelector() {
     window.open(url, '_blank', 'noopener,noreferrer')
   }
 
+  /**
+   * Handle platform editing
+   */
+  const handleEditPlatform = (e: React.MouseEvent, platformId: string) => {
+    e.stopPropagation() // Prevent card selection when clicking edit
+    setEditingPlatform(platformId)
+
+    if (platformId === "custom") {
+      // Initialize for custom platform creation
+      setCustomPlatformName('')
+      setCustomPlatformDescription('')
+      setEditValues({
+        originationFeePercent: 1.0,
+        liquidationLtv: 95,
+        liquidationFeePercent: 3.0,
+        maxInitialLtv: 70,
+        availableLoanTerms: [6, 12, 24, 'infinity'] as (number | 'infinity')[]
+      })
+      setLoanTermsInput('6, 12, 24, infinity')
+    } else {
+      // Initialize edit values with current platform config
+      const currentConfig = params.platformConfigs[platformId] || {}
+      setEditValues(currentConfig)
+
+      // Initialize loan terms input for existing platforms
+      const platformConfig = getPlatformConfig(platformId as Platform)
+      const loanTermsString = platformConfig.availableLoanTerms.map(term =>
+        term === 'infinity' ? 'infinity' : term.toString()
+      ).join(', ')
+      setLoanTermsInput(loanTermsString)
+    }
+  }
+
+  /**
+   * Handle saving platform edits
+   */
+  const handleSavePlatformEdit = (e: React.MouseEvent, platformId: string) => {
+    e.stopPropagation()
+
+    if (platformId === "custom") {
+      // Create new custom platform
+      if (!customPlatformName.trim()) {
+        alert('Please enter a platform name')
+        return
+      }
+
+      // Check for duplicate names
+      const existingNames = [...basePlatforms, ...customPlatforms].map(p => p.name.toLowerCase())
+      if (existingNames.includes(customPlatformName.toLowerCase())) {
+        alert('A platform with this name already exists')
+        return
+      }
+
+      const newPlatformId = `custom-${Date.now()}`
+
+      const newPlatform: PlatformOption = {
+        id: newPlatformId,
+        name: customPlatformName,
+        description: customPlatformDescription || `Custom platform: ${customPlatformName}`,
+        icon: <Settings className="w-5 h-5" />,
+        badge: "Custom",
+        badgeClassName: "border-transparent bg-purple-500 text-white hover:bg-purple-600",
+        features: [],
+        isCustom: true,
+        createdAt: Date.now()
+      }
+
+      // Create platform configuration
+      const newConfig = {
+        id: newPlatformId,
+        name: customPlatformName,
+        description: customPlatformDescription || `Custom platform: ${customPlatformName}`,
+        originationFeePercent: editValues.originationFeePercent || 1.0,
+        liquidationLtv: editValues.liquidationLtv || 95,
+        liquidationFeePercent: editValues.liquidationFeePercent || 3.0,
+        availableLoanTerms: editValues.availableLoanTerms || [6, 12, 24, 'infinity'] as (number | 'infinity')[],
+        defaultLoanTerm: 12 as number | 'infinity',
+        maxLtvLimit: 60,
+        maxInitialLtv: editValues.maxInitialLtv || 70,
+        defaultInitialLtv: 50
+      }
+
+      // Save platform configuration
+      saveCustomPlatformConfig(newPlatformId, newConfig)
+
+      const updatedCustomPlatforms = [...customPlatforms, newPlatform]
+      setCustomPlatforms(updatedCustomPlatforms)
+      saveCustomPlatforms(updatedCustomPlatforms)
+
+      // Select the new platform
+      applyPlatformConfig(newPlatformId)
+
+    } else if (platformId.startsWith('custom-')) {
+      // Update existing custom platform
+      const currentConfig = getPlatformConfig(platformId)
+      const updatedConfig = {
+        ...currentConfig,
+        ...editValues
+      }
+      saveCustomPlatformConfig(platformId, updatedConfig)
+
+      // Update platform name in the UI if changed
+      if (editValues.name) {
+        const updatedCustomPlatforms = customPlatforms.map(p =>
+          p.id === platformId
+            ? { ...p, name: editValues.name!, description: `Custom platform: ${editValues.name}` }
+            : p
+        )
+        setCustomPlatforms(updatedCustomPlatforms)
+        saveCustomPlatforms(updatedCustomPlatforms)
+      }
+    } else {
+      // For built-in platforms, use the existing update mechanism
+      updatePlatformConfig(platformId as Platform, editValues)
+    }
+
+    setEditingPlatform(null)
+    setEditValues({})
+    setCustomPlatformName('')
+    setCustomPlatformDescription('')
+  }
+
+  /**
+   * Handle canceling platform edits
+   */
+  const handleCancelPlatformEdit = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setEditingPlatform(null)
+    setEditValues({})
+  }
+
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Fish className="w-5 h-5 text-primary" />
           Lending Platform
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Choose your preferred lending platform for loan terms and conditions</p>
-            </TooltipContent>
-          </Tooltip>
         </CardTitle>
-        <CardDescription>
-          Select the lending platform that best fits your needs
-        </CardDescription>
       </CardHeader>
       
       <CardContent>
@@ -119,7 +305,18 @@ export function PlatformSelector() {
                       ? "border-primary bg-primary/5 shadow-sm cursor-pointer"
                       : "border-border hover:border-primary/50 cursor-pointer hover:shadow-md"
                 }`}
-                onClick={() => !platform.disabled && platform.id !== "custom" && handlePlatformChange(platform.id as Platform)}
+                onClick={() => {
+                  if (platform.disabled) return
+                  if (platform.id === "custom") {
+                    // Open edit mode for custom platform creation
+                    setEditingPlatform("custom")
+                    setCustomPlatformName('')
+                    setCustomPlatformDescription('')
+                    setEditValues({})
+                  } else {
+                    handlePlatformChange(platform.id as Platform)
+                  }
+                }}
               >
                 {/* Badge */}
                 <Badge 
@@ -135,12 +332,186 @@ export function PlatformSelector() {
                   {isSelected && (
                     <div className="w-2 h-2 bg-primary rounded-full ml-auto" />
                   )}
+                  {/* Edit Button */}
+                  {!platform.disabled && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="ml-auto h-6 w-6 p-0"
+                      onClick={(e) => handleEditPlatform(e, platform.id as string)}
+                      title={platform.id === "custom" ? "Create custom platform" : `Edit ${platform.name} settings`}
+                    >
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                  )}
+
+                  {/* Delete Button for Custom Platforms */}
+                  {platform.isCustom && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        deleteCustomPlatform(platform.id)
+                      }}
+                      title="Delete custom platform"
+                    >
+                      <Trash2 className="h-3 w-3 text-red-600" />
+                    </Button>
+                  )}
                 </div>
 
                 {/* Description */}
                 <p className="text-sm text-muted-foreground mb-3">
                   {platform.description}
                 </p>
+
+                {/* Platform Editing Section */}
+                {editingPlatform === platform.id && (
+                  <div className="mb-4 p-3 border rounded-md bg-muted/20">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-sm font-medium">
+                          {platform.id === "custom" ? "Create Custom Platform" : "Edit Platform Settings"}
+                        </h4>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={(e) => handleSavePlatformEdit(e, platform.id as string)}
+                            title="Save changes"
+                          >
+                            <Save className="h-3 w-3 text-green-600" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                            onClick={handleCancelPlatformEdit}
+                            title="Cancel editing"
+                          >
+                            <X className="h-3 w-3 text-red-600" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Editable Parameters */}
+                      <div className="grid grid-cols-1 gap-2">
+                        {/* Platform Name and Description for Custom Platform Creation */}
+                        {platform.id === "custom" && (
+                          <>
+                            <div>
+                              <Label className="text-xs">Platform Name *</Label>
+                              <Input
+                                value={customPlatformName}
+                                onChange={(e) => setCustomPlatformName(e.target.value)}
+                                className="h-7 text-xs"
+                                placeholder="Enter platform name (e.g., My Custom Platform)"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-xs">Platform Description</Label>
+                              <Input
+                                value={customPlatformDescription}
+                                onChange={(e) => setCustomPlatformDescription(e.target.value)}
+                                className="h-7 text-xs"
+                                placeholder="Optional description"
+                              />
+                            </div>
+                          </>
+                        )}
+
+                        {/* Platform Name for Existing Custom Platforms */}
+                        {platform.isCustom && platform.id !== "custom" && (
+                          <div>
+                            <Label className="text-xs">Platform Name</Label>
+                            <Input
+                              value={editValues.name || platform.name}
+                              onChange={(e) => setEditValues(prev => ({ ...prev, name: e.target.value }))}
+                              className="h-7 text-xs"
+                              placeholder="Enter platform name"
+                            />
+                          </div>
+                        )}
+
+                        <div>
+                          <Label className="text-xs">Origination Fee (%)</Label>
+                          <NumberInput
+                            value={editValues.originationFeePercent || getPlatformConfig(platform.id as string).originationFeePercent}
+                            onChange={(value) => setEditValues(prev => ({ ...prev, originationFeePercent: value }))}
+                            min={0}
+                            max={10}
+                            step={0.1}
+                            className="h-7 text-xs"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Liquidation LTV (%)</Label>
+                          <NumberInput
+                            value={editValues.liquidationLtv || getPlatformConfig(platform.id as string).liquidationLtv}
+                            onChange={(value) => setEditValues(prev => ({ ...prev, liquidationLtv: value }))}
+                            min={50}
+                            max={100}
+                            step={1}
+                            className="h-7 text-xs"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Liquidation Fee (%)</Label>
+                          <NumberInput
+                            value={editValues.liquidationFeePercent || getPlatformConfig(platform.id as string).liquidationFeePercent}
+                            onChange={(value) => setEditValues(prev => ({ ...prev, liquidationFeePercent: value }))}
+                            min={0}
+                            max={20}
+                            step={0.1}
+                            className="h-7 text-xs"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Maximum Initial LTV (%)</Label>
+                          <NumberInput
+                            value={editValues.maxInitialLtv || getPlatformConfig(platform.id as string).maxInitialLtv}
+                            onChange={(value) => setEditValues(prev => ({ ...prev, maxInitialLtv: value }))}
+                            min={10}
+                            max={95}
+                            step={1}
+                            className="h-7 text-xs"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Available Loan Terms</Label>
+                          <Input
+                            value={loanTermsInput || getPlatformConfig(platform.id as string).availableLoanTerms.map(term =>
+                              term === 'infinity' ? 'infinity' : term.toString()
+                            ).join(', ')}
+                            onChange={(e) => {
+                              setLoanTermsInput(e.target.value)
+                              // Parse the input and update availableLoanTerms
+                              const terms = e.target.value.split(',').map(term => {
+                                const trimmed = term.trim().toLowerCase()
+                                if (trimmed === 'infinity') return 'infinity'
+                                const num = parseInt(trimmed)
+                                return isNaN(num) ? null : num
+                              }).filter(term => term !== null) as (number | 'infinity')[]
+
+                              if (terms.length > 0) {
+                                setEditValues(prev => ({ ...prev, availableLoanTerms: terms }))
+                              }
+                            }}
+                            placeholder="6, 12, 24, infinity"
+                            className="h-7 text-xs"
+                          />
+                          <div className="text-xs text-muted-foreground mt-1">
+                            Enter loan terms separated by commas (e.g., "6, 12, 24, infinity")
+                          </div>
+                        </div>
+
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* External Link */}
                 {platform.url && (
@@ -160,6 +531,8 @@ export function PlatformSelector() {
             )
           })}
         </div>
+
+
       </CardContent>
     </Card>
   )

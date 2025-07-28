@@ -4,10 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { CreditCard, Info, Calendar, DollarSign, Percent, AlertTriangle } from "lucide-react"
+import { CreditCard, Info, Calendar, DollarSign, Percent } from "lucide-react"
 import { NumberInput } from "@/shared/ui/forms/NumberInput"
 import { useSimulation } from "../../context/SimulationContext"
-import { PlatformSelector } from "./PlatformSelector"
+
+import { getPlatformConfig } from "../../constants/platformPresets"
 
 /**
  * Loan Parameters Card Component
@@ -16,30 +17,36 @@ import { PlatformSelector } from "./PlatformSelector"
  * interest rates, fees, and risk management parameters.
  */
 export function LoanParametersCard() {
-  const { params, setParams } = useSimulation()
+  const { params, setParams, markParameterAsManual } = useSimulation()
+
+  // Get current platform configuration
+  const platformConfig = getPlatformConfig(params.platform)
 
   /**
    * Handle parameter updates
    */
   const updateParam = (key: string, value: number) => {
-    setParams((current) => ({
-      ...current,
-      [key]: value
-    }))
+    if (key.includes('.')) {
+      // Handle nested parameter updates (e.g., "riskManagement.targetLtv")
+      const [parentKey, childKey] = key.split('.')
+      setParams((current) => ({
+        ...current,
+        [parentKey]: {
+          ...(current[parentKey as keyof typeof current] as any),
+          [childKey]: value
+        }
+      }))
+    } else {
+      setParams((current) => ({
+        ...current,
+        [key]: value
+      }))
+    }
+    // Mark parameter as manually edited
+    markParameterAsManual(key)
   }
 
-  /**
-   * Handle nested parameter updates (for riskManagement)
-   */
-  const updateRiskParam = (key: string, value: number) => {
-    setParams((current) => ({
-      ...current,
-      riskManagement: {
-        ...current.riskManagement,
-        [key]: value
-      }
-    }))
-  }
+
 
   /**
    * Calculate max loan amount in USD based on percentage of BTC stack
@@ -52,17 +59,18 @@ export function LoanParametersCard() {
   const collateralBtcAmount = maxLoanAmountUsd / (params.initialBtcPrice * (params.riskManagement.targetLtv / 100))
 
   /**
+   * Validate collateral sufficiency
+   */
+  const isCollateralSufficient = collateralBtcAmount <= params.btcAmount
+
+  /**
    * Calculate correct liquidation price
    * Formula: liquidation_price = loan_amount / (collateral_btc_amount * liquidation_ltv)
    */
   const liquidationPrice = maxLoanAmountUsd / (collateralBtcAmount * (params.riskManagement.liquidationLtv / 100))
 
   return (
-    <div className="space-y-6">
-      {/* Platform Selector */}
-      <PlatformSelector />
-
-      <Card>
+    <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CreditCard className="w-5 h-5 text-primary" />
@@ -71,9 +79,9 @@ export function LoanParametersCard() {
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {/* Top Row: Max Loan Amount + Initial LTV */}
+          {/* Row 1: Max Loan Amount + Initial LTV */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Max Loan Amount (Percentage-based) - Moved to top */}
+            {/* Max Loan Amount (Percentage-based) */}
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <DollarSign className="w-4 h-4" />
@@ -96,9 +104,13 @@ export function LoanParametersCard() {
                 placeholder="15"
                 suffix="% of BTC stack"
               />
+              {/* Helper text for Max Loan Amount */}
+              <div className={`text-xs !mt-2 ${isCollateralSufficient ? 'text-muted-foreground' : 'text-red-600'}`}>
+                = ${Math.round(maxLoanAmountUsd).toLocaleString()} (based on {params.btcAmount} BTC × ${params.initialBtcPrice.toLocaleString()}). Needed collateral: {collateralBtcAmount.toFixed(4)} BTC at {params.riskManagement.targetLtv}% LTV
+              </div>
             </div>
 
-            {/* Initial LTV - Moved to top right */}
+            {/* Initial LTV */}
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <Percent className="w-4 h-4" />
@@ -108,28 +120,30 @@ export function LoanParametersCard() {
                     <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Target Loan-to-Value ratio when taking out the loan</p>
+                    <p>Loan-to-Value ratio - percentage of collateral value that can be borrowed</p>
                   </TooltipContent>
                 </Tooltip>
               </Label>
               <NumberInput
                 value={params.riskManagement.targetLtv}
-                onChange={(value) => updateRiskParam("targetLtv", value)}
+                onChange={(value) => updateParam("riskManagement.targetLtv", value)}
                 min={1}
-                max={95}
+                max={platformConfig.maxInitialLtv}
                 step={1}
-                suffix="%"
                 placeholder="50"
+                suffix="%"
               />
+              {/* Liquidation explanation text */}
+              <div className="text-xs text-muted-foreground !mt-2">
+                {(() => {
+                  const percentageDrop = ((params.initialBtcPrice - liquidationPrice) / params.initialBtcPrice) * 100
+                  return `If you take a loan of $${Math.round(maxLoanAmountUsd).toLocaleString()}, BTC needs to drop ${percentageDrop.toFixed(1)}% (from $${params.initialBtcPrice.toLocaleString()} to $${Math.round(liquidationPrice).toLocaleString()}) to trigger liquidation (if you do not top up the collateral)`
+                })()}
+              </div>
             </div>
           </div>
 
-          {/* Full-width helper text for Max Loan Amount */}
-          <div className="text-xs text-muted-foreground !mt-2">
-            = ${Math.round(maxLoanAmountUsd).toLocaleString()} (based on {params.btcAmount} BTC × ${params.initialBtcPrice.toLocaleString()}). Needed collateral: {collateralBtcAmount.toFixed(4)} BTC at {params.riskManagement.targetLtv}% Initial LTV
-          </div>
-
-          {/* Row 1: Annual Interest Rate + Origination Fee */}
+          {/* Row 2: Annual Interest Rate + Loan Term */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
@@ -155,123 +169,43 @@ export function LoanParametersCard() {
               />
             </div>
 
+            {/* Loan Term */}
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
-                <DollarSign className="w-4 h-4" />
-                Origination Fee
+                <Calendar className="w-4 h-4" />
+                Loan Term
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>One-time fee charged when the loan is originated, calculated as percentage of loan amount</p>
+                    <p>Duration of the loan repayment period. Choose 'Infinity' for interest-only loans with no fixed repayment schedule</p>
                   </TooltipContent>
                 </Tooltip>
               </Label>
-              <NumberInput
-                value={params.loanOriginationFeePercent}
-                onChange={(value) => updateParam("loanOriginationFeePercent", value)}
-                min={0}
-                max={10}
-                step={0.1}
-                placeholder="1.5"
-                suffix="%"
-              />
-            </div>
-          </div>
-
-          {/* Row 2: Liquidation LTV + Liquidation Fee */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4" />
-                Liquidation LTV
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Loan-to-Value ratio at which liquidation occurs</p>
-                  </TooltipContent>
-                </Tooltip>
-              </Label>
-              <NumberInput
-                value={params.riskManagement.liquidationLtv}
-                onChange={(value) => updateRiskParam("liquidationLtv", value)}
-                min={50}
-                max={100}
-                step={1}
-                placeholder="95"
-                suffix="%"
-              />
-              {/* Enhanced dynamic helper text with percentage drop */}
-              <div className="text-xs text-muted-foreground mt-1">
-                {(() => {
-                  const percentageDrop = ((params.initialBtcPrice - liquidationPrice) / params.initialBtcPrice) * 100
-                  return `If you take a loan of $${Math.round(maxLoanAmountUsd).toLocaleString()}, BTC needs to drop ${percentageDrop.toFixed(1)}% (from $${params.initialBtcPrice.toLocaleString()} to $${Math.round(liquidationPrice).toLocaleString()}) to trigger liquidation (if you do not top up the collateral)`
-                })()}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Percent className="w-4 h-4" />
-                Liquidation Fee
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Fee charged when BTC collateral is liquidated to cover the loan, calculated as percentage of liquidated amount</p>
-                  </TooltipContent>
-                </Tooltip>
-              </Label>
-              <NumberInput
-                value={params.liquidationFeePercent}
-                onChange={(value) => updateParam("liquidationFeePercent", value)}
-                min={0}
-                max={20}
-                step={0.1}
-                placeholder="5.0"
-                suffix="%"
-              />
+              <Select
+                value={params.loanTermMonths === Infinity ? "infinity" : params.loanTermMonths.toString()}
+                onValueChange={(value) => updateParam("loanTermMonths", value === "infinity" ? Infinity : parseInt(value))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select loan term" />
+                </SelectTrigger>
+                <SelectContent>
+                  {platformConfig.availableLoanTerms.map((term) => (
+                    <SelectItem
+                      key={term}
+                      value={term === 'infinity' ? 'infinity' : term.toString()}
+                    >
+                      {term === 'infinity' ? 'Infinity' : `${term} months`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
 
-
-          {/* Loan Term */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              Loan Term
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Duration of the loan repayment period. Choose 'Infinity' for interest-only loans with no fixed repayment schedule</p>
-                </TooltipContent>
-              </Tooltip>
-            </Label>
-            <Select
-              value={params.loanTermMonths === Infinity ? "infinity" : params.loanTermMonths.toString()}
-              onValueChange={(value) => updateParam("loanTermMonths", value === "infinity" ? Infinity : parseInt(value))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select loan term" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="6">6 months</SelectItem>
-                <SelectItem value="12">12 months</SelectItem>
-                <SelectItem value="24">24 months</SelectItem>
-                <SelectItem value="36">36 months</SelectItem>
-                <SelectItem value="infinity">Infinity</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
         </CardContent>
       </Card>
-    </div>
   )
 }

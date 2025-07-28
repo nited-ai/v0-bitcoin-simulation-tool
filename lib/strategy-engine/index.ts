@@ -94,8 +94,17 @@ export async function runStrategySimulation(
 
     // Apply strategy decision for withdrawal
     let withdrawalThisMonth = decision.allowWithdrawal ? decision.withdrawalAmount : 0
-    if (!decision.allowWithdrawal && params.monthlyWithdrawalAmount > 0) {
+    if (!decision.allowWithdrawal && params.monthlyWithdrawalAmount < 0) {
       monthlyEvents.push({ type: "withdrawal_skipped" })
+    }
+
+    // Handle monthly savings (positive monthlyWithdrawalAmount)
+    let monthlySavings = 0
+    if (params.monthlyWithdrawalAmount > 0) {
+      monthlySavings = params.monthlyWithdrawalAmount
+      // Convert savings to BTC and add to stack
+      const btcFromSavings = monthlySavings / btcPrice
+      totalBtcAmount += btcFromSavings
     }
 
     // Calculate principal needed for basic needs
@@ -186,7 +195,7 @@ export async function runStrategySimulation(
       realCollateralValue: Math.round(finalCollateralValue / cumulativeInflationFactor),
       totalDebt: Math.round(finalTotalDebt),
       realTotalDebt: Math.round(finalTotalDebt / cumulativeInflationFactor),
-      withdrawalAmount: Math.round(withdrawalThisMonth),
+      withdrawalAmount: Math.round(monthlySavings - withdrawalThisMonth), // Positive = savings, Negative = withdrawal
       newLoanPrincipal: Math.round(totalNewPrincipal),
       repaymentsDue: Math.round(repaymentDue),
       reinvestment: Math.round(reinvestmentAmount),

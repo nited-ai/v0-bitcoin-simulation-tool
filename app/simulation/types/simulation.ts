@@ -10,12 +10,33 @@ import type {
   MovingAverageStrategyParams,
   AthCollateralStrategyParams
 } from "@/lib/strategy-engine/types"
+import type { PlatformConfig } from "../constants/platformPresets"
 
 /**
  * Type definitions
  */
 export type RiskLevel = "conservative" | "moderate" | "optimistic" | "moonshots"
-export type Platform = "firefish" | "strike"
+export type Platform = "firefish" | "strike" | "custom" | string
+
+/**
+ * Parameter source tracking for preset management
+ */
+export interface ParameterSource {
+  maxLoanAmountPercent: 'preset' | 'manual' | 'platform'
+  targetLtv: 'preset' | 'manual' | 'platform'
+  annualInterestRate: 'preset' | 'manual' | 'platform'
+  loanTermMonths: 'preset' | 'manual' | 'platform'
+  originationFeePercent: 'preset' | 'manual' | 'platform'
+  liquidationLtv: 'preset' | 'manual' | 'platform'
+  liquidationFeePercent: 'preset' | 'manual' | 'platform'
+}
+
+/**
+ * Platform-specific configuration state
+ */
+export interface PlatformConfigState {
+  [key: string]: PlatformConfig
+}
 
 /**
  * Loan interface for tracking individual loans
@@ -94,6 +115,10 @@ export interface SimulationParams {
   athBasedParams: AthBasedStrategyParams
   movingAverageParams: MovingAverageStrategyParams
   athCollateralParams: AthCollateralStrategyParams
+  // Preset management
+  parameterSources: ParameterSource
+  platformConfigs: PlatformConfigState
+  selectedRiskLevel?: RiskLevel
 }
 
 /**
@@ -130,7 +155,7 @@ export const PARAMS_STORAGE_KEY = "bitcoin-simulation-params"
 export const DEFAULT_PARAMS: SimulationParams = {
   btcAmount: 1,
   initialBtcPrice: 100000,
-  monthlyWithdrawalAmount: 0,
+  monthlyWithdrawalAmount: 150,
   annualInterestRate: 6.5,
   loanOriginationFeePercent: 1.5,
   liquidationFeePercent: 5.0, // Updated from 2.0 to 5.0
@@ -166,4 +191,16 @@ export const DEFAULT_PARAMS: SimulationParams = {
     athLookbackMonths: 36,
     emergencyCollateralBuffer: 1.2,
   },
+  // Preset management defaults
+  parameterSources: {
+    maxLoanAmountPercent: 'preset',
+    targetLtv: 'preset',
+    annualInterestRate: 'preset',
+    loanTermMonths: 'preset',
+    originationFeePercent: 'platform',
+    liquidationLtv: 'platform',
+    liquidationFeePercent: 'platform',
+  },
+  platformConfigs: {},
+  selectedRiskLevel: 'optimistic',
 }
