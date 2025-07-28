@@ -57,7 +57,7 @@ export function CsvUpdatePanel() {
     setIsUpdating(true)
     try {
       if (useDatabase) {
-        console.log('🚀 Triggering database update...')
+
         const { autoUpdateService } = await import('../../data/AutoUpdateService')
         const result = await autoUpdateService.forceUpdate()
 
@@ -73,7 +73,7 @@ export function CsvUpdatePanel() {
         await loadDatabaseStatus()
 
       } else {
-        console.log('🚀 Triggering manual CSV update...')
+
         const result = await csvUpdateManager.triggerUpdate()
         setLastUpdate(result)
 
@@ -98,7 +98,7 @@ export function CsvUpdatePanel() {
   const handleClearPending = () => {
     csvUpdateManager.clearPendingUpdates()
     setPendingUpdates([])
-    console.log('🗑️ Pending updates cleared')
+
   }
 
   const handleDownloadUpdates = () => {
@@ -120,7 +120,7 @@ export function CsvUpdatePanel() {
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
     
-    console.log('📥 CSV updates downloaded')
+
   }
 
   const getStatusIcon = (result: CsvUpdateResult | null) => {

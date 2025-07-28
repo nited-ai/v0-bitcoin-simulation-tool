@@ -7,8 +7,8 @@ const fallbackTranslations = {
     placeholder: "Language",
   },
   Page: {
-    title: "Bitcoin Bullet Loan Simulator",
-    description: "Simulate rolling bullet loans secured by Bitcoin",
+    title: "FIRE hodl Simulator",
+    description: "Simulate savings, withdrawals and loans secured by Bitcoin",
   },
   Tabs: {
     parameters: "Parameters",
@@ -38,15 +38,15 @@ const fallbackTranslations = {
     interestRateTooltip: "The annual interest rate for the bullet loans taken.",
     originationFee: "Loan Fee (%)",
     originationFeeTooltip: "The percentage fee charged for each loan origination.",
-    maxLoanAmount: "Max. Loan Amount (€)",
+    maxLoanAmount: "Max. Loan Amount ($)",
     maxLoanAmountTooltip:
       "The maximum amount of a single loan. If higher amounts are needed, multiple loans will be taken.",
   },
   Strategy: {
-    title: "Strategy: Withdrawal",
-    description: "Define your monthly withdrawal goals.",
-    monthlyWithdrawal: "Monthly Withdrawal Amount (€)",
-    monthlyWithdrawalTooltip: "The amount to be withdrawn monthly as liquidity for living expenses.",
+    title: "Strategy: Savings/Withdrawal",
+    description: "Define your monthly savings or withdrawal goals.",
+    monthlyWithdrawal: "Monthly Savings/Withdrawal Amount ($)",
+    monthlyWithdrawalTooltip: "Positive values: Monthly savings added to BTC stack. Negative values: Monthly withdrawals from BTC stack for living expenses.",
   },
   RiskManagement: {
     title: "Risk Management & Leverage",
@@ -136,8 +136,8 @@ const fallbackTranslations = {
     tableEvents: "Events",
     tableNewLoans: "New Loans (€)",
     tableRepayments: "Repayments (€)",
-    tableWithdrawal: "Withdrawal (€)",
-    tableReinvestment: "Reinvestment (€)",
+    tableWithdrawal: "Withdrawal ($)",
+    tableReinvestment: "Reinvestment ($)",
     tableBtcTotal: "BTC Holdings",
     paginationShowing: "Showing {{start}} to {{end}} of {{total}} months",
     paginationPrevious: "Previous",
@@ -182,7 +182,7 @@ const fallbackTranslations = {
       "Learn the philosophy, opportunities and risks behind the strategy of living off your Bitcoin wealth without ever selling it.",
     section1Title: "1. The Core Philosophy: Borrow Instead of Sell",
     section1Text1:
-      "The basic idea is simple: Instead of selling parts of your Bitcoin to obtain liquidity, you use your Bitcoin holdings as collateral to take out a loan. You receive euros or dollars to cover your living expenses while your Bitcoin wealth remains untouched and continues to participate in potential value growth.",
+      "The basic idea is simple: Instead of selling parts of your Bitcoin to obtain liquidity, you use your Bitcoin holdings as collateral to take out a loan. You receive dollars to cover your living expenses while your Bitcoin wealth remains untouched and continues to participate in potential value growth.",
     section1Text2: "Why is this potentially more advantageous than selling? The answer often lies in tax law.",
     section2Title: "2. The Tax Advantage: A Decisive Factor",
     section2Text1:

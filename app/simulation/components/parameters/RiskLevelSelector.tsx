@@ -25,7 +25,7 @@ interface RiskLevelOption {
  * default presets for price projection models and investment strategies.
  */
 export function RiskLevelSelector() {
-  const { params, setParams } = useSimulation()
+  const { params, applyRiskLevelPreset } = useSimulation()
 
   const riskLevels: RiskLevelOption[] = [
     {
@@ -67,18 +67,17 @@ export function RiskLevelSelector() {
   ]
 
   // Get current risk level from params (default to optimistic)
-  const currentRiskLevel = params.riskLevel || "optimistic"
+  const currentRiskLevel = params.selectedRiskLevel || params.riskLevel || "optimistic"
 
   /**
    * Handle risk level selection
-   * Note: This only sets the risk level for future use in Price Projections and Strategies tabs.
-   * It does NOT automatically change loan parameters anymore.
+   *
+   * This now applies the complete risk level preset including all
+   * related loan parameters based on the selected risk level.
    */
   const handleRiskLevelChange = (riskLevel: RiskLevel) => {
-    setParams((current) => ({
-      ...current,
-      riskLevel
-    }))
+    // Apply the risk level preset which will update all related parameters
+    applyRiskLevelPreset(riskLevel, true) // confirmOverride=true for now
   }
 
   return (
@@ -87,18 +86,7 @@ export function RiskLevelSelector() {
         <CardTitle className="flex items-center gap-2">
           <Activity className="w-5 h-5 text-primary" />
           Risk Level
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Your risk level will be used to set appropriate defaults in Price Projections and Strategies tabs</p>
-            </TooltipContent>
-          </Tooltip>
         </CardTitle>
-        <CardDescription>
-          Choose your risk tolerance for future use in Price Projections and Strategies tabs
-        </CardDescription>
       </CardHeader>
       
       <CardContent>

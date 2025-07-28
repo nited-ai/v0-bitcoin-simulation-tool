@@ -153,9 +153,12 @@ export class AthCollateralStrategy implements InvestmentStrategyInterface {
         .filter((l) => l.maturityMonth !== month)
         .reduce((sum, l) => sum + l.repaymentAmount, 0)
 
-      // Calculate principal needed for basic needs (repayments + withdrawal)
+      // Calculate principal needed for basic needs (repayments + withdrawal/savings)
+      // Positive monthlyWithdrawalAmount = savings (reduces loan needs)
+      // Negative monthlyWithdrawalAmount = withdrawal (increases loan needs)
+      const netWithdrawalNeed = Math.max(0, -params.monthlyWithdrawalAmount) // Only count withdrawals
       const principalForNeeds =
-        (repaymentDue + params.monthlyWithdrawalAmount) /
+        (repaymentDue + netWithdrawalNeed) /
         (1 - params.loanOriginationFeePercent / 100)
 
       const projectedDebtAfterNeeds = debtFromOngoingLoans + principalForNeeds
@@ -226,8 +229,8 @@ export class AthCollateralStrategy implements InvestmentStrategyInterface {
       const result = {
         allowInvestment,
         investmentMultiplier,
-        allowWithdrawal: true, // Always allow withdrawal as per original logic
-        withdrawalAmount: params.monthlyWithdrawalAmount,
+        allowWithdrawal: params.monthlyWithdrawalAmount < 0, // Only allow withdrawal if negative
+        withdrawalAmount: Math.abs(Math.min(0, params.monthlyWithdrawalAmount)), // Absolute value of negative amounts
         maxDebtOverride: maxSafeDebt, // Override default LTV with our calculated safe debt limit
         reasoning
       }
@@ -241,8 +244,8 @@ export class AthCollateralStrategy implements InvestmentStrategyInterface {
       return {
         allowInvestment: false,
         investmentMultiplier: 0.0,
-        allowWithdrawal: true,
-        withdrawalAmount: params.monthlyWithdrawalAmount,
+        allowWithdrawal: params.monthlyWithdrawalAmount < 0, // Only allow withdrawal if negative
+        withdrawalAmount: Math.abs(Math.min(0, params.monthlyWithdrawalAmount)), // Absolute value of negative amounts
         reasoning: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
       }
     }

@@ -36,7 +36,7 @@ export function PriceModelSelector({ className }: PriceModelSelectorProps) {
         const availableModels = priceModelRegistry.getModelNames()
         setModels(availableModels)
         
-        console.log('📋 Loaded price models:', availableModels.map(m => m.id))
+
       } catch (err) {
         console.error('❌ Error loading price models:', err)
         setError('Error loading models')
@@ -50,7 +50,7 @@ export function PriceModelSelector({ className }: PriceModelSelectorProps) {
   }, [])
 
   const handleModelChange = (modelId: string) => {
-    console.log('🔄 Price model changed to:', modelId)
+
     setParams((prev) => ({ ...prev, priceModel: modelId as any }))
   }
 

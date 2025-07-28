@@ -1,3 +1,7 @@
+---
+type: "agent_requested"
+description: "Example description"
+---
 # Analyze Product
 
 Analyze your product's codebase and install Agent OS

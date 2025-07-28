@@ -1,3 +1,7 @@
+---
+type: "agent_requested"
+description: "Example description"
+---
 # Create Spec
 
 Create a detailed spec for a new feature with technical specifications and task breakdown

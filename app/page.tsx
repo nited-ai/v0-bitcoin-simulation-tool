@@ -1,16 +1,29 @@
 "use client"
 
-import BitcoinSimulator from "./simulation"
-import { Suspense } from "react"
-import { I18nextProvider } from "react-i18next"
-import i18n from "@/lib/i18n"
+import { Navigation } from "@/components/landing/Navigation"
+import { HeroSection } from "@/components/landing/HeroSection"
+import { ProblemSolution } from "@/components/landing/ProblemSolution"
+import { FeatureShowcase } from "@/components/landing/FeatureShowcase"
+import { HowItWorks } from "@/components/landing/HowItWorks"
+import { FAQ } from "@/components/landing/FAQ"
+import { FinalCTA } from "@/components/landing/FinalCTA"
 
-export default function Page() {
+export default function LandingPage() {
   return (
-    <Suspense fallback={<div className="w-full h-screen animate-pulse bg-secondary" />}>
-      <I18nextProvider i18n={i18n}>
-        <BitcoinSimulator />
-      </I18nextProvider>
-    </Suspense>
+    <div className="min-h-screen scroll-smooth">
+      <Navigation />
+      <main>
+        <HeroSection />
+        <ProblemSolution />
+        <section id="features">
+          <FeatureShowcase />
+        </section>
+        <HowItWorks />
+        <section id="faq">
+          <FAQ />
+        </section>
+        <FinalCTA />
+      </main>
+    </div>
   )
 }

@@ -2,10 +2,10 @@
 
 import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { Info } from "lucide-react"
+import { NumberInput } from "@/shared/ui/forms/NumberInput"
 import { useSimulation } from "../../context/SimulationContext"
 
 /**
@@ -24,9 +24,9 @@ export function StrategyCard() {
   const t = (key: string) => {
     const translations: Record<string, string> = {
       "Strategy.title": "Strategy",
-      "Strategy.description": "Configure monthly withdrawal strategy",
-      "Strategy.monthlyWithdrawalAmount": "Monthly Withdrawal Amount (€)",
-      "Strategy.monthlyWithdrawalDescription": "Amount to withdraw monthly from the loan",
+      "Strategy.description": "Configure monthly savings/withdrawal strategy",
+      "Strategy.monthlyWithdrawalAmount": "Monthly Savings/Withdrawal Amount ($)",
+      "Strategy.monthlyWithdrawalDescription": "Positive values: Monthly savings added to BTC stack. Negative values: Monthly withdrawals from BTC stack.",
     }
     return translations[key] || key
   }
@@ -39,7 +39,7 @@ export function StrategyCard() {
       </CardHeader>
       
       <CardContent className="space-y-4">
-        {/* Monthly Withdrawal Amount */}
+        {/* Monthly Savings/Withdrawal Amount */}
         <div>
           <Label htmlFor="monthlyWithdrawalAmount">
             {t("Strategy.monthlyWithdrawal")}
@@ -52,13 +52,15 @@ export function StrategyCard() {
               </TooltipContent>
             </Tooltip>
           </Label>
-          <Input
-            id="monthlyWithdrawalAmount"
-            type="number"
+          <NumberInput
             value={params.monthlyWithdrawalAmount}
-            onChange={(e) => setParams((p) => ({ ...p, monthlyWithdrawalAmount: Number(e.target.value) }))}
-            min="0"
-            step="100"
+            onChange={(value) => setParams((p) => ({ ...p, monthlyWithdrawalAmount: value }))}
+            min={-50000}
+            max={50000}
+            step={100}
+            decimals={0}
+            suffix="$"
+            placeholder="150"
           />
         </div>
       </CardContent>

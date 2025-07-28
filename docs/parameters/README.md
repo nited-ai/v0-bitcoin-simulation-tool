@@ -20,7 +20,7 @@ These parameters are available across all components and affect the entire simul
 |-----------|------|---------|-------------|-------|
 | `btcAmount` | number | 1 | Initial Bitcoin amount in BTC | Used as starting collateral for all calculations |
 | `initialBtcPrice` | number | 100000 | Current Bitcoin price in EUR | Starting point for price projections |
-| `monthlyWithdrawalAmount` | number | 0 | Monthly withdrawal in EUR | Amount withdrawn monthly from BTC stack |
+| `monthlyWithdrawalAmount` | number | 150 | Monthly savings/withdrawal in USD | Positive: savings added to BTC stack, Negative: withdrawals from BTC stack |
 | `simulationMonths` | number | 144 | Simulation duration in months | Global timeline for all models (1-300 months) |
 | `btcAccumulation` | boolean | true | Enable BTC accumulation mode | When enabled, excess funds buy more BTC |
 
@@ -141,7 +141,7 @@ Parameters for different investment strategies.
 const basicParams: Partial<SimulationParams> = {
   btcAmount: 2.5,
   initialBtcPrice: 95000,
-  monthlyWithdrawalAmount: 2000,
+  monthlyWithdrawalAmount: -2000, // Negative value = withdrawal
   simulationMonths: 120, // 10 years
   riskLevel: "moderate"
 }

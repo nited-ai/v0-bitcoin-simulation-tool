@@ -4,10 +4,15 @@ import React, { createContext, useContext, useState, useCallback, ReactNode } fr
 import type {
   SimulationParams,
   MonthlyResult,
-  CacheStatus
+  CacheStatus,
+  RiskLevel,
+  Platform,
+  PlatformConfigState
 } from "../types/simulation"
 import { DEFAULT_PARAMS, PARAMS_STORAGE_KEY } from "../types/simulation"
 import type { HistoricalDataPoint, PriceChartDataPoint } from "@/lib/price-engine/types"
+import { applyRiskLevelPreset as applyRiskPresetToParams, type RiskLevel as RiskLevelType } from "../constants/riskLevelPresets"
+import { getPlatformConfig, PLATFORM_CONFIGS } from "../constants/platformPresets"
 
 /**
  * Simulation Context Type Definition
@@ -47,6 +52,12 @@ interface SimulationContextType {
   resetParams: () => void
   clearErrors: () => void
   addError: (error: string) => void
+
+  // Preset Management
+  applyRiskLevelPreset: (riskLevel: RiskLevel, confirmOverride?: boolean) => void
+  applyPlatformConfig: (platform: Platform) => void
+  updatePlatformConfig: (platform: Platform, config: Partial<any>) => void
+  markParameterAsManual: (parameterKey: string) => void
 }
 
 /**
@@ -88,15 +99,19 @@ function loadParamsFromStorage(): SimulationParams {
       const athBasedParams = { ...DEFAULT_PARAMS.athBasedParams, ...parsed.athBasedParams }
       const movingAverageParams = { ...DEFAULT_PARAMS.movingAverageParams, ...parsed.movingAverageParams }
       const athCollateralParams = { ...DEFAULT_PARAMS.athCollateralParams, ...parsed.athCollateralParams }
-      
-      return { 
-        ...DEFAULT_PARAMS, 
-        ...parsed, 
-        powerLawSettings, 
+      const parameterSources = { ...DEFAULT_PARAMS.parameterSources, ...parsed.parameterSources }
+      const platformConfigs = { ...DEFAULT_PARAMS.platformConfigs, ...parsed.platformConfigs }
+
+      return {
+        ...DEFAULT_PARAMS,
+        ...parsed,
+        powerLawSettings,
         riskManagement,
         athBasedParams,
         movingAverageParams,
-        athCollateralParams
+        athCollateralParams,
+        parameterSources,
+        platformConfigs
       }
     }
   } catch (error) {
@@ -198,7 +213,107 @@ export function SimulationProvider({ children }: SimulationProviderProps) {
   const stableSetPriceChartData = useCallback((data: PriceChartDataPoint[]) => {
     setPriceChartData(data)
   }, [])
-  
+
+  // Preset Management Methods
+  const applyRiskLevelPreset = useCallback((riskLevel: RiskLevel, confirmOverride: boolean = false) => {
+    setParams(currentParams => {
+      // Check if any parameters were manually edited
+      const hasManualEdits = Object.values(currentParams.parameterSources).some(source => source === 'manual')
+
+      if (hasManualEdits && !confirmOverride) {
+        // In a real implementation, this would trigger a confirmation dialog
+        console.warn('Manual edits detected. Use confirmOverride=true to proceed.')
+        return currentParams
+      }
+
+      // Apply the risk level preset
+      const updatedParams = applyRiskPresetToParams(riskLevel, currentParams.platform, currentParams)
+
+      // Update parameter sources to reflect preset application
+      const updatedSources = { ...currentParams.parameterSources }
+      updatedSources.maxLoanAmountPercent = 'preset'
+      updatedSources.targetLtv = 'preset'
+      updatedSources.annualInterestRate = 'preset'
+      updatedSources.loanTermMonths = 'preset'
+
+      return {
+        ...updatedParams,
+        selectedRiskLevel: riskLevel,
+        parameterSources: updatedSources
+      }
+    })
+  }, [setParams])
+
+  const applyPlatformConfig = useCallback((platform: Platform) => {
+    setParams(currentParams => {
+      const platformConfig = getPlatformConfig(platform)
+
+      // Apply platform-specific parameters
+      const updatedParams = {
+        ...currentParams,
+        platform,
+        loanOriginationFeePercent: platformConfig.originationFeePercent,
+        liquidationFeePercent: platformConfig.liquidationFeePercent,
+        loanTermMonths: platformConfig.availableLoanTerms.includes(currentParams.loanTermMonths === Infinity ? 'infinity' : currentParams.loanTermMonths)
+          ? currentParams.loanTermMonths
+          : platformConfig.defaultLoanTerm === 'infinity' ? Infinity : platformConfig.defaultLoanTerm,
+        riskManagement: {
+          ...currentParams.riskManagement,
+          liquidationLtv: platformConfig.liquidationLtv,
+          targetLtv: Math.min(currentParams.riskManagement.targetLtv, platformConfig.maxInitialLtv)
+        }
+      }
+
+      // If a risk level is selected, reapply it with the new platform
+      if (currentParams.selectedRiskLevel) {
+        const riskPresetParams = applyRiskPresetToParams(currentParams.selectedRiskLevel, platform, updatedParams)
+        return {
+          ...riskPresetParams,
+          parameterSources: {
+            ...currentParams.parameterSources,
+            originationFeePercent: 'platform',
+            liquidationLtv: 'platform',
+            liquidationFeePercent: 'platform',
+            loanTermMonths: 'preset' // Risk level determines loan term
+          }
+        }
+      }
+
+      return {
+        ...updatedParams,
+        parameterSources: {
+          ...currentParams.parameterSources,
+          originationFeePercent: 'platform',
+          liquidationLtv: 'platform',
+          liquidationFeePercent: 'platform'
+        }
+      }
+    })
+  }, [setParams])
+
+  const updatePlatformConfig = useCallback((platform: Platform, config: Partial<any>) => {
+    setParams(currentParams => ({
+      ...currentParams,
+      platformConfigs: {
+        ...currentParams.platformConfigs,
+        [platform]: {
+          ...getPlatformConfig(platform),
+          ...config
+        }
+      }
+    }))
+  }, [setParams])
+
+  const markParameterAsManual = useCallback((parameterKey: string) => {
+    setParams(currentParams => ({
+      ...currentParams,
+      parameterSources: {
+        ...currentParams.parameterSources,
+        [parameterKey]: 'manual'
+      }
+    }))
+  }, [setParams])
+
   const contextValue: SimulationContextType = {
     // Core State
     params,
@@ -234,6 +349,12 @@ export function SimulationProvider({ children }: SimulationProviderProps) {
     resetParams,
     clearErrors,
     addError,
+
+    // Preset Management
+    applyRiskLevelPreset,
+    applyPlatformConfig,
+    updatePlatformConfig,
+    markParameterAsManual,
   }
   
   return (

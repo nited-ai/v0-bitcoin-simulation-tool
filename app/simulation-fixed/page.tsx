@@ -37,7 +37,7 @@ function SimulationHeader() {
 
 function SimulationContent() {
   return (
-    <div className="container mx-auto p-4 max-w-7xl">
+    <div className="container mx-auto p-4">
       <SimulationHeader />
       
       <Tabs defaultValue="parameters" className="space-y-6">

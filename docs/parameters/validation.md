@@ -20,13 +20,16 @@ This document defines all validation rules, constraints, and limits for paramete
 - **Decimals:** `0`
 - **Validation:** Must reflect realistic Bitcoin price ranges
 
-### Monthly Withdrawal Amount
+### Monthly Savings/Withdrawal Amount
 - **Type:** `number`
-- **Min:** `0` EUR
-- **Max:** `50000` EUR
+- **Min:** `-50000` USD
+- **Max:** `50000` USD
 - **Step:** `100`
 - **Decimals:** `0`
-- **Validation:** Cannot exceed reasonable monthly expenses
+- **Validation:**
+  - Positive values represent monthly savings (added to BTC stack)
+  - Negative values represent monthly withdrawals (removed from BTC stack)
+  - Cannot exceed reasonable monthly amounts relative to collateral value
 
 ### Simulation Length
 - **Type:** `number`

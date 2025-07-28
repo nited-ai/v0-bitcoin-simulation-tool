@@ -33,7 +33,7 @@ export function PriceProjectionChart() {
         let data = await loadHistoricalData()
         data = convertToEur(data, 0.92)
         setHistoricalData(data)
-        console.log(`📊 Historical data loaded for projections: ${data.length} points`)
+
       } catch (err) {
         console.error('Failed to load historical data for projection:', err)
         setError('Failed to load historical data')
@@ -53,7 +53,7 @@ export function PriceProjectionChart() {
       setIsLoading(true)
       setError(null)
       
-      console.log(`🚀 Generating projection with model: ${selectedModel}`)
+
       
       // Prepare model parameters based on selected model
       let modelParams = {
@@ -86,7 +86,7 @@ export function PriceProjectionChart() {
       
       if (result) {
         setProjection(result)
-        console.log(`✅ Projection generated: ${result.projectionPoints.length} points`)
+
       } else {
         setError('Failed to generate projection')
       }

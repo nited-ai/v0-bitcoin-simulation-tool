@@ -1,4 +1,4 @@
-import BitcoinSimulator from "../simulation"
+import BitcoinSimulator from "../simulation/page"
 
 /**
  * Temporary route to test the new modular simulation structure

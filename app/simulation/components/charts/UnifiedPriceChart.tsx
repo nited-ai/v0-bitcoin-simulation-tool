@@ -105,7 +105,7 @@ export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPric
     const loadData = async () => {
       try {
         setError(null)
-        console.log('📊 Loading historical data for unified chart...')
+
 
         let data = await loadHistoricalData()
         data = keepUsdPrices(data) // Keep USD prices as-is
@@ -116,7 +116,7 @@ export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPric
         data = data.filter(point => point.timestamp >= year2013)
         
         setHistoricalData(data)
-        console.log(`✅ Historical data loaded: ${data.length} points`)
+
         
       } catch (err) {
         console.error('❌ Error loading historical data:', err)
@@ -136,7 +136,7 @@ export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPric
         setLoading(true)
         setError(null)
         
-        console.log(`🚀 Generating projection for unified chart: ${params.priceModel}`)
+
         
         // Get the last known price (current price) as starting point for projections
         // This should be the most recent price from our complete historical dataset (CSV + API gap data)
@@ -144,8 +144,8 @@ export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPric
           ? historicalData[historicalData.length - 1].close
           : params.initialBtcPrice
 
-        console.log(`📊 Using last known price as projection start: $${lastKnownPrice.toFixed(0)}`)
-        console.log(`📅 Last known price date: ${historicalData[historicalData.length - 1]?.date || 'unknown'}`)
+
+
 
         // Prepare model parameters with current price as starting point
         const modelParams = {
@@ -173,7 +173,7 @@ export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPric
         
         setProjection(result)
         onProjectionChange?.(result)
-        console.log(`✅ Projection generated: ${result.projectionPoints.length} points`)
+
 
       } catch (err) {
         console.error('❌ Error generating projection:', err)
@@ -273,7 +273,7 @@ export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPric
     try {
       // No conversion needed - data is already in USD
       const USD_RATE = await getUsdRate()
-      console.log(`💰 Using USD prices directly (rate: ${USD_RATE})`)
+
 
       // Generate CSV content with complete OHLC data matching original format
       const headers = ['Currency', 'Date', 'Closing Price (USD)', '24h Open (USD)', '24h High (USD)', '24h Low (USD)', 'Data_Type']
@@ -349,13 +349,13 @@ export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPric
         }, 100)
       }
 
-      console.log(`📥 Enhanced CSV download initiated: ${filename}`)
-      console.log(`📊 Exported ${chartData.length} data points with complete OHLC data`)
+
+
 
       // Log data summary
       const historicalCount = chartData.filter(p => p.isHistorical).length
       const projectedCount = chartData.filter(p => !p.isHistorical).length
-      console.log(`📈 Historical: ${historicalCount} points, Projected: ${projectedCount} points`)
+
 
     } catch (err) {
       console.error('❌ Error generating enhanced CSV:', err)

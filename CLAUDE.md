@@ -7,13 +7,13 @@
 - **Decision History:** @.agent-os/product/decisions.md
 
 ### Development Standards
-- **Code Style:** @~/.agent-os/standards/code-style.md
-- **Best Practices:** @~/.agent-os/standards/best-practices.md
+- **Code Style:** @.agent-os/standards/code-style.md
+- **Best Practices:** @.agent-os/standards/best-practices.md
 
 ### Project Management
 - **Active Specs:** @.agent-os/specs/
-- **Spec Planning:** Use `@~/.agent-os/instructions/create-spec.md`
-- **Tasks Execution:** Use `@~/.agent-os/instructions/execute-tasks.md`
+- **Spec Planning:** Use `@.agent-os/instructions/create-spec.md`
+- **Tasks Execution:** Use `@.agent-os/instructions/execute-tasks.md`
 
 ## Workflow Instructions
 

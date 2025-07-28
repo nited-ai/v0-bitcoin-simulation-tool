@@ -3,8 +3,8 @@
     "placeholder": "Sprache"
   },
   "Page": {
-    "title": "Bitcoin Bullet-Kredit Simulator",
-    "description": "Simulation rollierender endfälliger Kredite mit Bitcoin als Sicherheit"
+    "title": "FIRE hodl Simulator",
+    "description": "Simuliere Sparen, Entnahmen und Kredite gesichert durch Bitcoin"
   },
   "Tabs": {
     "parameters": "Parameter",
@@ -38,10 +38,10 @@
     "maxLoanAmountTooltip": "Die maximale Höhe eines einzelnen Kredits. Bei höherem Bedarf werden mehrere Kredite aufgenommen."
   },
   "Strategy": {
-    "title": "Strategie: Entnahme",
-    "description": "Definieren Sie Ihre monatlichen Ziele für die Entnahme.",
-    "monthlyWithdrawal": "Monatlicher Entnahmebetrag (€)",
-    "monthlyWithdrawalTooltip": "Der Betrag, der monatlich als Liquidität für Lebenshaltungskosten entnommen werden soll."
+    "title": "Strategie: Sparen/Entnahme",
+    "description": "Definieren Sie Ihre monatlichen Spar- oder Entnahmeziele.",
+    "monthlyWithdrawal": "Monatlicher Spar-/Entnahmebetrag ($)",
+    "monthlyWithdrawalTooltip": "Positive Werte: Monatliche Ersparnisse, die zum BTC-Bestand hinzugefügt werden. Negative Werte: Monatliche Entnahmen aus dem BTC-Bestand für Lebenshaltungskosten."
   },
   "RiskManagement": {
     "title": "Risikomanagement & Hebel",
@@ -107,10 +107,10 @@
     "monthlyResultsDescription": "Detaillierte Aufschlüsselung der Simulation",
     "tableMonth": "Monat",
     "tableDate": "Datum",
-    "tableBtcPrice": "BTC-Preis (€)",
-    "tableCollateral": "Collateral (€)",
-    "tableTotalDebt": "Gesamtschuld (€)",
-    "tableLockedCollateral": "Gesperrtes Collateral (€)",
+    "tableBtcPrice": "BTC-Preis ($)",
+    "tableCollateral": "Collateral ($)",
+    "tableTotalDebt": "Gesamtschuld ($)",
+    "tableLockedCollateral": "Gesperrtes Collateral ($)",
     "tableHighestLtv": "Höchster LTV (%)",
     "tableBtcAmount": "BTC-Menge",
     "tableLiquidatedBtc": "Liquidiert (BTC)",

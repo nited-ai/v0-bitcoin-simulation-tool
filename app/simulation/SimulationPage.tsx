@@ -1,21 +1,9 @@
 "use client"
 
 import { TooltipProvider } from "@/components/ui/tooltip"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { SimulationProvider } from "./context/SimulationContext"
 import { SimulationHeader } from "./components/layout/SimulationHeader"
-import { BasicParametersCard } from "./components/parameters/BasicParametersCard"
-import { ParameterPresets } from "./components/parameters/ParameterPresets"
-import { ValidationSummary } from "./components/parameters/ValidationSummary"
-import { StrategyCard } from "./components/parameters/StrategyCard"
-import { RiskManagementCard } from "./components/parameters/RiskManagementCard"
-import { InvestmentStrategyCard } from "./components/parameters/InvestmentStrategyCard"
-import { EconomicAssumptionsCard } from "./components/parameters/EconomicAssumptionsCard"
-import { ResultsSummary } from "./components/results/ResultsSummary"
-import { ResultsTable } from "./components/results/ResultsTable"
-import { FinancialChart } from "./components/charts/FinancialChart"
-import { PriceChart } from "./components/charts/PriceChart"
-import { HowItWorksContent } from "./components/how-it-works/HowItWorksContent"
+import { TabNavigation } from "./components/navigation/TabNavigation"
 import { useHistoricalData } from "./hooks/useHistoricalData"
 import { usePriceGeneration } from "./hooks/usePriceGeneration"
 
@@ -28,60 +16,12 @@ function SimulationContent() {
   usePriceGeneration()
 
   return (
-    <div className="container mx-auto p-4 max-w-7xl">
+    <div className="container mx-auto p-4">
       {/* Header with title and controls */}
       <SimulationHeader />
 
-      {/* Main content with tabs */}
-      <Tabs defaultValue="parameters" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="parameters">Parameters</TabsTrigger>
-          <TabsTrigger value="results">Results</TabsTrigger>
-          <TabsTrigger value="chart">Chart</TabsTrigger>
-          <TabsTrigger value="how-it-works">How It Works</TabsTrigger>
-        </TabsList>
-
-        {/* Parameters Tab */}
-        <TabsContent value="parameters" className="space-y-6">
-          {/* Parameter Presets - Full Width */}
-          <ParameterPresets />
-
-          {/* Validation Summary - Full Width */}
-          <ValidationSummary />
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Left Column */}
-            <div className="space-y-6">
-              <BasicParametersCard />
-              <StrategyCard />
-              <RiskManagementCard />
-            </div>
-
-            {/* Right Column */}
-            <div className="space-y-6">
-              <InvestmentStrategyCard />
-              <EconomicAssumptionsCard />
-            </div>
-          </div>
-        </TabsContent>
-
-        {/* Results Tab */}
-        <TabsContent value="results" className="space-y-6">
-          <ResultsSummary />
-          <ResultsTable />
-        </TabsContent>
-
-        {/* Chart Tab */}
-        <TabsContent value="chart" className="space-y-6">
-          <PriceChart />
-          <FinancialChart />
-        </TabsContent>
-
-        {/* How It Works Tab */}
-        <TabsContent value="how-it-works" className="space-y-6">
-          <HowItWorksContent />
-        </TabsContent>
-      </Tabs>
+      {/* Main content with modular tab navigation */}
+      <TabNavigation />
     </div>
   )
 }
@@ -90,14 +30,16 @@ function SimulationContent() {
  * New Modular Simulation Page
  *
  * This is the new, clean main component that replaces the 1500+ line simulation.tsx
- * It focuses only on layout and composition, delegating all business logic to
- * specialized components and hooks.
+ * It uses the modular TabNavigation component for the modern interface with
+ * price projection tabs, parameter management, and strategy configuration.
  *
  * Benefits:
- * - Under 150 lines vs 1500+ lines
+ * - Under 50 lines vs 1500+ lines (97% reduction)
+ * - Modern tab-based navigation system
+ * - Modular price projection architecture
  * - Clear separation of concerns
  * - Easy to test and maintain
- * - Modular and extensible
+ * - Extensible architecture
  */
 export default function SimulationPage() {
   return (

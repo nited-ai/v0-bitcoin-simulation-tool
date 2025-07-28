@@ -7,8 +7,8 @@ import { fontSans } from "@/lib/fonts"
 import { Suspense } from "react"
 
 export const metadata: Metadata = {
-  title: "Bitcoin Bullet Loan Simulator",
-  description: "Simulate rolling bullet loans secured by Bitcoin.",
+  title: "FIRE hodl Simulator",
+  description: "Simulate savings, withdrawals and loans secured by Bitcoin.",
   generator: "v0.dev",
 }
 

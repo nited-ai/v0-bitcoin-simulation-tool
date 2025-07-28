@@ -80,7 +80,7 @@ export function EconomicAssumptionsCard() {
                 <Select
                   value={params.powerLawSettings?.prognosisLine || 'fit'}
                   onValueChange={(value: PowerLawLine) => {
-                    console.log(`🔄 Prognosis line changed to ${value}`)
+
                     setParams((p) => ({
                       ...p,
                       powerLawSettings: { ...(p?.powerLawSettings || {}), prognosisLine: value },
