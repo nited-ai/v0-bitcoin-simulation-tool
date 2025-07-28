@@ -4,6 +4,7 @@
  */
 
 import { sqlDatabaseManager } from './SqlDatabaseManager'
+import { dataGapService } from './DataGapService'
 
 export interface InitializationResult {
   success: boolean
@@ -50,12 +51,21 @@ export class DatabaseInitializer {
       console.log('📂 Loading historical data from CSV...')
       const historicalData = await sqlDatabaseManager.getHistoricalData()
 
-      // Step 4: Update with current data if needed
+      // Step 4: Detect and fill data gaps
+      console.log('🔍 Detecting and filling data gaps...')
+      const gapResult = await dataGapService.fillAllDataGaps()
+
+      if (gapResult.success) {
+        console.log(`✅ Gap filling completed: ${gapResult.summary}`)
+      } else {
+        console.warn(`⚠️ Gap filling had issues: ${gapResult.errors.join(', ')}`)
+      }
+
+      // Step 5: Update with current data if needed
       console.log('🔄 Updating with latest price data...')
       await sqlDatabaseManager.updateCurrentPrice()
-      await sqlDatabaseManager.updateDatabase()
 
-      // Step 5: Get final stats
+      // Step 6: Get final stats
       const finalStats = await sqlDatabaseManager.getStats()
 
       console.log(`✅ Database initialization completed!`)

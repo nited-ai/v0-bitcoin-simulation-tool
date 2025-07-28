@@ -74,11 +74,16 @@ export async function loadHistoricalPriceData(): Promise<HistoricalDataPoint[]> 
     return await loadFullDataWithCache()
 
   } catch (error) {
-    console.error("❌ Server API load failed, falling back to original CSV method:", error)
-    
-    // Fallback to original CSV-based loader if API fails
-    const { loadHistoricalPriceDataWithFallbacks } = await import('./historical-data-loader')
-    return await loadHistoricalPriceDataWithFallbacks()
+    console.error("❌ Server API load failed:", error)
+
+    // Try to use cached data as fallback
+    const cachedData = await cache.loadFromCache()
+    if (cachedData && cachedData.length > 0) {
+      console.log("🔄 Using cached data as fallback")
+      return cachedData
+    }
+
+    throw new Error('SQL database API failed and no cached data available')
   }
 }
 
@@ -158,10 +163,7 @@ export async function getCurrentBitcoinPrice(): Promise<number> {
     
   } catch (error) {
     console.error('❌ Failed to get current price from server API:', error)
-    
-    // Fallback to original price loader
-    const { loadCurrentBtcPrice } = await import('@/lib/load-btc-price')
-    return await loadCurrentBtcPrice()
+    throw new Error('Unable to get current Bitcoin price from SQL database')
   }
 }
 
@@ -261,31 +263,29 @@ export async function checkDatabaseHealth(): Promise<{
  * Maintains compatibility with existing price engine code
  */
 export async function loadHistoricalPriceDataWithFallbacks(): Promise<HistoricalDataPoint[]> {
-  const strategies = [
-    () => loadHistoricalPriceData(), // Server API (primary)
-    async () => {
-      // Fallback to original CSV loader
-      const { loadHistoricalPriceDataWithFallbacks: originalLoader } = await import('./historical-data-loader')
-      return originalLoader()
-    }
-  ]
+  try {
+    console.log('🔄 Loading historical data from SQL database...')
+    const data = await loadHistoricalPriceData()
 
-  for (const [index, strategy] of strategies.entries()) {
-    try {
-      console.log(`🔄 Trying data loading strategy ${index + 1}/${strategies.length}`)
-      const result = await strategy()
-      if (result.length > 0) {
-        return result
-      }
-    } catch (error) {
-      console.warn(`Strategy ${index + 1} failed:`, error)
-      if (index === strategies.length - 1) {
-        throw error
-      }
+    if (data && data.length > 0) {
+      console.log(`✅ Successfully loaded ${data.length} data points from SQL database`)
+      return data
     }
+
+    throw new Error('SQL database returned no data')
+
+  } catch (error) {
+    console.error('❌ Failed to load historical data from SQL database:', error)
+
+    // Try cached data as last resort
+    const cachedData = await cache.loadFromCache()
+    if (cachedData && cachedData.length > 0) {
+      console.log("🔄 Using cached data as last resort")
+      return cachedData
+    }
+
+    throw new Error('SQL database failed and no cached data available')
   }
-
-  throw new Error("All data loading strategies failed")
 }
 
 // Export the main function for backward compatibility

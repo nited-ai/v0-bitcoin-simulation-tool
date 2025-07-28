@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { sqlDatabaseManager } from '@/app/simulation/data/database/SqlDatabaseManager'
 import { databaseInitializer } from '@/app/simulation/data/database/DatabaseInitializer'
+import { dataGapService } from '@/app/simulation/data/database/DataGapService'
 
 export async function GET(request: NextRequest) {
   try {
@@ -57,10 +58,13 @@ export async function POST(request: NextRequest) {
       
       case 'repair':
         return await repairDatabase()
-      
+
+      case 'fill-gaps':
+        return await fillDataGaps()
+
       default:
         return NextResponse.json(
-          { error: 'Invalid action. Use: update, initialize, or repair' },
+          { error: 'Invalid action. Use: update, initialize, repair, or fill-gaps' },
           { status: 400 }
         )
     }
@@ -219,26 +223,26 @@ async function checkDatabaseHealth() {
 async function updateDatabase() {
   try {
     console.log('🔄 API: Updating database...')
-    
+
     await databaseInitializer.initializeDatabase()
-    
+
+    // Fill any data gaps first
+    const gapResult = await dataGapService.fillAllDataGaps()
+
     // Update current price
     const currentResult = await sqlDatabaseManager.updateCurrentPrice()
-    
-    // Fill data gaps
-    const updateResult = await sqlDatabaseManager.updateDatabase()
-    
+
     return NextResponse.json({
       success: true,
       message: 'Database updated successfully',
-      currentPriceUpdate: currentResult,
-      dataUpdate: updateResult
+      gapFilling: gapResult,
+      currentPriceUpdate: currentResult
     })
-    
+
   } catch (error) {
     console.error('❌ API: Failed to update database:', error)
     return NextResponse.json(
-      { 
+      {
         success: false,
         error: 'Failed to update database',
         message: error instanceof Error ? error.message : 'Unknown error'
@@ -299,6 +303,36 @@ async function repairDatabase() {
       { 
         success: false,
         error: 'Failed to repair database',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    )
+  }
+}
+
+/**
+ * Fill data gaps
+ */
+async function fillDataGaps() {
+  try {
+    console.log('🔍 API: Filling data gaps...')
+
+    const result = await dataGapService.fillAllDataGaps()
+
+    return NextResponse.json({
+      success: result.success,
+      message: result.summary,
+      gapsFilled: result.gapsFilled,
+      recordsAdded: result.recordsAdded,
+      errors: result.errors
+    })
+
+  } catch (error) {
+    console.error('❌ API: Failed to fill data gaps:', error)
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Failed to fill data gaps',
         message: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }

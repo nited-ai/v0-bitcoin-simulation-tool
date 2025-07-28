@@ -4,7 +4,7 @@
  */
 
 import { PrismaClient } from '@/lib/generated/prisma'
-import { bitcoinApiService, type BitcoinPriceData } from '../bitcoinApiService'
+import { bitcoinApiService, type BitcoinPriceData } from '../api/BitcoinApiService'
 
 export interface DatabasePricePoint {
   id?: number
@@ -579,6 +579,119 @@ export class SqlDatabaseManager {
       },
       lastUpdate: lastUpdate?.createdAt.toISOString() || 'Never',
       sources: sources.map(s => s.source)
+    }
+  }
+
+  /**
+   * Get all dates in the database (for gap detection)
+   */
+  async getAllDates(): Promise<string[]> {
+    try {
+      const records = await this.prisma.bitcoinPrice.findMany({
+        select: { date: true },
+        orderBy: { date: 'asc' }
+      })
+
+      return records.map(record => record.date)
+    } catch (error) {
+      console.error('❌ Error getting all dates:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Get the last date in the database
+   */
+  async getLastDate(): Promise<string | null> {
+    try {
+      const lastRecord = await this.prisma.bitcoinPrice.findFirst({
+        orderBy: { date: 'desc' },
+        select: { date: true }
+      })
+
+      return lastRecord?.date || null
+    } catch (error) {
+      console.error('❌ Error getting last date:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Insert batch price data with conflict resolution
+   */
+  async insertBatchPriceData(priceData: DatabasePricePoint[]): Promise<{ success: boolean; recordsAdded: number; recordsUpdated: number; error?: string }> {
+    try {
+      let recordsAdded = 0
+      let recordsUpdated = 0
+
+      // Process in smaller batches to avoid memory issues
+      const batchSize = 100
+
+      for (let i = 0; i < priceData.length; i += batchSize) {
+        const batch = priceData.slice(i, i + batchSize)
+
+        for (const record of batch) {
+          try {
+            // Check if record exists
+            const existing = await this.prisma.bitcoinPrice.findUnique({
+              where: { date: record.date }
+            })
+
+            if (existing) {
+              // Update existing record
+              await this.prisma.bitcoinPrice.update({
+                where: { date: record.date },
+                data: {
+                  timestamp: BigInt(record.timestamp),
+                  open: record.open,
+                  high: record.high,
+                  low: record.low,
+                  close: record.close,
+                  volume: record.volume,
+                  source: record.source,
+                  updated_at: new Date()
+                }
+              })
+              recordsUpdated++
+            } else {
+              // Create new record
+              await this.prisma.bitcoinPrice.create({
+                data: {
+                  date: record.date,
+                  timestamp: BigInt(record.timestamp),
+                  open: record.open,
+                  high: record.high,
+                  low: record.low,
+                  close: record.close,
+                  volume: record.volume,
+                  source: record.source
+                }
+              })
+              recordsAdded++
+            }
+
+          } catch (recordError) {
+            console.warn(`⚠️ Failed to insert/update record for ${record.date}:`, recordError)
+          }
+        }
+      }
+
+      console.log(`📥 Batch insert completed: ${recordsAdded} added, ${recordsUpdated} updated`)
+
+      return {
+        success: true,
+        recordsAdded,
+        recordsUpdated
+      }
+
+    } catch (error) {
+      console.error('❌ Error in batch insert:', error)
+      return {
+        success: false,
+        recordsAdded: 0,
+        recordsUpdated: 0,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }
     }
   }
 
