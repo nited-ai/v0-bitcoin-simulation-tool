@@ -1,0 +1,63 @@
+// Bitcoin Simulation Tool - Database Schema
+// Prisma schema for Bitcoin price data storage and management
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// Main table for Bitcoin price history
+model BitcoinPrice {
+  id        Int      @id @default(autoincrement())
+  date      String   @unique // YYYY-MM-DD format
+  timestamp BigInt   // Unix timestamp in milliseconds
+  open      Float
+  high      Float
+  low       Float
+  close     Float
+  volume    Float?   // Optional volume data
+  source    String   @default("unknown") // API source (CoinCap, Binance, etc.)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([date])
+  @@index([timestamp])
+  @@map("bitcoin_prices")
+}
+
+// Table for tracking data updates and sources
+model DataUpdate {
+  id             Int      @id @default(autoincrement())
+  updateDate     String   @map("update_date") // YYYY-MM-DD format
+  recordsAdded   Int      @default(0) @map("records_added")
+  recordsUpdated Int      @default(0) @map("records_updated")
+  source         String   // API source used for this update
+  startDate      String?  @map("start_date") // Start date of update range
+  endDate        String?  @map("end_date") // End date of update range
+  status         String   @default("pending") // pending, success, failed
+  errorMessage   String?  @map("error_message")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@map("data_updates")
+}
+
+// Table for API rate limiting and monitoring
+model ApiUsage {
+  id                Int      @id @default(autoincrement())
+  apiName           String   @map("api_name") // CoinCap, Binance, CoinDesk
+  endpoint          String   // API endpoint used
+  requestCount      Int      @default(1) @map("request_count")
+  lastRequestAt     DateTime @default(now()) @map("last_request_at")
+  successCount      Int      @default(0) @map("success_count")
+  errorCount        Int      @default(0) @map("error_count")
+  rateLimitResetAt  DateTime? @map("rate_limit_reset_at")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  @@index([apiName, lastRequestAt])
+  @@map("api_usage")
+}

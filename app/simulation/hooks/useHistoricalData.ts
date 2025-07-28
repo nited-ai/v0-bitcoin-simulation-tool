@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react"
 import { useTranslation } from "react-i18next"
-import { loadHistoricalPriceData } from "@/lib/price-engine/historical-data-loader"
-import { loadCurrentBtcPrice } from "@/lib/load-btc-price"
+import { loadHistoricalPriceDataWithFallbacks, getCurrentBitcoinPrice } from "@/lib/price-engine/client-historical-data-loader"
 import { PerformanceMonitor } from "@/lib/price-engine/performance-monitor"
 import { useSimulation } from "../context/SimulationContext"
 import { DEFAULT_PARAMS } from "../types/simulation"
@@ -34,7 +33,7 @@ export function useHistoricalData() {
 
       try {
         const startTime = performance.now()
-        const data = await loadHistoricalPriceData()
+        const data = await loadHistoricalPriceDataWithFallbacks()
         const loadTime = performance.now() - startTime
 
         // Cache-Status basierend auf Ladezeit und Cache-Logs bestimmen
@@ -50,7 +49,7 @@ export function useHistoricalData() {
         if (firstRun.current) {
           firstRun.current = false
           const latestPrice = data.length > 0 ? data[data.length - 1].close : DEFAULT_PARAMS.initialBtcPrice
-          const initialPrice = (await loadCurrentBtcPrice()) ?? latestPrice
+          const initialPrice = (await getCurrentBitcoinPrice()) ?? latestPrice
           console.log(`💰 Setting initial BTC price: ${initialPrice}`)
           setParams((p) => ({ ...p, initialBtcPrice: initialPrice }))
         }

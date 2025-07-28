@@ -1,6 +1,6 @@
 // lib/price-engine/index.ts
-// This will be the main entry point and dispatcher for the price engine.
-// Implementation will follow in the next steps.
+// Main entry point and dispatcher for the price engine.
+// Updated to support SQL database integration for historical data.
 
 import type { PriceEngineParams, HistoricalDataPoint, PriceChartDataPoint } from "./types"
 import { generateManualPath } from "./models/manual"
