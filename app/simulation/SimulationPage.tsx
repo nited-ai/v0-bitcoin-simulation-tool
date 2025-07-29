@@ -4,15 +4,15 @@ import { TooltipProvider } from "@/components/ui/tooltip"
 import { SimulationProvider } from "./context/SimulationContext"
 import { SimulationHeader } from "./components/layout/SimulationHeader"
 import { TabNavigation } from "./components/navigation/TabNavigation"
-import { useHistoricalData } from "./hooks/useHistoricalData"
+import { useCentralizedData } from "./hooks/useCentralizedData"
 import { usePriceGeneration } from "./hooks/usePriceGeneration"
 
 /**
  * Internal component that uses business logic hooks
  */
 function SimulationContent() {
-  // Initialize business logic hooks
-  useHistoricalData()
+  // Initialize centralized data service (replaces old useHistoricalData)
+  useCentralizedData()
   usePriceGeneration()
 
   return (

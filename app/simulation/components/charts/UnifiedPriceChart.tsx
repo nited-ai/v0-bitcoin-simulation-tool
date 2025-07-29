@@ -7,9 +7,9 @@ import { AlertCircle, Loader2, TrendingUp, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useSimulation } from '../../context/SimulationContext'
 import { priceModelRegistry } from '../../price-models/PriceModelRegistry'
-import { loadHistoricalData, keepUsdPrices } from '../../data/historicalDataLoader'
+import { useHistoricalDataOnly } from '../../hooks/useCentralizedData'
 import type { PriceProjectionResult } from '../../price-models/types'
-import type { HistoricalDataPoint } from '../../data/historicalDataLoader'
+import type { HistoricalDataPoint } from '@/lib/services/centralized-data-service'
 
 interface ChartDataPoint {
   date: string
@@ -94,38 +94,13 @@ function calculateSupportLine(historicalData: HistoricalDataPoint[]): { timestam
 
 export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartProps) {
   const { params } = useSimulation()
-  const [historicalData, setHistoricalData] = useState<HistoricalDataPoint[]>([])
+  const { historicalData, isLoaded, isLoading } = useHistoricalDataOnly()
   const [projection, setProjection] = useState<PriceProjectionResult | null>(null)
-  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isDownloading, setIsDownloading] = useState(false)
 
-  // Load historical data on mount
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setError(null)
-
-
-        let data = await loadHistoricalData()
-        data = keepUsdPrices(data) // Keep USD prices as-is
-
-        // Use all historical data from 2013 onwards for proper Bitcoin analysis
-        // Filter out any data before 2013 (Bitcoin's early days)
-        const year2013 = new Date('2013-01-01').getTime()
-        data = data.filter(point => point.timestamp >= year2013)
-        
-        setHistoricalData(data)
-
-        
-      } catch (err) {
-        console.error('❌ Error loading historical data:', err)
-        setError('Failed to load historical data')
-      }
-    }
-
-    loadData()
-  }, [])
+  // Set loading state based on centralized data service
+  const loading = isLoading || !isLoaded
 
   // Generate projection when model or parameters change
   useEffect(() => {

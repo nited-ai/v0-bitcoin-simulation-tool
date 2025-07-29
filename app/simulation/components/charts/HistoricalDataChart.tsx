@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts"
-import { loadHistoricalData, appendCurrentPrice, convertToEur } from "../../data/historicalDataLoader"
-import type { HistoricalDataPoint } from "../../data/historicalDataLoader"
+import { useHistoricalDataOnly, useCurrentPriceOnly } from "../../hooks/useCentralizedData"
+import type { HistoricalDataPoint } from "@/lib/services/centralized-data-service"
 
 /**
  * Historical Data Chart Component
@@ -13,65 +13,66 @@ import type { HistoricalDataPoint } from "../../data/historicalDataLoader"
  * This chart is separate from projections and loads data once.
  */
 export function HistoricalDataChart() {
-  const [historicalData, setHistoricalData] = useState<HistoricalDataPoint[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const { historicalData, isLoaded, isLoading } = useHistoricalDataOnly()
+  const { currentPrice } = useCurrentPriceOnly()
   const [error, setError] = useState<string | null>(null)
-  
-  // Load historical data on component mount
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setIsLoading(true)
-        setError(null)
-        
 
-        
-        // Load static historical data
-        let data = await loadHistoricalData()
-        
-        if (data.length === 0) {
-          throw new Error('No historical data loaded')
-        }
-        
-        // Append current price
-        data = await appendCurrentPrice(data)
-        
-        // Convert to EUR (simplified conversion)
-        data = convertToEur(data, 0.92)
-        
-        // Limit data points for performance (show last 5 years or all data if less)
-        const maxPoints = 365 * 5 // 5 years of daily data
-        if (data.length > maxPoints) {
-          data = data.slice(-maxPoints)
-        }
-        
-        setHistoricalData(data)
+  // Combine historical data with current price for display
+  const displayData = useMemo(() => {
+    if (!isLoaded || historicalData.length === 0) return []
 
-        
-      } catch (err) {
-        console.error('❌ Failed to load historical data:', err)
-        setError(err instanceof Error ? err.message : 'Failed to load historical data')
-      } finally {
-        setIsLoading(false)
+    let data = [...historicalData]
+
+    // Append current price if available and not already the latest point
+    if (currentPrice) {
+      const latestPoint = data[data.length - 1]
+      const currentDate = new Date().toISOString().split('T')[0]
+
+      if (!latestPoint || latestPoint.date !== currentDate) {
+        data.push({
+          timestamp: currentPrice.timestamp,
+          date: currentDate,
+          open: currentPrice.price,
+          high: currentPrice.price,
+          low: currentPrice.price,
+          close: currentPrice.price,
+          source: currentPrice.source
+        })
       }
     }
-    
-    loadData()
-  }, [])
-  
-  // Prepare chart data (sample every N points for performance)
-  const chartData = historicalData.filter((_, index) => index % 7 === 0) // Show every 7th point (weekly)
-    .map(point => ({
-      date: new Date(point.timestamp).toLocaleDateString('de-DE', { 
-        year: 'numeric', 
-        month: 'short' 
-      }),
-      price: Math.round(point.close),
-      high: Math.round(point.high),
-      low: Math.round(point.low),
-      timestamp: point.timestamp
+
+    // Convert to EUR (simplified conversion - in real app this should be dynamic)
+    return data.map(point => ({
+      ...point,
+      open: point.open * 0.92,
+      high: point.high * 0.92,
+      low: point.low * 0.92,
+      close: point.close * 0.92
     }))
-  
+  }, [historicalData, currentPrice, isLoaded])
+
+  // Prepare chart data (sample every N points for performance)
+  const chartData = useMemo(() => {
+    if (displayData.length === 0) return []
+
+    // Limit data points for performance (show last 5 years or all data if less)
+    const maxPoints = 365 * 5 // 5 years of daily data
+    let data = displayData.length > maxPoints ? displayData.slice(-maxPoints) : displayData
+
+    // Sample every 7th point for weekly view
+    return data.filter((_, index) => index % 7 === 0)
+      .map(point => ({
+        date: new Date(point.timestamp).toLocaleDateString('de-DE', {
+          year: 'numeric',
+          month: 'short'
+        }),
+        price: Math.round(point.close),
+        high: Math.round(point.high),
+        low: Math.round(point.low),
+        timestamp: point.timestamp
+      }))
+  }, [displayData])
+
   if (isLoading) {
     return (
       <Card>

@@ -5,25 +5,8 @@
 
 import type { HistoricalDataPoint } from "./types"
 
-// Check if we're in a browser environment
-const isBrowser = typeof window !== 'undefined' && typeof localStorage !== 'undefined'
-
-// Only import cache manager in browser environment
-let HistoricalDataCache: any = null
-let PerformanceMonitor: any = null
-let cache: any = null
-
-if (isBrowser) {
-  try {
-    const cacheModule = require("./cache-manager")
-    const perfModule = require("./performance-monitor")
-    HistoricalDataCache = cacheModule.HistoricalDataCache
-    PerformanceMonitor = perfModule.PerformanceMonitor
-    cache = new HistoricalDataCache()
-  } catch (error) {
-    console.warn('Cache manager not available:', error)
-  }
-}
+// Simplified database loader without cache dependencies
+// Cache management is now handled by the centralized data service
 
 /**
  * Load historical Bitcoin price data from database via API
@@ -34,43 +17,12 @@ export async function loadHistoricalPriceData(): Promise<HistoricalDataPoint[]> 
   const startTime = performance.now()
 
   try {
-    // In browser environment, use caching
-    if (isBrowser && cache) {
-      // 1. Check cache first
-      const cachedData = await cache.loadFromCache()
-      if (cachedData) {
-        const updateCheck = cache.needsUpdate()
-
-        if (!updateCheck.needsUpdate) {
-          const loadTime = performance.now() - startTime
-          if (PerformanceMonitor) {
-            PerformanceMonitor.recordLoadTime("cache-hit", loadTime)
-          }
-          console.log(`⚡ Data loaded from cache in ${Math.round(loadTime)}ms (${cachedData.length} points)`)
-          return cachedData
-        }
-
-        // Load incremental data
-        console.log("🔄 Cache found but needs update, loading incremental data...")
-        return await loadIncrementalData(cachedData, updateCheck.lastTimestamp)
-      }
-
-      // 2. Full data load (first visit)
-      console.log("📥 Performing full data load from database...")
-      if (PerformanceMonitor) {
-        PerformanceMonitor.recordLoadTime("cache-miss", performance.now() - startTime)
-      }
-      return await loadFullDataWithCache()
-    } else {
-      // In Node.js environment, load directly without caching
-      console.log("📥 Loading data directly from database (Node.js environment)...")
-      return await loadFullDataWithoutCache()
-    }
+    // Direct database load (caching handled by centralized service)
+    return await loadFullDataWithoutCache()
 
   } catch (error) {
-    console.error("❌ Database load failed, falling back to CSV:", error)
-    // Fallback to CSV if database fails
-    return await loadHistoricalPriceDataFromCsv()
+    console.error("❌ Database load failed:", error)
+    throw error
   }
 }
 
