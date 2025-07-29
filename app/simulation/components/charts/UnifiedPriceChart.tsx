@@ -107,7 +107,9 @@ export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPric
   useEffect(() => {
     const generateProjection = async () => {
       if (historicalData.length === 0) return
-      
+
+      console.log(`🔄 UnifiedPriceChart: useEffect triggered for ${params.priceModel} model (${historicalData.length} historical points)`)
+
       try {
         setIsGeneratingProjection(true)
         setError(null)
@@ -160,7 +162,14 @@ export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPric
     }
 
     generateProjection()
-  }, [historicalData, params.priceModel, params.initialBtcPrice, params.simulationMonths, params.annualGrowthRates, params.powerLawSettings])
+  }, [
+    historicalData.length, // Use length instead of full array to prevent unnecessary re-renders
+    params.priceModel,
+    params.initialBtcPrice,
+    params.simulationMonths,
+    JSON.stringify(params.annualGrowthRates || []), // Stable string representation
+    params.powerLawSettings?.prognosisLine, // Only the specific property that affects projections
+  ])
 
   // Merge historical and projection data into continuous timeline
   const chartData = useMemo(() => {
