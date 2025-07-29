@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from 'recharts'
 import { AlertCircle, Loader2, TrendingUp, Download } from 'lucide-react'
@@ -95,10 +96,15 @@ function calculateSupportLine(historicalData: HistoricalDataPoint[]): { timestam
 export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartProps) {
   const { params } = useSimulation()
   const { historicalData, isLoaded, isLoading } = useHistoricalDataOnly()
+  const searchParams = useSearchParams()
+
   const [projection, setProjection] = useState<PriceProjectionResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isDownloading, setIsDownloading] = useState(false)
   const [isGeneratingProjection, setIsGeneratingProjection] = useState(false)
+
+  // Debug counter to track useEffect calls
+  const effectCallCount = useRef(0)
 
   // Set loading state based on centralized data service and projection generation
   const loading = isLoading || !isLoaded || isGeneratingProjection
@@ -108,7 +114,18 @@ export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPric
     const generateProjection = async () => {
       if (historicalData.length === 0) return
 
-      console.log(`🔄 UnifiedPriceChart: useEffect triggered for ${params.priceModel} model (${historicalData.length} historical points)`)
+      // Only generate projections when on the price-projection tab
+      const currentTab = searchParams.get('tab') || 'parameters'
+      if (currentTab !== 'price-projection') {
+        console.log(`⚡ UnifiedPriceChart: Skipping projection generation on ${currentTab} tab`)
+        return
+      }
+
+      effectCallCount.current += 1
+      console.log(`🔄 UnifiedPriceChart: useEffect triggered #${effectCallCount.current} for ${params.priceModel} model (${historicalData.length} historical points)`)
+      console.log(`   📊 Dependencies: histLen=${historicalData.length}, model=${params.priceModel}, price=${params.initialBtcPrice}, months=${params.simulationMonths}`)
+      console.log(`   📊 Growth rates: ${JSON.stringify(params.annualGrowthRates || [])}`)
+      console.log(`   📊 PowerLaw line: ${params.powerLawSettings?.prognosisLine}`)
 
       try {
         setIsGeneratingProjection(true)
@@ -169,6 +186,7 @@ export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPric
     params.simulationMonths,
     JSON.stringify(params.annualGrowthRates || []), // Stable string representation
     params.powerLawSettings?.prognosisLine, // Only the specific property that affects projections
+    searchParams, // Add searchParams to detect tab changes
   ])
 
   // Merge historical and projection data into continuous timeline
