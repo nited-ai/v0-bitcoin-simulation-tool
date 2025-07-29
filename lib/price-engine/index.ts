@@ -141,12 +141,9 @@ async function generatePriceChartDataOptimized(
   // Step 4: Merge cached historical data with new projection (fast)
   const chartData = mergeHistoricalAndProjection(historicalChartData, projectionPath)
 
-  // Step 5: Add Power Law reference lines only when needed (conditional optimization)
+  // Step 5: Add Power Law reference lines only when needed
   if (params.priceModel === 'powerLaw' || params.priceModel === 'cycleRepeatPowerLaw') {
-    console.log(`📊 Adding Power Law reference lines for ${params.priceModel} model`)
     addPowerLawLines(chartData, params)
-  } else {
-    console.log(`⚡ Skipping Power Law lines for ${params.priceModel} model (not needed)`)
   }
 
   return chartData
