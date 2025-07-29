@@ -1,8 +1,8 @@
-import { useEffect } from "react"
+import { useEffect, useMemo } from "react"
 import { generatePriceChartData } from "@/lib/price-engine"
 import { getPowerLawPrice } from "@/lib/price-engine/models/power-law"
-import { smartChartCache } from "@/lib/price-engine/smart-chart-cache"
 import { useSimulation } from "../context/SimulationContext"
+import { useParameterComparison } from "./useParameterComparison"
 import type { PriceEngineParams } from "@/lib/price-engine/types"
 
 /**
@@ -22,26 +22,41 @@ export function usePriceGeneration() {
     setErrors,
   } = useSimulation()
 
+  // Use parameter comparison to prevent unnecessary regeneration
+  const { hasParametersChanged } = useParameterComparison(params, historicalPriceData.length)
+
+  // Memoize expensive historical calculations
+  const historicalDailyMultipliers = useMemo(() => {
+    if (historicalPriceData.length === 0) return []
+    console.log(`📊 Calculating historical daily multipliers (${historicalPriceData.length} points)`)
+    return historicalPriceData
+      .slice(-1458)
+      .map((p, i, arr) => (i > 0 ? p.close / arr[i - 1].close : 1))
+      .slice(1)
+  }, [historicalPriceData])
+
+  const historicalChannelPositions = useMemo(() => {
+    if (historicalPriceData.length === 0) return []
+    console.log(`📊 Calculating historical channel positions (${historicalPriceData.length} points)`)
+    return historicalPriceData.slice(-1458).map((dataPoint) => {
+      const date = new Date(dataPoint.timestamp) // timestamp is already in milliseconds
+      const price = dataPoint.close
+      const support = getPowerLawPrice(date, "support")
+      const resistance = getPowerLawPrice(date, "resistance")
+      const channelWidth = resistance - support
+      if (channelWidth <= 0) return 0.5
+      return Math.max(0, Math.min(1, (price - support) / channelWidth))
+    })
+  }, [historicalPriceData])
+
   useEffect(() => {
     if (historicalPriceData.length === 0) return
     if (!initialDataLoaded) return // Wait for initial data loading to complete
+    if (!hasParametersChanged) return // Skip if no relevant parameters changed
 
     console.log(`🔄 Chart generation useEffect triggered for model: ${params.priceModel}`)
 
     const generateData = async () => {
-      // Check if regeneration is needed using smart cache
-      if (!smartChartCache.shouldRegenerateChart(params, historicalPriceData.length)) {
-        console.log(`⚡ Skipping chart generation: Using cached data for ${params.priceModel} model`)
-
-        // Get cached data and update state
-        const cachedData = smartChartCache.getCachedChartData(params, historicalPriceData.length)
-        if (cachedData) {
-          setPriceChartData(cachedData)
-          console.log(`✅ Chart data updated from cache: ${cachedData.length} points for model ${params.priceModel}`)
-        }
-        return
-      }
-
       // Show loading for chart generation
       setChartLoading(true)
 
@@ -51,21 +66,6 @@ export function usePriceGeneration() {
       }
 
       try {
-        // Calculate historical patterns needed for specific models
-        const historicalDailyMultipliers = historicalPriceData
-          .slice(-1458)
-          .map((p, i, arr) => (i > 0 ? p.close / arr[i - 1].close : 1))
-          .slice(1)
-
-        const historicalChannelPositions = historicalPriceData.slice(-1458).map((dataPoint) => {
-          const date = new Date(dataPoint.timestamp) // timestamp is already in milliseconds
-          const price = dataPoint.close
-          const support = getPowerLawPrice(date, "support")
-          const resistance = getPowerLawPrice(date, "resistance")
-          const channelWidth = resistance - support
-          if (channelWidth <= 0) return 0.5
-          return Math.max(0, Math.min(1, (price - support) / channelWidth))
-        })
 
         // Prepare parameters for the engine using the full params object
         const engineParams: PriceEngineParams = {
@@ -88,13 +88,11 @@ export function usePriceGeneration() {
 
     generateData()
   }, [
-    params.priceModel,
-    params.initialBtcPrice,
-    params.simulationMonths,
-    params.powerLawSettings?.prognosisLine,
-    JSON.stringify(params.annualGrowthRates || []), // Stable string representation
+    hasParametersChanged,
     historicalPriceData.length,
     initialDataLoaded,
+    historicalDailyMultipliers,
+    historicalChannelPositions,
     // Remove setter functions from dependencies to prevent infinite loops
   ])
 }

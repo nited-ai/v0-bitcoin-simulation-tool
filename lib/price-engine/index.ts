@@ -10,7 +10,6 @@ import { generateCycleRepeatPowerLawPath } from "./models/cycle-repeat-power-law
 import { PerformanceMonitor } from "./performance-monitor"
 import { generateProjectionPath } from "./projection-generator"
 import { mergeHistoricalAndProjection, addPowerLawLines } from "./chart-merger"
-import { smartChartCache } from "./smart-chart-cache"
 
 /**
  * The main dispatcher for the Price Engine.
@@ -161,27 +160,15 @@ export async function generatePriceChartData(
   params: PriceEngineParams,
   historicalData: HistoricalDataPoint[],
 ): Promise<PriceChartDataPoint[]> {
-  console.log("🚀 Generating smart cached price chart data...")
+  console.log("🚀 Generating optimized price chart data...")
   const startTime = performance.now()
 
-  // Check if we can use cached data
-  const cachedData = smartChartCache.getCachedChartData(params, historicalData.length)
-  if (cachedData) {
-    const totalTime = performance.now() - startTime
-    console.log(`⚡ Smart cache hit: Chart data retrieved in ${Math.round(totalTime)}ms (${cachedData.length} points)`)
-    return cachedData
-  }
-
-  // Generate new data if not cached
-  console.log(`🔄 Cache miss: Generating new chart data for ${params.priceModel} model`)
+  // Use optimized version that caches historical data processing
   const data = await generatePriceChartDataOptimized(params, historicalData)
-
-  // Cache the generated data
-  smartChartCache.cacheChartData(params, historicalData.length, data)
 
   const totalTime = performance.now() - startTime
   PerformanceMonitor.recordLoadTime("chart-generation", totalTime)
-  console.log(`✅ Smart cached chart data generated in ${Math.round(totalTime)}ms (${data.length} points)`)
+  console.log(`✅ Optimized chart data generated in ${Math.round(totalTime)}ms (${data.length} points)`)
 
   return data
 }

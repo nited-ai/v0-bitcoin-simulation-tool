@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/button'
 import { useSimulation } from '../../context/SimulationContext'
 import { priceModelRegistry } from '../../price-models/PriceModelRegistry'
 import { useHistoricalDataOnly } from '../../hooks/useCentralizedData'
-import { smartChartCache } from '@/lib/price-engine/smart-chart-cache'
+import { useParameterComparison } from '../../hooks/useParameterComparison'
+import { useTabAwareGeneration } from '../../hooks/useTabAwareGeneration'
 import type { PriceProjectionResult } from '../../price-models/types'
 import type { HistoricalDataPoint } from '@/lib/services/centralized-data-service'
 
@@ -96,6 +97,13 @@ function calculateSupportLine(historicalData: HistoricalDataPoint[]): { timestam
 export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartProps) {
   const { params } = useSimulation()
   const { historicalData, isLoaded, isLoading } = useHistoricalDataOnly()
+
+  // Use parameter comparison to prevent unnecessary regeneration
+  const { hasParametersChanged } = useParameterComparison(params, historicalData.length)
+
+  // Use tab-aware generation to prevent charts when not needed
+  const { shouldGenerateCharts, isPriceProjectionTab } = useTabAwareGeneration()
+
   const [projection, setProjection] = useState<PriceProjectionResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isDownloading, setIsDownloading] = useState(false)
@@ -108,10 +116,9 @@ export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPric
   useEffect(() => {
     const generateProjection = async () => {
       if (historicalData.length === 0) return
-
-      // Check if we should skip generation due to smart caching
-      if (!smartChartCache.shouldRegenerateChart(params, historicalData.length)) {
-        console.log(`⚡ UnifiedPriceChart: Skipping projection generation (using cached data)`)
+      if (!shouldGenerateCharts()) return // Skip if not on price projection tab
+      if (!hasParametersChanged) {
+        console.log(`⚡ UnifiedPriceChart: Skipping projection generation (no parameter changes)`)
         return
       }
 
@@ -167,7 +174,7 @@ export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPric
     }
 
     generateProjection()
-  }, [historicalData, params.priceModel, params.initialBtcPrice, params.simulationMonths, params.annualGrowthRates, params.powerLawSettings])
+  }, [historicalData.length, hasParametersChanged, isPriceProjectionTab])
 
   // Merge historical and projection data into continuous timeline
   const chartData = useMemo(() => {
