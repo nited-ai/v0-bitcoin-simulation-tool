@@ -2,35 +2,44 @@
 
 ## Quick Reference
 
-### Current State (Post-Checkpoint 11)
-- **Primary Data Source**: CSV file (`public/btc-price-history.csv`)
-- **Database Status**: Infrastructure exists but empty
+### Current State (Post-Streamlining) ✅
+- **Primary Data Source**: PostgreSQL Database (populated)
+- **Database Status**: ✅ Active with 4,287 historical records
 - **Data Points**: 4,287 historical records (2013-2024)
-- **System Status**: ✅ Fully functional with CSV fallback
+- **System Status**: ✅ Fully functional with centralized data service
 
-## Data Flow Overview
+## Data Flow Overview (Streamlined)
 
 ```
-User Request → React Hook → Data Loader → CSV File → Chart Display
-                    ↓
-              (Database API - Empty)
+App Initialization → Centralized Data Service → PostgreSQL Database → All Components
+                                ↓
+                    Reactive State Management → Real-time Updates
 ```
 
 ## Key Files & Their Roles
 
-### 🎯 Primary Data Loading
+### 🎯 Centralized Data Management (New)
 | File | Role | Status |
 |------|------|--------|
-| `app/simulation/hooks/useHistoricalData.ts` | Main data loading hook | ✅ Active |
-| `lib/price-engine/historical-data-loader.ts` | Data orchestrator | ✅ Active |
-| `app/simulation/data/historicalDataLoader.ts` | CSV fallback loader | ✅ Active |
+| `lib/services/centralized-data-service.ts` | Single source of truth | ✅ Active |
+| `app/simulation/hooks/useCentralizedData.ts` | Main data hook | ✅ Active |
+| `app/simulation/hooks/useHistoricalDataOnly.ts` | Lightweight historical hook | ✅ Active |
+| `app/simulation/hooks/useCurrentPriceOnly.ts` | Lightweight current price hook | ✅ Active |
 
-### 🗄️ Database Layer (Unused)
+### 🗄️ Database Layer (Active)
 | File | Role | Status |
 |------|------|--------|
-| `app/api/bitcoin-prices/historical/route.ts` | Historical data API | ⚠️ Empty DB |
-| `app/api/bitcoin-prices/current/route.ts` | Current price API | ⚠️ Empty DB |
-| `prisma/seed.ts` | Database seeding | ❌ Disabled |
+| `app/api/bitcoin-prices/historical/route.ts` | Historical data API | ✅ Populated DB |
+| `app/api/bitcoin-prices/current/route.ts` | Current price API | ✅ Working |
+| PostgreSQL Database | Primary data storage | ✅ 4,287 records |
+
+### ❌ Removed/Deprecated Files
+| File | Role | Status |
+|------|------|--------|
+| `app/simulation/data/historicalDataLoader.ts` | CSV fallback loader | ❌ Deleted |
+| `lib/price-engine/cache-manager.ts` | Conflicting cache layer | ❌ Deleted |
+| `lib/price-engine/historical-chart-cache.ts` | Chart-specific cache | ❌ Deleted |
+| `app/simulation/hooks/useHistoricalData.ts` | Old data loading hook | ⚠️ Deprecated |
 
 ### 📊 Chart Components
 | File | Role | Status |
