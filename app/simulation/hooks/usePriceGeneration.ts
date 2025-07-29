@@ -25,13 +25,16 @@ export function usePriceGeneration() {
     if (historicalPriceData.length === 0) return
     if (!initialDataLoaded) return // Wait for initial data loading to complete
 
-
+    console.log(`🔄 Chart generation useEffect triggered for model: ${params.priceModel}`)
 
     const generateData = async () => {
       // Show loading for chart generation
       setChartLoading(true)
 
-
+      console.log(`🔄 Regenerating chart data for price model: ${params.priceModel}`)
+      if (params.priceModel === 'powerLaw') {
+        console.log(`   📊 Power Law prognosis line: ${params.powerLawSettings?.prognosisLine || 'fit'}`)
+      }
 
       try {
         // Calculate historical patterns needed for specific models
@@ -60,7 +63,7 @@ export function usePriceGeneration() {
         // Call the engine to get the complete chart data
         const chartData = await generatePriceChartData(engineParams, historicalPriceData)
         setPriceChartData(chartData)
-
+        console.log(`✅ Chart data generated: ${chartData.length} points for model ${params.priceModel}`)
       } catch (error) {
         console.error("Error generating price chart data:", error)
         setErrors((prev) => [...prev, "Failed to generate price model data."])

@@ -41,7 +41,7 @@ export function useHistoricalData() {
         const isCacheHit = loadTime < 1000 // Großzügige Grenze für Cache-Hits
         setCacheStatus(isCacheHit ? 'cached' : 'fresh')
 
-
+        console.log(`📊 Historical data loaded: ${data.length} points in ${Math.round(loadTime)}ms`)
 
         // Set historical data first
         setHistoricalPriceData(data)
@@ -51,7 +51,7 @@ export function useHistoricalData() {
           firstRun.current = false
           const latestPrice = data.length > 0 ? data[data.length - 1].close : DEFAULT_PARAMS.initialBtcPrice
           const initialPrice = (await loadCurrentBtcPrice()) ?? latestPrice
-
+          console.log(`💰 Setting initial BTC price: ${initialPrice}`)
           setParams((p) => ({ ...p, initialBtcPrice: initialPrice }))
         }
 
