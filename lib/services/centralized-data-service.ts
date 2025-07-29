@@ -39,6 +39,7 @@ export interface DataServiceState {
   isLoadingHistoricalData: boolean
   lastHistoricalDataLoad: number
   errors: string[]
+  isInitializing: boolean // Flag to prevent premature notifications during initialization
 }
 
 /**
@@ -53,7 +54,8 @@ class CentralizedDataService {
     isHistoricalDataLoaded: false,
     isLoadingHistoricalData: false,
     lastHistoricalDataLoad: 0,
-    errors: []
+    errors: [],
+    isInitializing: false
   }
   
   private subscribers: Set<(state: DataServiceState) => void> = new Set()
@@ -88,8 +90,15 @@ class CentralizedDataService {
   
   /**
    * Notify all subscribers of state changes
+   * Skip notifications during initialization to prevent duplicate chart generations
    */
   private notifySubscribers(): void {
+    // Don't notify subscribers during initialization to prevent duplicate chart generations
+    if (this.state.isInitializing) {
+      console.log('🔇 Skipping subscriber notifications during initialization')
+      return
+    }
+
     this.subscribers.forEach(callback => callback(this.state))
   }
   
@@ -256,23 +265,47 @@ class CentralizedDataService {
   /**
    * Initialize the data service
    * Should be called once when the app starts
+   * Loads both historical data AND current price before notifying components
    */
   async initialize(): Promise<void> {
     console.log('🚀 Initializing Centralized Data Service...')
-    
+
+    // Set initialization flag to prevent premature notifications
+    this.state.isInitializing = true
+
     try {
       // Load historical data first
+      console.log('📊 Loading historical data...')
       await this.loadHistoricalData()
-      
-      // Try to get current price (non-blocking)
-      this.getCurrentPrice().catch(error => {
-        console.warn('⚠️ Could not fetch current price during initialization:', error)
-      })
-      
-      console.log('✅ Centralized Data Service initialized successfully')
-      
+
+      // Load current price synchronously to prevent duplicate chart generations
+      console.log('💰 Loading current price...')
+      try {
+        await this.getCurrentPrice()
+        console.log('✅ Both historical data and current price loaded successfully')
+      } catch (error) {
+        console.warn('⚠️ Could not fetch current price during initialization, using latest historical price:', error)
+        // Set current price to latest historical price as fallback
+        const latestPrice = this.getLatestHistoricalPrice()
+        if (latestPrice) {
+          this.state.currentPrice = {
+            price: latestPrice,
+            timestamp: Date.now(),
+            source: 'historical_fallback',
+            lastUpdated: new Date().toISOString()
+          }
+          console.log(`📈 Using latest historical price as current price: $${latestPrice}`)
+        }
+      }
+
+      // Initialization complete - now notify subscribers with complete data
+      this.state.isInitializing = false
+      console.log('✅ Centralized Data Service initialized successfully - notifying subscribers')
+      this.notifySubscribers()
+
     } catch (error) {
       console.error('❌ Failed to initialize Centralized Data Service:', error)
+      this.state.isInitializing = false
       throw error
     }
   }
@@ -289,7 +322,8 @@ class CentralizedDataService {
       isHistoricalDataLoaded: false,
       isLoadingHistoricalData: false,
       lastHistoricalDataLoad: 0,
-      errors: []
+      errors: [],
+      isInitializing: false
     }
     
     this.notifySubscribers()

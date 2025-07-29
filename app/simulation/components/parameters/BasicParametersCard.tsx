@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { RefreshCw, Info, Bitcoin, DollarSign, TrendingUp } from "lucide-react"
 import { useSimulation } from "../../context/SimulationContext"
-import { loadCurrentBtcPrice } from "@/lib/load-btc-price"
+import { centralizedDataService } from "@/lib/services/centralized-data-service"
 import { NumberInput } from "@/shared/ui/forms/NumberInput"
 
 /**
@@ -39,11 +39,9 @@ export function BasicParametersCard() {
   }
 
   /**
-   * Automatically load current BTC price on component mount
+   * The current BTC price is now loaded by the centralized data service during app initialization
+   * No need to load it separately here - it will be set automatically via useCentralizedData hook
    */
-  useEffect(() => {
-    handleLoadCurrentPrice()
-  }, []) // Empty dependency array means this runs once on mount
 
   /**
    * Get investment mode description based on checkbox and savings/withdrawal amount
@@ -65,17 +63,19 @@ export function BasicParametersCard() {
   }
 
   /**
-   * Load current BTC price from API
+   * Refresh current BTC price from external APIs
    */
   const handleLoadCurrentPrice = async () => {
     setLoadingBtcPrice(true)
     try {
-      const price = await loadCurrentBtcPrice()
-      if (price) {
-        setParams((p) => ({ ...p, initialBtcPrice: price }))
+      // Use centralized data service to refresh current price
+      const currentPrice = await centralizedDataService.getCurrentPrice()
+      if (currentPrice) {
+        setParams((p) => ({ ...p, initialBtcPrice: currentPrice.price }))
+        console.log(`💰 Refreshed BTC price: $${currentPrice.price}`)
       }
     } catch (error) {
-      console.error("Failed to load current BTC price:", error)
+      console.error("Failed to refresh current BTC price:", error)
     } finally {
       setLoadingBtcPrice(false)
     }
