@@ -1,6 +1,7 @@
 import { useEffect } from "react"
 import { generatePriceChartData } from "@/lib/price-engine"
 import { getPowerLawPrice } from "@/lib/price-engine/models/power-law"
+import { smartChartCache } from "@/lib/price-engine/smart-chart-cache"
 import { useSimulation } from "../context/SimulationContext"
 import type { PriceEngineParams } from "@/lib/price-engine/types"
 
@@ -28,6 +29,19 @@ export function usePriceGeneration() {
     console.log(`🔄 Chart generation useEffect triggered for model: ${params.priceModel}`)
 
     const generateData = async () => {
+      // Check if regeneration is needed using smart cache
+      if (!smartChartCache.shouldRegenerateChart(params, historicalPriceData.length)) {
+        console.log(`⚡ Skipping chart generation: Using cached data for ${params.priceModel} model`)
+
+        // Get cached data and update state
+        const cachedData = smartChartCache.getCachedChartData(params, historicalPriceData.length)
+        if (cachedData) {
+          setPriceChartData(cachedData)
+          console.log(`✅ Chart data updated from cache: ${cachedData.length} points for model ${params.priceModel}`)
+        }
+        return
+      }
+
       // Show loading for chart generation
       setChartLoading(true)
 

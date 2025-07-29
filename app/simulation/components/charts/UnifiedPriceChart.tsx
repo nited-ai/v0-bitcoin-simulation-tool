@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { useSimulation } from '../../context/SimulationContext'
 import { priceModelRegistry } from '../../price-models/PriceModelRegistry'
 import { useHistoricalDataOnly } from '../../hooks/useCentralizedData'
+import { smartChartCache } from '@/lib/price-engine/smart-chart-cache'
 import type { PriceProjectionResult } from '../../price-models/types'
 import type { HistoricalDataPoint } from '@/lib/services/centralized-data-service'
 
@@ -107,7 +108,13 @@ export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPric
   useEffect(() => {
     const generateProjection = async () => {
       if (historicalData.length === 0) return
-      
+
+      // Check if we should skip generation due to smart caching
+      if (!smartChartCache.shouldRegenerateChart(params, historicalData.length)) {
+        console.log(`⚡ UnifiedPriceChart: Skipping projection generation (using cached data)`)
+        return
+      }
+
       try {
         setIsGeneratingProjection(true)
         setError(null)

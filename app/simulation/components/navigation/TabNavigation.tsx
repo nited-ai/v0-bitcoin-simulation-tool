@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { useTabOptimization } from '../../hooks/useTabOptimization'
 import { PriceModelSelector } from '../price-models/PriceModelSelector'
 import { UnifiedPriceChart } from '../charts/UnifiedPriceChart'
 import { SimplifiedManualGrowthInterface } from '../price-models/manual/SimplifiedManualGrowthInterface'
@@ -43,6 +44,18 @@ export function TabNavigation({ children }: TabNavigationProps) {
   }
 
   const [activeTab, setActiveTab] = useState<TabValue>(getInitialTab)
+
+  // Tab optimization hook
+  const { isTabSwitching, getCacheStats } = useTabOptimization({
+    currentTab: activeTab,
+    onTabChange: (tab) => {
+      console.log(`🎯 Tab optimization: Switched to ${tab} tab`)
+      if (tab === 'price-projection') {
+        const stats = getCacheStats()
+        console.log(`📊 Chart cache stats: ${stats.size} entries cached`)
+      }
+    }
+  })
 
   // Update tab when URL changes
   useEffect(() => {

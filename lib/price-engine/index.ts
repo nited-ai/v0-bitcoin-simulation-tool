@@ -10,6 +10,7 @@ import { generateCycleRepeatPowerLawPath } from "./models/cycle-repeat-power-law
 import { PerformanceMonitor } from "./performance-monitor"
 import { generateProjectionPath } from "./projection-generator"
 import { mergeHistoricalAndProjection, addPowerLawLines } from "./chart-merger"
+import { smartChartCache } from "./smart-chart-cache"
 
 /**
  * The main dispatcher for the Price Engine.
@@ -141,8 +142,13 @@ async function generatePriceChartDataOptimized(
   // Step 4: Merge cached historical data with new projection (fast)
   const chartData = mergeHistoricalAndProjection(historicalChartData, projectionPath)
 
-  // Step 5: Always add Power Law reference lines (fast, deterministic)
-  addPowerLawLines(chartData, params)
+  // Step 5: Add Power Law reference lines only when needed (conditional optimization)
+  if (params.priceModel === 'powerLaw' || params.priceModel === 'cycleRepeatPowerLaw') {
+    console.log(`📊 Adding Power Law reference lines for ${params.priceModel} model`)
+    addPowerLawLines(chartData, params)
+  } else {
+    console.log(`⚡ Skipping Power Law lines for ${params.priceModel} model (not needed)`)
+  }
 
   return chartData
 }
@@ -155,15 +161,27 @@ export async function generatePriceChartData(
   params: PriceEngineParams,
   historicalData: HistoricalDataPoint[],
 ): Promise<PriceChartDataPoint[]> {
-  console.log("🚀 Generating optimized price chart data...")
+  console.log("🚀 Generating smart cached price chart data...")
   const startTime = performance.now()
 
-  // Use optimized version that caches historical data processing
+  // Check if we can use cached data
+  const cachedData = smartChartCache.getCachedChartData(params, historicalData.length)
+  if (cachedData) {
+    const totalTime = performance.now() - startTime
+    console.log(`⚡ Smart cache hit: Chart data retrieved in ${Math.round(totalTime)}ms (${cachedData.length} points)`)
+    return cachedData
+  }
+
+  // Generate new data if not cached
+  console.log(`🔄 Cache miss: Generating new chart data for ${params.priceModel} model`)
   const data = await generatePriceChartDataOptimized(params, historicalData)
+
+  // Cache the generated data
+  smartChartCache.cacheChartData(params, historicalData.length, data)
 
   const totalTime = performance.now() - startTime
   PerformanceMonitor.recordLoadTime("chart-generation", totalTime)
-  console.log(`✅ Optimized chart data generated in ${Math.round(totalTime)}ms (${data.length} points)`)
+  console.log(`✅ Smart cached chart data generated in ${Math.round(totalTime)}ms (${data.length} points)`)
 
   return data
 }
