@@ -127,8 +127,8 @@ async function generatePriceChartDataOptimized(
 
   // Step 2: Get the last historical price to connect projection properly
   const lastHistoricalPoint = historicalData[historicalData.length - 1]
-  const lastHistoricalPrice = lastHistoricalPoint?.price || params.initialBtcPrice
-  const lastHistoricalDate = lastHistoricalPoint?.date || new Date()
+  const lastHistoricalPrice = lastHistoricalPoint?.close || params.initialBtcPrice
+  const lastHistoricalDate = lastHistoricalPoint?.date ? new Date(lastHistoricalPoint.date) : new Date()
 
   // Step 3: Generate projection path starting from last historical point (fast)
   const projectionParams = {

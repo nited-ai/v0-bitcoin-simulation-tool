@@ -14,7 +14,16 @@ export function generateProjectionPath(params: PriceEngineParams & {
   console.log(`🎯 Generating projection for model: ${params.priceModel}`)
 
   // Use projectionStartDate if provided, otherwise use current date
-  const startDate = params.projectionStartDate || new Date()
+  // Ensure startDate is always a proper Date object
+  let startDate: Date
+  if (params.projectionStartDate) {
+    startDate = params.projectionStartDate instanceof Date
+      ? params.projectionStartDate
+      : new Date(params.projectionStartDate)
+  } else {
+    startDate = new Date()
+  }
+
   const projectionParams = { ...params, projectionStartDate: startDate }
 
   switch (params.priceModel) {

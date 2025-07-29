@@ -98,9 +98,10 @@ export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPric
   const [projection, setProjection] = useState<PriceProjectionResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isDownloading, setIsDownloading] = useState(false)
+  const [isGeneratingProjection, setIsGeneratingProjection] = useState(false)
 
-  // Set loading state based on centralized data service
-  const loading = isLoading || !isLoaded
+  // Set loading state based on centralized data service and projection generation
+  const loading = isLoading || !isLoaded || isGeneratingProjection
 
   // Generate projection when model or parameters change
   useEffect(() => {
@@ -108,7 +109,7 @@ export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPric
       if (historicalData.length === 0) return
       
       try {
-        setLoading(true)
+        setIsGeneratingProjection(true)
         setError(null)
         
 
@@ -154,7 +155,7 @@ export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPric
         console.error('❌ Error generating projection:', err)
         setError('Failed to generate price projection')
       } finally {
-        setLoading(false)
+        setIsGeneratingProjection(false)
       }
     }
 

@@ -44,7 +44,7 @@ export function usePriceGeneration() {
           .slice(1)
 
         const historicalChannelPositions = historicalPriceData.slice(-1458).map((dataPoint) => {
-          const date = new Date(dataPoint.time * 1000)
+          const date = new Date(dataPoint.timestamp) // timestamp is already in milliseconds
           const price = dataPoint.close
           const support = getPowerLawPrice(date, "support")
           const resistance = getPowerLawPrice(date, "resistance")

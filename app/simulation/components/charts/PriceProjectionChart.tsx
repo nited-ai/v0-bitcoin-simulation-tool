@@ -49,9 +49,14 @@ export function PriceProjectionChart() {
       
 
       
+      // Get the last historical price as starting point for projections
+      const lastHistoricalPrice = historicalDataEur.length > 0
+        ? historicalDataEur[historicalDataEur.length - 1].close
+        : params.initialBtcPrice
+
       // Prepare model parameters based on selected model
       let modelParams = {
-        startPrice: params.initialBtcPrice,
+        startPrice: lastHistoricalPrice,
         projectionMonths: params.simulationMonths,
         modelSpecificParams: {
           riskLevel: params.riskLevel || 'optimistic' // Pass risk level to all models
