@@ -17,7 +17,7 @@ export function PersonalLanding() {
             FIRE hodl
           </h1>
           <p className="text-xl md:text-2xl text-muted-foreground">
-            The definitive tool for Bitcoin holders to achieve financial independence and retire early
+            The simulation tool for Bitcoin holders to achieve financial independence and retire early
           </p>
         </div>
 

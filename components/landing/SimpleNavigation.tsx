@@ -31,7 +31,7 @@ export function SimpleNavigation() {
         {/* CTA Button */}
         <Button asChild className="bg-orange-500 hover:bg-orange-600">
           <Link href="/simulation">
-            Try the Tool
+Go to Simuator
           </Link>
         </Button>
       </div>
