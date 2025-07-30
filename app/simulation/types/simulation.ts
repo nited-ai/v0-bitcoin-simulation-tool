@@ -176,7 +176,7 @@ export const DEFAULT_PARAMS: SimulationParams = {
   riskLevel: "optimistic",
   platform: "firefish",
   maxLoanAmountPercent: 15, // 15% of BTC stack value
-  investmentStrategy: "athBased",
+  investmentStrategy: "default",
   athBasedParams: {
     athThresholdPercent: 80,
     investmentMultiplier: 2.0,

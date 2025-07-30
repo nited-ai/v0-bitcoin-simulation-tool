@@ -25,7 +25,8 @@ describe('Monthly Savings/Withdrawal Functionality', () => {
       monthlyWithdrawalAmount: 1000, // €1000 monthly savings
       simulationMonths: 3,
       investmentStrategy: 'default',
-      expectedAnnualInflation: 2.0
+      expectedAnnualInflation: 2.0,
+      btcAccumulation: true
     }
 
     const results = await runStrategySimulation(params, mockPriceData, mockHistoricalData)
@@ -47,7 +48,8 @@ describe('Monthly Savings/Withdrawal Functionality', () => {
       monthlyWithdrawalAmount: -1000, // €1000 monthly withdrawal
       simulationMonths: 3,
       investmentStrategy: 'default',
-      expectedAnnualInflation: 2.0
+      expectedAnnualInflation: 2.0,
+      btcAccumulation: true
     }
 
     const results = await runStrategySimulation(params, mockPriceData, mockHistoricalData)
@@ -64,7 +66,8 @@ describe('Monthly Savings/Withdrawal Functionality', () => {
       monthlyWithdrawalAmount: 0, // No savings or withdrawals
       simulationMonths: 3,
       investmentStrategy: 'default',
-      expectedAnnualInflation: 2.0
+      expectedAnnualInflation: 2.0,
+      btcAccumulation: true
     }
 
     const results = await runStrategySimulation(params, mockPriceData, mockHistoricalData)

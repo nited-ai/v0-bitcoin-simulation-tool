@@ -15,8 +15,8 @@ import { RiskLevelSelector } from '../parameters/RiskLevelSelector'
 import { CollateralAnalysisCard } from '../parameters/CollateralAnalysisCard'
 import { LoanParametersCard } from '../parameters/LoanParametersCard'
 import { PlatformSelector } from '../parameters/PlatformSelector'
+import { ResultsPage } from '../results/ResultsPage'
 import { useSimulation } from '../../context/SimulationContext'
-import { Settings, TrendingUp } from 'lucide-react'
 import type { PriceProjectionResult } from '../../price-models/types'
 // import { CsvUpdatePanel } from '../admin/CsvUpdatePanel' // Disabled for production
 
@@ -83,17 +83,8 @@ export function TabNavigation({ children }: TabNavigationProps) {
               </Badge>
             </span>
           </TabsTrigger>
-          <TabsTrigger
-            value="results"
-            disabled
-            className="cursor-not-allowed opacity-60 relative"
-          >
-            <span className="flex items-center gap-2">
-              Results
-              <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-700 border-orange-200">
-                Coming Soon
-              </Badge>
-            </span>
+          <TabsTrigger value="results">
+            Results
           </TabsTrigger>
         </TabsList>
         
@@ -174,15 +165,7 @@ export function TabNavigation({ children }: TabNavigationProps) {
         </TabsContent>
         
         <TabsContent value="results" className="mt-6">
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold">Results</h2>
-              <p className="text-muted-foreground">View your simulation results and analysis.</p>
-            </div>
-            <div className="p-6 border rounded-lg">
-              <p>Results content will be implemented here</p>
-            </div>
-          </div>
+          <ResultsPage />
         </TabsContent>
       </Tabs>
     </div>

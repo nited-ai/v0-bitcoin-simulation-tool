@@ -32,13 +32,24 @@ export async function runStrategySimulation(
   // Get the appropriate strategy instance
   const strategy = getStrategyInstance(params.investmentStrategy)
   
-  // Create a fast lookup map for prices
+  // Create a fast lookup map for prices with multiple date formats
   const priceLookup = new Map<string, number>()
   priceChartData.forEach((p) => {
     if (p.simulationPath) {
+      // Store with original date format
       priceLookup.set(p.date, p.simulationPath)
+
+      // Also store with ISO format for better matching
+      try {
+        const isoDate = new Date(p.date).toISOString().split("T")[0]
+        priceLookup.set(isoDate, p.simulationPath)
+      } catch (e) {
+        // Ignore date parsing errors
+      }
     }
   })
+
+  console.log(`📊 Price lookup map created with ${priceLookup.size} entries`)
 
   const tempResults: MonthlyResult[] = []
   let activeLoans: Loan[] = []
@@ -55,8 +66,24 @@ export async function runStrategySimulation(
     const dateStringForTable = `${(currentDate.getMonth() + 1).toString().padStart(2, "0")}/${currentDate.getFullYear()}`
     const dateStringForLookup = currentDate.toISOString().split("T")[0]
 
-    // Get the pre-calculated BTC price from our lookup map
-    const btcPrice = priceLookup.get(dateStringForLookup) ?? params.initialBtcPrice
+    // Get the pre-calculated BTC price from our lookup map with multiple fallbacks
+    let btcPrice = priceLookup.get(dateStringForLookup)
+
+    if (!btcPrice) {
+      // Try alternative date formats
+      const altDate1 = currentDate.toISOString().split("T")[0]
+      const altDate2 = `${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, "0")}-${currentDate.getDate().toString().padStart(2, "0")}`
+
+      btcPrice = priceLookup.get(altDate1) || priceLookup.get(altDate2)
+
+      if (!btcPrice) {
+        // Final fallback: use initial price but log warning
+        btcPrice = params.initialBtcPrice
+        if (month <= 3) { // Only log for first few months to avoid spam
+          console.warn(`⚠️ No price data found for month ${month} (${dateStringForLookup}), using initial price: $${btcPrice}`)
+        }
+      }
+    }
 
     const monthlyEvents: MonthlyEvent[] = []
     const collateralValue = totalBtcAmount * btcPrice
@@ -195,7 +222,7 @@ export async function runStrategySimulation(
       realCollateralValue: Math.round(finalCollateralValue / cumulativeInflationFactor),
       totalDebt: Math.round(finalTotalDebt),
       realTotalDebt: Math.round(finalTotalDebt / cumulativeInflationFactor),
-      withdrawalAmount: Math.round(monthlySavings - withdrawalThisMonth), // Positive = savings, Negative = withdrawal
+      withdrawalAmount: Math.round(monthlySavings - withdrawalThisMonth), // SIGN CONVENTION: Positive = net savings, Negative = net withdrawal
       newLoanPrincipal: Math.round(totalNewPrincipal),
       repaymentsDue: Math.round(repaymentDue),
       reinvestment: Math.round(reinvestmentAmount),

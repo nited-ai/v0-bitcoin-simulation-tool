@@ -1,107 +1,266 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { useSimulation } from "../../context/SimulationContext"
+import { useResultsAnalysis } from "../../hooks/useResultsAnalysis"
+import { TrendingUp, TrendingDown, AlertTriangle, Shield, DollarSign, Bitcoin } from "lucide-react"
 
 /**
- * Results Summary Component
- * 
- * Displays key simulation metrics in a grid of summary cards.
- * Shows first liquidation, max debt, final collateral, net worth, and BTC amount.
+ * Enhanced Results Summary Component
+ *
+ * Displays comprehensive simulation metrics in a grid of summary cards.
+ * Uses the useResultsAnalysis hook to provide detailed insights and visual indicators.
  */
 export function ResultsSummary() {
-  const { params } = useSimulation()
+  const { results, params } = useSimulation()
+  const analysis = useResultsAnalysis(results, params)
 
-  // Simple fallback function for translations
-  const t = (key: string) => {
-    const translations: Record<string, string> = {
-      "Results.title": "Results Summary",
-      "Results.description": "Key metrics from your simulation",
-      "Results.totalValue": "Total Portfolio Value",
-      "Results.monthlyIncome": "Monthly Income",
-      "Results.totalDebt": "Total Debt",
-      "Results.ltv": "Current LTV",
-      "Results.noResults": "No simulation results yet",
-      "Results.runSimulation": "Configure parameters and run simulation",
+  // Show placeholder if no results
+  if (!analysis) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        {[
+          { title: "Portfolio Value", icon: DollarSign, value: "Run Simulation" },
+          { title: "Net Worth", icon: TrendingUp, value: "Run Simulation" },
+          { title: "Total Return", icon: TrendingUp, value: "Run Simulation" },
+          { title: "Risk Level", icon: Shield, value: "Run Simulation" },
+          { title: "Performance", icon: TrendingUp, value: "Run Simulation" },
+        ].map((item, index) => (
+          <Card key={index}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <item.icon className="h-4 w-4" />
+                {item.title}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-lg font-medium text-muted-foreground">
+                {item.value}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    )
+  }
+
+  // Helper function to get color based on value
+  const getValueColor = (value: number, isPositive: boolean = true) => {
+    if (value === 0) return "text-muted-foreground"
+    return isPositive
+      ? (value > 0 ? "text-green-600" : "text-red-600")
+      : (value > 0 ? "text-red-600" : "text-green-600")
+  }
+
+  // Helper function to get risk color
+  const getRiskColor = (riskLevel: string) => {
+    switch (riskLevel) {
+      case 'low': return "text-green-600"
+      case 'medium': return "text-yellow-600"
+      case 'high': return "text-orange-600"
+      case 'extreme': return "text-red-600"
+      default: return "text-muted-foreground"
     }
-    return translations[key] || key
   }
 
-  // Simple mock data for now
-  const summary = {
-    totalPortfolioValue: params.btcAmount * params.initialBtcPrice,
-    monthlyIncome: params.monthlyWithdrawalAmount,
-    totalDebt: 0,
-    currentLtv: 0,
+  // Helper function to get performance color
+  const getPerformanceColor = (rating: string) => {
+    switch (rating) {
+      case 'excellent': return "text-green-600"
+      case 'good': return "text-blue-600"
+      case 'fair': return "text-yellow-600"
+      case 'poor': return "text-red-600"
+      default: return "text-muted-foreground"
+    }
   }
-
-  // Always show summary with current parameters
-  // if (!summary) {
-  //   return (
-  //     <div className="p-4 border rounded-lg bg-muted/50">
-  //       <h3 className="font-medium mb-2">📊 Results Summary</h3>
-  //       <p className="text-sm text-muted-foreground">
-  //         Run a simulation to see the results summary.
-  //       </p>
-  //     </div>
-  //   )
-  // }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-      {/* First Liquidation */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">{t("Results.firstLiquidation")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">
-            {summary.firstLiquidationMonth
-              ? `${t("Results.month")} ${summary.firstLiquidationMonth}`
-              : t("Results.none")}
-          </div>
-        </CardContent>
-      </Card>
+    <div className="space-y-6">
+      {/* Main Performance Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Portfolio Value */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <DollarSign className="h-4 w-4" />
+              Final Portfolio Value
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              ${analysis.finalPortfolioValue.toLocaleString("en-US")}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Total BTC value at end
+            </p>
+          </CardContent>
+        </Card>
 
-      {/* Max Debt */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">{t("Results.maxDebt")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">${summary.maxDebt.toLocaleString("en-US")}</div>
-        </CardContent>
-      </Card>
+        {/* Net Worth */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" />
+              Net Worth
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${getValueColor(analysis.finalNetWorth)}`}>
+              ${analysis.finalNetWorth.toLocaleString("en-US")}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Portfolio value minus debt
+            </p>
+          </CardContent>
+        </Card>
 
-      {/* Final Collateral */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="font-medium text-sm">{t("Results.finalCollateral")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">${summary.finalCollateralValue.toLocaleString("en-US")}</div>
-        </CardContent>
-      </Card>
+        {/* Total Return */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              {analysis.totalReturn >= 0 ? (
+                <TrendingUp className="h-4 w-4 text-green-600" />
+              ) : (
+                <TrendingDown className="h-4 w-4 text-red-600" />
+              )}
+              Total Return
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${getValueColor(analysis.totalReturn)}`}>
+              {analysis.totalReturnPercent >= 0 ? '+' : ''}
+              {analysis.totalReturnPercent.toFixed(1)}%
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {analysis.annualizedReturn.toFixed(1)}% annualized
+            </p>
+          </CardContent>
+        </Card>
 
-      {/* Final Net Worth */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="font-medium text-sm">{t("Results.finalNetWorth")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">${summary.finalNetWorth.toLocaleString("en-US")}</div>
-        </CardContent>
-      </Card>
+        {/* Risk Assessment */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Shield className="h-4 w-4" />
+              Risk Level
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2">
+              <Badge
+                variant="outline"
+                className={`${getRiskColor(analysis.riskLevel)} border-current`}
+              >
+                {analysis.riskLevel.toUpperCase()}
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Score: {analysis.riskScore}/100
+            </p>
+          </CardContent>
+        </Card>
+      </div>
 
-      {/* Final BTC Amount */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="font-medium text-sm">{t("Results.finalBtcAmount")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{summary.finalBtcAmount?.toFixed(4)} BTC</div>
-        </CardContent>
-      </Card>
+      {/* Detailed Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        {/* BTC Growth */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Bitcoin className="h-4 w-4" />
+              BTC Growth
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className={`text-xl font-bold ${getValueColor(analysis.btcGrowth)}`}>
+              {analysis.btcGrowth >= 0 ? '+' : ''}
+              {analysis.btcGrowth.toFixed(4)} BTC
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {analysis.btcGrowthPercent.toFixed(1)}% increase
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Max Drawdown */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <TrendingDown className="h-4 w-4" />
+              Max Drawdown
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl font-bold text-red-600">
+              -{analysis.maxDrawdownPercent.toFixed(1)}%
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              ${analysis.maxDrawdown.toLocaleString("en-US")}
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Liquidations */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" />
+              Liquidations
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className={`text-xl font-bold ${analysis.liquidationCount > 0 ? 'text-red-600' : 'text-green-600'}`}>
+              {analysis.liquidationCount}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {analysis.firstLiquidationMonth
+                ? `First: Month ${analysis.firstLiquidationMonth}`
+                : 'None occurred'
+              }
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Max LTV */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">
+              Max LTV
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className={`text-xl font-bold ${analysis.maxLTV > 80 ? 'text-red-600' : analysis.maxLTV > 60 ? 'text-yellow-600' : 'text-green-600'}`}>
+              {analysis.maxLTV.toFixed(1)}%
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Avg: {analysis.averageLTV.toFixed(1)}%
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Performance Rating */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">
+              Performance
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2">
+              <Badge
+                variant="outline"
+                className={`${getPerformanceColor(analysis.performanceRating)} border-current`}
+              >
+                {analysis.performanceRating.toUpperCase()}
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Score: {analysis.performanceScore}/100
+            </p>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

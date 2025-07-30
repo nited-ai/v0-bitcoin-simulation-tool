@@ -50,6 +50,8 @@ export function useSimulationRunner() {
         loanTermMonths: params.loanTermMonths,
         simulationMonths: params.simulationMonths,
         maxLoanAmount: calculatedMaxLoanAmount, // Use calculated amount instead of params.maxLoanAmount
+        expectedAnnualInflation: 3.0, // Default 3% annual inflation
+        btcAccumulation: (params as any).btcAccumulation ?? true, // Default to true if not set
         riskManagement: params.riskManagement,
         investmentStrategy: params.investmentStrategy,
         athBasedParams: params.athBasedParams,
@@ -104,7 +106,7 @@ export function useSimulationRunner() {
    * Check if simulation can be run
    */
   const canRunSimulation = useCallback(() => {
-    return priceChartData.length > 0 && !params.btcAmount || params.btcAmount <= 0
+    return priceChartData.length === 0 || !params.btcAmount || params.btcAmount <= 0
   }, [priceChartData.length, params.btcAmount])
 
   /**
