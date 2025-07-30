@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -8,7 +9,7 @@ import Image from "next/image"
 export function PersonalLanding() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-16">
-      
+
       {/* 1. Hero Section with Personal Introduction */}
       <section id="hero" className="text-center space-y-8">
         <div className="space-y-4">
@@ -22,12 +23,12 @@ export function PersonalLanding() {
 
         {/* Hero Image */}
         <div className="flex justify-center">
-          <div className="w-64 h-128 relative">
+          <div className="w-64 h-64 relative">
             <Image
               src="/hero-bitcoin-beach.png"
               alt="Bitcoin character on tropical beach - representing financial freedom"
-              width={375}
-              height={500}
+              width={256}
+              height={256}
               className="rounded-lg"
               priority
             />
@@ -36,11 +37,11 @@ export function PersonalLanding() {
 
         <div className="space-y-4 text-lg">
           <p>
-            Hi! I'm a developer who created this Bitcoin simulation tool because I believe in a simple truth: 
+            Hi! I'm a developer who created this Bitcoin simulation tool because I believe in a simple truth:
             <strong> you shouldn't have to sell the hardest money ever created to achieve financial freedom.</strong>
           </p>
           <p>
-            As Bitcoin matures, new opportunities are emerging to use BTC as collateral for loans while maintaining custody. 
+            As Bitcoin matures, new opportunities are emerging to use BTC as collateral for loans while maintaining custody.
             This opens doors for Bitcoiners to either live off their Bitcoin or use loans for leveraging to accumulate more BTC.
           </p>
           <p className="text-orange-600 dark:text-orange-400 font-medium">
@@ -63,11 +64,11 @@ export function PersonalLanding() {
             <strong>Using BTC as collateral carries real risks - you could lose your Bitcoin if you're not careful.</strong>
           </p>
           <p>
-            I created this simulator to help people understand what to expect and be aware of these risks before making any decisions. 
+            I created this simulator to help people understand what to expect and be aware of these risks before making any decisions.
             This isn't financial advice - it's a tool to help you think through scenarios and understand the mechanics.
           </p>
           <p>
-            The traditional approach of "sell your assets to retire" never made sense to me when it comes to Bitcoin. 
+            The traditional approach of "sell your assets to retire" never made sense to me when it comes to Bitcoin.
             Why sell the best performing asset in history when you might be able to use it as collateral instead?
           </p>
         </div>
@@ -79,7 +80,7 @@ export function PersonalLanding() {
         <p className="text-lg text-muted-foreground">
           Functionality is currently limited but expanding. Here's what you can simulate today:
         </p>
-        
+
         <div className="grid md:grid-cols-2 gap-6">
           <Card>
             <CardContent className="p-6">
@@ -153,6 +154,29 @@ export function PersonalLanding() {
         </div>
       </section>
 
+      {/* 5. Personal Mission Statement */}
+      <section className="space-y-6">
+        <h2 className="text-3xl font-bold">Why I Built This</h2>
+        <div className="space-y-4 text-lg">
+          <p>
+            I developed this tool for my own use first - I wanted to understand the risks and opportunities
+            of using Bitcoin as collateral before making any real-world decisions.
+          </p>
+          <p>
+            But I believe everyone should have access to these kinds of analysis tools. Financial independence
+            shouldn't be reserved for people with expensive financial advisors.
+          </p>
+          <p>
+            <strong>I want everyone to benefit and achieve financial independence/early retirement.</strong>
+            That's why I'm sharing this tool and why I want your feedback and feature requests.
+          </p>
+          <p>
+            If you're a fellow Bitcoiner working on similar problems or have ideas for improvements,
+            I'd love to connect and collaborate.
+          </p>
+        </div>
+      </section>
+
       {/* 6. Transparent Donation Request */}
       <section id="support" className="space-y-6">
         <h2 className="text-3xl font-bold">Support This Project</h2>
@@ -192,9 +216,14 @@ export function PersonalLanding() {
             </p>
           </CardContent>
         </Card>
-                  <p>
-            If this tool helps you or you believe in the mission, Bitcoin donations help me continue development:
+
+        <div className="text-lg">
+          <p className="text-center">
+            Any support, feedback or feature requests are appreciatively welcome!
+            <br></br>Reach out on <a href="https://x.com/hodl_fire" target="_blank" rel="noopener noreferrer" className="text-orange-600 hover:text-orange-700">X</a> 
+             &nbsp;or simply write to <a href="mailto:reachout@firehodl.com" className="text-orange-600 hover:text-orange-700">reachout@firehodl.com</a>.
           </p>
+        </div>
       </section>
 
       {/* 7. Bitcoin Ethos Commitment */}
@@ -258,26 +287,3 @@ export function PersonalLanding() {
     </div>
   )
 }
-
-      {/* 5. Personal Mission Statement */}
-      <section className="space-y-6">
-        <h2 className="text-3xl font-bold">Why I Built This</h2>
-        <div className="space-y-4 text-lg">
-          <p>
-            I developed this tool for my own use first - I wanted to understand the risks and opportunities 
-            of using Bitcoin as collateral before making any real-world decisions.
-          </p>
-          <p>
-            But I believe everyone should have access to these kinds of analysis tools. Financial independence 
-            shouldn't be reserved for people with expensive financial advisors.
-          </p>
-          <p>
-            <strong>I want everyone to benefit and achieve financial independence/early retirement.</strong> 
-            That's why I'm sharing this tool and why I want your feedback and feature requests.
-          </p>
-          <p>
-            If you're a fellow Bitcoiner working on similar problems or have ideas for improvements, 
-            I'd love to connect and collaborate.
-          </p>
-        </div>
-      </section>
