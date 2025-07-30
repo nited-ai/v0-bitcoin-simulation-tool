@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { ModeToggle } from "@/components/mode-toggle"
 
 export function SimpleNavigation() {
   return (
@@ -28,12 +29,15 @@ export function SimpleNavigation() {
           </Link>
         </div>
 
-        {/* CTA Button */}
-        <Button asChild className="bg-orange-500 hover:bg-orange-600">
-          <Link href="/simulation">
-Go to Simuator
-          </Link>
-        </Button>
+        {/* Controls and CTA Button */}
+        <div className="flex items-center gap-2">
+          <ModeToggle />
+          <Button asChild className="bg-orange-500 hover:bg-orange-600">
+            <Link href="/simulation">
+              Go to Simuator
+            </Link>
+          </Button>
+        </div>
       </div>
     </nav>
   )
