@@ -7,8 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts"
 import { useSimulation } from "../../context/SimulationContext"
 import { priceModelRegistry } from "../../price-models/PriceModelRegistry"
-import { loadHistoricalData, convertToEur } from "../../data/historicalDataLoader"
+import { useHistoricalDataOnly } from "../../hooks/useCentralizedData"
 import type { PriceProjectionResult, PriceLineType } from "../../price-models/types"
+import type { HistoricalDataPoint } from "@/lib/services/centralized-data-service"
 import type { HistoricalDataPoint } from "../../data/historicalDataLoader"
 
 /**
@@ -19,32 +20,25 @@ import type { HistoricalDataPoint } from "../../data/historicalDataLoader"
  */
 export function PriceProjectionChart() {
   const { params } = useSimulation()
+  const { historicalData, isLoaded } = useHistoricalDataOnly()
   const [projection, setProjection] = useState<PriceProjectionResult | null>(null)
-  const [historicalData, setHistoricalData] = useState<HistoricalDataPoint[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedModel, setSelectedModel] = useState<string>('manual')
   const [selectedPriceLine, setSelectedPriceLine] = useState<PriceLineType>('volatile')
-  
-  // Load historical data on mount
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        let data = await loadHistoricalData()
-        data = convertToEur(data, 0.92)
-        setHistoricalData(data)
 
-      } catch (err) {
-        console.error('Failed to load historical data for projection:', err)
-        setError('Failed to load historical data')
-      }
-    }
-    loadData()
-  }, [])
-  
+  // Convert historical data to EUR for display
+  const historicalDataEur = historicalData.map(point => ({
+    ...point,
+    open: point.open * 0.92,
+    high: point.high * 0.92,
+    low: point.low * 0.92,
+    close: point.close * 0.92
+  }))
+
   // Generate projection when model or parameters change
   const generateProjection = async () => {
-    if (historicalData.length === 0) {
+    if (!isLoaded || historicalDataEur.length === 0) {
       setError('Historical data not loaded yet')
       return
     }
@@ -55,9 +49,14 @@ export function PriceProjectionChart() {
       
 
       
+      // Get the last historical price as starting point for projections
+      const lastHistoricalPrice = historicalDataEur.length > 0
+        ? historicalDataEur[historicalDataEur.length - 1].close
+        : params.initialBtcPrice
+
       // Prepare model parameters based on selected model
       let modelParams = {
-        startPrice: params.initialBtcPrice,
+        startPrice: lastHistoricalPrice,
         projectionMonths: params.simulationMonths,
         modelSpecificParams: {
           riskLevel: params.riskLevel || 'optimistic' // Pass risk level to all models

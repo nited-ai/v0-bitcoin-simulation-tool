@@ -116,3 +116,5 @@ temp/
 *.backup
 *.bak
 *.orig
+
+/lib/generated/prisma

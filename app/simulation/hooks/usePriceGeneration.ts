@@ -1,4 +1,5 @@
 import { useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { generatePriceChartData } from "@/lib/price-engine"
 import { getPowerLawPrice } from "@/lib/price-engine/models/power-law"
 import { useSimulation } from "../context/SimulationContext"
@@ -21,9 +22,19 @@ export function usePriceGeneration() {
     setErrors,
   } = useSimulation()
 
+  const searchParams = useSearchParams()
+
   useEffect(() => {
     if (historicalPriceData.length === 0) return
     if (!initialDataLoaded) return // Wait for initial data loading to complete
+
+    // Skip chart generation on price-projection tab to avoid duplicate generation
+    // The UnifiedPriceChart component handles projections for that tab
+    const currentTab = searchParams.get('tab') || 'parameters'
+    if (currentTab === 'price-projection') {
+      console.log(`⚡ Skipping price engine chart generation on price-projection tab (handled by UnifiedPriceChart)`)
+      return
+    }
 
     console.log(`🔄 Chart generation useEffect triggered for model: ${params.priceModel}`)
 
@@ -44,7 +55,7 @@ export function usePriceGeneration() {
           .slice(1)
 
         const historicalChannelPositions = historicalPriceData.slice(-1458).map((dataPoint) => {
-          const date = new Date(dataPoint.time * 1000)
+          const date = new Date(dataPoint.timestamp) // timestamp is already in milliseconds
           const price = dataPoint.close
           const support = getPowerLawPrice(date, "support")
           const resistance = getPowerLawPrice(date, "resistance")
@@ -81,6 +92,7 @@ export function usePriceGeneration() {
     JSON.stringify(params.annualGrowthRates || []), // Stable string representation
     historicalPriceData.length,
     initialDataLoaded,
+    searchParams, // Add searchParams to detect tab changes
     // Remove setter functions from dependencies to prevent infinite loops
   ])
 }

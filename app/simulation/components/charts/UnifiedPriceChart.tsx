@@ -1,15 +1,16 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from 'recharts'
 import { AlertCircle, Loader2, TrendingUp, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useSimulation } from '../../context/SimulationContext'
 import { priceModelRegistry } from '../../price-models/PriceModelRegistry'
-import { loadHistoricalData, keepUsdPrices } from '../../data/historicalDataLoader'
+import { useHistoricalDataOnly } from '../../hooks/useCentralizedData'
 import type { PriceProjectionResult } from '../../price-models/types'
-import type { HistoricalDataPoint } from '../../data/historicalDataLoader'
+import type { HistoricalDataPoint } from '@/lib/services/centralized-data-service'
 
 interface ChartDataPoint {
   date: string
@@ -94,46 +95,40 @@ function calculateSupportLine(historicalData: HistoricalDataPoint[]): { timestam
 
 export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartProps) {
   const { params } = useSimulation()
-  const [historicalData, setHistoricalData] = useState<HistoricalDataPoint[]>([])
+  const { historicalData, isLoaded, isLoading } = useHistoricalDataOnly()
+  const searchParams = useSearchParams()
+
   const [projection, setProjection] = useState<PriceProjectionResult | null>(null)
-  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isDownloading, setIsDownloading] = useState(false)
+  const [isGeneratingProjection, setIsGeneratingProjection] = useState(false)
 
-  // Load historical data on mount
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setError(null)
+  // Debug counter to track useEffect calls
+  const effectCallCount = useRef(0)
 
-
-        let data = await loadHistoricalData()
-        data = keepUsdPrices(data) // Keep USD prices as-is
-
-        // Use all historical data from 2013 onwards for proper Bitcoin analysis
-        // Filter out any data before 2013 (Bitcoin's early days)
-        const year2013 = new Date('2013-01-01').getTime()
-        data = data.filter(point => point.timestamp >= year2013)
-        
-        setHistoricalData(data)
-
-        
-      } catch (err) {
-        console.error('❌ Error loading historical data:', err)
-        setError('Failed to load historical data')
-      }
-    }
-
-    loadData()
-  }, [])
+  // Set loading state based on centralized data service and projection generation
+  const loading = isLoading || !isLoaded || isGeneratingProjection
 
   // Generate projection when model or parameters change
   useEffect(() => {
     const generateProjection = async () => {
       if (historicalData.length === 0) return
-      
+
+      // Only generate projections when on the price-projection tab
+      const currentTab = searchParams.get('tab') || 'parameters'
+      if (currentTab !== 'price-projection') {
+        console.log(`⚡ UnifiedPriceChart: Skipping projection generation on ${currentTab} tab`)
+        return
+      }
+
+      effectCallCount.current += 1
+      console.log(`🔄 UnifiedPriceChart: useEffect triggered #${effectCallCount.current} for ${params.priceModel} model (${historicalData.length} historical points)`)
+      console.log(`   📊 Dependencies: histLen=${historicalData.length}, model=${params.priceModel}, price=${params.initialBtcPrice}, months=${params.simulationMonths}`)
+      console.log(`   📊 Growth rates: ${JSON.stringify(params.annualGrowthRates || [])}`)
+      console.log(`   📊 PowerLaw line: ${params.powerLawSettings?.prognosisLine}`)
+
       try {
-        setLoading(true)
+        setIsGeneratingProjection(true)
         setError(null)
         
 
@@ -179,12 +174,20 @@ export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPric
         console.error('❌ Error generating projection:', err)
         setError('Failed to generate price projection')
       } finally {
-        setLoading(false)
+        setIsGeneratingProjection(false)
       }
     }
 
     generateProjection()
-  }, [historicalData, params.priceModel, params.initialBtcPrice, params.simulationMonths, params.annualGrowthRates, params.powerLawSettings])
+  }, [
+    historicalData.length, // Use length instead of full array to prevent unnecessary re-renders
+    params.priceModel,
+    params.initialBtcPrice,
+    params.simulationMonths,
+    JSON.stringify(params.annualGrowthRates || []), // Stable string representation
+    params.powerLawSettings?.prognosisLine, // Only the specific property that affects projections
+    searchParams, // Add searchParams to detect tab changes
+  ])
 
   // Merge historical and projection data into continuous timeline
   const chartData = useMemo(() => {
@@ -452,7 +455,7 @@ export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPric
             size="sm"
             onClick={downloadCSV}
             disabled={isDownloading || chartData.length === 0}
-            className="flex items-center gap-2 text-xs"
+            className="flex items-center gap-2 text-xs bg-orange-500 hover:bg-orange-600 text-white border-orange-500 hover:border-orange-600"
           >
             <Download className="h-3 w-3" />
             {isDownloading ? 'Downloading...' : 'CSV'}

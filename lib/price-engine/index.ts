@@ -8,12 +8,8 @@ import { generatePowerLawPath, getDaysSinceGenesis, getPowerLawPrice } from "./m
 import { generateCycleRepeatPath } from "./models/cycle-repeat"
 import { generateCycleRepeatPowerLawPath } from "./models/cycle-repeat-power-law"
 import { PerformanceMonitor } from "./performance-monitor"
-import { HistoricalChartDataCache } from "./historical-chart-cache"
 import { generateProjectionPath } from "./projection-generator"
 import { mergeHistoricalAndProjection, addPowerLawLines } from "./chart-merger"
-
-// Global cache instance for historical chart data
-const historicalChartCache = new HistoricalChartDataCache()
 
 /**
  * The main dispatcher for the Price Engine.
@@ -117,13 +113,22 @@ async function generatePriceChartDataOptimized(
   historicalData: HistoricalDataPoint[],
 ): Promise<PriceChartDataPoint[]> {
 
-  // Step 1: Get cached historical chart data (fast after first time)
-  const historicalChartData = await historicalChartCache.getHistoricalChartData(historicalData)
+  // Step 1: Convert historical data to chart format
+  const historicalChartData = historicalData.map(point => ({
+    date: new Date(point.timestamp).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short'
+    }),
+    timestamp: point.timestamp,
+    price: point.close,
+    isHistorical: true,
+    confidence: 1.0
+  }))
 
   // Step 2: Get the last historical price to connect projection properly
   const lastHistoricalPoint = historicalData[historicalData.length - 1]
-  const lastHistoricalPrice = lastHistoricalPoint?.price || params.initialBtcPrice
-  const lastHistoricalDate = lastHistoricalPoint?.date || new Date()
+  const lastHistoricalPrice = lastHistoricalPoint?.close || params.initialBtcPrice
+  const lastHistoricalDate = lastHistoricalPoint?.date ? new Date(lastHistoricalPoint.date) : new Date()
 
   // Step 3: Generate projection path starting from last historical point (fast)
   const projectionParams = {
@@ -136,8 +141,10 @@ async function generatePriceChartDataOptimized(
   // Step 4: Merge cached historical data with new projection (fast)
   const chartData = mergeHistoricalAndProjection(historicalChartData, projectionPath)
 
-  // Step 5: Always add Power Law reference lines (fast, deterministic)
-  addPowerLawLines(chartData, params)
+  // Step 5: Add Power Law reference lines only when needed
+  if (params.priceModel === 'powerLaw' || params.priceModel === 'cycleRepeatPowerLaw') {
+    addPowerLawLines(chartData, params)
+  }
 
   return chartData
 }

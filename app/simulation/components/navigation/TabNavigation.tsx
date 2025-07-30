@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { Badge } from '@/components/ui/badge'
 import { PriceModelSelector } from '../price-models/PriceModelSelector'
 import { UnifiedPriceChart } from '../charts/UnifiedPriceChart'
 import { SimplifiedManualGrowthInterface } from '../price-models/manual/SimplifiedManualGrowthInterface'
@@ -70,8 +71,30 @@ export function TabNavigation({ children }: TabNavigationProps) {
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="parameters">Parameters</TabsTrigger>
           <TabsTrigger value="price-projection">Price Projection</TabsTrigger>
-          <TabsTrigger value="strategy">Strategy</TabsTrigger>
-          <TabsTrigger value="results">Results</TabsTrigger>
+          <TabsTrigger
+            value="strategy"
+            disabled
+            className="cursor-not-allowed opacity-60 relative"
+          >
+            <span className="flex items-center gap-2">
+              Strategy
+              <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-700 border-orange-200">
+                Coming Soon
+              </Badge>
+            </span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="results"
+            disabled
+            className="cursor-not-allowed opacity-60 relative"
+          >
+            <span className="flex items-center gap-2">
+              Results
+              <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-700 border-orange-200">
+                Coming Soon
+              </Badge>
+            </span>
+          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="parameters" className="mt-6">

@@ -1,0 +1,71 @@
+// Bitcoin Simulation Tool - Prisma Schema
+// Comprehensive database schema for Bitcoin price data and simulation analytics
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Main table for Bitcoin price history
+model BitcoinPrice {
+  id        Int      @id @default(autoincrement())
+  date      String   @unique @db.VarChar(10) // YYYY-MM-DD format
+  timestamp BigInt   // Unix timestamp in milliseconds
+  open      Float    @db.DoublePrecision // Opening price
+  high      Float    @db.DoublePrecision // Highest price
+  low       Float    @db.DoublePrecision // Lowest price
+  close     Float    @db.DoublePrecision // Closing price
+  volume    Float?   @db.DoublePrecision // Optional volume data
+  source    String   @default("unknown") @db.VarChar(50) // Data source (CSV, CoinGecko, Binance, etc.)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Indexes for performance
+  @@index([date])
+  @@index([timestamp])
+  @@index([source])
+  @@map("bitcoin_prices")
+}
+
+// Track data update operations and their results
+model DataUpdate {
+  id             Int      @id @default(autoincrement())
+  updateDate     String   @map("update_date") @db.VarChar(10) // Date of the update operation
+  recordsAdded   Int      @default(0) @map("records_added")
+  recordsUpdated Int      @default(0) @map("records_updated")
+  source         String   @db.VarChar(50) // Source of the data (API name, CSV, etc.)
+  startDate      String?  @map("start_date") @db.VarChar(10) // Start date of data range
+  endDate        String?  @map("end_date") @db.VarChar(10) // End date of data range
+  status         String   @default("pending") @db.VarChar(20) // pending, success, failed
+  errorMessage   String?  @map("error_message") @db.Text // Error details if failed
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  // Indexes for monitoring and analytics
+  @@index([updateDate])
+  @@index([status])
+  @@index([source])
+  @@map("data_updates")
+}
+
+// API usage tracking for rate limiting and monitoring
+model ApiUsage {
+  id               Int       @id @default(autoincrement())
+  apiName          String    @map("api_name") @db.VarChar(50) // API provider name
+  endpoint         String    @db.VarChar(200) // API endpoint used
+  requestCount     Int       @default(1) @map("request_count")
+  lastRequestAt    DateTime  @default(now()) @map("last_request_at")
+  successCount     Int       @default(0) @map("success_count")
+  errorCount       Int       @default(0) @map("error_count")
+  rateLimitResetAt DateTime? @map("rate_limit_reset_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  // Indexes for rate limiting queries
+  @@index([apiName, lastRequestAt])
+  @@index([apiName, rateLimitResetAt])
+  @@map("api_usage")
+}
