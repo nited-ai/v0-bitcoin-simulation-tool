@@ -455,7 +455,7 @@ export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPric
             size="sm"
             onClick={downloadCSV}
             disabled={isDownloading || chartData.length === 0}
-            className="flex items-center gap-2 text-xs"
+            className="flex items-center gap-2 text-xs bg-orange-500 hover:bg-orange-600 text-white border-orange-500 hover:border-orange-600"
           >
             <Download className="h-3 w-3" />
             {isDownloading ? 'Downloading...' : 'CSV'}

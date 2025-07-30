@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
@@ -81,14 +82,28 @@ export function PriceModelSelector({ className }: PriceModelSelectorProps) {
       )
     }
 
-    return models.map((model) => (
-      <SelectItem key={model.id} value={model.id}>
-        <div className="flex flex-col text-left">
-          <span className="font-medium">{model.name}</span>
-          <span className="text-sm text-muted-foreground">{model.description}</span>
+    return [
+      ...models.map((model) => (
+        <SelectItem key={model.id} value={model.id}>
+          <div className="flex flex-col text-left">
+            <span className="font-medium">{model.name}</span>
+            <span className="text-sm text-muted-foreground">{model.description}</span>
+          </div>
+        </SelectItem>
+      )),
+      // Custom Model option (disabled with Coming Soon badge)
+      <SelectItem key="custom" value="custom" disabled className="cursor-not-allowed opacity-60">
+        <div className="flex items-center justify-between w-full">
+          <div className="flex flex-col text-left">
+            <span className="font-medium">Custom Model</span>
+            <span className="text-sm text-muted-foreground">Create your own price projection model</span>
+          </div>
+          <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-700 border-orange-200 ml-2">
+            Coming Soon
+          </Badge>
         </div>
       </SelectItem>
-    ))
+    ]
   }
 
   // Get the currently selected model for display
@@ -126,7 +141,7 @@ export function PriceModelSelector({ className }: PriceModelSelectorProps) {
               onValueChange={handleModelChange}
               disabled={loading || error !== null || models.length === 0}
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger className="w-full border-orange-500 border-2 focus:ring-orange-500">
                 <SelectValue placeholder="Choose price prediction model">
                   {selectedModel && (
                     <div className="flex flex-col text-left">

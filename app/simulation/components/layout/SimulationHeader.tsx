@@ -37,7 +37,8 @@ export function SimulationHeader() {
       
       {/* Right: Controls */}
       <div className="flex-1 flex justify-end gap-2">
-        <LocaleSwitcher />
+        {/* Language Selector hidden as requested */}
+        {/* <LocaleSwitcher /> */}
         <ModeToggle />
       </div>
     </div>
