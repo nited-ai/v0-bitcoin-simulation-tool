@@ -10,12 +10,26 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '../../../../lib/generated/prisma'
+import { getPrismaClient } from '../../../../lib/database/connection-manager'
 
-const prisma = new PrismaClient()
+// Use the connection manager for better error handling
+const prisma = getPrismaClient()
 
 export async function GET(request: NextRequest) {
   try {
+    // Test Prisma Client connection first
+    try {
+      await prisma.$queryRaw`SELECT 1`
+    } catch (prismaError) {
+      console.error('❌ Prisma Client initialization error:', prismaError)
+      return NextResponse.json({
+        success: false,
+        error: 'Database connection failed',
+        details: 'Prisma Client not properly initialized. Please ensure prisma generate has been run.',
+        prismaError: prismaError instanceof Error ? prismaError.message : String(prismaError)
+      }, { status: 500 })
+    }
+
     const { searchParams } = new URL(request.url)
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')

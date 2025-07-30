@@ -23,12 +23,12 @@ export function PersonalLanding() {
 
         {/* Hero Image */}
         <div className="flex justify-center">
-          <div className="w-64 h-64 relative">
+          <div className="w-64 h-128 relative">
             <Image
               src="/hero-bitcoin-beach.png"
               alt="Bitcoin character on tropical beach - representing financial freedom"
               width={256}
-              height={256}
+              height={512}
               className="rounded-lg"
               priority
             />
@@ -38,7 +38,7 @@ export function PersonalLanding() {
         <div className="space-y-4 text-lg">
           <p>
             Hi! I'm a developer who created this Bitcoin simulation tool because I believe in a simple truth:
-            <strong> you shouldn't have to sell the hardest money ever created to achieve financial freedom.</strong>
+            <br></br><strong> You shouldn't have to sell the hardest money ever created to achieve financial freedom.</strong>
           </p>
           <p>
             As Bitcoin matures, new opportunities are emerging to use BTC as collateral for loans while maintaining custody.

@@ -25,16 +25,21 @@ class DatabaseConnectionManager {
     if (!this.prismaClient) {
       console.log('🔌 Creating single shared Prisma client connection')
 
-      this.prismaClient = new PrismaClient({
-        log: ['error'],
-        datasources: {
-          db: {
-            url: process.env.DATABASE_URL
+      try {
+        this.prismaClient = new PrismaClient({
+          log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+          datasources: {
+            db: {
+              url: process.env.DATABASE_URL
+            }
           }
-        }
-      })
+        })
 
-      console.log('✅ Single shared Prisma client created')
+        console.log('✅ Single shared Prisma client created')
+      } catch (error) {
+        console.error('❌ Failed to create Prisma client:', error)
+        throw new Error('Failed to initialize Prisma Client. Make sure DATABASE_URL is set and prisma generate has been run.')
+      }
     }
 
     return this.prismaClient
