@@ -51,7 +51,7 @@ export function PersonalLanding() {
 
         <Button asChild size="lg" className="bg-orange-500 hover:bg-orange-600 text-lg px-8 py-3">
           <Link href="/simulation">
-            Try the Simulator
+            Go to Simuator
           </Link>
         </Button>
       </section>
@@ -267,7 +267,7 @@ export function PersonalLanding() {
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Button asChild size="lg" className="bg-orange-500 hover:bg-orange-600">
             <Link href="/simulation">
-              Start Simulating
+              Go to Simuator
             </Link>
           </Button>
           <Button variant="outline" size="lg" asChild>
