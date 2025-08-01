@@ -220,8 +220,9 @@ export function PersonalLanding() {
         <div className="text-lg">
           <p className="text-center">
             Any support, feedback or feature requests are appreciatively welcome!
-            <br></br>Reach out on <a href="https://x.com/hodl_fire" target="_blank" rel="noopener noreferrer" className="text-orange-600 hover:text-orange-700">X</a> 
-             &nbsp;or simply write to <a href="mailto:reachout@firehodl.com" className="text-orange-600 hover:text-orange-700">reachout@firehodl.com</a>.
+            <br></br>Reach out on <a href="https://x.com/hodl_fire" target="_blank" rel="noopener noreferrer" className="text-orange-600 hover:text-orange-700">X</a>,
+            &nbsp;<a href="https://discord.gg/39gAVpr2" target="_blank" rel="noopener noreferrer" className="text-orange-600 hover:text-orange-700">Discord</a>,
+             or simply write to <a href="mailto:reachout@firehodl.com" className="text-orange-600 hover:text-orange-700">reachout@firehodl.com</a>.
           </p>
         </div>
       </section>
