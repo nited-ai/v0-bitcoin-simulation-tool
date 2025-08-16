@@ -19,6 +19,7 @@ import { BasicParametersCard } from '../parameters/BasicParametersCard'
 import { ValidationSummary } from '../parameters/ValidationSummary'
 import { RiskLevelSelector } from '../parameters/RiskLevelSelector'
 import { CollateralAnalysisCard } from '../parameters/CollateralAnalysisCard'
+import { CollateralVisualizationCard } from '../parameters/CollateralVisualizationCard'
 import { LoanParametersCard } from '../parameters/LoanParametersCard'
 import { PlatformSelector } from '../parameters/PlatformSelector'
 import { ResultsPage } from '../results/ResultsPage'
@@ -132,6 +133,7 @@ export function TabNavigation({ children }: TabNavigationProps) {
               <div className="space-y-6">
                 <RiskLevelSelector />
                 <LoanParametersCard />
+                <CollateralVisualizationCard />
               </div>
             </div>
 
