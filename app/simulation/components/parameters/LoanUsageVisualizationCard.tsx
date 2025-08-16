@@ -2,109 +2,102 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts"
-import { PieChart as PieChartIcon } from "lucide-react"
+import { CreditCard } from "lucide-react"
 import { useMemo } from "react"
 import { useSimulation } from "../../context/SimulationContext"
 import { getPlatformConfig } from "../../constants/platformPresets"
 
-interface CollateralData {
+interface LoanData {
   name: string
   value: number
-  btcAmount: number
+  usdAmount: number
   color: string
   percentage: number
   isActive?: boolean
 }
 
-interface CollateralMetrics {
-  freeCollateralBtc: number
-  freeCollateralPercentage: number
-  btcLockedAsCollateral: number
-  collateralUtilization: number
+interface LoanMetrics {
+  currentLoanAmount: number
+  maxLoanCapacity: number
+  availableBorrowingCapacity: number
+  loanUtilizationPercentage: number
+  availableCapacityPercentage: number
 }
 
 /**
- * Collateral Visualization Card Component
- *
- * Displays collateral distribution using a pie chart with:
- * - Donut chart with thicker locked collateral segment
+ * Loan Usage Visualization Card Component
+ * 
+ * Displays loan capacity utilization using a pie chart with:
+ * - Donut chart with thicker used capacity segment
  * - Percentage labels outside segments
- * - Center text showing BTC values
+ * - Legend showing USD values
  */
 
-export function CollateralVisualizationCard() {
+export function LoanUsageVisualizationCard() {
   const { params } = useSimulation()
   const platformConfig = getPlatformConfig(params.platform)
 
-  // Calculate collateral metrics (same logic as CollateralAnalysisCard)
-  const metrics: CollateralMetrics = useMemo(() => {
+  // Calculate loan metrics
+  const metrics: LoanMetrics = useMemo(() => {
     // Total BTC stack value
     const totalStackValue = params.btcAmount * params.initialBtcPrice
     
     // Current loan amount based on percentage setting
     const currentLoanAmount = (params.loanAmountPercent / 100) * totalStackValue
     
-    // Origination fee calculation
-    const originationFee = currentLoanAmount * (platformConfig.originationFeePercent / 100)
+    // Calculate maximum loan capacity based on initial LTV
+    const maxLoanCapacity = totalStackValue * (platformConfig.maxInitialLtv / 100)
     
-    // Calculate BTC locked as collateral for current loan
-    const btcLockedAsCollateral = (currentLoanAmount + originationFee) / (params.riskManagement.targetLtv / 100) / params.initialBtcPrice
-    
-    // Calculate remaining free BTC
-    const freeBtcAmount = Math.max(0, params.btcAmount - btcLockedAsCollateral)
+    // Available borrowing capacity
+    const availableBorrowingCapacity = Math.max(0, maxLoanCapacity - currentLoanAmount)
     
     // Calculate percentages
-    const freeCollateralPercentage = params.btcAmount > 0 ? (freeBtcAmount / params.btcAmount) * 100 : 0
-    const collateralUtilization = params.btcAmount > 0 ? (btcLockedAsCollateral / params.btcAmount) * 100 : 0
+    const loanUtilizationPercentage = maxLoanCapacity > 0 ? (currentLoanAmount / maxLoanCapacity) * 100 : 0
+    const availableCapacityPercentage = maxLoanCapacity > 0 ? (availableBorrowingCapacity / maxLoanCapacity) * 100 : 100
 
     return {
-      freeCollateralBtc: freeBtcAmount,
-      freeCollateralPercentage,
-      btcLockedAsCollateral,
-      collateralUtilization
+      currentLoanAmount,
+      maxLoanCapacity,
+      availableBorrowingCapacity,
+      loanUtilizationPercentage,
+      availableCapacityPercentage
     }
   }, [params, platformConfig])
 
-  // Prepare data for pie chart - Locked Collateral first to start at 12:00
-  const chartData: CollateralData[] = useMemo(() => {
+  // Prepare data for pie chart - Used capacity first to start at 12:00
+  const chartData: LoanData[] = useMemo(() => {
     return [
       {
-        name: "Locked",
-        value: metrics.collateralUtilization,
-        btcAmount: metrics.btcLockedAsCollateral,
+        name: "Used",
+        value: metrics.loanUtilizationPercentage,
+        usdAmount: metrics.currentLoanAmount,
         color: "#ef4444", // Red
-        percentage: metrics.collateralUtilization,
-        isActive: true // Make locked collateral the active segment
+        percentage: metrics.loanUtilizationPercentage,
+        isActive: true // Make used capacity the active segment
       },
       {
-        name: "Free",
-        value: metrics.freeCollateralPercentage,
-        btcAmount: metrics.freeCollateralBtc,
-        color: "#22c55e", // Green instead of Bitcoin orange
-        percentage: metrics.freeCollateralPercentage,
+        name: "Available",
+        value: metrics.availableCapacityPercentage,
+        usdAmount: metrics.availableBorrowingCapacity,
+        color: "#22c55e", // Green
+        percentage: metrics.availableCapacityPercentage,
         isActive: false
       }
     ]
   }, [metrics])
 
-
-
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <PieChartIcon className="w-5 h-5 text-primary" />
-          Collateral Usage
+          <CreditCard className="w-5 h-5 text-primary" />
+          Loan Usage
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {/* Show message if no BTC amount */}
         {params.btcAmount === 0 ? (
           <div className="flex items-center justify-center h-64 text-muted-foreground">
-            <div className="text-center">
-              <PieChartIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
-              <p>Set BTC amount to view collateral distribution</p>
-            </div>
+            <p>No BTC amount specified</p>
           </div>
         ) : (
           <div className="flex items-center justify-center">
@@ -125,13 +118,13 @@ export function CollateralVisualizationCard() {
                     dataKey="value"
                     label={({ value, cx, cy, midAngle, outerRadius, index }) => {
                       if (!value || value < 5 || !cx || !cy || !midAngle || !outerRadius || index === undefined) return null
-
+                      
                       const RADIAN = Math.PI / 180
                       const radius = outerRadius + 25
                       const x = cx + radius * Math.cos(-midAngle * RADIAN)
                       const y = cy + radius * Math.sin(-midAngle * RADIAN)
                       const color = chartData[index]?.color || '#374151'
-
+                      
                       return (
                         <text
                           x={x}
@@ -149,8 +142,8 @@ export function CollateralVisualizationCard() {
                     labelLine={false}
                   >
                     {chartData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
+                      <Cell 
+                        key={`cell-${index}`} 
                         fill={entry.color}
                         stroke="#ffffff"
                         strokeWidth={2}
@@ -158,7 +151,7 @@ export function CollateralVisualizationCard() {
                     ))}
                   </Pie>
 
-                  {/* Overlay for thicker locked collateral */}
+                  {/* Overlay for thicker used capacity */}
                   <Pie
                     data={[chartData[0]]}
                     cx="50%"
@@ -170,7 +163,7 @@ export function CollateralVisualizationCard() {
                     paddingAngle={2}
                     dataKey="value"
                   >
-                    <Cell
+                    <Cell 
                       fill={chartData[0].color}
                       stroke="#ffffff"
                       strokeWidth={2}
@@ -179,22 +172,14 @@ export function CollateralVisualizationCard() {
                 </PieChart>
               </ResponsiveContainer>
 
-              {/* Center Text with Total BTC and Color Coding */}
+              {/* Center Text with Max Loan Capacity */}
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <div className="text-xs text-muted-foreground text-center mb-1">
-                  {params.btcAmount.toLocaleString('en-US', {
-                    minimumFractionDigits: 3,
-                    maximumFractionDigits: 3
-                  })} BTC
-                </div>
+                <div className="text-xs text-muted-foreground">Max Capacity</div>
                 <div className="text-sm font-medium text-center">
-                  <span style={{ color: "#22c55e" }}>
-                    {metrics.freeCollateralBtc.toFixed(3)}
-                  </span>
-                  <span className="text-muted-foreground mx-1">/</span>
-                  <span style={{ color: "#ef4444" }}>
-                    {metrics.btcLockedAsCollateral.toFixed(3)}
-                  </span>
+                  ${metrics.maxLoanCapacity.toLocaleString('en-US', {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0
+                  })}
                 </div>
               </div>
             </div>
@@ -207,22 +192,22 @@ export function CollateralVisualizationCard() {
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#22c55e" }}></div>
               <span className="text-sm font-medium text-green-600">
-                ${(metrics.freeCollateralBtc * params.initialBtcPrice).toLocaleString('en-US', {
+                ${metrics.availableBorrowingCapacity.toLocaleString('en-US', {
                   minimumFractionDigits: 0,
                   maximumFractionDigits: 0
                 })}
               </span>
-              <span className="text-sm">Free</span>
+              <span className="text-sm">Available</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#ef4444" }}></div>
               <span className="text-sm font-medium text-red-600">
-                ${(metrics.btcLockedAsCollateral * params.initialBtcPrice).toLocaleString('en-US', {
+                ${metrics.currentLoanAmount.toLocaleString('en-US', {
                   minimumFractionDigits: 0,
                   maximumFractionDigits: 0
                 })}
               </span>
-              <span className="text-sm">Locked</span>
+              <span className="text-sm">Used</span>
             </div>
           </div>
         )}
