@@ -5,6 +5,8 @@ import { runStrategySimulation } from "@/lib/strategy-engine"
 import type { StrategyEngineParams, MonthlyResult as StrategyMonthlyResult } from "@/lib/strategy-engine"
 import type { MonthlyResult } from "../types/simulation"
 import { useSimulation } from "../context/SimulationContext"
+import { usePriceGeneration } from "./usePriceGeneration"
+import { useCentralizedData } from "./useCentralizedData"
 
 /**
  * Hook for running strategy simulations
@@ -23,6 +25,10 @@ export function useSimulationRunner() {
     historicalPriceData,
   } = useSimulation()
 
+  // Enable both historical data loading and price generation when simulation runner is used
+  useCentralizedData(true)
+  usePriceGeneration(true)
+
   /**
    * Run the strategy simulation with current parameters
    */
@@ -36,9 +42,9 @@ export function useSimulationRunner() {
     clearErrors()
 
     try {
-      // Calculate actual max loan amount from percentage of BTC stack value
+      // Calculate actual loan amount from percentage of BTC stack value
       const btcStackValue = params.btcAmount * params.initialBtcPrice
-      const calculatedMaxLoanAmount = (params.maxLoanAmountPercent / 100) * btcStackValue
+      const calculatedLoanAmount = (params.loanAmountPercent / 100) * btcStackValue
 
       // Prepare strategy parameters
       const strategyParams: StrategyEngineParams = {
@@ -46,10 +52,10 @@ export function useSimulationRunner() {
         initialBtcPrice: params.initialBtcPrice,
         monthlyWithdrawalAmount: params.monthlyWithdrawalAmount,
         annualInterestRate: params.annualInterestRate,
-        loanOriginationFeePercent: params.loanOriginationFeePercent,
+        loanOriginationFeePercent: params.originationFeePercent, // Updated field name for consistency
         loanTermMonths: params.loanTermMonths,
         simulationMonths: params.simulationMonths,
-        maxLoanAmount: calculatedMaxLoanAmount, // Use calculated amount instead of params.maxLoanAmount
+        maxLoanAmount: calculatedLoanAmount, // Use calculated amount instead of params.maxLoanAmount
         expectedAnnualInflation: 3.0, // Default 3% annual inflation
         btcAccumulation: (params as any).btcAccumulation ?? true, // Default to true if not set
         riskManagement: params.riskManagement,

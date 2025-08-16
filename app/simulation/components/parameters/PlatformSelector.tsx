@@ -227,9 +227,7 @@ export function PlatformSelector() {
         liquidationFeePercent: editValues.liquidationFeePercent || 3.0,
         availableLoanTerms: editValues.availableLoanTerms || [6, 12, 24, 'infinity'] as (number | 'infinity')[],
         defaultLoanTerm: 12 as number | 'infinity',
-        maxLtvLimit: 60,
-        maxInitialLtv: editValues.maxInitialLtv || 70,
-        defaultInitialLtv: 50
+        maxInitialLtv: editValues.maxInitialLtv || 70
       }
 
       // Save platform configuration

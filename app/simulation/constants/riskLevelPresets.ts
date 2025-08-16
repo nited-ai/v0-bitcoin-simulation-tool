@@ -11,7 +11,7 @@ export interface RiskLevelPreset {
   id: RiskLevel
   name: string
   description: string
-  maxLoanAmountPercent: number
+  loanAmountPercent: number
   targetLtv: number
   annualInterestRate: number
   loanTermMonths: {
@@ -27,7 +27,7 @@ export const RISK_LEVEL_PRESETS: Record<RiskLevel, RiskLevelPreset> = {
     id: 'conservative',
     name: 'Conservative',
     description: 'Low risk approach with minimal loan exposure',
-    maxLoanAmountPercent: 5,
+    loanAmountPercent: 5,
     targetLtv: 20,
     annualInterestRate: 9.0,
     loanTermMonths: {
@@ -41,7 +41,7 @@ export const RISK_LEVEL_PRESETS: Record<RiskLevel, RiskLevelPreset> = {
     id: 'moderate',
     name: 'Moderate',
     description: 'Balanced risk with moderate loan exposure',
-    maxLoanAmountPercent: 10,
+    loanAmountPercent: 10,
     targetLtv: 30,
     annualInterestRate: 9.0,
     loanTermMonths: {
@@ -55,7 +55,7 @@ export const RISK_LEVEL_PRESETS: Record<RiskLevel, RiskLevelPreset> = {
     id: 'optimistic',
     name: 'Optimistic',
     description: 'Higher risk with increased loan exposure and better rates',
-    maxLoanAmountPercent: 15,
+    loanAmountPercent: 15,
     targetLtv: 40,
     annualInterestRate: 6.5,
     loanTermMonths: {
@@ -69,7 +69,7 @@ export const RISK_LEVEL_PRESETS: Record<RiskLevel, RiskLevelPreset> = {
     id: 'moonshots',
     name: 'Moonshots',
     description: 'Maximum risk with aggressive loan exposure',
-    maxLoanAmountPercent: 30,
+    loanAmountPercent: 30,
     targetLtv: 50,
     annualInterestRate: 6.5,
     loanTermMonths: {
@@ -107,16 +107,16 @@ export function getLoanTermForPlatform(riskLevel: RiskLevel, platform: string): 
  * Check if parameters match a specific risk level preset
  */
 export function getMatchingRiskLevel(params: {
-  maxLoanAmountPercent: number
+  loanAmountPercent: number
   targetLtv: number
   annualInterestRate: number
   loanTermMonths: number | 'infinity'
 }, platform: string): RiskLevel | null {
   for (const [riskLevel, preset] of Object.entries(RISK_LEVEL_PRESETS)) {
     const expectedLoanTerm = getLoanTermForPlatform(riskLevel as RiskLevel, platform)
-    
+
     if (
-      params.maxLoanAmountPercent === preset.maxLoanAmountPercent &&
+      params.loanAmountPercent === preset.loanAmountPercent &&
       params.targetLtv === preset.targetLtv &&
       params.annualInterestRate === preset.annualInterestRate &&
       params.loanTermMonths === expectedLoanTerm
@@ -124,7 +124,7 @@ export function getMatchingRiskLevel(params: {
       return riskLevel as RiskLevel
     }
   }
-  
+
   return null
 }
 
@@ -141,7 +141,7 @@ export function applyRiskLevelPreset(
   
   return {
     ...currentParams,
-    maxLoanAmountPercent: preset.maxLoanAmountPercent,
+    loanAmountPercent: preset.loanAmountPercent,
     riskManagement: {
       ...currentParams.riskManagement,
       targetLtv: preset.targetLtv

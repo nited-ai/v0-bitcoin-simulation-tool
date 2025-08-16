@@ -22,7 +22,7 @@ export type Platform = "firefish" | "strike" | "custom" | string
  * Parameter source tracking for preset management
  */
 export interface ParameterSource {
-  maxLoanAmountPercent: 'preset' | 'manual' | 'platform'
+  loanAmountPercent: 'preset' | 'manual' | 'platform'
   targetLtv: 'preset' | 'manual' | 'platform'
   annualInterestRate: 'preset' | 'manual' | 'platform'
   loanTermMonths: 'preset' | 'manual' | 'platform'
@@ -91,7 +91,7 @@ export interface SimulationParams {
   initialBtcPrice: number
   monthlyWithdrawalAmount: number
   annualInterestRate: number
-  loanOriginationFeePercent: number
+  originationFeePercent: number // Renamed from loanOriginationFeePercent for consistency with PlatformConfig
   liquidationFeePercent: number
   loanTermMonths: number
   simulationMonths: number
@@ -109,7 +109,7 @@ export interface SimulationParams {
   btcAccumulation: boolean
   riskLevel: RiskLevel
   platform: Platform
-  maxLoanAmountPercent: number // Percentage of BTC stack value
+  loanAmountPercent: number // Percentage of BTC stack value
   // Strategy parameters
   investmentStrategy: InvestmentStrategy
   athBasedParams: AthBasedStrategyParams
@@ -157,7 +157,7 @@ export const DEFAULT_PARAMS: SimulationParams = {
   initialBtcPrice: 100000,
   monthlyWithdrawalAmount: 150,
   annualInterestRate: 6.5,
-  loanOriginationFeePercent: 1.5,
+  originationFeePercent: 1.5, // Renamed from loanOriginationFeePercent for consistency
   liquidationFeePercent: 5.0, // Updated from 2.0 to 5.0
   loanTermMonths: 6,
   simulationMonths: 144,
@@ -168,14 +168,14 @@ export const DEFAULT_PARAMS: SimulationParams = {
     prognosisLine: "fit",
   },
   riskManagement: {
-    targetLtv: 50,
+    targetLtv: 40, // Updated to match "optimistic" risk level preset (40%)
     liquidationLtv: 95, // Updated from 80 to 95
   },
   // Add BTC accumulation default
   btcAccumulation: true,
   riskLevel: "optimistic",
   platform: "firefish",
-  maxLoanAmountPercent: 15, // 15% of BTC stack value
+  loanAmountPercent: 15, // 15% of BTC stack value
   investmentStrategy: "default",
   athBasedParams: {
     athThresholdPercent: 80,
@@ -193,7 +193,7 @@ export const DEFAULT_PARAMS: SimulationParams = {
   },
   // Preset management defaults
   parameterSources: {
-    maxLoanAmountPercent: 'preset',
+    loanAmountPercent: 'preset',
     targetLtv: 'preset',
     annualInterestRate: 'preset',
     loanTermMonths: 'preset',

@@ -4,16 +4,13 @@ import { TooltipProvider } from "@/components/ui/tooltip"
 import { SimulationProvider } from "./context/SimulationContext"
 import { SimulationHeader } from "./components/layout/SimulationHeader"
 import { TabNavigation } from "./components/navigation/TabNavigation"
-import { useCentralizedData } from "./hooks/useCentralizedData"
-import { usePriceGeneration } from "./hooks/usePriceGeneration"
 
 /**
  * Internal component that uses business logic hooks
  */
 function SimulationContent() {
-  // Initialize centralized data service (replaces old useHistoricalData)
-  useCentralizedData()
-  usePriceGeneration()
+  // Remove unconditional data loading - now handled by individual components that need it
+  // Historical data and price generation are now lazy-loaded when needed
 
   return (
     <div className="container mx-auto p-4">

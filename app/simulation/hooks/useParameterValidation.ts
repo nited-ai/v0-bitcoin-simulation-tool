@@ -87,10 +87,11 @@ export function useParameterValidation(params: SimulationParams): ValidationResu
     }
 
     // Monthly Savings/Withdrawal Validation
-    if (Math.abs(params.monthlyWithdrawalAmount) > params.maxLoanAmount) {
+    const calculatedLoanAmountForValidation = (params.loanAmountPercent / 100) * (params.btcAmount * params.initialBtcPrice)
+    if (Math.abs(params.monthlyWithdrawalAmount) > calculatedLoanAmountForValidation) {
       warnings.push({
         field: "monthlyWithdrawalAmount",
-        message: "Monthly savings/withdrawal amount exceeds max loan amount",
+        message: "Monthly savings/withdrawal amount exceeds loan amount",
         severity: "warning"
       })
     } else if (params.monthlyWithdrawalAmount < 0) {
@@ -168,43 +169,43 @@ export function useParameterValidation(params: SimulationParams): ValidationResu
     }
 
     // Origination Fee Validation
-    if (params.loanOriginationFeePercent < 0) {
+    if (params.originationFeePercent < 0) {
       errors.push({
-        field: "loanOriginationFeePercent",
+        field: "originationFeePercent",
         message: "Origination fee cannot be negative",
         severity: "error"
       })
-    } else if (params.loanOriginationFeePercent > 10) {
+    } else if (params.originationFeePercent > 10) {
       warnings.push({
-        field: "loanOriginationFeePercent",
+        field: "originationFeePercent",
         message: "Very high origination fee - check if this is realistic",
         severity: "warning"
       })
     }
 
-    // Max Loan Amount Percentage Validation
-    if (params.maxLoanAmountPercent <= 0) {
+    // Loan Amount Percentage Validation
+    if (params.loanAmountPercent <= 0) {
       errors.push({
-        field: "maxLoanAmountPercent",
-        message: "Max loan amount percentage must be greater than 0",
+        field: "loanAmountPercent",
+        message: "Loan amount percentage must be greater than 0",
         severity: "error"
       })
-    } else if (params.maxLoanAmountPercent > 100) {
+    } else if (params.loanAmountPercent > 100) {
       errors.push({
-        field: "maxLoanAmountPercent",
-        message: "Max loan amount percentage cannot exceed 100%",
+        field: "loanAmountPercent",
+        message: "Loan amount percentage cannot exceed 100%",
         severity: "error"
       })
-    } else if (params.maxLoanAmountPercent < 5) {
+    } else if (params.loanAmountPercent < 5) {
       warnings.push({
-        field: "maxLoanAmountPercent",
-        message: "Very low max loan amount percentage may limit strategy effectiveness",
+        field: "loanAmountPercent",
+        message: "Very low loan amount percentage may limit strategy effectiveness",
         severity: "warning"
       })
-    } else if (params.maxLoanAmountPercent > 50) {
+    } else if (params.loanAmountPercent > 50) {
       warnings.push({
-        field: "maxLoanAmountPercent",
-        message: "High max loan amount percentage increases risk significantly",
+        field: "loanAmountPercent",
+        message: "High loan amount percentage increases risk significantly",
         severity: "warning"
       })
     }
@@ -258,18 +259,18 @@ export function useParameterValidation(params: SimulationParams): ValidationResu
     // Cross-parameter validations
     const totalCollateralValue = params.btcAmount * params.initialBtcPrice
     const maxPossibleLoan = totalCollateralValue * (params.riskManagement.targetLtv / 100)
-    const calculatedMaxLoanAmount = (params.maxLoanAmountPercent / 100) * totalCollateralValue
+    const calculatedLoanAmount = (params.loanAmountPercent / 100) * totalCollateralValue
 
-    if (calculatedMaxLoanAmount > maxPossibleLoan * 2) {
+    if (calculatedLoanAmount > maxPossibleLoan * 2) {
       warnings.push({
-        field: "maxLoanAmountPercent",
-        message: "Max loan amount is much higher than collateral value allows at current LTV",
+        field: "loanAmountPercent",
+        message: "Loan amount is much higher than collateral value allows at current LTV",
         severity: "warning"
       })
     }
 
     // Collateral Sufficiency Validation
-    const currentLoanAmount = calculatedMaxLoanAmount
+    const currentLoanAmount = calculatedLoanAmount
     const btcLockedAsCollateral = currentLoanAmount / (params.riskManagement.targetLtv / 100) / params.initialBtcPrice
 
     if (btcLockedAsCollateral > params.btcAmount) {

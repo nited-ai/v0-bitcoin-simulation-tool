@@ -28,8 +28,8 @@ function testCollateralCalculations() {
   // Calculate metrics (CORRECTED LIQUIDATION-BASED CALCULATION)
   const totalStackValue = testCase1.btcAmount * testCase1.initialBtcPrice
 
-  // Platform LTV (Firefish = 50%)
-  const platformLtv = 50
+  // Platform LTV (Firefish = 60% maxInitialLtv)
+  const platformLtv = 60
   const maxLoanCapacity = totalStackValue * (platformLtv / 100)
 
   // Current loan amount based on Max Loan Amount % setting
@@ -95,8 +95,8 @@ function testPlatformDifferences() {
   }
   
   const platforms = [
-    { name: 'firefish', ltv: 50 },
-    { name: 'strike', ltv: 70 }
+    { name: 'firefish', ltv: 60 }, // Updated to use maxInitialLtv
+    { name: 'strike', ltv: 80 }    // Updated to use maxInitialLtv
   ]
   
   platforms.forEach(platform => {
@@ -207,8 +207,8 @@ console.log('  - Max Loan Capacity (based on platform LTV)')
 console.log('✓ Card positioned below Risk Level selector in left column')
 console.log('✓ Calculations reactive to parameter changes')
 console.log('✓ Platform-specific LTV limits implemented:')
-console.log('  - Firefish: 50% LTV')
-console.log('  - Strike: 70% LTV')
+console.log('  - Firefish: 60% LTV (maxInitialLtv)')
+console.log('  - Strike: 80% LTV (maxInitialLtv)')
 console.log('✓ Proper formatting for currency and percentages')
 console.log('✓ Color coding for risk levels in Price Drop Tolerance')
 console.log('✓ FIXED: Price Drop Tolerance now correctly calculates liquidation-based risk')

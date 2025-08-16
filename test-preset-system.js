@@ -75,7 +75,7 @@ const PLATFORM_CONFIGS = {
     liquidationFeePercent: 5.0,
     availableLoanTerms: [6, 12, 18, 24],
     defaultLoanTerm: 24,
-    maxLtvLimit: 50
+    maxInitialLtv: 60 // Updated from maxLtvLimit
   },
   strike: {
     id: 'strike',
@@ -86,7 +86,7 @@ const PLATFORM_CONFIGS = {
     liquidationFeePercent: 1.0,
     availableLoanTerms: [6, 12, 18, 24, 'infinity'],
     defaultLoanTerm: 'infinity',
-    maxLtvLimit: 70
+    maxInitialLtv: 80 // Updated from maxLtvLimit
   },
   custom: {
     id: 'custom',
@@ -97,7 +97,7 @@ const PLATFORM_CONFIGS = {
     liquidationFeePercent: 3.0,
     availableLoanTerms: [3, 6, 12, 18, 24, 'infinity'],
     defaultLoanTerm: 12,
-    maxLtvLimit: 60
+    maxInitialLtv: 75 // Updated from maxLtvLimit
   }
 }
 
@@ -126,7 +126,7 @@ function testPlatformConfigs() {
     console.log(`  Origination Fee: ${config.originationFeePercent}%`)
     console.log(`  Liquidation LTV: ${config.liquidationLtv}%`)
     console.log(`  Liquidation Fee: ${config.liquidationFeePercent}%`)
-    console.log(`  Max LTV Limit: ${config.maxLtvLimit}%`)
+    console.log(`  Max Initial LTV: ${config.maxInitialLtv}%`)
     console.log(`  Available Loan Terms: ${config.availableLoanTerms.map(term => term === 'infinity' ? 'Infinity' : term + ' months').join(', ')}`)
     console.log(`  Default Loan Term: ${config.defaultLoanTerm === 'infinity' ? 'Infinity' : config.defaultLoanTerm + ' months'}`)
     console.log('')

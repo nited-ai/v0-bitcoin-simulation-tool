@@ -14,9 +14,7 @@ export interface PlatformConfig {
   liquidationFeePercent: number
   availableLoanTerms: (number | 'infinity')[]
   defaultLoanTerm: number | 'infinity'
-  maxLtvLimit: number // Platform-specific maximum LTV for loan capacity calculations
-  maxInitialLtv: number // Maximum allowed Initial LTV for this platform
-  defaultInitialLtv: number // Default Initial LTV for this platform
+  maxInitialLtv: number // Maximum allowed Initial LTV for this platform (used for both validation and capacity calculations)
 }
 
 export const PLATFORM_CONFIGS: Record<string, PlatformConfig> = {
@@ -29,9 +27,7 @@ export const PLATFORM_CONFIGS: Record<string, PlatformConfig> = {
     liquidationFeePercent: 5.0,
     availableLoanTerms: [6, 12, 18, 24],
     defaultLoanTerm: 24,
-    maxLtvLimit: 50,
-    maxInitialLtv: 60,
-    defaultInitialLtv: 50
+    maxInitialLtv: 60
   },
   strike: {
     id: 'strike',
@@ -42,9 +38,7 @@ export const PLATFORM_CONFIGS: Record<string, PlatformConfig> = {
     liquidationFeePercent: 1.0,
     availableLoanTerms: [6, 12, 18, 24, 'infinity'],
     defaultLoanTerm: 'infinity',
-    maxLtvLimit: 70,
-    maxInitialLtv: 80,
-    defaultInitialLtv: 70
+    maxInitialLtv: 80
   },
   custom: {
     id: 'custom',
@@ -55,9 +49,7 @@ export const PLATFORM_CONFIGS: Record<string, PlatformConfig> = {
     liquidationFeePercent: 3.0,
     availableLoanTerms: [3, 6, 12, 18, 24, 'infinity'],
     defaultLoanTerm: 12,
-    maxLtvLimit: 60,
-    maxInitialLtv: 75,
-    defaultInitialLtv: 60
+    maxInitialLtv: 75
   }
 }
 

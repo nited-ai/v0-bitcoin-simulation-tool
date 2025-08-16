@@ -6,13 +6,15 @@ import { useSimulation } from "../context/SimulationContext"
 import type { PriceEngineParams } from "@/lib/price-engine/types"
 
 /**
- * Hook for generating price chart data
- * 
+ * Hook for generating price chart data with lazy loading
+ *
  * Handles the generation of complete price chart data by calling the Price Engine
  * whenever chart-relevant parameters change. This includes historical data processing
  * and price model calculations.
+ *
+ * @param enabled - Whether to enable price generation (default: false for lazy loading)
  */
-export function usePriceGeneration() {
+export function usePriceGeneration(enabled: boolean = false) {
   const {
     params,
     historicalPriceData,
@@ -25,6 +27,12 @@ export function usePriceGeneration() {
   const searchParams = useSearchParams()
 
   useEffect(() => {
+    // Skip if not enabled (lazy loading)
+    if (!enabled) {
+      console.log(`⚡ Price generation disabled - lazy loading mode`)
+      return
+    }
+
     if (historicalPriceData.length === 0) return
     if (!initialDataLoaded) return // Wait for initial data loading to complete
 
@@ -85,6 +93,7 @@ export function usePriceGeneration() {
 
     generateData()
   }, [
+    enabled, // Add enabled flag to dependencies
     params.priceModel,
     params.initialBtcPrice,
     params.simulationMonths,

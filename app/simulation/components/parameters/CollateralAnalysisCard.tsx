@@ -5,10 +5,12 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Shield } from "lucide-react"
 import { useMemo } from "react"
 import { useSimulation } from "../../context/SimulationContext"
+import { getPlatformConfig } from "../../constants/platformPresets"
 
 interface CollateralMetrics {
   freeCollateralAmount: number
   freeCollateralBtc: number
+  freeCollateralPercentage: number
   priceDropTolerance: number
   priceAfterDrop: number
   maxLoanCapacity: number
@@ -27,32 +29,28 @@ interface CollateralMetrics {
  */
 export function CollateralAnalysisCard() {
   const { params } = useSimulation()
+  const platformConfig = getPlatformConfig(params.platform)
 
   // Calculate collateral metrics
   const metrics: CollateralMetrics = useMemo(() => {
     // Total BTC stack value
     const totalStackValue = params.btcAmount * params.initialBtcPrice
     
-    // Current max loan amount based on percentage setting
-    const currentMaxLoanAmount = (params.maxLoanAmountPercent / 100) * totalStackValue
+    // Current loan amount based on percentage setting
+    const currentLoanAmount = (params.loanAmountPercent / 100) * totalStackValue
     
-    // Platform-specific LTV limits
-    const platformLtvLimits: Record<string, number> = {
-      firefish: 50, // 50% LTV for Firefish
-      strike: 70,   // 70% LTV for Strike
-      custom: params.riskManagement.targetLtv // Use target LTV for custom
-    }
 
-    const platformLtv = platformLtvLimits[params.platform] || params.riskManagement.targetLtv
-    
+    // Platform-specific LTV limit (using maxInitialLtv for consistency)
+    const platformLtv = platformConfig.maxInitialLtv
+
     // Max loan capacity based on platform LTV
     const maxLoanCapacity = totalStackValue * (platformLtv / 100)
 
-    // Current loan amount based on Max Loan Amount % setting
-    const currentLoanAmount = (params.maxLoanAmountPercent / 100) * totalStackValue
+    // Origination fee calculation
+    const originationFee = currentLoanAmount * (platformConfig.originationFeePercent / 100)
 
-    // Calculate BTC locked as collateral for current loan
-    const btcLockedAsCollateral = currentLoanAmount / (params.riskManagement.targetLtv / 100) / params.initialBtcPrice
+    // Calculate BTC locked as collateral for current loan (corrected formula)
+    const btcLockedAsCollateral = (currentLoanAmount + originationFee) / (params.riskManagement.targetLtv / 100) / params.initialBtcPrice
 
     // Validate collateral sufficiency
     const isCollateralSufficient = btcLockedAsCollateral <= params.btcAmount
@@ -69,6 +67,9 @@ export function CollateralAnalysisCard() {
     // Free collateral amount in USD (for display)
     const freeCollateralAmount = freeBtcAmount * params.initialBtcPrice
 
+    // Calculate free collateral percentage
+    const freeCollateralPercentage = params.btcAmount > 0 ? (freeBtcAmount / params.btcAmount) * 100 : 0
+
     // Price drop tolerance calculation (CORRECTED)
     // Calculate liquidation price: price at which the loan would be liquidated
     // Liquidation occurs when: loan amount = liquidation LTV × total BTC stack value
@@ -77,7 +78,7 @@ export function CollateralAnalysisCard() {
     let priceAfterDrop = 0
 
     if (currentLoanAmount > 0 && params.btcAmount > 0) {
-      const liquidationPrice = currentLoanAmount / (params.riskManagement.liquidationLtv / 100) / params.btcAmount
+      const liquidationPrice = (currentLoanAmount + originationFee) / (params.riskManagement.liquidationLtv / 100) / btcLockedAsCollateral
       priceDropTolerance = Math.max(0, ((params.initialBtcPrice - liquidationPrice) / params.initialBtcPrice) * 100)
       priceAfterDrop = params.initialBtcPrice * (1 - priceDropTolerance / 100)
     } else {
@@ -86,8 +87,8 @@ export function CollateralAnalysisCard() {
       priceAfterDrop = 0
     }
 
-    // Calculate available borrowing capacity
-    const availableBorrowingCapacity = Math.max(0, maxLoanCapacity - currentLoanAmount)
+    // Calculate available borrowing capacity (accounting for loan costs)
+    const availableBorrowingCapacity = Math.max(0, maxLoanCapacity - (currentLoanAmount + originationFee))
 
     // Calculate collateral utilization percentage
     const collateralUtilization = params.btcAmount > 0 ? (btcLockedAsCollateral / params.btcAmount) * 100 : 0
@@ -95,6 +96,7 @@ export function CollateralAnalysisCard() {
     return {
       freeCollateralAmount,
       freeCollateralBtc: freeBtcAmount,
+      freeCollateralPercentage,
       priceDropTolerance,
       priceAfterDrop,
       maxLoanCapacity,
@@ -104,7 +106,7 @@ export function CollateralAnalysisCard() {
       isCollateralSufficient,
       collateralValidationError
     }
-  }, [params])
+  }, [params, platformConfig])
 
   // Format currency values
   const formatCurrency = (value: number): string => {
@@ -126,10 +128,7 @@ export function CollateralAnalysisCard() {
     return `${value.toFixed(3)} BTC`
   }
 
-  // Format combined BTC/USD display
-  const formatBtcUsd = (btc: number, usd: number): string => {
-    return `${formatCurrency(usd)} / ${formatBtc(btc)}`
-  }
+
 
   // Format percentage with price display
   const formatPercentageWithPrice = (percentage: number, price: number): string => {
@@ -157,8 +156,8 @@ export function CollateralAnalysisCard() {
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="text-center p-4 bg-blue-50 rounded-lg cursor-help">
-                <div className="text-lg font-bold text-blue-600">
-                  {formatBtcUsd(metrics.freeCollateralBtc, metrics.freeCollateralAmount)}
+                <div className={`text-lg font-bold ${metrics.freeCollateralPercentage >= 70 ? 'text-green-600' : metrics.freeCollateralPercentage >= 40 ? 'text-yellow-600' : 'text-red-600'}`}>
+                  {formatPercentageWithBtc(metrics.freeCollateralPercentage, metrics.freeCollateralBtc)}
                 </div>
                 <div className="text-sm text-muted-foreground">Free Collateral</div>
               </div>
@@ -224,11 +223,11 @@ export function CollateralAnalysisCard() {
                 <div className={`text-lg font-bold ${metrics.collateralUtilization <= 30 ? 'text-green-600' : metrics.collateralUtilization <= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
                   {formatPercentageWithBtc(metrics.collateralUtilization, metrics.btcLockedAsCollateral)}
                 </div>
-                <div className="text-sm text-muted-foreground">Collateral Utilization</div>
+                <div className="text-sm text-muted-foreground">Locked Collateral</div>
               </div>
             </TooltipTrigger>
             <TooltipContent>
-              <p><strong>Collateral Utilization:</strong> Percentage and amount of BTC stack used as collateral</p>
+              <p><strong>Locked Collateral:</strong> Percentage and amount of BTC stack used as collateral</p>
               <p>Formula: (Locked Collateral ÷ Total BTC) × 100</p>
               <p>Lower values indicate more available collateral capacity</p>
             </TooltipContent>

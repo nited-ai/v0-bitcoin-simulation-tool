@@ -13,7 +13,7 @@ import type { HistoricalDataPoint } from "@/lib/services/centralized-data-servic
  * This chart is separate from projections and loads data once.
  */
 export function HistoricalDataChart() {
-  const { historicalData, isLoaded, isLoading } = useHistoricalDataOnly()
+  const { historicalData, isLoaded, isLoading } = useHistoricalDataOnly(true, 'weekly') // Enable loading with weekly data
   const { currentPrice } = useCurrentPriceOnly()
   const [error, setError] = useState<string | null>(null)
 
