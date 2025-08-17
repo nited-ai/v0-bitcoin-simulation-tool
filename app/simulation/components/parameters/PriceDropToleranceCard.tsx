@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { BarChart, Bar, Cell, ResponsiveContainer, XAxis, YAxis, LabelList } from "recharts"
 import { Shield } from "lucide-react"
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { useSimulation } from "../../context/SimulationContext"
 import { getPlatformConfig } from "../../constants/platformPresets"
 
@@ -22,6 +22,12 @@ interface PriceDropMetrics {
   priceDropAmount: number
   priceDropPercentage: number
   remainingPricePercentage: number
+  // Enhanced metrics with free collateral
+  trueLiquidationPrice: number
+  truePriceDropPercentage: number
+  trueRemainingPricePercentage: number
+  freeBtcAmount: number
+  hasFreeCollateral: boolean
 }
 
 /**
@@ -38,6 +44,9 @@ export function PriceDropToleranceCard() {
   const { params } = useSimulation()
   const platformConfig = getPlatformConfig(params.platform)
 
+  // Toggle state for view selection (default to "From Current Price")
+  const [viewMode, setViewMode] = useState<'current' | 'ath'>('current')
+
   // Calculate price drop metrics (same logic as CollateralAnalysisCard)
   const metrics: PriceDropMetrics = useMemo(() => {
     // Total BTC stack value
@@ -52,26 +61,47 @@ export function PriceDropToleranceCard() {
     // Calculate BTC locked as collateral for current loan
     const btcLockedAsCollateral = (currentLoanAmount + originationFee) / (params.riskManagement.targetLtv / 100) / params.initialBtcPrice
     
-    // Calculate liquidation price
+    // Calculate immediate liquidation price (without top-up)
     let liquidationPrice = 0
     let priceDropPercentage = 0
     let priceDropAmount = 0
     let remainingPricePercentage = 100
 
+    // Calculate free collateral available for top-up
+    const freeBtcAmount = Math.max(0, params.btcAmount - btcLockedAsCollateral)
+    const hasFreeCollateral = freeBtcAmount > 0
+
+    // Calculate true liquidation price (with free collateral top-up)
+    let trueLiquidationPrice = 0
+    let truePriceDropPercentage = 0
+    let trueRemainingPricePercentage = 100
+
     if (currentLoanAmount > 0 && params.btcAmount > 0 && btcLockedAsCollateral > 0) {
-      // Liquidation price calculation: (loan amount + origination fee) / (liquidation LTV / 100) / collateral BTC amount
+      // Immediate liquidation price calculation: (loan amount + origination fee) / (liquidation LTV / 100) / locked collateral BTC amount
       liquidationPrice = (currentLoanAmount + originationFee) / (params.riskManagement.liquidationLtv / 100) / btcLockedAsCollateral
-      
-      // Calculate price drop percentage and amount
+
+      // Calculate immediate price drop percentage and amount
       priceDropPercentage = Math.max(0, ((params.initialBtcPrice - liquidationPrice) / params.initialBtcPrice) * 100)
       priceDropAmount = params.initialBtcPrice - liquidationPrice
       remainingPricePercentage = 100 - priceDropPercentage
+
+      // True liquidation price calculation: (loan amount + origination fee) / (liquidation LTV / 100) / total BTC amount
+      trueLiquidationPrice = hasFreeCollateral
+        ? (currentLoanAmount + originationFee) / (params.riskManagement.liquidationLtv / 100) / params.btcAmount
+        : liquidationPrice // Same as immediate liquidation if no free collateral
+
+      // Calculate true price drop percentage
+      truePriceDropPercentage = Math.max(0, ((params.initialBtcPrice - trueLiquidationPrice) / params.initialBtcPrice) * 100)
+      trueRemainingPricePercentage = 100 - truePriceDropPercentage
     } else {
       // No loan = no liquidation risk
       liquidationPrice = 0
       priceDropPercentage = 0
       priceDropAmount = 0
       remainingPricePercentage = 100
+      trueLiquidationPrice = 0
+      truePriceDropPercentage = 0
+      trueRemainingPricePercentage = 100
     }
 
     return {
@@ -79,26 +109,46 @@ export function PriceDropToleranceCard() {
       liquidationPrice,
       priceDropAmount,
       priceDropPercentage,
-      remainingPricePercentage
+      remainingPricePercentage,
+      // Enhanced metrics with free collateral
+      trueLiquidationPrice,
+      truePriceDropPercentage,
+      trueRemainingPricePercentage,
+      freeBtcAmount,
+      hasFreeCollateral
     }
   }, [params, platformConfig])
 
-  // ATH metrics calculation
+  // Enhanced ATH metrics calculation
   const athMetrics = useMemo(() => {
     const athPrice = 125000 // Hardcoded ATH value for now
-    const liquidationPrice = metrics.liquidationPrice // Same liquidation price
+
+    // Immediate liquidation from ATH (existing)
+    const liquidationPrice = metrics.liquidationPrice // Same immediate liquidation price
     const athPriceDropAmount = athPrice - liquidationPrice
     const athPriceDropPercentage = liquidationPrice > 0 ? Math.max(0, ((athPrice - liquidationPrice) / athPrice) * 100) : 0
     const athRemainingPricePercentage = liquidationPrice > 0 ? 100 - athPriceDropPercentage : 100
 
+    // True liquidation from ATH with free collateral (new)
+    const trueLiquidationPrice = metrics.trueLiquidationPrice
+    const trueAthPriceDropAmount = athPrice - trueLiquidationPrice
+    const trueAthPriceDropPercentage = trueLiquidationPrice > 0 ? Math.max(0, ((athPrice - trueLiquidationPrice) / athPrice) * 100) : 0
+    const trueAthRemainingPricePercentage = trueLiquidationPrice > 0 ? 100 - trueAthPriceDropPercentage : 100
+
     return {
       athPrice,
+      // Immediate liquidation from ATH (existing)
       liquidationPrice,
       athPriceDropAmount,
       athPriceDropPercentage,
-      athRemainingPricePercentage
+      athRemainingPricePercentage,
+      // True liquidation from ATH with free collateral (new)
+      trueLiquidationPrice,
+      trueAthPriceDropAmount,
+      trueAthPriceDropPercentage,
+      trueAthRemainingPricePercentage
     }
-  }, [metrics.liquidationPrice])
+  }, [metrics.liquidationPrice, metrics.trueLiquidationPrice])
 
   // Prepare data for stacked bar chart
   const chartData = useMemo(() => {
@@ -115,6 +165,23 @@ export function PriceDropToleranceCard() {
       name: "ATH Price",
       priceDrop: athMetrics.athPriceDropPercentage,
       remainingPrice: athMetrics.athRemainingPricePercentage
+    }]
+  }, [athMetrics])
+
+  // Prepare free collateral chart data (new)
+  const freeCollateralCurrentData = useMemo(() => {
+    return [{
+      name: "Current + Free Collateral",
+      priceDrop: metrics.truePriceDropPercentage,
+      remainingPrice: metrics.trueRemainingPricePercentage
+    }]
+  }, [metrics])
+
+  const freeCollateralAthData = useMemo(() => {
+    return [{
+      name: "ATH + Free Collateral",
+      priceDrop: athMetrics.trueAthPriceDropPercentage,
+      remainingPrice: athMetrics.trueAthRemainingPricePercentage
     }]
   }, [athMetrics])
 
@@ -175,7 +242,7 @@ export function PriceDropToleranceCard() {
     )
   }
 
-  // Custom label renderer for current BTC price (positioned above chart)
+  // Custom label renderer for immediate liquidation risk (positioned above chart)
   const renderCurrentPriceLabel = (props: any) => {
     const { x, y, width } = props
 
@@ -187,26 +254,13 @@ export function PriceDropToleranceCard() {
       <g>
         <text
           x={centerX}
-          y={labelY - 8}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          className="text-sm"
-          fill="black"
-        >
-          From Current Price
-        </text>
-        <text
-          x={centerX}
-          y={labelY + 8}
+          y={labelY}
           textAnchor="middle"
           dominantBaseline="middle"
           className="text-sm font-semibold"
           fill="black"
         >
-          ${metrics.currentBtcPrice.toLocaleString('en-US', {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0
-          })}
+          Immediate
         </text>
       </g>
     )
@@ -269,7 +323,7 @@ export function PriceDropToleranceCard() {
     )
   }
 
-  // Custom label renderer for ATH price (positioned above ATH chart)
+  // Custom label renderer for immediate liquidation risk from ATH (positioned above ATH chart)
   const renderAthPriceLabel = (props: any) => {
     const { x, y, width } = props
 
@@ -281,26 +335,177 @@ export function PriceDropToleranceCard() {
       <g>
         <text
           x={centerX}
-          y={labelY - 8}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          className="text-sm"
-          fill="black"
-        >
-          From Last ATH
-        </text>
-        <text
-          x={centerX}
-          y={labelY + 8}
+          y={labelY}
           textAnchor="middle"
           dominantBaseline="middle"
           className="text-sm font-semibold"
           fill="black"
         >
-          ${athMetrics.athPrice.toLocaleString('en-US', {
+          Immediate
+        </text>
+      </g>
+    )
+  }
+
+  // NEW: Label renderers for free collateral scenarios
+
+  // Custom label renderer for free collateral current red segment
+  const renderFreeCollateralCurrentRedLabel = (props: any) => {
+    const { x, y, width, height } = props
+
+    // Only show label if segment is large enough
+    if (!metrics.truePriceDropPercentage || metrics.truePriceDropPercentage < 10) return null
+
+    // Position label in center of red segment
+    const centerX = x + width / 2
+    const centerY = y + height / 2
+
+    return (
+      <g>
+        <text
+          x={centerX}
+          y={centerY}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          className="text-sm font-semibold"
+          fill="black"
+        >
+          <tspan className="text-lg">↓</tspan> -{metrics.truePriceDropPercentage.toFixed(1)}%
+        </text>
+      </g>
+    )
+  }
+
+  // Custom label renderer for free collateral current green segment
+  const renderFreeCollateralCurrentGreenLabel = (props: any) => {
+    const { x, y, width, height } = props
+
+    // Only show label if segment is large enough
+    if (!metrics.trueRemainingPricePercentage || metrics.trueRemainingPricePercentage < 10) return null
+
+    // Position label in center of green segment
+    const centerX = x + width / 2
+    const centerY = y + height / 2
+
+    return (
+      <g>
+        <text
+          x={centerX}
+          y={centerY}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          className="text-sm font-semibold"
+          fill="black"
+        >
+          ${metrics.trueLiquidationPrice.toLocaleString('en-US', {
             minimumFractionDigits: 0,
             maximumFractionDigits: 0
           })}
+        </text>
+      </g>
+    )
+  }
+
+  // Custom label renderer for true liquidation risk with free collateral (positioned above chart)
+  const renderFreeCollateralCurrentPriceLabel = (props: any) => {
+    const { x, y, width } = props
+
+    // Position label above the chart
+    const centerX = x + width / 2
+    const labelY = y - 20
+
+    return (
+      <g>
+        <text
+          x={centerX}
+          y={labelY}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          className="text-sm font-semibold"
+          fill="black"
+        >
+          True (Top-up)
+        </text>
+      </g>
+    )
+  }
+
+  // Custom label renderer for free collateral ATH red segment
+  const renderFreeCollateralAthRedLabel = (props: any) => {
+    const { x, y, width, height } = props
+
+    // Only show label if segment is large enough
+    if (!athMetrics.trueAthPriceDropPercentage || athMetrics.trueAthPriceDropPercentage < 10) return null
+
+    // Position label in center of red segment
+    const centerX = x + width / 2
+    const centerY = y + height / 2
+
+    return (
+      <g>
+        <text
+          x={centerX}
+          y={centerY}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          className="text-sm font-semibold"
+          fill="black"
+        >
+          <tspan className="text-lg">↓</tspan> -{athMetrics.trueAthPriceDropPercentage.toFixed(1)}%
+        </text>
+      </g>
+    )
+  }
+
+  // Custom label renderer for free collateral ATH green segment
+  const renderFreeCollateralAthGreenLabel = (props: any) => {
+    const { x, y, width, height } = props
+
+    // Only show label if segment is large enough
+    if (!athMetrics.trueAthRemainingPricePercentage || athMetrics.trueAthRemainingPricePercentage < 10) return null
+
+    // Position label in center of green segment
+    const centerX = x + width / 2
+    const centerY = y + height / 2
+
+    return (
+      <g>
+        <text
+          x={centerX}
+          y={centerY}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          className="text-sm font-semibold"
+          fill="black"
+        >
+          ${athMetrics.trueLiquidationPrice.toLocaleString('en-US', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+          })}
+        </text>
+      </g>
+    )
+  }
+
+  // Custom label renderer for true liquidation risk from ATH with free collateral (positioned above chart)
+  const renderFreeCollateralAthPriceLabel = (props: any) => {
+    const { x, y, width } = props
+
+    // Position label above the chart
+    const centerX = x + width / 2
+    const labelY = y - 20
+
+    return (
+      <g>
+        <text
+          x={centerX}
+          y={labelY}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          className="text-sm font-semibold"
+          fill="black"
+        >
+          True (Top-up)
         </text>
       </g>
     )
@@ -321,82 +526,160 @@ export function PriceDropToleranceCard() {
           </div>
         ) : (
           <div className="flex flex-col items-center">
-            {/* Two Charts Container */}
-            <div className="flex flex-row items-center justify-center">
-              {/* ATH Price Chart (moved to left) */}
-              <div className="relative w-56 h-80 sm:w-60 sm:h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={athChartData}
-                    margin={{ top: 60, right: -80, left: 20, bottom: 20 }}
-                    maxBarSize={80}
-                  >
-                    <XAxis dataKey="name" hide />
-                    <YAxis domain={[0, 100]} hide />
+            {/* Two Charts Container - Toggle-based View */}
+            <div className="flex flex-row items-center justify-center gap-4">
+              {viewMode === 'current' ? (
+                <>
+                  {/* Current Immediate Risk */}
+                  <div className="relative w-56 h-80 sm:w-60 sm:h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={chartData}
+                        margin={{ top: 60, right: -80, left: 20, bottom: 20 }}
+                        maxBarSize={80}
+                      >
+                        <XAxis dataKey="name" hide />
+                        <YAxis domain={[0, 100]} hide />
 
-                    {/* Remaining Price Bar (Green - Bottom) */}
-                    <Bar
-                      dataKey="remainingPrice"
-                      stackId="athPrice"
-                      fill="#22c55e"
-                      radius={[0, 0, 8, 8]}
-                    >
-                      <LabelList content={renderAthGreenLabel} />
-                    </Bar>
+                        {/* Remaining Price Bar (Green - Bottom) */}
+                        <Bar
+                          dataKey="remainingPrice"
+                          stackId="price"
+                          fill="#22c55e"
+                          radius={[0, 0, 8, 8]}
+                        >
+                          <LabelList content={renderGreenLabel} />
+                        </Bar>
 
-                    {/* Price Drop Bar (Red - Top) */}
-                    <Bar
-                      dataKey="priceDrop"
-                      stackId="athPrice"
-                      fill="#ef4444"
-                      radius={[8, 8, 0, 0]}
-                    >
-                      <LabelList content={renderAthRedLabel} />
-                      <LabelList content={renderAthPriceLabel}/>
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+                        {/* Price Drop Bar (Red - Top) */}
+                        <Bar
+                          dataKey="priceDrop"
+                          stackId="price"
+                          fill="#ef4444"
+                          radius={[8, 8, 0, 0]}
+                        >
+                          <LabelList content={renderRedLabel} />
+                          <LabelList content={renderCurrentPriceLabel}/>
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
 
-              {/* Current Price Chart (moved to right) */}
-              <div className="relative w-56 h-80 sm:w-60 sm:h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={chartData}
-                    margin={{ top: 60, right: 20, left: -80, bottom: 20 }}
-                    maxBarSize={80}
-                  >
-                    <XAxis dataKey="name" hide />
-                    <YAxis domain={[0, 100]} hide />
+                  {/* Current + Free Collateral */}
+                  <div className="relative w-56 h-80 sm:w-60 sm:h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={freeCollateralCurrentData}
+                        margin={{ top: 60, right: 20, left: -80, bottom: 20 }}
+                        maxBarSize={80}
+                      >
+                        <XAxis dataKey="name" hide />
+                        <YAxis domain={[0, 100]} hide />
 
-                    {/* Remaining Price Bar (Green - Bottom) */}
-                    <Bar
-                      dataKey="remainingPrice"
-                      stackId="price"
-                      fill="#22c55e"
-                      radius={[0, 0, 8, 8]}
-                    >
-                      <LabelList content={renderGreenLabel} />
-                    </Bar>
+                        {/* Remaining Price Bar (Green - Bottom) */}
+                        <Bar
+                          dataKey="remainingPrice"
+                          stackId="currentFreeCollateral"
+                          fill="#22c55e"
+                          radius={[0, 0, 8, 8]}
+                        >
+                          <LabelList content={renderFreeCollateralCurrentGreenLabel} />
+                        </Bar>
 
-                    {/* Price Drop Bar (Red - Top) */}
-                    <Bar
-                      dataKey="priceDrop"
-                      stackId="price"
-                      fill="#ef4444"
-                      radius={[8, 8, 0, 0]}
-                    >
-                      <LabelList content={renderRedLabel} />
-                      <LabelList content={renderCurrentPriceLabel}/>
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+                        {/* Price Drop Bar (Red - Top) */}
+                        <Bar
+                          dataKey="priceDrop"
+                          stackId="currentFreeCollateral"
+                          fill="#ef4444"
+                          radius={[8, 8, 0, 0]}
+                        >
+                          <LabelList content={renderFreeCollateralCurrentRedLabel} />
+                          <LabelList content={renderFreeCollateralCurrentPriceLabel}/>
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* ATH Immediate Risk */}
+                  <div className="relative w-56 h-80 sm:w-60 sm:h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={athChartData}
+                        margin={{ top: 60, right: -80, left: 20, bottom: 20 }}
+                        maxBarSize={80}
+                      >
+                        <XAxis dataKey="name" hide />
+                        <YAxis domain={[0, 100]} hide />
+
+                        {/* Remaining Price Bar (Green - Bottom) */}
+                        <Bar
+                          dataKey="remainingPrice"
+                          stackId="athPrice"
+                          fill="#22c55e"
+                          radius={[0, 0, 8, 8]}
+                        >
+                          <LabelList content={renderAthGreenLabel} />
+                        </Bar>
+
+                        {/* Price Drop Bar (Red - Top) */}
+                        <Bar
+                          dataKey="priceDrop"
+                          stackId="athPrice"
+                          fill="#ef4444"
+                          radius={[8, 8, 0, 0]}
+                        >
+                          <LabelList content={renderAthRedLabel} />
+                          <LabelList content={renderAthPriceLabel}/>
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* ATH + Free Collateral */}
+                  <div className="relative w-56 h-80 sm:w-60 sm:h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={freeCollateralAthData}
+                        margin={{ top: 60, right: 20, left: -80, bottom: 20 }}
+                        maxBarSize={80}
+                      >
+                        <XAxis dataKey="name" hide />
+                        <YAxis domain={[0, 100]} hide />
+
+                        {/* Remaining Price Bar (Green - Bottom) */}
+                        <Bar
+                          dataKey="remainingPrice"
+                          stackId="athFreeCollateral"
+                          fill="#22c55e"
+                          radius={[0, 0, 8, 8]}
+                        >
+                          <LabelList content={renderFreeCollateralAthGreenLabel} />
+                        </Bar>
+
+                        {/* Price Drop Bar (Red - Top) */}
+                        <Bar
+                          dataKey="priceDrop"
+                          stackId="athFreeCollateral"
+                          fill="#ef4444"
+                          radius={[8, 8, 0, 0]}
+                        >
+                          <LabelList content={renderFreeCollateralAthRedLabel} />
+                          <LabelList content={renderFreeCollateralAthPriceLabel}/>
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </>
+              )}
             </div>
+
+            
           </div>
         )}
 
-        {/* Legend */}
+        {/* Simplified Legend */}
         {params.btcAmount > 0 && params.loanAmountPercent > 0 && (
           <div className="flex justify-center gap-6 mt-4">
             <div className="flex items-center gap-2">
@@ -409,6 +692,33 @@ export function PriceDropToleranceCard() {
             </div>
           </div>
         )}
+        <div className="flex flex-row items-center justify-center gap-4">
+          {/* Toggle Switch - Moved to bottom */}
+            <div className="flex items-center gap-4 mt-6 mb-4">
+              <div className="flex bg-muted rounded-lg p-1">
+                <button
+                  onClick={() => setViewMode('current')}
+                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                    viewMode === 'current'
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  From Current Price
+                </button>
+                <button
+                  onClick={() => setViewMode('ath')}
+                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                    viewMode === 'ath'
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  From ATH
+                </button>
+              </div>
+            </div>
+          </div>
       </CardContent>
     </Card>
   )
