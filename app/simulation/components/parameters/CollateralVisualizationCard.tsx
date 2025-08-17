@@ -109,7 +109,7 @@ export function CollateralVisualizationCard() {
         ) : (
           <div className="flex items-center justify-center">
             {/* Pie Chart Container */}
-            <div className="relative w-72 h-72 sm:w-80 sm:h-80">
+            <div className="relative w-96 h-72 sm:w-96 sm:h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   {/* Main pie chart */}

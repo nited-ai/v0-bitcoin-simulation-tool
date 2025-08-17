@@ -102,7 +102,7 @@ export function LoanUsageVisualizationCard() {
         ) : (
           <div className="flex items-center justify-center">
             {/* Pie Chart Container */}
-            <div className="relative w-72 h-72 sm:w-80 sm:h-80">
+            <div className="relative w-96 h-72 sm:w-96 sm:h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   {/* Main pie chart */}
@@ -135,7 +135,10 @@ export function LoanUsageVisualizationCard() {
                           className="text-sm font-medium"
                           style={{ fontSize: '14px', fontWeight: '500' }}
                         >
-                          {`${value.toFixed(1)}%`}
+                          ${chartData[index]?.usdAmount.toLocaleString('en-US', {
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0
+                          })}
                         </text>
                       )
                     }}
@@ -172,8 +175,9 @@ export function LoanUsageVisualizationCard() {
                 </PieChart>
               </ResponsiveContainer>
 
-              {/* Center Text with Max Loan Capacity */}
+              {/* Center Text with Platform Name and Max Loan Capacity */}
               <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <div className="text-xs text-muted-foreground">{platformConfig.name}</div>
                 <div className="text-xs text-muted-foreground">Max Loan Amount</div>
                 <div className="text-sm font-medium text-center">
                   ${metrics.maxLoanCapacity.toLocaleString('en-US', {
@@ -192,20 +196,14 @@ export function LoanUsageVisualizationCard() {
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#22c55e" }}></div>
               <span className="text-sm font-medium text-green-600">
-                ${metrics.availableBorrowingCapacity.toLocaleString('en-US', {
-                  minimumFractionDigits: 0,
-                  maximumFractionDigits: 0
-                })}
+                {metrics.availableCapacityPercentage.toFixed(1)}%
               </span>
               <span className="text-sm">Available</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#ef4444" }}></div>
               <span className="text-sm font-medium text-red-600">
-                ${metrics.currentLoanAmount.toLocaleString('en-US', {
-                  minimumFractionDigits: 0,
-                  maximumFractionDigits: 0
-                })}
+                {metrics.loanUtilizationPercentage.toFixed(1)}%
               </span>
               <span className="text-sm">Used</span>
             </div>

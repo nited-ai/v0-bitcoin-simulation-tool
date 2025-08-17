@@ -18,7 +18,7 @@ import { CustomGrowthRateSliders } from '../price-models/manual/CustomGrowthRate
 import { BasicParametersCard } from '../parameters/BasicParametersCard'
 import { ValidationSummary } from '../parameters/ValidationSummary'
 import { RiskLevelSelector } from '../parameters/RiskLevelSelector'
-import { CollateralAnalysisCard } from '../parameters/CollateralAnalysisCard'
+
 import { CollateralVisualizationCard } from '../parameters/CollateralVisualizationCard'
 import { LoanUsageVisualizationCard } from '../parameters/LoanUsageVisualizationCard'
 import { PriceDropToleranceCard } from '../parameters/PriceDropToleranceCard'
@@ -145,10 +145,7 @@ export function TabNavigation({ children }: TabNavigationProps) {
               <LoanUsageVisualizationCard />
             </div>
 
-            {/* Full Width Bottom Section */}
-            <div className="mt-6">
-              <CollateralAnalysisCard />
-            </div>
+
           </div>
         </TabsContent>
         
