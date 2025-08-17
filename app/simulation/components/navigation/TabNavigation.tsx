@@ -21,6 +21,7 @@ import { RiskLevelSelector } from '../parameters/RiskLevelSelector'
 import { CollateralAnalysisCard } from '../parameters/CollateralAnalysisCard'
 import { CollateralVisualizationCard } from '../parameters/CollateralVisualizationCard'
 import { LoanUsageVisualizationCard } from '../parameters/LoanUsageVisualizationCard'
+import { PriceDropToleranceCard } from '../parameters/PriceDropToleranceCard'
 import { LoanParametersCard } from '../parameters/LoanParametersCard'
 import { PlatformSelector } from '../parameters/PlatformSelector'
 import { ResultsPage } from '../results/ResultsPage'
@@ -134,9 +135,14 @@ export function TabNavigation({ children }: TabNavigationProps) {
               <div className="space-y-6">
                 <RiskLevelSelector />
                 <LoanParametersCard />
-                <CollateralVisualizationCard />
-                <LoanUsageVisualizationCard />
               </div>
+            </div>
+
+            {/* Loan Parameter Visualization Cards - Horizontal Layout */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+              <CollateralVisualizationCard />
+              <PriceDropToleranceCard />
+              <LoanUsageVisualizationCard />
             </div>
 
             {/* Full Width Bottom Section */}

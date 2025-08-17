@@ -174,7 +174,7 @@ export function LoanUsageVisualizationCard() {
 
               {/* Center Text with Max Loan Capacity */}
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <div className="text-xs text-muted-foreground">Max Capacity</div>
+                <div className="text-xs text-muted-foreground">Max Loan Amount</div>
                 <div className="text-sm font-medium text-center">
                   ${metrics.maxLoanCapacity.toLocaleString('en-US', {
                     minimumFractionDigits: 0,

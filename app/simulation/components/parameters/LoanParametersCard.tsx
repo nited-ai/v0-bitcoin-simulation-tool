@@ -191,7 +191,7 @@ export function LoanParametersCard() {
                 </Tooltip>
               </Label>
               <Select
-                value={params.loanTermMonths === Infinity ? "infinity" : params.loanTermMonths.toString()}
+                value={params.loanTermMonths === Infinity ? "infinity" : (params.loanTermMonths?.toString() || "6")}
                 onValueChange={(value) => updateParam("loanTermMonths", value === "infinity" ? Infinity : parseInt(value))}
               >
                 <SelectTrigger>
