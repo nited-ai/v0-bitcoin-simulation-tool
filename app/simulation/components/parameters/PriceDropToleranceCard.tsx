@@ -5,7 +5,8 @@ import { BarChart, Bar, Cell, ResponsiveContainer, XAxis, YAxis, LabelList } fro
 import { Shield } from "lucide-react"
 import { useMemo, useState } from "react"
 import { useSimulation } from "../../context/SimulationContext"
-import { getPlatformConfig } from "../../constants/platformPresets"
+import { useLiquidationCalculations } from "../../hooks/useCalculationsIntegration"
+import { CalculationsErrorBoundary } from "./CalculationsErrorBoundary"
 
 interface PriceDropData {
   name: string
@@ -42,113 +43,85 @@ interface PriceDropMetrics {
 
 export function PriceDropToleranceCard() {
   const { params } = useSimulation()
-  const platformConfig = getPlatformConfig(params.platform)
+  const liquidationData = useLiquidationCalculations()
 
   // Toggle state for view selection (default to "From Current Price")
   const [viewMode, setViewMode] = useState<'current' | 'ath'>('current')
 
-  // Calculate price drop metrics (same logic as CollateralAnalysisCard)
+  // Convert centralized calculations to component format
   const metrics: PriceDropMetrics = useMemo(() => {
-    // Total BTC stack value
-    const totalStackValue = params.btcAmount * params.initialBtcPrice
-    
-    // Current loan amount based on percentage setting
-    const currentLoanAmount = (params.loanAmountPercent / 100) * totalStackValue
-    
-    // Origination fee calculation
-    const originationFee = currentLoanAmount * (platformConfig.originationFeePercent / 100)
-    
-    // Calculate BTC locked as collateral for current loan
-    const btcLockedAsCollateral = (currentLoanAmount + originationFee) / (params.riskManagement.targetLtv / 100) / params.initialBtcPrice
-    
-    // Calculate immediate liquidation price (without top-up)
-    let liquidationPrice = 0
-    let priceDropPercentage = 0
-    let priceDropAmount = 0
-    let remainingPricePercentage = 100
-
-    // Calculate free collateral available for top-up
-    const freeBtcAmount = Math.max(0, params.btcAmount - btcLockedAsCollateral)
-    const hasFreeCollateral = freeBtcAmount > 0
-
-    // Calculate true liquidation price (with free collateral top-up)
-    let trueLiquidationPrice = 0
-    let truePriceDropPercentage = 0
-    let trueRemainingPricePercentage = 100
-
-    if (currentLoanAmount > 0 && params.btcAmount > 0 && btcLockedAsCollateral > 0) {
-      // Immediate liquidation price calculation: (loan amount + origination fee) / (liquidation LTV / 100) / locked collateral BTC amount
-      liquidationPrice = (currentLoanAmount + originationFee) / (params.riskManagement.liquidationLtv / 100) / btcLockedAsCollateral
-
-      // Calculate immediate price drop percentage and amount
-      priceDropPercentage = Math.max(0, ((params.initialBtcPrice - liquidationPrice) / params.initialBtcPrice) * 100)
-      priceDropAmount = params.initialBtcPrice - liquidationPrice
-      remainingPricePercentage = 100 - priceDropPercentage
-
-      // True liquidation price calculation: (loan amount + origination fee) / (liquidation LTV / 100) / total BTC amount
-      trueLiquidationPrice = hasFreeCollateral
-        ? (currentLoanAmount + originationFee) / (params.riskManagement.liquidationLtv / 100) / params.btcAmount
-        : liquidationPrice // Same as immediate liquidation if no free collateral
-
-      // Calculate true price drop percentage
-      truePriceDropPercentage = Math.max(0, ((params.initialBtcPrice - trueLiquidationPrice) / params.initialBtcPrice) * 100)
-      trueRemainingPricePercentage = 100 - truePriceDropPercentage
-    } else {
-      // No loan = no liquidation risk
-      liquidationPrice = 0
-      priceDropPercentage = 0
-      priceDropAmount = 0
-      remainingPricePercentage = 100
-      trueLiquidationPrice = 0
-      truePriceDropPercentage = 0
-      trueRemainingPricePercentage = 100
+    if (!liquidationData) {
+      // Fallback values when calculations are not available
+      return {
+        currentBtcPrice: params.initialBtcPrice,
+        liquidationPrice: 0,
+        priceDropAmount: 0,
+        priceDropPercentage: 0,
+        remainingPricePercentage: 100,
+        trueLiquidationPrice: 0,
+        truePriceDropPercentage: 0,
+        trueRemainingPricePercentage: 100,
+        freeBtcAmount: params.btcAmount,
+        hasFreeCollateral: true
+      }
     }
+
+    // Use centralized calculations
+    const priceDropAmount = liquidationData.currentBtcPrice - liquidationData.liquidationPrice
+    const truePriceDropAmount = liquidationData.currentBtcPrice - liquidationData.trueLiquidationPrice
 
     return {
-      currentBtcPrice: params.initialBtcPrice,
-      liquidationPrice,
+      currentBtcPrice: liquidationData.currentBtcPrice,
+      liquidationPrice: liquidationData.liquidationPrice,
       priceDropAmount,
-      priceDropPercentage,
-      remainingPricePercentage,
+      priceDropPercentage: liquidationData.priceDropPercentage,
+      remainingPricePercentage: 100 - liquidationData.priceDropPercentage,
       // Enhanced metrics with free collateral
-      trueLiquidationPrice,
-      truePriceDropPercentage,
-      trueRemainingPricePercentage,
-      freeBtcAmount,
-      hasFreeCollateral
+      trueLiquidationPrice: liquidationData.trueLiquidationPrice,
+      truePriceDropPercentage: liquidationData.truePriceDropPercentage,
+      trueRemainingPricePercentage: 100 - liquidationData.truePriceDropPercentage,
+      freeBtcAmount: liquidationData.freeBtcAmount,
+      hasFreeCollateral: liquidationData.hasFreeCollateral
     }
-  }, [params, platformConfig])
+  }, [liquidationData, params.initialBtcPrice, params.btcAmount])
 
-  // Enhanced ATH metrics calculation
+  // Enhanced ATH metrics calculation using centralized service
   const athMetrics = useMemo(() => {
-    const athPrice = 125000 // Hardcoded ATH value for now
+    if (!liquidationData?.athPrice || !liquidationData?.athMetrics) {
+      // Fallback ATH calculations
+      const athPrice = 125000
+      return {
+        athPrice,
+        liquidationPrice: metrics.liquidationPrice,
+        athPriceDropAmount: athPrice - metrics.liquidationPrice,
+        athPriceDropPercentage: metrics.liquidationPrice > 0 ? Math.max(0, ((athPrice - metrics.liquidationPrice) / athPrice) * 100) : 0,
+        athRemainingPricePercentage: metrics.liquidationPrice > 0 ? 100 - Math.max(0, ((athPrice - metrics.liquidationPrice) / athPrice) * 100) : 100,
+        trueLiquidationPrice: metrics.trueLiquidationPrice,
+        trueAthPriceDropAmount: athPrice - metrics.trueLiquidationPrice,
+        trueAthPriceDropPercentage: metrics.trueLiquidationPrice > 0 ? Math.max(0, ((athPrice - metrics.trueLiquidationPrice) / athPrice) * 100) : 0,
+        trueAthRemainingPricePercentage: metrics.trueLiquidationPrice > 0 ? 100 - Math.max(0, ((athPrice - metrics.trueLiquidationPrice) / athPrice) * 100) : 100
+      }
+    }
 
-    // Immediate liquidation from ATH (existing)
-    const liquidationPrice = metrics.liquidationPrice // Same immediate liquidation price
-    const athPriceDropAmount = athPrice - liquidationPrice
-    const athPriceDropPercentage = liquidationPrice > 0 ? Math.max(0, ((athPrice - liquidationPrice) / athPrice) * 100) : 0
-    const athRemainingPricePercentage = liquidationPrice > 0 ? 100 - athPriceDropPercentage : 100
-
-    // True liquidation from ATH with free collateral (new)
-    const trueLiquidationPrice = metrics.trueLiquidationPrice
-    const trueAthPriceDropAmount = athPrice - trueLiquidationPrice
-    const trueAthPriceDropPercentage = trueLiquidationPrice > 0 ? Math.max(0, ((athPrice - trueLiquidationPrice) / athPrice) * 100) : 0
-    const trueAthRemainingPricePercentage = trueLiquidationPrice > 0 ? 100 - trueAthPriceDropPercentage : 100
+    // Use centralized ATH calculations
+    const athPrice = liquidationData.athPrice
+    const athPriceDropAmount = athPrice - liquidationData.liquidationPrice
+    const trueAthPriceDropAmount = athPrice - liquidationData.trueLiquidationPrice
 
     return {
       athPrice,
-      // Immediate liquidation from ATH (existing)
-      liquidationPrice,
+      // Immediate liquidation from ATH
+      liquidationPrice: liquidationData.liquidationPrice,
       athPriceDropAmount,
-      athPriceDropPercentage,
-      athRemainingPricePercentage,
-      // True liquidation from ATH with free collateral (new)
-      trueLiquidationPrice,
+      athPriceDropPercentage: liquidationData.athMetrics.priceDropPercentage,
+      athRemainingPricePercentage: 100 - liquidationData.athMetrics.priceDropPercentage,
+      // True liquidation from ATH with free collateral
+      trueLiquidationPrice: liquidationData.trueLiquidationPrice,
       trueAthPriceDropAmount,
-      trueAthPriceDropPercentage,
-      trueAthRemainingPricePercentage
+      trueAthPriceDropPercentage: liquidationData.athMetrics.truePriceDropPercentage,
+      trueAthRemainingPricePercentage: 100 - liquidationData.athMetrics.truePriceDropPercentage
     }
-  }, [metrics.liquidationPrice, metrics.trueLiquidationPrice])
+  }, [liquidationData, metrics.liquidationPrice, metrics.trueLiquidationPrice])
 
   // Prepare data for stacked bar chart
   const chartData = useMemo(() => {
@@ -512,7 +485,8 @@ export function PriceDropToleranceCard() {
   }
 
   return (
-    <Card>
+    <CalculationsErrorBoundary>
+      <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Shield className="w-5 h-5 text-primary" />
@@ -721,5 +695,6 @@ export function PriceDropToleranceCard() {
           </div>
       </CardContent>
     </Card>
+    </CalculationsErrorBoundary>
   )
 }

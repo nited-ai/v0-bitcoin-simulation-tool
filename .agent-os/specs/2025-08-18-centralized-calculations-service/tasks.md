@@ -31,13 +31,13 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 3.5 Create collateral sufficiency validation methods
   - [x] 3.6 Verify collateral calculations produce identical results to existing components
 
-- [ ] 4. Implement React Integration Layer
-  - [ ] 4.1 Write integration tests for useCalculations hook with parameter change scenarios
-  - [ ] 4.2 Create useCalculations custom hook with reactive recalculation capabilities
-  - [ ] 4.3 Implement automatic dependency tracking and memoization using React.useMemo and useCallback
-  - [ ] 4.4 Add error boundary integration and graceful error handling
-  - [ ] 4.5 Integrate with existing useSimulation context without breaking changes
-  - [ ] 4.6 Verify hook provides real-time updates when parameters change
+- [x] 4. Implement React Integration Layer
+  - [x] 4.1 Write integration tests for useCalculations hook with parameter change scenarios
+  - [x] 4.2 Create useCalculations custom hook with reactive recalculation capabilities
+  - [x] 4.3 Implement automatic dependency tracking and memoization using React.useMemo and useCallback
+  - [x] 4.4 Add error boundary integration and graceful error handling
+  - [x] 4.5 Integrate with existing useSimulation context without breaking changes
+  - [x] 4.6 Verify hook provides real-time updates when parameters change
 
 - [ ] 5. Refactor Parameter Components to Use Centralized Service
   - [ ] 5.1 Write integration tests for each component using the centralized service

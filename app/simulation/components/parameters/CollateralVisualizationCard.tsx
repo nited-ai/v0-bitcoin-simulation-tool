@@ -5,7 +5,8 @@ import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts"
 import { PieChart as PieChartIcon } from "lucide-react"
 import { useMemo } from "react"
 import { useSimulation } from "../../context/SimulationContext"
-import { getPlatformConfig } from "../../constants/platformPresets"
+import { useCollateralCalculations } from "../../hooks/useCalculationsIntegration"
+import { CalculationsErrorBoundary } from "./CalculationsErrorBoundary"
 
 interface CollateralData {
   name: string
@@ -34,36 +35,32 @@ interface CollateralMetrics {
 
 export function CollateralVisualizationCard() {
   const { params } = useSimulation()
-  const platformConfig = getPlatformConfig(params.platform)
+  const collateralData = useCollateralCalculations()
 
-  // Calculate collateral metrics (same logic as CollateralAnalysisCard)
+  // Convert centralized calculations to component format
   const metrics: CollateralMetrics = useMemo(() => {
-    // Total BTC stack value
-    const totalStackValue = params.btcAmount * params.initialBtcPrice
-    
-    // Current loan amount based on percentage setting
-    const currentLoanAmount = (params.loanAmountPercent / 100) * totalStackValue
-    
-    // Origination fee calculation
-    const originationFee = currentLoanAmount * (platformConfig.originationFeePercent / 100)
-    
-    // Calculate BTC locked as collateral for current loan
-    const btcLockedAsCollateral = (currentLoanAmount + originationFee) / (params.riskManagement.targetLtv / 100) / params.initialBtcPrice
-    
-    // Calculate remaining free BTC
-    const freeBtcAmount = Math.max(0, params.btcAmount - btcLockedAsCollateral)
-    
-    // Calculate percentages
-    const freeCollateralPercentage = params.btcAmount > 0 ? (freeBtcAmount / params.btcAmount) * 100 : 0
-    const collateralUtilization = params.btcAmount > 0 ? (btcLockedAsCollateral / params.btcAmount) * 100 : 0
+    if (!collateralData) {
+      // Fallback values when calculations are not available
+      return {
+        freeCollateralBtc: params.btcAmount,
+        freeCollateralPercentage: 100,
+        btcLockedAsCollateral: 0,
+        collateralUtilization: 0
+      }
+    }
+
+    // Use centralized calculations
+    const freeCollateralPercentage = params.btcAmount > 0
+      ? (collateralData.freeCollateralBtc / params.btcAmount) * 100
+      : 100
 
     return {
-      freeCollateralBtc: freeBtcAmount,
+      freeCollateralBtc: collateralData.freeCollateralBtc,
       freeCollateralPercentage,
-      btcLockedAsCollateral,
-      collateralUtilization
+      btcLockedAsCollateral: collateralData.lockedCollateralBtc,
+      collateralUtilization: collateralData.collateralUtilizationPercent
     }
-  }, [params, platformConfig])
+  }, [collateralData, params.btcAmount])
 
   // Prepare data for pie chart - Locked Collateral first to start at 12:00
   const chartData: CollateralData[] = useMemo(() => {
@@ -90,7 +87,8 @@ export function CollateralVisualizationCard() {
 
 
   return (
-    <Card>
+    <CalculationsErrorBoundary>
+      <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <PieChartIcon className="w-5 h-5 text-primary" />
@@ -228,5 +226,6 @@ export function CollateralVisualizationCard() {
         )}
       </CardContent>
     </Card>
+    </CalculationsErrorBoundary>
   )
 }
