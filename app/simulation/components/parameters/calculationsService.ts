@@ -195,6 +195,7 @@ export class CalculationsService {
 
   /**
    * Calculate liquidation metrics including immediate and true liquidation scenarios
+   * This method exactly matches the logic from PriceDropToleranceCard component
    */
   calculateLiquidationMetrics(params: SimulationParams): LiquidationMetrics {
     const cacheKey = `liquidation-${JSON.stringify(params)}`
@@ -205,7 +206,7 @@ export class CalculationsService {
     // Get platform configuration
     const platformConfig = this.getPlatformConfig(params.platform)
 
-    // Calculate basic values
+    // Calculate basic values (matching PriceDropToleranceCard logic)
     const totalStackValue = params.btcAmount * params.initialBtcPrice
     const currentLoanAmount = (params.loanAmountPercent / 100) * totalStackValue
     const originationFee = currentLoanAmount * (platformConfig.originationFeePercent / 100)
@@ -218,19 +219,33 @@ export class CalculationsService {
     const freeBtcAmount = Math.max(0, params.btcAmount - btcLockedAsCollateral)
     const hasFreeCollateral = freeBtcAmount > 0
 
-    // Calculate immediate liquidation price (without free collateral)
-    const liquidationPrice = totalLoanCost / (platformConfig.liquidationLtv / 100) / btcLockedAsCollateral
-    const priceDropPercentage = ((params.initialBtcPrice - liquidationPrice) / params.initialBtcPrice) * 100
+    // Initialize liquidation variables
+    let liquidationPrice = 0
+    let priceDropPercentage = 0
+    let trueLiquidationPrice = 0
+    let truePriceDropPercentage = 0
 
-    // Calculate true liquidation price (with free collateral available)
-    let trueLiquidationPrice = liquidationPrice
-    let truePriceDropPercentage = priceDropPercentage
+    // Calculate liquidation metrics only if there's a loan
+    if (currentLoanAmount > 0 && params.btcAmount > 0 && btcLockedAsCollateral > 0) {
+      // Immediate liquidation price calculation (without free collateral top-up)
+      // Uses platform-specific liquidation LTV instead of risk management liquidation LTV
+      liquidationPrice = totalLoanCost / (platformConfig.liquidationLtv / 100) / btcLockedAsCollateral
 
-    if (hasFreeCollateral) {
-      // With free collateral, liquidation occurs when entire BTC stack can't cover the loan
-      trueLiquidationPrice = totalLoanCost / (platformConfig.liquidationLtv / 100) / params.btcAmount
-      truePriceDropPercentage = ((params.initialBtcPrice - trueLiquidationPrice) / params.initialBtcPrice) * 100
+      // Calculate immediate price drop percentage
+      priceDropPercentage = Math.max(0, ((params.initialBtcPrice - liquidationPrice) / params.initialBtcPrice) * 100)
+
+      // True liquidation price calculation (with free collateral available)
+      trueLiquidationPrice = hasFreeCollateral
+        ? totalLoanCost / (platformConfig.liquidationLtv / 100) / params.btcAmount
+        : liquidationPrice // Same as immediate liquidation if no free collateral
+
+      // Calculate true price drop percentage
+      truePriceDropPercentage = Math.max(0, ((params.initialBtcPrice - trueLiquidationPrice) / params.initialBtcPrice) * 100)
     }
+
+    // ATH calculations (hardcoded ATH value matching PriceDropToleranceCard)
+    const athPrice = 125000
+    const athMetrics = this.calculateAthLiquidationMetrics(liquidationPrice, trueLiquidationPrice, athPrice)
 
     const result: LiquidationMetrics = {
       liquidationPrice: Math.max(0, liquidationPrice),
@@ -239,7 +254,9 @@ export class CalculationsService {
       truePriceDropPercentage: Math.max(0, Math.min(100, truePriceDropPercentage)),
       freeBtcAmount,
       hasFreeCollateral,
-      currentBtcPrice: params.initialBtcPrice
+      currentBtcPrice: params.initialBtcPrice,
+      athPrice,
+      athMetrics
     }
 
     this.calculationCache.set(cacheKey, result)
@@ -466,15 +483,16 @@ export class CalculationsService {
 
   /**
    * Get platform configuration (private helper)
+   * Uses the exact same values as platformPresets.ts for consistency
    */
   private getPlatformConfig(platform: string) {
-    // Built-in platform configurations
+    // Built-in platform configurations matching platformPresets.ts exactly
     const PLATFORM_CONFIGS = {
       firefish: {
         id: 'firefish',
         name: 'Firefish',
         originationFeePercent: 1.5,
-        liquidationLtv: 95,
+        liquidationLtv: 95, // Firefish: 95% liquidation LTV
         liquidationFeePercent: 5.0,
         maxInitialLtv: 60
       },
@@ -482,7 +500,7 @@ export class CalculationsService {
         id: 'strike',
         name: 'Strike',
         originationFeePercent: 0,
-        liquidationLtv: 99,
+        liquidationLtv: 99, // Strike: 99% liquidation LTV
         liquidationFeePercent: 1.0,
         maxInitialLtv: 80
       },
@@ -490,13 +508,51 @@ export class CalculationsService {
         id: 'custom',
         name: 'Custom',
         originationFeePercent: 1.0,
-        liquidationLtv: 97,
+        liquidationLtv: 97, // Custom: 97% liquidation LTV
         liquidationFeePercent: 3.0,
         maxInitialLtv: 75
       }
     }
 
+    // Check for custom platforms with custom- prefix
+    if (platform.startsWith('custom-')) {
+      // For custom platforms, try to load from localStorage or fallback to default custom
+      try {
+        if (typeof localStorage !== 'undefined') {
+          const customPlatforms = JSON.parse(localStorage.getItem('customPlatformConfigs') || '{}')
+          if (customPlatforms[platform]) {
+            return customPlatforms[platform]
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to load custom platform config:', error)
+      }
+    }
+
     return PLATFORM_CONFIGS[platform as keyof typeof PLATFORM_CONFIGS] || PLATFORM_CONFIGS.custom
+  }
+
+  /**
+   * Calculate ATH-based liquidation metrics (private helper)
+   * Matches the ATH calculation logic from PriceDropToleranceCard
+   */
+  private calculateAthLiquidationMetrics(liquidationPrice: number, trueLiquidationPrice: number, athPrice: number) {
+    // Immediate liquidation from ATH
+    const athPriceDropPercentage = liquidationPrice > 0
+      ? Math.max(0, ((athPrice - liquidationPrice) / athPrice) * 100)
+      : 0
+
+    // True liquidation from ATH with free collateral
+    const trueAthPriceDropPercentage = trueLiquidationPrice > 0
+      ? Math.max(0, ((athPrice - trueLiquidationPrice) / athPrice) * 100)
+      : 0
+
+    return {
+      liquidationPrice,
+      priceDropPercentage: athPriceDropPercentage,
+      trueLiquidationPrice,
+      truePriceDropPercentage: trueAthPriceDropPercentage
+    }
   }
 
   /**

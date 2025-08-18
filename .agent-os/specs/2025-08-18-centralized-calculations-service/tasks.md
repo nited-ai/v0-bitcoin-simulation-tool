@@ -7,13 +7,13 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 
 ## Tasks
 
-- [ ] 1. Create Core Calculations Service Architecture
-  - [ ] 1.1 Write unit tests for CalculationsService class structure and basic methods
-  - [ ] 1.2 Create TypeScript interfaces for all calculation inputs and outputs (SimulationParams, LiquidationMetrics, CollateralMetrics, LoanMetrics, PlatformMetrics, ValidationResult)
-  - [ ] 1.3 Implement CalculationsService class with core calculation methods (calculateLiquidationMetrics, calculateCollateralMetrics, calculateLoanMetrics)
-  - [ ] 1.4 Add comprehensive error handling and parameter validation
-  - [ ] 1.5 Implement memoization strategy for expensive calculations
-  - [ ] 1.6 Verify all unit tests pass for core service functionality
+- [x] 1. Create Core Calculations Service Architecture
+  - [x] 1.1 Write unit tests for CalculationsService class structure and basic methods
+  - [x] 1.2 Create TypeScript interfaces for all calculation inputs and outputs (SimulationParams, LiquidationMetrics, CollateralMetrics, LoanMetrics, PlatformMetrics, ValidationResult)
+  - [x] 1.3 Implement CalculationsService class with core calculation methods (calculateLiquidationMetrics, calculateCollateralMetrics, calculateLoanMetrics)
+  - [x] 1.4 Add comprehensive error handling and parameter validation
+  - [x] 1.5 Implement memoization strategy for expensive calculations
+  - [x] 1.6 Verify all unit tests pass for core service functionality
 
 - [ ] 2. Extract and Centralize Liquidation Calculations
   - [ ] 2.1 Write tests for liquidation price calculations (immediate vs. true liquidation scenarios)

@@ -94,7 +94,7 @@ describe('CalculationsService', () => {
 
     it('should calculate liquidation metrics correctly', () => {
       const result = service.calculateLiquidationMetrics(testParams)
-      
+
       expect(result).toBeDefined()
       expect(typeof result.liquidationPrice).toBe('number')
       expect(typeof result.priceDropPercentage).toBe('number')
@@ -106,18 +106,107 @@ describe('CalculationsService', () => {
 
     it('should calculate immediate liquidation price correctly', () => {
       const result = service.calculateLiquidationMetrics(testParams)
-      
-      // With 10% loan ($10k) and 50% target LTV, liquidation should occur when
-      // collateral value drops to loan amount / liquidation LTV (95% for Firefish)
-      const expectedLiquidationPrice = 10000 / 0.95 / testParams.btcAmount
-      expect(result.liquidationPrice).toBeCloseTo(expectedLiquidationPrice, 2)
+
+      // Manual calculation for verification:
+      // Total loan cost = $10,000 + ($10,000 * 1.5%) = $10,150
+      // BTC locked as collateral = $10,150 / (50% / 100) / $100,000 = 0.203 BTC
+      // Immediate liquidation price = $10,150 / (95% / 100) / 0.203 BTC = $52,631.58
+      expect(result.liquidationPrice).toBeCloseTo(52631.58, 2)
     })
 
-    it('should identify free collateral correctly', () => {
+    it('should calculate true liquidation price with free collateral', () => {
       const result = service.calculateLiquidationMetrics(testParams)
-      
+
+      // Manual calculation for verification:
+      // True liquidation price = $10,150 / (95% / 100) / 1 BTC = $10,684.21
+      expect(result.trueLiquidationPrice).toBeCloseTo(10684.21, 2)
       expect(result.hasFreeCollateral).toBe(true)
-      expect(result.freeBtcAmount).toBeGreaterThan(0)
+      expect(result.freeBtcAmount).toBeCloseTo(0.797, 3) // 1 - 0.203 = 0.797 BTC
+    })
+
+    it('should calculate price drop percentages correctly', () => {
+      const result = service.calculateLiquidationMetrics(testParams)
+
+      // Immediate price drop: (100,000 - 52,631.58) / 100,000 * 100 = 47.37%
+      expect(result.priceDropPercentage).toBeCloseTo(47.37, 2)
+
+      // True price drop: (100,000 - 10,684.21) / 100,000 * 100 = 89.32%
+      expect(result.truePriceDropPercentage).toBeCloseTo(89.32, 2)
+    })
+
+    it('should handle different platforms correctly', () => {
+      const strikeParams = { ...testParams, platform: 'strike' as const }
+      const customParams = { ...testParams, platform: 'custom' as const }
+
+      const firefishResult = service.calculateLiquidationMetrics(testParams)
+      const strikeResult = service.calculateLiquidationMetrics(strikeParams)
+      const customResult = service.calculateLiquidationMetrics(customParams)
+
+      // Strike has 99% liquidation LTV (higher than Firefish 95%)
+      expect(strikeResult.liquidationPrice).toBeLessThan(firefishResult.liquidationPrice)
+      expect(strikeResult.trueLiquidationPrice).toBeLessThan(firefishResult.trueLiquidationPrice)
+
+      // Custom has 97% liquidation LTV (between Firefish and Strike)
+      expect(customResult.liquidationPrice).toBeLessThan(firefishResult.liquidationPrice)
+      expect(customResult.liquidationPrice).toBeGreaterThan(strikeResult.liquidationPrice)
+    })
+
+    it('should handle zero loan amount', () => {
+      const zeroLoanParams = { ...testParams, loanAmountPercent: 0 }
+      const result = service.calculateLiquidationMetrics(zeroLoanParams)
+
+      expect(result.liquidationPrice).toBe(0)
+      expect(result.trueLiquidationPrice).toBe(0)
+      expect(result.priceDropPercentage).toBe(0)
+      expect(result.truePriceDropPercentage).toBe(0)
+      expect(result.freeBtcAmount).toBe(testParams.btcAmount)
+      expect(result.hasFreeCollateral).toBe(true)
+    })
+
+    it('should handle scenarios without free collateral', () => {
+      // High loan percentage that uses all BTC as collateral
+      const highLoanParams = { ...testParams, loanAmountPercent: 50, riskManagement: { ...testParams.riskManagement, targetLtv: 95 } }
+      const result = service.calculateLiquidationMetrics(highLoanParams)
+
+      // When no free collateral, immediate and true liquidation should be the same
+      expect(result.liquidationPrice).toBeCloseTo(result.trueLiquidationPrice, 2)
+      expect(result.priceDropPercentage).toBeCloseTo(result.truePriceDropPercentage, 2)
+      expect(result.freeBtcAmount).toBeCloseTo(0, 4)
+      expect(result.hasFreeCollateral).toBe(false)
+    })
+
+    it('should include ATH calculations when provided', () => {
+      const result = service.calculateLiquidationMetrics(testParams)
+
+      // ATH calculations should be included in the result
+      expect(result.athPrice).toBeDefined()
+      expect(result.athMetrics).toBeDefined()
+
+      if (result.athMetrics) {
+        expect(typeof result.athMetrics.liquidationPrice).toBe('number')
+        expect(typeof result.athMetrics.priceDropPercentage).toBe('number')
+        expect(typeof result.athMetrics.trueLiquidationPrice).toBe('number')
+        expect(typeof result.athMetrics.truePriceDropPercentage).toBe('number')
+      }
+    })
+
+    it('should match PriceDropToleranceCard calculations exactly', () => {
+      const result = service.calculateLiquidationMetrics(testParams)
+
+      // These values should match the existing PriceDropToleranceCard component calculations
+      // Based on the component analysis:
+      // - Total loan cost: $10,150
+      // - BTC locked: 0.203 BTC
+      // - Free BTC: 0.797 BTC
+      // - Immediate liquidation: $52,631.58 (47.37% drop)
+      // - True liquidation: $10,684.21 (89.32% drop)
+
+      expect(result.liquidationPrice).toBeCloseTo(52631.58, 2)
+      expect(result.trueLiquidationPrice).toBeCloseTo(10684.21, 2)
+      expect(result.priceDropPercentage).toBeCloseTo(47.37, 2)
+      expect(result.truePriceDropPercentage).toBeCloseTo(89.32, 2)
+      expect(result.freeBtcAmount).toBeCloseTo(0.797, 3)
+      expect(result.hasFreeCollateral).toBe(true)
     })
   })
 
