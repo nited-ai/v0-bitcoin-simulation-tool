@@ -120,15 +120,15 @@ export function TabNavigation({ children }: TabNavigationProps) {
           <TabsTrigger value="parameters">Parameters</TabsTrigger>
           <TabsTrigger value="price-projection" disabled className="relative">
             <span className="opacity-50">Price Projection</span>
-            <Badge variant="secondary" className="ml-2 text-xs">Coming Soon</Badge>
+            <Badge variant="outline" className="ml-2 text-xs">Coming Soon</Badge>
           </TabsTrigger>
           <TabsTrigger value="strategy" disabled className="relative">
             <span className="opacity-50">Strategy</span>
-            <Badge variant="secondary" className="ml-2 text-xs">Coming Soon</Badge>
+            <Badge variant="outline" className="ml-2 text-xs">Coming Soon</Badge>
           </TabsTrigger>
           <TabsTrigger value="results" disabled className="relative">
             <span className="opacity-50">Results</span>
-            <Badge variant="secondary" className="ml-2 text-xs">Coming Soon</Badge>
+            <Badge variant="outline" className="ml-2 text-xs">Coming Soon</Badge>
           </TabsTrigger>
         </TabsList>
         
