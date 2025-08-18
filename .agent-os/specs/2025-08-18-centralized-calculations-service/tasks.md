@@ -15,13 +15,13 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 1.5 Implement memoization strategy for expensive calculations
   - [x] 1.6 Verify all unit tests pass for core service functionality
 
-- [ ] 2. Extract and Centralize Liquidation Calculations
-  - [ ] 2.1 Write tests for liquidation price calculations (immediate vs. true liquidation scenarios)
-  - [ ] 2.2 Extract liquidation calculation logic from PriceDropToleranceCard component
-  - [ ] 2.3 Implement centralized liquidation price calculations with free collateral analysis
-  - [ ] 2.4 Add price drop percentage calculations for current price and ATH scenarios
-  - [ ] 2.5 Integrate platform-specific liquidation LTV ratios (Firefish 95%, Strike 99%, Custom 97%)
-  - [ ] 2.6 Verify liquidation calculations match existing component behavior exactly
+- [x] 2. Extract and Centralize Liquidation Calculations
+  - [x] 2.1 Write tests for liquidation price calculations (immediate vs. true liquidation scenarios)
+  - [x] 2.2 Extract liquidation calculation logic from PriceDropToleranceCard component
+  - [x] 2.3 Implement centralized liquidation price calculations with free collateral analysis
+  - [x] 2.4 Add price drop percentage calculations for current price and ATH scenarios
+  - [x] 2.5 Integrate platform-specific liquidation LTV ratios (Firefish 95%, Strike 99%, Custom 97%)
+  - [x] 2.6 Verify liquidation calculations match existing component behavior exactly
 
 - [ ] 3. Consolidate Collateral Management Calculations
   - [ ] 3.1 Write tests for collateral ratio calculations and utilization percentages

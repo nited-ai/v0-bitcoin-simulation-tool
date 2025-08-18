@@ -106,6 +106,10 @@ export interface LoanMetrics {
   maxLoanCapacity: number
   /** Current loan utilization as percentage of max capacity */
   loanUtilizationPercent: number
+  /** Available borrowing capacity remaining */
+  availableBorrowingCapacity: number
+  /** Available capacity as percentage */
+  availableCapacityPercent: number
   /** Monthly interest payment */
   monthlyInterestPayment: number
   /** Total interest over loan term */
@@ -265,6 +269,7 @@ export class CalculationsService {
 
   /**
    * Calculate collateral management metrics
+   * This method exactly matches the logic from CollateralVisualizationCard component
    */
   calculateCollateralMetrics(params: SimulationParams): CollateralMetrics {
     const cacheKey = `collateral-${JSON.stringify(params)}`
@@ -275,26 +280,35 @@ export class CalculationsService {
     // Get platform configuration
     const platformConfig = this.getPlatformConfig(params.platform)
 
-    // Calculate basic values
+    // Calculate basic values (matching CollateralVisualizationCard logic)
     const totalStackValue = params.btcAmount * params.initialBtcPrice
     const currentLoanAmount = (params.loanAmountPercent / 100) * totalStackValue
     const originationFee = currentLoanAmount * (platformConfig.originationFeePercent / 100)
     const totalLoanCost = currentLoanAmount + originationFee
 
-    // Calculate locked collateral (BTC required to secure current loan)
-    const lockedCollateralBtc = totalLoanCost / (params.riskManagement.targetLtv / 100) / params.initialBtcPrice
+    // Calculate BTC locked as collateral for current loan (exact formula from component)
+    const lockedCollateralBtc = params.btcAmount > 0 && totalLoanCost > 0
+      ? totalLoanCost / (params.riskManagement.targetLtv / 100) / params.initialBtcPrice
+      : 0
 
     // Calculate free collateral (remaining BTC available)
     const freeCollateralBtc = Math.max(0, params.btcAmount - lockedCollateralBtc)
 
-    // Calculate collateral utilization percentage
-    const collateralUtilizationPercent = (lockedCollateralBtc / params.btcAmount) * 100
+    // Calculate collateral utilization percentage (matching component logic)
+    const collateralUtilizationPercent = params.btcAmount > 0
+      ? (lockedCollateralBtc / params.btcAmount) * 100
+      : 0
+
+    // Calculate free collateral percentage (for compatibility with CollateralVisualizationCard)
+    const freeCollateralPercentage = params.btcAmount > 0
+      ? (freeCollateralBtc / params.btcAmount) * 100
+      : 0
 
     // Calculate collateral values in USD
     const lockedCollateralValue = lockedCollateralBtc * params.initialBtcPrice
     const freeCollateralValue = freeCollateralBtc * params.initialBtcPrice
 
-    // Check if collateral is sufficient
+    // Check if collateral is sufficient for the current loan
     const isSufficient = lockedCollateralBtc <= params.btcAmount
 
     const result: CollateralMetrics = {
@@ -313,6 +327,7 @@ export class CalculationsService {
 
   /**
    * Calculate loan metrics and costs
+   * This method includes logic from both LoanUsageVisualizationCard and general loan calculations
    */
   calculateLoanMetrics(params: SimulationParams): LoanMetrics {
     const cacheKey = `loan-${JSON.stringify(params)}`
@@ -323,20 +338,27 @@ export class CalculationsService {
     // Get platform configuration
     const platformConfig = this.getPlatformConfig(params.platform)
 
-    // Calculate basic loan values
+    // Calculate basic loan values (matching LoanUsageVisualizationCard logic)
     const totalStackValue = params.btcAmount * params.initialBtcPrice
     const currentLoanAmount = (params.loanAmountPercent / 100) * totalStackValue
     const originationFee = currentLoanAmount * (platformConfig.originationFeePercent / 100)
     const totalLoanCost = currentLoanAmount + originationFee
 
-    // Calculate maximum loan capacity based on platform limits
-    const maxLoanCapacity = Math.min(
-      params.riskManagement.maxLoanAmount,
-      totalStackValue * (platformConfig.maxInitialLtv / 100)
-    )
+    // Calculate maximum loan capacity based on platform's initial LTV limit (matching LoanUsageVisualizationCard)
+    const maxLoanCapacity = totalStackValue * (platformConfig.maxInitialLtv / 100)
 
-    // Calculate loan utilization percentage
-    const loanUtilizationPercent = (currentLoanAmount / maxLoanCapacity) * 100
+    // Calculate available borrowing capacity (matching LoanUsageVisualizationCard)
+    const availableBorrowingCapacity = Math.max(0, maxLoanCapacity - currentLoanAmount)
+
+    // Calculate loan utilization percentage (matching LoanUsageVisualizationCard)
+    const loanUtilizationPercent = maxLoanCapacity > 0
+      ? (currentLoanAmount / maxLoanCapacity) * 100
+      : 0
+
+    // Calculate available capacity percentage (matching LoanUsageVisualizationCard)
+    const availableCapacityPercent = maxLoanCapacity > 0
+      ? (availableBorrowingCapacity / maxLoanCapacity) * 100
+      : 100
 
     // Calculate interest payments
     const monthlyInterestRate = params.riskManagement.annualInterestRate / 100 / 12
@@ -357,6 +379,8 @@ export class CalculationsService {
       totalLoanCost,
       maxLoanCapacity,
       loanUtilizationPercent: Math.max(0, Math.min(100, loanUtilizationPercent)),
+      availableBorrowingCapacity,
+      availableCapacityPercent: Math.max(0, Math.min(100, availableCapacityPercent)),
       monthlyInterestPayment,
       totalInterestPayment
     }
@@ -530,6 +554,69 @@ export class CalculationsService {
     }
 
     return PLATFORM_CONFIGS[platform as keyof typeof PLATFORM_CONFIGS] || PLATFORM_CONFIGS.custom
+  }
+
+  /**
+   * Validate collateral sufficiency for a given loan amount
+   * This method provides detailed validation logic for collateral requirements
+   */
+  validateCollateralSufficiency(params: SimulationParams): {
+    isSufficient: boolean
+    requiredCollateralBtc: number
+    availableCollateralBtc: number
+    shortfallBtc: number
+    shortfallUsd: number
+    utilizationPercent: number
+    riskLevel: 'low' | 'medium' | 'high' | 'critical'
+    warnings: string[]
+  } {
+    const platformConfig = this.getPlatformConfig(params.platform)
+
+    // Calculate required collateral
+    const totalStackValue = params.btcAmount * params.initialBtcPrice
+    const currentLoanAmount = (params.loanAmountPercent / 100) * totalStackValue
+    const originationFee = currentLoanAmount * (platformConfig.originationFeePercent / 100)
+    const totalLoanCost = currentLoanAmount + originationFee
+
+    const requiredCollateralBtc = totalLoanCost / (params.riskManagement.targetLtv / 100) / params.initialBtcPrice
+    const availableCollateralBtc = params.btcAmount
+    const shortfallBtc = Math.max(0, requiredCollateralBtc - availableCollateralBtc)
+    const shortfallUsd = shortfallBtc * params.initialBtcPrice
+
+    const isSufficient = requiredCollateralBtc <= availableCollateralBtc
+    const utilizationPercent = availableCollateralBtc > 0
+      ? (requiredCollateralBtc / availableCollateralBtc) * 100
+      : 0
+
+    // Determine risk level based on utilization
+    let riskLevel: 'low' | 'medium' | 'high' | 'critical'
+    if (utilizationPercent <= 30) riskLevel = 'low'
+    else if (utilizationPercent <= 60) riskLevel = 'medium'
+    else if (utilizationPercent <= 90) riskLevel = 'high'
+    else riskLevel = 'critical'
+
+    // Generate warnings
+    const warnings: string[] = []
+    if (!isSufficient) {
+      warnings.push(`Insufficient collateral: need ${shortfallBtc.toFixed(4)} more BTC`)
+    }
+    if (utilizationPercent > 80) {
+      warnings.push('High collateral utilization increases liquidation risk')
+    }
+    if (utilizationPercent > 95) {
+      warnings.push('Critical collateral utilization - consider reducing loan amount')
+    }
+
+    return {
+      isSufficient,
+      requiredCollateralBtc,
+      availableCollateralBtc,
+      shortfallBtc,
+      shortfallUsd,
+      utilizationPercent,
+      riskLevel,
+      warnings
+    }
   }
 
   /**

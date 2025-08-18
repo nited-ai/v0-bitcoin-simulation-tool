@@ -229,26 +229,166 @@ describe('CalculationsService', () => {
 
     it('should calculate collateral metrics correctly', () => {
       const result = service.calculateCollateralMetrics(testParams)
-      
+
       expect(result).toBeDefined()
       expect(typeof result.totalStackValue).toBe('number')
       expect(typeof result.lockedCollateralBtc).toBe('number')
       expect(typeof result.freeCollateralBtc).toBe('number')
       expect(typeof result.collateralUtilizationPercent).toBe('number')
+      expect(typeof result.lockedCollateralValue).toBe('number')
+      expect(typeof result.freeCollateralValue).toBe('number')
+      expect(typeof result.isSufficient).toBe('boolean')
     })
 
     it('should calculate total stack value correctly', () => {
       const result = service.calculateCollateralMetrics(testParams)
-      
-      const expectedStackValue = testParams.btcAmount * testParams.initialBtcPrice
+
+      const expectedStackValue = testParams.btcAmount * testParams.initialBtcPrice // 2 * 80,000 = $160,000
       expect(result.totalStackValue).toBe(expectedStackValue)
     })
 
     it('should calculate locked collateral correctly', () => {
       const result = service.calculateCollateralMetrics(testParams)
-      
+
+      // Manual calculation for verification:
+      // Current loan amount = 25% * $160,000 = $40,000
+      // Origination fee = $40,000 * 0% (Strike) = $0
+      // Total loan cost = $40,000 + $0 = $40,000
+      // Locked collateral = $40,000 / (60% / 100) / $80,000 = 0.833 BTC
+      expect(result.lockedCollateralBtc).toBeCloseTo(0.833, 3)
       expect(result.lockedCollateralBtc).toBeGreaterThan(0)
       expect(result.lockedCollateralBtc).toBeLessThanOrEqual(testParams.btcAmount)
+    })
+
+    it('should calculate free collateral correctly', () => {
+      const result = service.calculateCollateralMetrics(testParams)
+
+      // Free collateral = 2 BTC - 0.833 BTC = 1.167 BTC
+      expect(result.freeCollateralBtc).toBeCloseTo(1.167, 3)
+      expect(result.freeCollateralBtc).toBeGreaterThanOrEqual(0)
+    })
+
+    it('should calculate collateral utilization percentage correctly', () => {
+      const result = service.calculateCollateralMetrics(testParams)
+
+      // Collateral utilization = (0.833 / 2) * 100 = 41.65%
+      expect(result.collateralUtilizationPercent).toBeCloseTo(41.65, 2)
+      expect(result.collateralUtilizationPercent).toBeGreaterThanOrEqual(0)
+      expect(result.collateralUtilizationPercent).toBeLessThanOrEqual(100)
+    })
+
+    it('should calculate USD values correctly', () => {
+      const result = service.calculateCollateralMetrics(testParams)
+
+      // Locked collateral value = 0.833 BTC * $80,000 = $66,640
+      expect(result.lockedCollateralValue).toBeCloseTo(66640, 0)
+
+      // Free collateral value = 1.167 BTC * $80,000 = $93,360
+      expect(result.freeCollateralValue).toBeCloseTo(93360, 0)
+
+      // Total should equal stack value
+      expect(result.lockedCollateralValue + result.freeCollateralValue).toBeCloseTo(result.totalStackValue, 0)
+    })
+
+    it('should validate collateral sufficiency correctly', () => {
+      const result = service.calculateCollateralMetrics(testParams)
+
+      // With 2 BTC and 0.833 BTC locked, collateral should be sufficient
+      expect(result.isSufficient).toBe(true)
+    })
+
+    it('should handle insufficient collateral scenarios', () => {
+      const insufficientParams = {
+        ...testParams,
+        btcAmount: 0.5, // Only 0.5 BTC but need 0.833 BTC for collateral
+        loanAmountPercent: 25 // Same loan percentage
+      }
+
+      const result = service.calculateCollateralMetrics(insufficientParams)
+
+      expect(result.isSufficient).toBe(false)
+      expect(result.lockedCollateralBtc).toBeGreaterThan(insufficientParams.btcAmount)
+      expect(result.freeCollateralBtc).toBe(0) // No free collateral when insufficient
+    })
+
+    it('should handle zero loan amount', () => {
+      const zeroLoanParams = { ...testParams, loanAmountPercent: 0 }
+      const result = service.calculateCollateralMetrics(zeroLoanParams)
+
+      expect(result.lockedCollateralBtc).toBe(0)
+      expect(result.freeCollateralBtc).toBe(testParams.btcAmount)
+      expect(result.collateralUtilizationPercent).toBe(0)
+      expect(result.lockedCollateralValue).toBe(0)
+      expect(result.freeCollateralValue).toBe(testParams.btcAmount * testParams.initialBtcPrice)
+      expect(result.isSufficient).toBe(true)
+    })
+
+    it('should handle different platforms correctly', () => {
+      const firefishParams = { ...testParams, platform: 'firefish' as const }
+      const customParams = { ...testParams, platform: 'custom' as const }
+
+      const strikeResult = service.calculateCollateralMetrics(testParams)
+      const firefishResult = service.calculateCollateralMetrics(firefishParams)
+      const customResult = service.calculateCollateralMetrics(customParams)
+
+      // Strike has 0% origination fee, others have fees
+      // This should result in different locked collateral amounts
+      expect(firefishResult.lockedCollateralBtc).toBeGreaterThan(strikeResult.lockedCollateralBtc) // Firefish has 1.5% fee
+      expect(customResult.lockedCollateralBtc).toBeGreaterThan(strikeResult.lockedCollateralBtc) // Custom has 1.0% fee
+      expect(firefishResult.lockedCollateralBtc).toBeGreaterThan(customResult.lockedCollateralBtc) // Firefish > Custom
+    })
+
+    it('should match CollateralVisualizationCard calculations exactly', () => {
+      // Test parameters matching CollateralVisualizationCard component
+      const visualizationParams: SimulationParams = {
+        btcAmount: 1,
+        initialBtcPrice: 100000,
+        monthlyWithdrawal: 0,
+        btcAccumulation: false,
+        loanAmountPercent: 10,
+        platform: 'firefish',
+        riskManagement: {
+          targetLtv: 50,
+          maxLoanAmount: 50000,
+          annualInterestRate: 6.5,
+          loanTermMonths: 6,
+          liquidationFeePercent: 5
+        }
+      }
+
+      const result = service.calculateCollateralMetrics(visualizationParams)
+
+      // Expected calculations from CollateralVisualizationCard:
+      // Total loan cost = $10,000 + ($10,000 * 1.5%) = $10,150
+      // Locked collateral = $10,150 / (50% / 100) / $100,000 = 0.203 BTC
+      // Free collateral = 1 - 0.203 = 0.797 BTC
+      // Utilization = (0.203 / 1) * 100 = 20.3%
+
+      expect(result.lockedCollateralBtc).toBeCloseTo(0.203, 3)
+      expect(result.freeCollateralBtc).toBeCloseTo(0.797, 3)
+      expect(result.collateralUtilizationPercent).toBeCloseTo(20.3, 1)
+      expect(result.lockedCollateralValue).toBeCloseTo(20300, 0)
+      expect(result.freeCollateralValue).toBeCloseTo(79700, 0)
+      expect(result.isSufficient).toBe(true)
+    })
+
+    it('should handle edge cases gracefully', () => {
+      // Test with very small BTC amount
+      const smallBtcParams = { ...testParams, btcAmount: 0.001 }
+      const smallResult = service.calculateCollateralMetrics(smallBtcParams)
+
+      expect(smallResult.totalStackValue).toBeGreaterThan(0)
+      expect(smallResult.lockedCollateralBtc).toBeFinite()
+      expect(smallResult.freeCollateralBtc).toBeFinite()
+      expect(smallResult.collateralUtilizationPercent).toBeFinite()
+
+      // Test with very high BTC price
+      const highPriceParams = { ...testParams, initialBtcPrice: 1000000 }
+      const highPriceResult = service.calculateCollateralMetrics(highPriceParams)
+
+      expect(highPriceResult.totalStackValue).toBeGreaterThan(0)
+      expect(highPriceResult.lockedCollateralBtc).toBeFinite()
+      expect(highPriceResult.freeCollateralBtc).toBeFinite()
     })
   })
 
