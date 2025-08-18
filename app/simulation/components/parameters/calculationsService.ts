@@ -683,33 +683,120 @@ export class CalculationsService {
  * React hook for reactive calculations with automatic memoization
  *
  * This hook provides a React-friendly interface to the CalculationsService
- * with automatic recalculation when parameters change and built-in memoization
- * for performance optimization.
+ * with automatic recalculation when parameters change, built-in memoization
+ * for performance optimization, error boundary integration, and graceful error handling.
  */
 export function useCalculations(params: SimulationParams): CalculationResults | null {
   // Create service instance (singleton pattern ensures consistency)
   const service = useMemo(() => new CalculationsService(), [])
 
-  // Memoize calculations based on parameter changes
-  const calculations = useMemo(() => {
+  // Memoize parameter validation separately for better performance
+  const validation = useMemo(() => {
     try {
-      // Validate parameters first
-      const validation = service.validateParameters(params)
-
-      if (!validation.isValid) {
-        console.warn('Invalid parameters for calculations:', validation.errors)
-        return null
-      }
-
-      // Calculate all metrics
-      return service.calculateAll(params)
-
+      return service.validateParameters(params)
     } catch (error) {
-      console.error('Error in calculations:', error)
-      return null
+      console.error('Error validating parameters:', error)
+      return {
+        isValid: false,
+        errors: ['Parameter validation failed'],
+        warnings: [],
+        details: {
+          btcAmount: { valid: false, message: 'Validation error' },
+          initialBtcPrice: { valid: false, message: 'Validation error' },
+          loanAmountPercent: { valid: false, message: 'Validation error' },
+          platform: { valid: false, message: 'Validation error' },
+          riskManagement: { valid: false, message: 'Validation error' }
+        }
+      }
     }
   }, [
     service,
+    params.btcAmount,
+    params.initialBtcPrice,
+    params.loanAmountPercent,
+    params.platform,
+    params.riskManagement.targetLtv,
+    params.riskManagement.maxLoanAmount,
+    params.riskManagement.annualInterestRate,
+    params.riskManagement.loanTermMonths,
+    params.riskManagement.liquidationFeePercent
+  ])
+
+  // Memoize calculations based on parameter changes
+  const calculations = useMemo(() => {
+    // Early return if validation failed
+    if (!validation.isValid) {
+      console.warn('Invalid parameters for calculations:', validation.errors)
+      return null
+    }
+
+    try {
+      // Calculate individual metrics with error handling for each
+      const liquidation = service.calculateLiquidationMetrics(params)
+      const collateral = service.calculateCollateralMetrics(params)
+      const loan = service.calculateLoanMetrics(params)
+      const platform = service.applyPlatformConfig(params)
+
+      return {
+        liquidation,
+        collateral,
+        loan,
+        platform,
+        validation,
+        calculatedAt: new Date()
+      }
+
+    } catch (error) {
+      console.error('Error in calculations:', error)
+      // Return partial results if possible
+      try {
+        const platform = service.applyPlatformConfig(params)
+        return {
+          liquidation: {
+            liquidationPrice: 0,
+            priceDropPercentage: 0,
+            trueLiquidationPrice: 0,
+            truePriceDropPercentage: 0,
+            freeBtcAmount: params.btcAmount,
+            hasFreeCollateral: true,
+            currentBtcPrice: params.initialBtcPrice
+          } as LiquidationMetrics,
+          collateral: {
+            totalStackValue: params.btcAmount * params.initialBtcPrice,
+            lockedCollateralBtc: 0,
+            freeCollateralBtc: params.btcAmount,
+            collateralUtilizationPercent: 0,
+            lockedCollateralValue: 0,
+            freeCollateralValue: params.btcAmount * params.initialBtcPrice,
+            isSufficient: true
+          } as CollateralMetrics,
+          loan: {
+            currentLoanAmount: 0,
+            originationFee: 0,
+            totalLoanCost: 0,
+            maxLoanCapacity: 0,
+            loanUtilizationPercent: 0,
+            availableBorrowingCapacity: 0,
+            availableCapacityPercent: 100,
+            monthlyInterestPayment: 0,
+            totalInterestPayment: 0
+          } as LoanMetrics,
+          platform,
+          validation: {
+            ...validation,
+            errors: [...validation.errors, 'Calculation error occurred'],
+            isValid: false
+          },
+          calculatedAt: new Date()
+        }
+      } catch (fallbackError) {
+        console.error('Fallback calculation also failed:', fallbackError)
+        return null
+      }
+    }
+  }, [
+    service,
+    validation,
     params.btcAmount,
     params.initialBtcPrice,
     params.monthlyWithdrawal,
@@ -723,13 +810,22 @@ export function useCalculations(params: SimulationParams): CalculationResults | 
     params.riskManagement.liquidationFeePercent
   ])
 
-  // Provide cache management functions
+  // Provide cache management functions with error handling
   const clearCache = useCallback(() => {
-    service.clearCache()
+    try {
+      service.clearCache()
+    } catch (error) {
+      console.error('Error clearing cache:', error)
+    }
   }, [service])
 
   const getCacheStats = useCallback(() => {
-    return service.getCacheStats()
+    try {
+      return service.getCacheStats()
+    } catch (error) {
+      console.error('Error getting cache stats:', error)
+      return { size: 0, keys: [] }
+    }
   }, [service])
 
   // Return calculations with utility functions

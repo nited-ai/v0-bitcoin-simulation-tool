@@ -23,13 +23,13 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 2.5 Integrate platform-specific liquidation LTV ratios (Firefish 95%, Strike 99%, Custom 97%)
   - [x] 2.6 Verify liquidation calculations match existing component behavior exactly
 
-- [ ] 3. Consolidate Collateral Management Calculations
-  - [ ] 3.1 Write tests for collateral ratio calculations and utilization percentages
-  - [ ] 3.2 Extract collateral calculation logic from CollateralVisualizationCard and LoanUsageVisualizationCard
-  - [ ] 3.3 Implement centralized locked/free collateral amount calculations
-  - [ ] 3.4 Add collateral utilization percentage calculations and validation logic
-  - [ ] 3.5 Create collateral sufficiency validation methods
-  - [ ] 3.6 Verify collateral calculations produce identical results to existing components
+- [x] 3. Consolidate Collateral Management Calculations
+  - [x] 3.1 Write tests for collateral ratio calculations and utilization percentages
+  - [x] 3.2 Extract collateral calculation logic from CollateralVisualizationCard and LoanUsageVisualizationCard
+  - [x] 3.3 Implement centralized locked/free collateral amount calculations
+  - [x] 3.4 Add collateral utilization percentage calculations and validation logic
+  - [x] 3.5 Create collateral sufficiency validation methods
+  - [x] 3.6 Verify collateral calculations produce identical results to existing components
 
 - [ ] 4. Implement React Integration Layer
   - [ ] 4.1 Write integration tests for useCalculations hook with parameter change scenarios

@@ -1,5 +1,7 @@
-import { CalculationsService } from '../components/parameters/calculationsService'
+import { CalculationsService, useCalculations } from '../components/parameters/calculationsService'
 import { SimulationParams, LiquidationMetrics, CollateralMetrics, LoanMetrics, PlatformMetrics, ValidationResult } from '../components/parameters/calculationsService'
+import { renderHook, act } from '@testing-library/react'
+import { ReactNode } from 'react'
 
 describe('CalculationsService', () => {
   let service: CalculationsService
@@ -510,6 +512,209 @@ describe('CalculationsService', () => {
       const result = service.calculateLiquidationMetrics(smallBtcParams)
       expect(result.liquidationPrice).toBeGreaterThan(0)
       expect(result.liquidationPrice).toBeFinite()
+    })
+  })
+
+  describe('React Integration - useCalculations Hook', () => {
+    const baseParams: SimulationParams = {
+      btcAmount: 1,
+      initialBtcPrice: 100000,
+      monthlyWithdrawal: 0,
+      btcAccumulation: false,
+      loanAmountPercent: 10,
+      platform: 'firefish',
+      riskManagement: {
+        targetLtv: 50,
+        maxLoanAmount: 50000,
+        annualInterestRate: 6.5,
+        loanTermMonths: 6,
+        liquidationFeePercent: 5
+      }
+    }
+
+    it('should return calculations when parameters are valid', () => {
+      const { result } = renderHook(() => useCalculations(baseParams))
+
+      expect(result.current).not.toBeNull()
+      expect(result.current?.liquidation).toBeDefined()
+      expect(result.current?.collateral).toBeDefined()
+      expect(result.current?.loan).toBeDefined()
+      expect(result.current?.platform).toBeDefined()
+      expect(result.current?.validation.isValid).toBe(true)
+    })
+
+    it('should return null when parameters are invalid', () => {
+      const invalidParams = { ...baseParams, btcAmount: -1 }
+      const { result } = renderHook(() => useCalculations(invalidParams))
+
+      expect(result.current).toBeNull()
+    })
+
+    it('should recalculate when parameters change', () => {
+      let params = baseParams
+      const { result, rerender } = renderHook(() => useCalculations(params))
+
+      const initialResult = result.current
+      expect(initialResult?.liquidation.liquidationPrice).toBeCloseTo(52631.58, 2)
+
+      // Change BTC amount
+      params = { ...baseParams, btcAmount: 2 }
+      rerender()
+
+      const updatedResult = result.current
+      expect(updatedResult?.liquidation.liquidationPrice).not.toBe(initialResult?.liquidation.liquidationPrice)
+      expect(updatedResult?.collateral.totalStackValue).toBe(200000) // 2 BTC * $100k
+    })
+
+    it('should recalculate when BTC price changes', () => {
+      let params = baseParams
+      const { result, rerender } = renderHook(() => useCalculations(params))
+
+      const initialResult = result.current
+      expect(initialResult?.collateral.totalStackValue).toBe(100000)
+
+      // Change BTC price
+      params = { ...baseParams, initialBtcPrice: 80000 }
+      rerender()
+
+      const updatedResult = result.current
+      expect(updatedResult?.collateral.totalStackValue).toBe(80000) // 1 BTC * $80k
+      expect(updatedResult?.liquidation.liquidationPrice).not.toBe(initialResult?.liquidation.liquidationPrice)
+    })
+
+    it('should recalculate when loan percentage changes', () => {
+      let params = baseParams
+      const { result, rerender } = renderHook(() => useCalculations(params))
+
+      const initialResult = result.current
+      expect(initialResult?.loan.currentLoanAmount).toBe(10000) // 10% of $100k
+
+      // Change loan percentage
+      params = { ...baseParams, loanAmountPercent: 20 }
+      rerender()
+
+      const updatedResult = result.current
+      expect(updatedResult?.loan.currentLoanAmount).toBe(20000) // 20% of $100k
+      expect(updatedResult?.collateral.lockedCollateralBtc).toBeGreaterThan(initialResult?.collateral.lockedCollateralBtc || 0)
+    })
+
+    it('should recalculate when platform changes', () => {
+      let params = baseParams
+      const { result, rerender } = renderHook(() => useCalculations(params))
+
+      const firefishResult = result.current
+      expect(firefishResult?.platform.platform).toBe('Firefish')
+      expect(firefishResult?.platform.originationFeePercent).toBe(1.5)
+
+      // Change to Strike platform
+      params = { ...baseParams, platform: 'strike' }
+      rerender()
+
+      const strikeResult = result.current
+      expect(strikeResult?.platform.platform).toBe('Strike')
+      expect(strikeResult?.platform.originationFeePercent).toBe(0)
+      expect(strikeResult?.loan.originationFee).toBe(0) // Strike has no origination fee
+    })
+
+    it('should recalculate when risk management parameters change', () => {
+      let params = baseParams
+      const { result, rerender } = renderHook(() => useCalculations(params))
+
+      const initialResult = result.current
+      const initialLocked = initialResult?.collateral.lockedCollateralBtc || 0
+
+      // Change target LTV
+      params = {
+        ...baseParams,
+        riskManagement: {
+          ...baseParams.riskManagement,
+          targetLtv: 70 // Higher LTV = less collateral needed
+        }
+      }
+      rerender()
+
+      const updatedResult = result.current
+      const updatedLocked = updatedResult?.collateral.lockedCollateralBtc || 0
+      expect(updatedLocked).toBeLessThan(initialLocked) // Less collateral needed with higher LTV
+    })
+
+    it('should handle rapid parameter changes efficiently', () => {
+      let params = baseParams
+      const { result, rerender } = renderHook(() => useCalculations(params))
+
+      const startTime = performance.now()
+
+      // Simulate rapid parameter changes
+      for (let i = 0; i < 10; i++) {
+        params = { ...params, btcAmount: 1 + (i * 0.1) }
+        rerender()
+        expect(result.current).not.toBeNull()
+      }
+
+      const endTime = performance.now()
+      const totalTime = endTime - startTime
+
+      // Should complete all recalculations quickly (less than 100ms total)
+      expect(totalTime).toBeLessThan(100)
+    })
+
+    it('should provide cache management functions', () => {
+      const { result } = renderHook(() => useCalculations(baseParams))
+
+      expect(result.current).not.toBeNull()
+      expect(typeof result.current?.clearCache).toBe('function')
+      expect(typeof result.current?.getCacheStats).toBe('function')
+
+      // Test cache stats
+      const stats = result.current?.getCacheStats()
+      expect(stats).toBeDefined()
+      expect(typeof stats?.size).toBe('number')
+      expect(Array.isArray(stats?.keys)).toBe(true)
+    })
+
+    it('should handle edge cases gracefully', () => {
+      // Test with zero loan
+      const zeroLoanParams = { ...baseParams, loanAmountPercent: 0 }
+      const { result: zeroResult } = renderHook(() => useCalculations(zeroLoanParams))
+
+      expect(zeroResult.current).not.toBeNull()
+      expect(zeroResult.current?.loan.currentLoanAmount).toBe(0)
+      expect(zeroResult.current?.collateral.lockedCollateralBtc).toBe(0)
+      expect(zeroResult.current?.liquidation.liquidationPrice).toBe(0)
+
+      // Test with very small BTC amount
+      const smallBtcParams = { ...baseParams, btcAmount: 0.001 }
+      const { result: smallResult } = renderHook(() => useCalculations(smallBtcParams))
+
+      expect(smallResult.current).not.toBeNull()
+      expect(smallResult.current?.collateral.totalStackValue).toBe(100) // 0.001 * $100k
+    })
+
+    it('should maintain referential stability for unchanged calculations', () => {
+      const { result, rerender } = renderHook(() => useCalculations(baseParams))
+
+      const firstResult = result.current
+
+      // Rerender with same parameters
+      rerender()
+
+      const secondResult = result.current
+
+      // Results should be referentially equal due to memoization
+      expect(firstResult).toBe(secondResult)
+    })
+
+    it('should handle all platform types correctly', () => {
+      const platforms = ['firefish', 'strike', 'custom'] as const
+
+      platforms.forEach(platform => {
+        const params = { ...baseParams, platform }
+        const { result } = renderHook(() => useCalculations(params))
+
+        expect(result.current).not.toBeNull()
+        expect(result.current?.platform.platform).toBeDefined()
+        expect(result.current?.validation.isValid).toBe(true)
+      })
     })
   })
 })
