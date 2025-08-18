@@ -13,17 +13,14 @@ import { useMemo, useCallback } from 'react'
 // ============================================================================
 
 /**
- * Simulation parameters interface - all inputs needed for calculations
+ * Parameters tab simulation parameters interface - all inputs needed for initial loan calculations
+ * Note: Strategy-specific parameters (monthlyWithdrawal, btcAccumulation) are handled in strategy tab
  */
 export interface SimulationParams {
-  /** Amount of BTC in the user's stack */
-  btcAmount: number
+  /** Initial amount of BTC in the user's stack */
+  initialBtcAmount: number
   /** Initial BTC price in USD */
   initialBtcPrice: number
-  /** Monthly withdrawal amount in USD (negative for deposits) */
-  monthlyWithdrawal: number
-  /** Whether to accumulate BTC over time */
-  btcAccumulation: boolean
   /** Loan amount as percentage of total BTC stack value */
   loanAmountPercent: number
   /** Selected lending platform */
@@ -44,23 +41,23 @@ export interface SimulationParams {
 }
 
 /**
- * Liquidation analysis results
+ * Initial liquidation analysis results for parameters tab
  */
 export interface LiquidationMetrics {
-  /** Immediate liquidation price (without free collateral top-up) */
-  liquidationPrice: number
-  /** Price drop percentage required for immediate liquidation */
-  priceDropPercentage: number
-  /** True liquidation price (with free collateral available) */
-  trueLiquidationPrice: number
-  /** True price drop percentage required for liquidation */
-  truePriceDropPercentage: number
-  /** Amount of free BTC available for collateral top-up */
-  freeBtcAmount: number
-  /** Whether free collateral is available */
-  hasFreeCollateral: boolean
-  /** Current BTC price used in calculations */
-  currentBtcPrice: number
+  /** Initial immediate liquidation price (without free collateral top-up) */
+  initialImmediateLiquidationPrice: number
+  /** Initial immediate price drop percentage required for liquidation */
+  initialImmediatePriceDropPercentage: number
+  /** Initial true liquidation price (with free collateral available) */
+  initialTrueLiquidationPrice: number
+  /** Initial true price drop percentage required for liquidation */
+  initialTruePriceDropPercentage: number
+  /** Initial amount of free BTC available for collateral top-up */
+  initialFreeBtcAmount: number
+  /** Whether initial free collateral is available */
+  initialHasFreeCollateral: boolean
+  /** Initial current BTC price used in calculations */
+  initialCurrentBtcPrice: number
   /** ATH price for comparison calculations */
   athPrice?: number
   /** ATH-based liquidation metrics */
@@ -73,47 +70,47 @@ export interface LiquidationMetrics {
 }
 
 /**
- * Collateral management results
+ * Initial collateral management results for parameters tab
  */
 export interface CollateralMetrics {
-  /** Total BTC stack value in USD */
-  totalStackValue: number
-  /** Amount of BTC locked as collateral */
-  lockedCollateralBtc: number
-  /** Amount of free BTC available */
-  freeCollateralBtc: number
-  /** Collateral utilization as percentage */
-  collateralUtilizationPercent: number
-  /** Locked collateral value in USD */
-  lockedCollateralValue: number
-  /** Free collateral value in USD */
-  freeCollateralValue: number
-  /** Whether collateral is sufficient for current loan */
+  /** Initial total BTC stack value in USD */
+  initialTotalStackValue: number
+  /** Initial amount of BTC locked as collateral */
+  initialLockedCollateralBtc: number
+  /** Initial amount of free BTC available */
+  initialFreeCollateralBtc: number
+  /** Initial collateral utilization as percentage */
+  initialCollateralUtilizationPercent: number
+  /** Initial locked collateral value in USD */
+  initialLockedCollateralValue: number
+  /** Initial free collateral value in USD */
+  initialFreeCollateralValue: number
+  /** Whether initial collateral is sufficient for current loan */
   isSufficient: boolean
 }
 
 /**
- * Loan metrics and calculations
+ * Initial loan metrics and calculations for parameters tab
  */
 export interface LoanMetrics {
-  /** Current loan amount in USD */
-  currentLoanAmount: number
-  /** Origination fee amount */
-  originationFee: number
-  /** Total loan cost including fees */
-  totalLoanCost: number
-  /** Maximum loan capacity based on platform limits */
-  maxLoanCapacity: number
-  /** Current loan utilization as percentage of max capacity */
-  loanUtilizationPercent: number
-  /** Available borrowing capacity remaining */
-  availableBorrowingCapacity: number
-  /** Available capacity as percentage */
-  availableCapacityPercent: number
-  /** Monthly interest payment */
-  monthlyInterestPayment: number
-  /** Total interest over loan term */
-  totalInterestPayment: number
+  /** Initial current loan amount in USD */
+  initialCurrentLoanAmount: number
+  /** Initial origination fee amount */
+  initialOriginationFee: number
+  /** Initial total loan cost including fees */
+  initialTotalLoanCost: number
+  /** Initial maximum loan capacity based on platform limits */
+  initialMaxLoanCapacity: number
+  /** Initial loan utilization as percentage of max capacity */
+  initialLoanUtilizationPercent: number
+  /** Initial available borrowing capacity remaining */
+  initialAvailableBorrowingCapacity: number
+  /** Initial available capacity as percentage */
+  initialAvailableCapacityPercent: number
+  /** Initial monthly interest payment */
+  initialMonthlyInterestPayment: number
+  /** Initial total interest over loan term */
+  initialTotalInterestPayment: number
 }
 
 /**
@@ -207,20 +204,14 @@ export class CalculationsService {
       return this.calculationCache.get(cacheKey)
     }
 
-    // Get platform configuration
-    const platformConfig = this.getPlatformConfig(params.platform)
-
-    // Calculate basic values (matching PriceDropToleranceCard logic)
-    const totalStackValue = params.btcAmount * params.initialBtcPrice
-    const currentLoanAmount = (params.loanAmountPercent / 100) * totalStackValue
-    const originationFee = currentLoanAmount * (platformConfig.originationFeePercent / 100)
-    const totalLoanCost = currentLoanAmount + originationFee
+    // Use shared basic calculation method to eliminate redundancy
+    const { platformConfig, totalStackValue, currentLoanAmount, originationFee, totalLoanCost } = this.calculateBasicLoanValues(params)
 
     // Calculate BTC locked as collateral for current loan
     const btcLockedAsCollateral = totalLoanCost / (params.riskManagement.targetLtv / 100) / params.initialBtcPrice
 
     // Calculate free BTC available for collateral top-up
-    const freeBtcAmount = Math.max(0, params.btcAmount - btcLockedAsCollateral)
+    const freeBtcAmount = Math.max(0, params.initialBtcAmount - btcLockedAsCollateral)
     const hasFreeCollateral = freeBtcAmount > 0
 
     // Initialize liquidation variables
@@ -230,7 +221,7 @@ export class CalculationsService {
     let truePriceDropPercentage = 0
 
     // Calculate liquidation metrics only if there's a loan
-    if (currentLoanAmount > 0 && params.btcAmount > 0 && btcLockedAsCollateral > 0) {
+    if (currentLoanAmount > 0 && params.initialBtcAmount > 0 && btcLockedAsCollateral > 0) {
       // Immediate liquidation price calculation (without free collateral top-up)
       // Uses platform-specific liquidation LTV instead of risk management liquidation LTV
       liquidationPrice = totalLoanCost / (platformConfig.liquidationLtv / 100) / btcLockedAsCollateral
@@ -240,7 +231,7 @@ export class CalculationsService {
 
       // True liquidation price calculation (with free collateral available)
       trueLiquidationPrice = hasFreeCollateral
-        ? totalLoanCost / (platformConfig.liquidationLtv / 100) / params.btcAmount
+        ? totalLoanCost / (platformConfig.liquidationLtv / 100) / params.initialBtcAmount
         : liquidationPrice // Same as immediate liquidation if no free collateral
 
       // Calculate true price drop percentage
@@ -252,13 +243,13 @@ export class CalculationsService {
     const athMetrics = this.calculateAthLiquidationMetrics(liquidationPrice, trueLiquidationPrice, athPrice)
 
     const result: LiquidationMetrics = {
-      liquidationPrice: Math.max(0, liquidationPrice),
-      priceDropPercentage: Math.max(0, Math.min(100, priceDropPercentage)),
-      trueLiquidationPrice: Math.max(0, trueLiquidationPrice),
-      truePriceDropPercentage: Math.max(0, Math.min(100, truePriceDropPercentage)),
-      freeBtcAmount,
-      hasFreeCollateral,
-      currentBtcPrice: params.initialBtcPrice,
+      initialImmediateLiquidationPrice: Math.max(0, liquidationPrice),
+      initialImmediatePriceDropPercentage: Math.max(0, Math.min(100, priceDropPercentage)),
+      initialTrueLiquidationPrice: Math.max(0, trueLiquidationPrice),
+      initialTruePriceDropPercentage: Math.max(0, Math.min(100, truePriceDropPercentage)),
+      initialFreeBtcAmount: freeBtcAmount,
+      initialHasFreeCollateral: hasFreeCollateral,
+      initialCurrentBtcPrice: params.initialBtcPrice,
       athPrice,
       athMetrics
     }
@@ -277,31 +268,25 @@ export class CalculationsService {
       return this.calculationCache.get(cacheKey)
     }
 
-    // Get platform configuration
-    const platformConfig = this.getPlatformConfig(params.platform)
-
-    // Calculate basic values (matching CollateralVisualizationCard logic)
-    const totalStackValue = params.btcAmount * params.initialBtcPrice
-    const currentLoanAmount = (params.loanAmountPercent / 100) * totalStackValue
-    const originationFee = currentLoanAmount * (platformConfig.originationFeePercent / 100)
-    const totalLoanCost = currentLoanAmount + originationFee
+    // Use shared basic calculation method to eliminate redundancy
+    const { totalStackValue, currentLoanAmount, originationFee, totalLoanCost } = this.calculateBasicLoanValues(params)
 
     // Calculate BTC locked as collateral for current loan (exact formula from component)
-    const lockedCollateralBtc = params.btcAmount > 0 && totalLoanCost > 0
+    const lockedCollateralBtc = params.initialBtcAmount > 0 && totalLoanCost > 0
       ? totalLoanCost / (params.riskManagement.targetLtv / 100) / params.initialBtcPrice
       : 0
 
     // Calculate free collateral (remaining BTC available)
-    const freeCollateralBtc = Math.max(0, params.btcAmount - lockedCollateralBtc)
+    const freeCollateralBtc = Math.max(0, params.initialBtcAmount - lockedCollateralBtc)
 
     // Calculate collateral utilization percentage (matching component logic)
-    const collateralUtilizationPercent = params.btcAmount > 0
-      ? (lockedCollateralBtc / params.btcAmount) * 100
+    const collateralUtilizationPercent = params.initialBtcAmount > 0
+      ? (lockedCollateralBtc / params.initialBtcAmount) * 100
       : 0
 
     // Calculate free collateral percentage (for compatibility with CollateralVisualizationCard)
-    const freeCollateralPercentage = params.btcAmount > 0
-      ? (freeCollateralBtc / params.btcAmount) * 100
+    const freeCollateralPercentage = params.initialBtcAmount > 0
+      ? (freeCollateralBtc / params.initialBtcAmount) * 100
       : 0
 
     // Calculate collateral values in USD
@@ -309,15 +294,15 @@ export class CalculationsService {
     const freeCollateralValue = freeCollateralBtc * params.initialBtcPrice
 
     // Check if collateral is sufficient for the current loan
-    const isSufficient = lockedCollateralBtc <= params.btcAmount
+    const isSufficient = lockedCollateralBtc <= params.initialBtcAmount
 
     const result: CollateralMetrics = {
-      totalStackValue,
-      lockedCollateralBtc: Math.max(0, lockedCollateralBtc),
-      freeCollateralBtc: Math.max(0, freeCollateralBtc),
-      collateralUtilizationPercent: Math.max(0, Math.min(100, collateralUtilizationPercent)),
-      lockedCollateralValue: Math.max(0, lockedCollateralValue),
-      freeCollateralValue: Math.max(0, freeCollateralValue),
+      initialTotalStackValue: totalStackValue,
+      initialLockedCollateralBtc: Math.max(0, lockedCollateralBtc),
+      initialFreeCollateralBtc: Math.max(0, freeCollateralBtc),
+      initialCollateralUtilizationPercent: Math.max(0, Math.min(100, collateralUtilizationPercent)),
+      initialLockedCollateralValue: Math.max(0, lockedCollateralValue),
+      initialFreeCollateralValue: Math.max(0, freeCollateralValue),
       isSufficient
     }
 
@@ -335,14 +320,8 @@ export class CalculationsService {
       return this.calculationCache.get(cacheKey)
     }
 
-    // Get platform configuration
-    const platformConfig = this.getPlatformConfig(params.platform)
-
-    // Calculate basic loan values (matching LoanUsageVisualizationCard logic)
-    const totalStackValue = params.btcAmount * params.initialBtcPrice
-    const currentLoanAmount = (params.loanAmountPercent / 100) * totalStackValue
-    const originationFee = currentLoanAmount * (platformConfig.originationFeePercent / 100)
-    const totalLoanCost = currentLoanAmount + originationFee
+    // Use shared basic calculation method to eliminate redundancy
+    const { platformConfig, totalStackValue, currentLoanAmount, originationFee, totalLoanCost } = this.calculateBasicLoanValues(params)
 
     // Calculate maximum loan capacity based on platform's initial LTV limit (matching LoanUsageVisualizationCard)
     const maxLoanCapacity = totalStackValue * (platformConfig.maxInitialLtv / 100)
@@ -374,15 +353,15 @@ export class CalculationsService {
     }
 
     const result: LoanMetrics = {
-      currentLoanAmount,
-      originationFee,
-      totalLoanCost,
-      maxLoanCapacity,
-      loanUtilizationPercent: Math.max(0, Math.min(100, loanUtilizationPercent)),
-      availableBorrowingCapacity,
-      availableCapacityPercent: Math.max(0, Math.min(100, availableCapacityPercent)),
-      monthlyInterestPayment,
-      totalInterestPayment
+      initialCurrentLoanAmount: currentLoanAmount,
+      initialOriginationFee: originationFee,
+      initialTotalLoanCost: totalLoanCost,
+      initialMaxLoanCapacity: maxLoanCapacity,
+      initialLoanUtilizationPercent: Math.max(0, Math.min(100, loanUtilizationPercent)),
+      initialAvailableBorrowingCapacity: availableBorrowingCapacity,
+      initialAvailableCapacityPercent: Math.max(0, Math.min(100, availableCapacityPercent)),
+      initialMonthlyInterestPayment: monthlyInterestPayment,
+      initialTotalInterestPayment: totalInterestPayment
     }
 
     this.calculationCache.set(cacheKey, result)
@@ -416,9 +395,9 @@ export class CalculationsService {
     const warnings: string[] = []
 
     // Validate BTC amount
-    const btcAmountValid = params.btcAmount > 0
+    const btcAmountValid = params.initialBtcAmount > 0
     if (!btcAmountValid) {
-      errors.push('BTC amount must be positive')
+      errors.push('Initial BTC amount must be positive')
     }
 
     // Validate BTC price
@@ -446,8 +425,8 @@ export class CalculationsService {
     }
 
     // Add warnings for edge cases
-    if (params.btcAmount < 0.01) {
-      warnings.push('Very small BTC amount may lead to imprecise calculations')
+    if (params.initialBtcAmount < 0.01) {
+      warnings.push('Very small initial BTC amount may lead to imprecise calculations')
     }
 
     if (params.loanAmountPercent > 50) {
@@ -557,6 +536,26 @@ export class CalculationsService {
   }
 
   /**
+   * Calculate basic loan values shared across all calculation methods
+   * This eliminates the redundant calculation code that was repeated 4 times
+   */
+  private calculateBasicLoanValues(params: SimulationParams) {
+    const platformConfig = this.getPlatformConfig(params.platform)
+    const totalStackValue = params.initialBtcAmount * params.initialBtcPrice
+    const currentLoanAmount = (params.loanAmountPercent / 100) * totalStackValue
+    const originationFee = currentLoanAmount * (platformConfig.originationFeePercent / 100)
+    const totalLoanCost = currentLoanAmount + originationFee
+
+    return {
+      platformConfig,
+      totalStackValue,
+      currentLoanAmount,
+      originationFee,
+      totalLoanCost
+    }
+  }
+
+  /**
    * Validate collateral sufficiency for a given loan amount
    * This method provides detailed validation logic for collateral requirements
    */
@@ -570,16 +569,11 @@ export class CalculationsService {
     riskLevel: 'low' | 'medium' | 'high' | 'critical'
     warnings: string[]
   } {
-    const platformConfig = this.getPlatformConfig(params.platform)
-
-    // Calculate required collateral
-    const totalStackValue = params.btcAmount * params.initialBtcPrice
-    const currentLoanAmount = (params.loanAmountPercent / 100) * totalStackValue
-    const originationFee = currentLoanAmount * (platformConfig.originationFeePercent / 100)
-    const totalLoanCost = currentLoanAmount + originationFee
+    // Use shared basic calculation method to eliminate redundancy
+    const { totalStackValue, currentLoanAmount, originationFee, totalLoanCost } = this.calculateBasicLoanValues(params)
 
     const requiredCollateralBtc = totalLoanCost / (params.riskManagement.targetLtv / 100) / params.initialBtcPrice
-    const availableCollateralBtc = params.btcAmount
+    const availableCollateralBtc = params.initialBtcAmount
     const shortfallBtc = Math.max(0, requiredCollateralBtc - availableCollateralBtc)
     const shortfallUsd = shortfallBtc * params.initialBtcPrice
 
@@ -711,7 +705,7 @@ export function useCalculations(params: SimulationParams): CalculationResults | 
     }
   }, [
     service,
-    params.btcAmount,
+    params.initialBtcAmount,
     params.initialBtcPrice,
     params.loanAmountPercent,
     params.platform,
@@ -753,33 +747,33 @@ export function useCalculations(params: SimulationParams): CalculationResults | 
         const platform = service.applyPlatformConfig(params)
         return {
           liquidation: {
-            liquidationPrice: 0,
-            priceDropPercentage: 0,
-            trueLiquidationPrice: 0,
-            truePriceDropPercentage: 0,
-            freeBtcAmount: params.btcAmount,
-            hasFreeCollateral: true,
-            currentBtcPrice: params.initialBtcPrice
+            initialImmediateLiquidationPrice: 0,
+            initialImmediatePriceDropPercentage: 0,
+            initialTrueLiquidationPrice: 0,
+            initialTruePriceDropPercentage: 0,
+            initialFreeBtcAmount: params.initialBtcAmount,
+            initialHasFreeCollateral: true,
+            initialCurrentBtcPrice: params.initialBtcPrice
           } as LiquidationMetrics,
           collateral: {
-            totalStackValue: params.btcAmount * params.initialBtcPrice,
-            lockedCollateralBtc: 0,
-            freeCollateralBtc: params.btcAmount,
-            collateralUtilizationPercent: 0,
-            lockedCollateralValue: 0,
-            freeCollateralValue: params.btcAmount * params.initialBtcPrice,
+            initialTotalStackValue: params.initialBtcAmount * params.initialBtcPrice,
+            initialLockedCollateralBtc: 0,
+            initialFreeCollateralBtc: params.initialBtcAmount,
+            initialCollateralUtilizationPercent: 0,
+            initialLockedCollateralValue: 0,
+            initialFreeCollateralValue: params.initialBtcAmount * params.initialBtcPrice,
             isSufficient: true
           } as CollateralMetrics,
           loan: {
-            currentLoanAmount: 0,
-            originationFee: 0,
-            totalLoanCost: 0,
-            maxLoanCapacity: 0,
-            loanUtilizationPercent: 0,
-            availableBorrowingCapacity: 0,
-            availableCapacityPercent: 100,
-            monthlyInterestPayment: 0,
-            totalInterestPayment: 0
+            initialCurrentLoanAmount: 0,
+            initialOriginationFee: 0,
+            initialTotalLoanCost: 0,
+            initialMaxLoanCapacity: 0,
+            initialLoanUtilizationPercent: 0,
+            initialAvailableBorrowingCapacity: 0,
+            initialAvailableCapacityPercent: 100,
+            initialMonthlyInterestPayment: 0,
+            initialTotalInterestPayment: 0
           } as LoanMetrics,
           platform,
           validation: {

@@ -39,12 +39,12 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 4.5 Integrate with existing useSimulation context without breaking changes
   - [x] 4.6 Verify hook provides real-time updates when parameters change
 
-- [ ] 5. Refactor Parameter Components to Use Centralized Service
-  - [ ] 5.1 Write integration tests for each component using the centralized service
-  - [ ] 5.2 Refactor PriceDropToleranceCard to use centralized liquidation calculations
-  - [ ] 5.3 Refactor CollateralVisualizationCard to use centralized collateral calculations
-  - [ ] 5.4 Refactor LoanUsageVisualizationCard to use centralized loan metrics
-  - [ ] 5.5 Refactor BasicParametersCard and LoanParametersCard to use centralized validation
-  - [ ] 5.6 Remove duplicate calculation logic from all refactored components
-  - [ ] 5.7 Verify all components display identical values to their original implementations
-  - [ ] 5.8 Verify all existing functionality remains intact after refactoring
+- [x] 5. Refactor Parameter Components to Use Centralized Service
+  - [x] 5.1 Write integration tests for each component using the centralized service
+  - [x] 5.2 Refactor PriceDropToleranceCard to use centralized liquidation calculations
+  - [x] 5.3 Refactor CollateralVisualizationCard to use centralized collateral calculations
+  - [x] 5.4 Refactor LoanUsageVisualizationCard to use centralized loan metrics
+  - [x] 5.5 Refactor BasicParametersCard and LoanParametersCard to use centralized validation
+  - [x] 5.6 Remove duplicate calculation logic from all refactored components
+  - [x] 5.7 Verify all components display identical values to their original implementations
+  - [x] 5.8 Verify all existing functionality remains intact after refactoring

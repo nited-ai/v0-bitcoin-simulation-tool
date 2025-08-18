@@ -17,12 +17,11 @@ export function useCalculationsIntegration() {
   const [calculationErrors, setCalculationErrors] = useState<string[]>([])
 
   // Convert SimulationParams to CalculationsService format
+  // Note: Removed monthlyWithdrawal and btcAccumulation as they belong in strategy tab
   const calculationParams = useMemo(() => {
     return {
-      btcAmount: params.btcAmount,
+      initialBtcAmount: params.btcAmount,
       initialBtcPrice: params.initialBtcPrice,
-      monthlyWithdrawal: params.monthlyWithdrawalAmount,
-      btcAccumulation: params.btcAccumulation,
       loanAmountPercent: params.loanAmountPercent,
       platform: params.platform,
       riskManagement: {
@@ -36,8 +35,6 @@ export function useCalculationsIntegration() {
   }, [
     params.btcAmount,
     params.initialBtcPrice,
-    params.monthlyWithdrawalAmount,
-    params.btcAccumulation,
     params.loanAmountPercent,
     params.platform,
     params.riskManagement.targetLtv,
@@ -67,49 +64,49 @@ export function useCalculationsIntegration() {
   const helpers = useMemo(() => ({
     // Liquidation helpers
     getLiquidationPrice: (immediate = true) => {
-      return immediate 
-        ? calculations?.liquidation.liquidationPrice || 0
-        : calculations?.liquidation.trueLiquidationPrice || 0
+      return immediate
+        ? calculations?.liquidation.initialImmediateLiquidationPrice || 0
+        : calculations?.liquidation.initialTrueLiquidationPrice || 0
     },
 
     getPriceDropPercentage: (immediate = true) => {
       return immediate
-        ? calculations?.liquidation.priceDropPercentage || 0
-        : calculations?.liquidation.truePriceDropPercentage || 0
+        ? calculations?.liquidation.initialImmediatePriceDropPercentage || 0
+        : calculations?.liquidation.initialTruePriceDropPercentage || 0
     },
 
     // Collateral helpers
     getLockedCollateral: (inBtc = true) => {
       return inBtc
-        ? calculations?.collateral.lockedCollateralBtc || 0
-        : calculations?.collateral.lockedCollateralValue || 0
+        ? calculations?.collateral.initialLockedCollateralBtc || 0
+        : calculations?.collateral.initialLockedCollateralValue || 0
     },
 
     getFreeCollateral: (inBtc = true) => {
       return inBtc
-        ? calculations?.collateral.freeCollateralBtc || 0
-        : calculations?.collateral.freeCollateralValue || 0
+        ? calculations?.collateral.initialFreeCollateralBtc || 0
+        : calculations?.collateral.initialFreeCollateralValue || 0
     },
 
     getCollateralUtilization: () => {
-      return calculations?.collateral.collateralUtilizationPercent || 0
+      return calculations?.collateral.initialCollateralUtilizationPercent || 0
     },
 
     // Loan helpers
     getCurrentLoanAmount: () => {
-      return calculations?.loan.currentLoanAmount || 0
+      return calculations?.loan.initialCurrentLoanAmount || 0
     },
 
     getMaxLoanCapacity: () => {
-      return calculations?.loan.maxLoanCapacity || 0
+      return calculations?.loan.initialMaxLoanCapacity || 0
     },
 
     getAvailableBorrowingCapacity: () => {
-      return calculations?.loan.availableBorrowingCapacity || 0
+      return calculations?.loan.initialAvailableBorrowingCapacity || 0
     },
 
     getLoanUtilization: () => {
-      return calculations?.loan.loanUtilizationPercent || 0
+      return calculations?.loan.initialLoanUtilizationPercent || 0
     },
 
     // Validation helpers

@@ -67,21 +67,21 @@ export function PriceDropToleranceCard() {
     }
 
     // Use centralized calculations
-    const priceDropAmount = liquidationData.currentBtcPrice - liquidationData.liquidationPrice
-    const truePriceDropAmount = liquidationData.currentBtcPrice - liquidationData.trueLiquidationPrice
+    const priceDropAmount = liquidationData.initialCurrentBtcPrice - liquidationData.initialImmediateLiquidationPrice
+    const truePriceDropAmount = liquidationData.initialCurrentBtcPrice - liquidationData.initialTrueLiquidationPrice
 
     return {
-      currentBtcPrice: liquidationData.currentBtcPrice,
-      liquidationPrice: liquidationData.liquidationPrice,
+      currentBtcPrice: liquidationData.initialCurrentBtcPrice,
+      liquidationPrice: liquidationData.initialImmediateLiquidationPrice,
       priceDropAmount,
-      priceDropPercentage: liquidationData.priceDropPercentage,
-      remainingPricePercentage: 100 - liquidationData.priceDropPercentage,
+      priceDropPercentage: liquidationData.initialImmediatePriceDropPercentage,
+      remainingPricePercentage: 100 - liquidationData.initialImmediatePriceDropPercentage,
       // Enhanced metrics with free collateral
-      trueLiquidationPrice: liquidationData.trueLiquidationPrice,
-      truePriceDropPercentage: liquidationData.truePriceDropPercentage,
-      trueRemainingPricePercentage: 100 - liquidationData.truePriceDropPercentage,
-      freeBtcAmount: liquidationData.freeBtcAmount,
-      hasFreeCollateral: liquidationData.hasFreeCollateral
+      trueLiquidationPrice: liquidationData.initialTrueLiquidationPrice,
+      truePriceDropPercentage: liquidationData.initialTruePriceDropPercentage,
+      trueRemainingPricePercentage: 100 - liquidationData.initialTruePriceDropPercentage,
+      freeBtcAmount: liquidationData.initialFreeBtcAmount,
+      hasFreeCollateral: liquidationData.initialHasFreeCollateral
     }
   }, [liquidationData, params.initialBtcPrice, params.btcAmount])
 
@@ -105,18 +105,18 @@ export function PriceDropToleranceCard() {
 
     // Use centralized ATH calculations
     const athPrice = liquidationData.athPrice
-    const athPriceDropAmount = athPrice - liquidationData.liquidationPrice
-    const trueAthPriceDropAmount = athPrice - liquidationData.trueLiquidationPrice
+    const athPriceDropAmount = athPrice - liquidationData.initialImmediateLiquidationPrice
+    const trueAthPriceDropAmount = athPrice - liquidationData.initialTrueLiquidationPrice
 
     return {
       athPrice,
       // Immediate liquidation from ATH
-      liquidationPrice: liquidationData.liquidationPrice,
+      liquidationPrice: liquidationData.initialImmediateLiquidationPrice,
       athPriceDropAmount,
       athPriceDropPercentage: liquidationData.athMetrics.priceDropPercentage,
       athRemainingPricePercentage: 100 - liquidationData.athMetrics.priceDropPercentage,
       // True liquidation from ATH with free collateral
-      trueLiquidationPrice: liquidationData.trueLiquidationPrice,
+      trueLiquidationPrice: liquidationData.initialTrueLiquidationPrice,
       trueAthPriceDropAmount,
       trueAthPriceDropPercentage: liquidationData.athMetrics.truePriceDropPercentage,
       trueAthRemainingPricePercentage: 100 - liquidationData.athMetrics.truePriceDropPercentage
@@ -176,8 +176,7 @@ export function PriceDropToleranceCard() {
           y={centerY}
           textAnchor="middle"
           dominantBaseline="middle"
-          className="text-sm font-semibold"
-          fill="black"
+          className="text-sm font-semibold fill-foreground"
         >
           <tspan className="text-lg">↓</tspan> -{metrics.priceDropPercentage.toFixed(1)}%
         </text>
@@ -203,8 +202,7 @@ export function PriceDropToleranceCard() {
           y={centerY}
           textAnchor="middle"
           dominantBaseline="middle"
-          className="text-sm font-semibold"
-          fill="black"
+          className="text-sm font-semibold fill-foreground"
         >
           ${metrics.liquidationPrice.toLocaleString('en-US', {
             minimumFractionDigits: 0,
@@ -230,8 +228,7 @@ export function PriceDropToleranceCard() {
           y={labelY}
           textAnchor="middle"
           dominantBaseline="middle"
-          className="text-sm font-semibold"
-          fill="black"
+          className="text-sm font-semibold fill-foreground"
         >
           Immediate
         </text>
@@ -257,8 +254,7 @@ export function PriceDropToleranceCard() {
           y={centerY}
           textAnchor="middle"
           dominantBaseline="middle"
-          className="text-sm font-semibold"
-          fill="black"
+          className="text-sm font-semibold fill-foreground"
         >
           <tspan className="text-lg">↓</tspan> -{athMetrics.athPriceDropPercentage.toFixed(1)}%
         </text>
@@ -284,8 +280,7 @@ export function PriceDropToleranceCard() {
           y={centerY}
           textAnchor="middle"
           dominantBaseline="middle"
-          className="text-sm font-semibold"
-          fill="black"
+          className="text-sm font-semibold fill-foreground"
         >
           ${athMetrics.liquidationPrice.toLocaleString('en-US', {
             minimumFractionDigits: 0,
@@ -311,8 +306,7 @@ export function PriceDropToleranceCard() {
           y={labelY}
           textAnchor="middle"
           dominantBaseline="middle"
-          className="text-sm font-semibold"
-          fill="black"
+          className="text-sm font-semibold fill-foreground"
         >
           Immediate
         </text>
@@ -340,8 +334,7 @@ export function PriceDropToleranceCard() {
           y={centerY}
           textAnchor="middle"
           dominantBaseline="middle"
-          className="text-sm font-semibold"
-          fill="black"
+          className="text-sm font-semibold fill-foreground"
         >
           <tspan className="text-lg">↓</tspan> -{metrics.truePriceDropPercentage.toFixed(1)}%
         </text>
@@ -367,8 +360,7 @@ export function PriceDropToleranceCard() {
           y={centerY}
           textAnchor="middle"
           dominantBaseline="middle"
-          className="text-sm font-semibold"
-          fill="black"
+          className="text-sm font-semibold fill-foreground"
         >
           ${metrics.trueLiquidationPrice.toLocaleString('en-US', {
             minimumFractionDigits: 0,
@@ -394,8 +386,7 @@ export function PriceDropToleranceCard() {
           y={labelY}
           textAnchor="middle"
           dominantBaseline="middle"
-          className="text-sm font-semibold"
-          fill="black"
+          className="text-sm font-semibold fill-foreground"
         >
           True (Top-up)
         </text>
@@ -421,8 +412,7 @@ export function PriceDropToleranceCard() {
           y={centerY}
           textAnchor="middle"
           dominantBaseline="middle"
-          className="text-sm font-semibold"
-          fill="black"
+          className="text-sm font-semibold fill-foreground"
         >
           <tspan className="text-lg">↓</tspan> -{athMetrics.trueAthPriceDropPercentage.toFixed(1)}%
         </text>
@@ -448,8 +438,7 @@ export function PriceDropToleranceCard() {
           y={centerY}
           textAnchor="middle"
           dominantBaseline="middle"
-          className="text-sm font-semibold"
-          fill="black"
+          className="text-sm font-semibold fill-foreground"
         >
           ${athMetrics.trueLiquidationPrice.toLocaleString('en-US', {
             minimumFractionDigits: 0,
@@ -475,8 +464,7 @@ export function PriceDropToleranceCard() {
           y={labelY}
           textAnchor="middle"
           dominantBaseline="middle"
-          className="text-sm font-semibold"
-          fill="black"
+          className="text-sm font-semibold fill-foreground"
         >
           True (Top-up)
         </text>
@@ -486,7 +474,7 @@ export function PriceDropToleranceCard() {
 
   return (
     <CalculationsErrorBoundary>
-      <Card>
+      <Card className="border-0">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Shield className="w-5 h-5 text-primary" />

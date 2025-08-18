@@ -34,10 +34,8 @@ describe('CalculationsService', () => {
 
   describe('Parameter Validation', () => {
     const validParams: SimulationParams = {
-      btcAmount: 1,
+      initialBtcAmount: 1,
       initialBtcPrice: 100000,
-      monthlyWithdrawal: 0,
-      btcAccumulation: false,
       loanAmountPercent: 10,
       platform: 'firefish',
       riskManagement: {

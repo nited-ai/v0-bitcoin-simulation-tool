@@ -51,14 +51,14 @@ export function CollateralVisualizationCard() {
 
     // Use centralized calculations
     const freeCollateralPercentage = params.btcAmount > 0
-      ? (collateralData.freeCollateralBtc / params.btcAmount) * 100
+      ? (collateralData.initialFreeCollateralBtc / params.btcAmount) * 100
       : 100
 
     return {
-      freeCollateralBtc: collateralData.freeCollateralBtc,
+      freeCollateralBtc: collateralData.initialFreeCollateralBtc,
       freeCollateralPercentage,
-      btcLockedAsCollateral: collateralData.lockedCollateralBtc,
-      collateralUtilization: collateralData.collateralUtilizationPercent
+      btcLockedAsCollateral: collateralData.initialLockedCollateralBtc,
+      collateralUtilization: collateralData.initialCollateralUtilizationPercent
     }
   }, [collateralData, params.btcAmount])
 
@@ -88,7 +88,7 @@ export function CollateralVisualizationCard() {
 
   return (
     <CalculationsErrorBoundary>
-      <Card>
+      <Card className="border-0">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <PieChartIcon className="w-5 h-5 text-primary" />
@@ -128,16 +128,14 @@ export function CollateralVisualizationCard() {
                       const radius = outerRadius + 25
                       const x = cx + radius * Math.cos(-midAngle * RADIAN)
                       const y = cy + radius * Math.sin(-midAngle * RADIAN)
-                      const color = chartData[index]?.color || '#374151'
 
                       return (
                         <text
                           x={x}
                           y={y}
-                          fill={color}
                           textAnchor={x > cx ? 'start' : 'end'}
                           dominantBaseline="central"
-                          className="text-sm font-medium"
+                          className="text-sm font-medium fill-foreground"
                           style={{ fontSize: '14px', fontWeight: '500' }}
                         >
                           {`${value.toFixed(1)}%`}
@@ -150,8 +148,7 @@ export function CollateralVisualizationCard() {
                       <Cell
                         key={`cell-${index}`}
                         fill={entry.color}
-                        stroke="#ffffff"
-                        strokeWidth={2}
+                        stroke="none"
                       />
                     ))}
                   </Pie>
@@ -170,8 +167,7 @@ export function CollateralVisualizationCard() {
                   >
                     <Cell
                       fill={chartData[0].color}
-                      stroke="#ffffff"
-                      strokeWidth={2}
+                      stroke="none"
                     />
                   </Pie>
                 </PieChart>

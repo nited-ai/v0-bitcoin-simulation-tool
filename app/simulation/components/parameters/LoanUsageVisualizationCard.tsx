@@ -53,11 +53,11 @@ export function LoanUsageVisualizationCard() {
 
     // Use centralized calculations
     return {
-      currentLoanAmount: loanData.currentLoanAmount,
-      maxLoanCapacity: loanData.maxLoanCapacity,
-      availableBorrowingCapacity: loanData.availableBorrowingCapacity,
-      loanUtilizationPercentage: loanData.loanUtilizationPercent,
-      availableCapacityPercentage: loanData.availableCapacityPercent
+      currentLoanAmount: loanData.initialCurrentLoanAmount,
+      maxLoanCapacity: loanData.initialMaxLoanCapacity,
+      availableBorrowingCapacity: loanData.initialAvailableBorrowingCapacity,
+      loanUtilizationPercentage: loanData.initialLoanUtilizationPercent,
+      availableCapacityPercentage: loanData.initialAvailableCapacityPercent
     }
   }, [loanData])
 
@@ -85,7 +85,7 @@ export function LoanUsageVisualizationCard() {
 
   return (
     <CalculationsErrorBoundary>
-      <Card>
+      <Card className="border-0">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <CreditCard className="w-5 h-5 text-primary" />
@@ -121,16 +121,14 @@ export function LoanUsageVisualizationCard() {
                       const radius = outerRadius + 25
                       const x = cx + radius * Math.cos(-midAngle * RADIAN)
                       const y = cy + radius * Math.sin(-midAngle * RADIAN)
-                      const color = chartData[index]?.color || '#374151'
                       
                       return (
                         <text
                           x={x}
                           y={y}
-                          fill={color}
                           textAnchor={x > cx ? 'start' : 'end'}
                           dominantBaseline="central"
-                          className="text-sm font-medium"
+                          className="text-sm font-medium fill-foreground"
                           style={{ fontSize: '14px', fontWeight: '500' }}
                         >
                           ${chartData[index]?.usdAmount.toLocaleString('en-US', {
@@ -143,11 +141,10 @@ export function LoanUsageVisualizationCard() {
                     labelLine={false}
                   >
                     {chartData.map((entry, index) => (
-                      <Cell 
-                        key={`cell-${index}`} 
+                      <Cell
+                        key={`cell-${index}`}
                         fill={entry.color}
-                        stroke="#ffffff"
-                        strokeWidth={2}
+                        stroke="none"
                       />
                     ))}
                   </Pie>
@@ -164,10 +161,9 @@ export function LoanUsageVisualizationCard() {
                     paddingAngle={2}
                     dataKey="value"
                   >
-                    <Cell 
+                    <Cell
                       fill={chartData[0].color}
-                      stroke="#ffffff"
-                      strokeWidth={2}
+                      stroke="none"
                     />
                   </Pie>
                 </PieChart>
