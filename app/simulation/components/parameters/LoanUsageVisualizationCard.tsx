@@ -5,7 +5,8 @@ import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts"
 import { CreditCard } from "lucide-react"
 import { useMemo } from "react"
 import { useSimulation } from "../../context/SimulationContext"
-import { getPlatformConfig } from "../../constants/platformPresets"
+import { useLoanCalculations } from "../../hooks/useCalculationsIntegration"
+import { CalculationsErrorBoundary } from "./CalculationsErrorBoundary"
 
 interface LoanData {
   name: string
@@ -35,34 +36,30 @@ interface LoanMetrics {
 
 export function LoanUsageVisualizationCard() {
   const { params } = useSimulation()
-  const platformConfig = getPlatformConfig(params.platform)
+  const loanData = useLoanCalculations()
 
-  // Calculate loan metrics
+  // Convert centralized calculations to component format
   const metrics: LoanMetrics = useMemo(() => {
-    // Total BTC stack value
-    const totalStackValue = params.btcAmount * params.initialBtcPrice
-    
-    // Current loan amount based on percentage setting
-    const currentLoanAmount = (params.loanAmountPercent / 100) * totalStackValue
-    
-    // Calculate maximum loan capacity based on initial LTV
-    const maxLoanCapacity = totalStackValue * (platformConfig.maxInitialLtv / 100)
-    
-    // Available borrowing capacity
-    const availableBorrowingCapacity = Math.max(0, maxLoanCapacity - currentLoanAmount)
-    
-    // Calculate percentages
-    const loanUtilizationPercentage = maxLoanCapacity > 0 ? (currentLoanAmount / maxLoanCapacity) * 100 : 0
-    const availableCapacityPercentage = maxLoanCapacity > 0 ? (availableBorrowingCapacity / maxLoanCapacity) * 100 : 100
-
-    return {
-      currentLoanAmount,
-      maxLoanCapacity,
-      availableBorrowingCapacity,
-      loanUtilizationPercentage,
-      availableCapacityPercentage
+    if (!loanData) {
+      // Fallback values when calculations are not available
+      return {
+        currentLoanAmount: 0,
+        maxLoanCapacity: 0,
+        availableBorrowingCapacity: 0,
+        loanUtilizationPercentage: 0,
+        availableCapacityPercentage: 100
+      }
     }
-  }, [params, platformConfig])
+
+    // Use centralized calculations
+    return {
+      currentLoanAmount: loanData.initialCurrentLoanAmount,
+      maxLoanCapacity: loanData.initialMaxLoanCapacity,
+      availableBorrowingCapacity: loanData.initialAvailableBorrowingCapacity,
+      loanUtilizationPercentage: loanData.initialLoanUtilizationPercent,
+      availableCapacityPercentage: loanData.initialAvailableCapacityPercent
+    }
+  }, [loanData])
 
   // Prepare data for pie chart - Used capacity first to start at 12:00
   const chartData: LoanData[] = useMemo(() => {
@@ -87,11 +84,12 @@ export function LoanUsageVisualizationCard() {
   }, [metrics])
 
   return (
-    <Card>
+    <CalculationsErrorBoundary>
+      <Card className="border-0">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <CreditCard className="w-5 h-5 text-primary" />
-          Loan Usage
+          Loan Utilization
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -123,16 +121,14 @@ export function LoanUsageVisualizationCard() {
                       const radius = outerRadius + 25
                       const x = cx + radius * Math.cos(-midAngle * RADIAN)
                       const y = cy + radius * Math.sin(-midAngle * RADIAN)
-                      const color = chartData[index]?.color || '#374151'
                       
                       return (
                         <text
                           x={x}
                           y={y}
-                          fill={color}
                           textAnchor={x > cx ? 'start' : 'end'}
                           dominantBaseline="central"
-                          className="text-sm font-medium"
+                          className="text-sm font-medium fill-foreground"
                           style={{ fontSize: '14px', fontWeight: '500' }}
                         >
                           ${chartData[index]?.usdAmount.toLocaleString('en-US', {
@@ -145,11 +141,10 @@ export function LoanUsageVisualizationCard() {
                     labelLine={false}
                   >
                     {chartData.map((entry, index) => (
-                      <Cell 
-                        key={`cell-${index}`} 
+                      <Cell
+                        key={`cell-${index}`}
                         fill={entry.color}
-                        stroke="#ffffff"
-                        strokeWidth={2}
+                        stroke="none"
                       />
                     ))}
                   </Pie>
@@ -166,10 +161,9 @@ export function LoanUsageVisualizationCard() {
                     paddingAngle={2}
                     dataKey="value"
                   >
-                    <Cell 
+                    <Cell
                       fill={chartData[0].color}
-                      stroke="#ffffff"
-                      strokeWidth={2}
+                      stroke="none"
                     />
                   </Pie>
                 </PieChart>
@@ -177,7 +171,7 @@ export function LoanUsageVisualizationCard() {
 
               {/* Center Text with Platform Name and Max Loan Capacity */}
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <div className="text-xs text-muted-foreground">{platformConfig.name}</div>
+                <div className="text-xs text-muted-foreground">{params.platform.charAt(0).toUpperCase() + params.platform.slice(1)}</div>
                 <div className="text-xs text-muted-foreground">Max Loan Amount</div>
                 <div className="text-sm font-medium text-center">
                   ${metrics.maxLoanCapacity.toLocaleString('en-US', {
@@ -211,5 +205,6 @@ export function LoanUsageVisualizationCard() {
         )}
       </CardContent>
     </Card>
+    </CalculationsErrorBoundary>
   )
 }

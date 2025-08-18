@@ -75,29 +75,36 @@ export function TabNavigation({ children }: TabNavigationProps) {
     }
   }
 
-  // Get initial tab from URL or default to parameters
+  // Get initial tab - always return parameters since other tabs are disabled
   const getInitialTab = (): TabValue => {
-    const tabParam = searchParams.get('tab') as TabValue
-    if (tabParam && ['parameters', 'price-projection', 'strategy', 'results'].includes(tabParam)) {
-      return tabParam
-    }
     return 'parameters'
   }
 
   const [activeTab, setActiveTab] = useState<TabValue>(getInitialTab)
 
-  // Update tab when URL changes
+  // Update tab when URL changes - only allow parameters tab
   useEffect(() => {
     const tabParam = searchParams.get('tab') as TabValue
-    if (tabParam && ['parameters', 'price-projection', 'strategy', 'results'].includes(tabParam)) {
-      setActiveTab(tabParam)
+    // Only allow parameters tab, force all others to parameters
+    if (tabParam === 'parameters') {
+      setActiveTab('parameters')
     } else {
       setActiveTab('parameters')
+      // Update URL to reflect the forced tab change
+      const params = new URLSearchParams(searchParams.toString())
+      params.set('tab', 'parameters')
+      router.replace(`?${params.toString()}`)
     }
-  }, [searchParams])
+  }, [searchParams, router])
 
   const handleTabChange = (value: string) => {
     const tabValue = value as TabValue
+
+    // Only allow navigation to the parameters tab
+    if (tabValue !== 'parameters') {
+      return
+    }
+
     setActiveTab(tabValue)
 
     // Update URL without page reload
@@ -111,10 +118,17 @@ export function TabNavigation({ children }: TabNavigationProps) {
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="parameters">Parameters</TabsTrigger>
-          <TabsTrigger value="price-projection">Price Projection</TabsTrigger>
-          <TabsTrigger value="strategy">Strategy</TabsTrigger>
-          <TabsTrigger value="results">
-            Results
+          <TabsTrigger value="price-projection" disabled className="relative">
+            <span className="opacity-50">Price Projection</span>
+            <Badge variant="outline" className="ml-2 text-xs">Coming Soon</Badge>
+          </TabsTrigger>
+          <TabsTrigger value="strategy" disabled className="relative">
+            <span className="opacity-50">Strategy</span>
+            <Badge variant="outline" className="ml-2 text-xs">Coming Soon</Badge>
+          </TabsTrigger>
+          <TabsTrigger value="results" disabled className="relative">
+            <span className="opacity-50">Results</span>
+            <Badge variant="outline" className="ml-2 text-xs">Coming Soon</Badge>
           </TabsTrigger>
         </TabsList>
         
