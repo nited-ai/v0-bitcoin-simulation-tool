@@ -5,17 +5,18 @@
  * Eliminates redundant data loading, multiple caching layers, and CSV fallbacks.
  * 
  * Architecture:
- * - Historical data: Load once from PostgreSQL database on app initialization
+ * - Historical data: Load once from static JSON files on app initialization
  * - Current price: Fetch fresh from external APIs on every request
- * - Daily updates: Automated background job to update database
+ * - Daily updates: Automated background job to update JSON files
  * - Global state: Share loaded data across all components and price models
  */
 
 import { enhancedBitcoinApiService } from './bitcoin-api-service'
+import { bitcoinJsonDataService } from './bitcoin-json-data-service'
 
 // Types
 export interface HistoricalDataPoint {
-  timestamp: number    // Unix timestamp in milliseconds
+  time: number        // Unix timestamp in seconds (for chart compatibility)
   date: string        // YYYY-MM-DD format
   open: number        // Opening price in USD
   high: number        // Highest price in USD
@@ -115,7 +116,7 @@ class CentralizedDataService {
   }
   
   /**
-   * Load historical data from PostgreSQL database
+   * Load historical data from JSON files
    * This should be called once on app initialization
    * Uses weekly data by default for better performance
    */
@@ -137,51 +138,19 @@ class CentralizedDataService {
     this.notifySubscribers()
     
     try {
-      console.log(`📊 Loading historical data from PostgreSQL database (${interval} interval)...`)
+      console.log(`📊 Loading historical data from JSON files (${interval} interval)...`)
       const startTime = performance.now()
 
-      // Fetch from database API with interval parameter
-      const response = await fetch(`/api/bitcoin-prices/historical?interval=${interval}`)
+      // Load data using JSON data service
+      const historicalData = await bitcoinJsonDataService.loadHistoricalData(interval)
 
-      if (!response.ok) {
-        // Try to get error details from response
-        let errorDetails = `${response.status} ${response.statusText}`
-        try {
-          const errorData = await response.json()
-          if (errorData.details) {
-            errorDetails += ` - ${errorData.details}`
-          }
-        } catch (e) {
-          // Ignore JSON parsing errors for error response
-        }
-        throw new Error(`Database API error: ${errorDetails}`)
-      }
-      
-      const result = await response.json()
-      
-      if (!result.success || !result.data) {
-        throw new Error('Invalid response from database API')
-      }
-      
-      // Transform database records to application format
-      const historicalData: HistoricalDataPoint[] = result.data.map((record: any) => ({
-        timestamp: record.timestamp,
-        date: record.date,
-        open: record.open,
-        high: record.high,
-        low: record.low,
-        close: record.close,
-        volume: record.volume,
-        source: record.source || 'database'
-      }))
-      
       // Filter data from 2013 onwards (Bitcoin's meaningful price history)
-      const year2013 = new Date('2013-01-01').getTime()
-      const filteredData = historicalData.filter(point => point.timestamp >= year2013)
-      
+      const year2013 = new Date('2013-01-01').getTime() / 1000 // Convert to seconds
+      const filteredData = historicalData.filter(point => point.time >= year2013)
+
       const loadTime = performance.now() - startTime
       console.log(`✅ Historical data loaded: ${filteredData.length} points (${interval}) in ${Math.round(loadTime)}ms`)
-      
+
       // Update state
       this.state.historicalData = filteredData
       this.state.isHistoricalDataLoaded = true
@@ -194,11 +163,11 @@ class CentralizedDataService {
       return filteredData
       
     } catch (error) {
-      console.error('❌ Failed to load historical data from database:', error)
-      
+      console.error('❌ Failed to load historical data from JSON files:', error)
+
       this.state.errors.push(`Failed to load historical data: ${error instanceof Error ? error.message : String(error)}`)
       this.state.isLoadingHistoricalData = false
-      
+
       this.notifySubscribers()
       throw error
     }
@@ -333,7 +302,7 @@ class CentralizedDataService {
    */
   reset(): void {
     console.log('🔄 Resetting Centralized Data Service...')
-    
+
     this.state = {
       historicalData: [],
       currentPrice: null,
@@ -343,8 +312,32 @@ class CentralizedDataService {
       errors: [],
       isInitializing: false
     }
-    
+
+    // Also clear JSON data service cache
+    bitcoinJsonDataService.clearCache()
+
     this.notifySubscribers()
+  }
+
+  /**
+   * Clear state (alias for reset for backward compatibility)
+   */
+  clearState(): void {
+    this.reset()
+  }
+
+  /**
+   * Get cache status for debugging
+   */
+  getCacheStatus(): { interval: string; points: number; size: string }[] {
+    return bitcoinJsonDataService.getCacheStatus()
+  }
+
+  /**
+   * Unsubscribe a specific callback (for backward compatibility)
+   */
+  unsubscribe(callback: (state: DataServiceState) => void): void {
+    this.subscribers.delete(callback)
   }
 }
 
