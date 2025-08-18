@@ -92,7 +92,7 @@ export function CollateralVisualizationCard() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <PieChartIcon className="w-5 h-5 text-primary" />
-          Collateral Usage
+          Collateral Consumption
         </CardTitle>
       </CardHeader>
       <CardContent>
