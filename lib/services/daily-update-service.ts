@@ -5,12 +5,15 @@
 
 import { PrismaClient } from '../generated/prisma'
 import { enhancedBitcoinApiService } from './bitcoin-api-service'
+import { bitcoinJsonGeneratorService, type JsonGenerationResult } from './bitcoin-json-generator-service'
 
 export interface UpdateResult {
   success: boolean
   recordsAdded: number
   gapsFilled: number
   currentPriceUpdated: boolean
+  jsonFilesRegenerated: boolean
+  jsonGenerationResult?: JsonGenerationResult
   errors: string[]
   duration: number
   nextUpdateTime?: Date
@@ -78,6 +81,7 @@ export class DailyUpdateService {
       recordsAdded: 0,
       gapsFilled: 0,
       currentPriceUpdated: false,
+      jsonFilesRegenerated: false,
       errors: [],
       duration: 0
     }
@@ -110,16 +114,34 @@ export class DailyUpdateService {
 
       result.recordsAdded = result.gapsFilled + (result.currentPriceUpdated ? 1 : 0)
 
-      // Step 4: Log the update operation
+      // Step 4: Regenerate JSON files if new data was added
+      if (result.recordsAdded > 0) {
+        console.log('📁 Regenerating JSON files with latest data...')
+        const jsonResult = await this.regenerateJsonFiles()
+        result.jsonFilesRegenerated = jsonResult.success
+        result.jsonGenerationResult = jsonResult
+
+        if (!jsonResult.success) {
+          result.errors.push(`JSON generation failed: ${jsonResult.error}`)
+          console.error('⚠️ JSON generation failed, but database update succeeded')
+        } else {
+          console.log(`✅ JSON files regenerated: ${jsonResult.filesGenerated.join(', ')}`)
+        }
+      } else {
+        console.log('📁 Skipping JSON regeneration (no new data added)')
+      }
+
+      // Step 5: Log the update operation
       await this.logUpdateOperation(result)
 
-      // Step 5: Schedule next update
+      // Step 6: Schedule next update
       this.scheduleNextUpdate()
 
       result.success = result.errors.length === 0
       result.duration = Date.now() - startTime
 
-      console.log(`✅ Daily update completed: ${result.recordsAdded} records added, ${result.errors.length} errors`)
+      const jsonStatus = result.jsonFilesRegenerated ? 'JSON files updated' : 'JSON files unchanged'
+      console.log(`✅ Daily update completed: ${result.recordsAdded} records added, ${jsonStatus}, ${result.errors.length} errors`)
       return result
 
     } catch (error) {
@@ -258,6 +280,37 @@ export class DailyUpdateService {
       })
     } catch (error) {
       console.error('❌ Failed to log update operation:', error)
+    }
+  }
+
+  /**
+   * Regenerate JSON files with latest database data
+   */
+  private async regenerateJsonFiles(): Promise<JsonGenerationResult> {
+    try {
+      console.log('🔄 Starting JSON file regeneration...')
+      const result = await bitcoinJsonGeneratorService.generateJsonFiles()
+
+      if (result.success) {
+        console.log(`✅ JSON regeneration completed: ${result.filesGenerated.length} files, ${result.recordsProcessed} records processed`)
+      } else {
+        console.error(`❌ JSON regeneration failed: ${result.error}`)
+      }
+
+      return result
+
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error)
+      console.error('❌ JSON regeneration error:', error)
+
+      return {
+        success: false,
+        filesGenerated: [],
+        recordsProcessed: 0,
+        dateRange: { startDate: '', endDate: '' },
+        duration: 0,
+        error: errorMsg
+      }
     }
   }
 

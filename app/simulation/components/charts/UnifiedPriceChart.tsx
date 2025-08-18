@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useMemo, useRef, memo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from 'recharts'
@@ -93,7 +93,7 @@ function calculateSupportLine(historicalData: HistoricalDataPoint[]): { timestam
   }))
 }
 
-export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartProps) {
+function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartProps) {
   const { params } = useSimulation()
   const { historicalData, isHistoricalDataLoaded: isLoaded, isLoadingHistoricalData: isLoading } = useCentralizedData(true) // Enable loading with weekly data
   const searchParams = useSearchParams()
@@ -109,8 +109,7 @@ export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPric
   // Set loading state based on centralized data service and projection generation
   const loading = isLoading || !isLoaded || isGeneratingProjection
 
-  // Debug: Log component state on every render
-  console.log(`🎨 UnifiedPriceChart render: histLen=${historicalData.length}, isLoaded=${isLoaded}, isLoading=${isLoading}, loading=${loading}`)
+  // Removed excessive debug logging for performance
 
   // Generate projection when model or parameters change
   useEffect(() => {
@@ -118,28 +117,15 @@ export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPric
       // Only generate projections when on the price-projection tab
       const currentTab = searchParams.get('tab') || 'parameters'
       if (currentTab !== 'price-projection') {
-        console.log(`⚡ UnifiedPriceChart: Skipping projection generation on ${currentTab} tab`)
         return
       }
 
-      // Wait for historical data to be loaded
-      if (historicalData.length === 0) {
-        console.log(`⚡ UnifiedPriceChart: Waiting for historical data to load (currently ${historicalData.length} points)`)
+      // Wait for historical data to be loaded and data loading to complete
+      if (historicalData.length === 0 || isLoading || !isLoaded) {
         return
       }
 
-      // Wait for data loading to complete
-      if (isLoading || !isLoaded) {
-        console.log(`⚡ UnifiedPriceChart: Waiting for data loading to complete (isLoading: ${isLoading}, isLoaded: ${isLoaded})`)
-        return
-      }
-
-      effectCallCount.current += 1
-      console.log(`🔄 UnifiedPriceChart: useEffect triggered #${effectCallCount.current} for ${params.priceModel} model (${historicalData.length} historical points)`)
-      console.log(`   📊 Dependencies: histLen=${historicalData.length}, model=${params.priceModel}, price=${params.initialBtcPrice}, months=${params.simulationMonths}`)
-      console.log(`   📊 Growth rates: ${JSON.stringify(params.annualGrowthRates || [])}`)
-      console.log(`   📊 PowerLaw line: ${params.powerLawSettings?.prognosisLine}`)
-      console.log(`   📊 Data loading state: isLoading=${isLoading}, isLoaded=${isLoaded}`)
+      // Removed excessive debug logging for performance
 
       try {
         setIsGeneratingProjection(true)
@@ -211,12 +197,15 @@ export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPric
 
     // Add historical data with complete OHLC information
     historicalData.forEach(point => {
+      // Convert time (seconds) to timestamp (milliseconds) for chart compatibility
+      const timestampMs = point.time * 1000
+
       data.push({
-        date: new Date(point.timestamp).toLocaleDateString('de-DE', {
+        date: new Date(timestampMs).toLocaleDateString('de-DE', {
           year: 'numeric',
           month: 'short'
         }),
-        timestamp: point.timestamp,
+        timestamp: timestampMs,
         price: Math.round(point.close),
         // Include OHLC data for CSV export
         open: point.open,
@@ -268,7 +257,9 @@ export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPric
     }
 
     // Sort by timestamp to ensure continuous timeline
-    return data.sort((a, b) => a.timestamp - b.timestamp)
+    const sortedData = data.sort((a, b) => a.timestamp - b.timestamp)
+    // Removed excessive debug logging for performance
+    return sortedData
   }, [historicalData, projection])
 
   // Find current date for separator
@@ -585,3 +576,6 @@ export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPric
     </Card>
   )
 }
+
+// Memoize component to prevent unnecessary re-renders
+export default memo(UnifiedPriceChart)

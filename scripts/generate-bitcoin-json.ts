@@ -192,30 +192,70 @@ export function validateDataIntegrity(data: OptimizedBitcoinData): void {
 }
 
 /**
+ * Fetch Bitcoin data from database via API endpoint
+ */
+export async function fetchDatabaseData(): Promise<BitcoinPriceRecord[]> {
+  console.log('📡 Fetching Bitcoin data from database via API...')
+
+  try {
+    // Use the existing API endpoint to fetch all historical data
+    const response = await fetch('http://localhost:3001/api/bitcoin-prices/historical')
+
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.status} ${response.statusText}`)
+    }
+
+    const result = await response.json()
+
+    if (!result.success || !Array.isArray(result.data)) {
+      throw new Error('Invalid API response format')
+    }
+
+    console.log(`📊 Fetched ${result.data.length} records from database via API`)
+
+    if (result.data.length > 0) {
+      console.log(`📅 Date range: ${result.data[0].date} to ${result.data[result.data.length - 1].date}`)
+    }
+
+    // Convert to BitcoinPriceRecord format
+    const records: BitcoinPriceRecord[] = result.data.map((record: any) => ({
+      date: record.date,
+      timestamp: Number(record.timestamp),
+      open: record.open,
+      high: record.high,
+      low: record.low,
+      close: record.close,
+      volume: record.volume || 0,
+      source: record.source
+    }))
+
+    return records
+
+  } catch (error) {
+    console.error('❌ Database API fetch failed:', error)
+    throw new Error(`Failed to fetch data from database API: ${error instanceof Error ? error.message : String(error)}`)
+  }
+}
+
+/**
  * Main execution function
  */
 async function main() {
   try {
     console.log('🚀 Starting Bitcoin JSON data generation...')
 
-    // Read backup data
-    const backupPath = path.join(process.cwd(), 'bitcoin-price-backup.json')
-    if (!fs.existsSync(backupPath)) {
-      throw new Error('bitcoin-price-backup.json not found in project root')
+    // Fetch complete historical data from database (2013 to present)
+    console.log('📡 Fetching complete historical data from database...')
+    const databaseRecords = await fetchDatabaseData()
+
+    if (databaseRecords.length === 0) {
+      throw new Error('No data found in database. Please ensure the database is populated.')
     }
 
-    console.log('📂 Reading backup data...')
-    const backupContent = fs.readFileSync(backupPath, 'utf-8')
-    const backupData = JSON.parse(backupContent)
-    
-    if (!backupData.records || !Array.isArray(backupData.records)) {
-      throw new Error('Invalid backup data format: missing records array')
-    }
-
-    console.log(`📊 Processing ${backupData.records.length} records...`)
+    console.log(`📊 Processing ${databaseRecords.length} records from ${databaseRecords[0]?.date} to ${databaseRecords[databaseRecords.length - 1]?.date}...`)
 
     // Convert to optimized formats
-    const dailyData = convertBackupDataToOptimized(backupData.records)
+    const dailyData = convertBackupDataToOptimized(databaseRecords)
     const weeklyData = generateWeeklyData(dailyData)
     const monthlyData = generateMonthlyData(dailyData)
 
