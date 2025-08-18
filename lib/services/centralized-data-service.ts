@@ -78,12 +78,15 @@ class CentralizedDataService {
    * Subscribe to state changes
    */
   subscribe(callback: (state: DataServiceState) => void): () => void {
+    console.log(`🔗 New subscriber added. Total subscribers: ${this.subscribers.size + 1}`)
     this.subscribers.add(callback)
     // Immediately call with current state
+    console.log(`📡 Sending initial state to new subscriber: histLen=${this.state.historicalData.length}, isLoaded=${this.state.isHistoricalDataLoaded}`)
     callback(this.state)
-    
+
     // Return unsubscribe function
     return () => {
+      console.log(`🔌 Subscriber removed. Total subscribers: ${this.subscribers.size - 1}`)
       this.subscribers.delete(callback)
     }
   }
@@ -92,13 +95,15 @@ class CentralizedDataService {
    * Notify all subscribers of state changes
    * Skip notifications during initialization to prevent duplicate chart generations
    */
-  private notifySubscribers(): void {
+  private notifySubscribers(force: boolean = false): void {
     // Don't notify subscribers during initialization to prevent duplicate chart generations
-    if (this.state.isInitializing) {
+    // unless forced (for direct data loading calls)
+    if (this.state.isInitializing && !force) {
       console.log('🔇 Skipping subscriber notifications during initialization')
       return
     }
 
+    console.log(`📢 Notifying ${this.subscribers.length} subscribers of state change: histLen=${this.state.historicalData.length}, isLoaded=${this.state.isHistoricalDataLoaded}`)
     this.subscribers.forEach(callback => callback(this.state))
   }
   
@@ -112,8 +117,9 @@ class CentralizedDataService {
   /**
    * Load historical data from PostgreSQL database
    * This should be called once on app initialization
+   * Uses weekly data by default for better performance
    */
-  async loadHistoricalData(force: boolean = false): Promise<HistoricalDataPoint[]> {
+  async loadHistoricalData(force: boolean = false, interval: 'daily' | 'weekly' | 'monthly' = 'weekly'): Promise<HistoricalDataPoint[]> {
     // Prevent multiple simultaneous loads
     if (this.state.isLoadingHistoricalData && !force) {
       console.log('📊 Historical data load already in progress, waiting...')
@@ -131,14 +137,24 @@ class CentralizedDataService {
     this.notifySubscribers()
     
     try {
-      console.log('📊 Loading historical data from PostgreSQL database...')
+      console.log(`📊 Loading historical data from PostgreSQL database (${interval} interval)...`)
       const startTime = performance.now()
-      
-      // Fetch from database API
-      const response = await fetch('/api/bitcoin-prices/historical')
-      
+
+      // Fetch from database API with interval parameter
+      const response = await fetch(`/api/bitcoin-prices/historical?interval=${interval}`)
+
       if (!response.ok) {
-        throw new Error(`Database API error: ${response.status} ${response.statusText}`)
+        // Try to get error details from response
+        let errorDetails = `${response.status} ${response.statusText}`
+        try {
+          const errorData = await response.json()
+          if (errorData.details) {
+            errorDetails += ` - ${errorData.details}`
+          }
+        } catch (e) {
+          // Ignore JSON parsing errors for error response
+        }
+        throw new Error(`Database API error: ${errorDetails}`)
       }
       
       const result = await response.json()
@@ -164,15 +180,17 @@ class CentralizedDataService {
       const filteredData = historicalData.filter(point => point.timestamp >= year2013)
       
       const loadTime = performance.now() - startTime
-      console.log(`✅ Historical data loaded: ${filteredData.length} points in ${Math.round(loadTime)}ms`)
+      console.log(`✅ Historical data loaded: ${filteredData.length} points (${interval}) in ${Math.round(loadTime)}ms`)
       
       // Update state
       this.state.historicalData = filteredData
       this.state.isHistoricalDataLoaded = true
       this.state.lastHistoricalDataLoad = Date.now()
       this.state.isLoadingHistoricalData = false
-      
-      this.notifySubscribers()
+
+      // Force notification if this is a direct call (not during initialization)
+      const forceNotification = !this.state.isInitializing
+      this.notifySubscribers(forceNotification)
       return filteredData
       
     } catch (error) {

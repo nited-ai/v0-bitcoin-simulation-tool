@@ -72,15 +72,43 @@ export class DefaultStrategy implements InvestmentStrategyInterface {
 
     const projectedDebtAfterNeeds = debtFromOngoingLoans + principalForNeeds
 
-    // Default strategy: allow investment if we have capacity after covering needs
+    // Enhanced default strategy with BTC accumulation logic
+    const btcAccumulation = params.btcAccumulation ?? true
+
     if (projectedDebtAfterNeeds <= debtCapacity) {
-      // We have capacity for both needs and investment
+      // We have capacity for both needs and potential investment
+
+      // Determine investment behavior based on BTC accumulation setting
+      let allowInvestment = false
+      let investmentMultiplier = 0
+      let reasoning = ""
+
+      if (btcAccumulation) {
+        // BTC Accumulation enabled: use remaining debt capacity for BTC purchases
+        allowInvestment = true
+        investmentMultiplier = 1.0 // Use full available capacity
+        reasoning = "BTC Accumulation enabled: using remaining debt capacity to buy more BTC"
+      } else {
+        // BTC Accumulation disabled: only take loans for basic needs (withdrawals)
+        if (params.monthlyWithdrawalAmount < 0) {
+          // Only invest if we need to cover withdrawals
+          allowInvestment = false
+          investmentMultiplier = 0
+          reasoning = "BTC Accumulation disabled: only covering withdrawal needs, no additional investment"
+        } else {
+          // No withdrawals and no accumulation: minimal activity
+          allowInvestment = false
+          investmentMultiplier = 0
+          reasoning = "BTC Accumulation disabled: no withdrawals needed, no additional investment"
+        }
+      }
+
       return {
-        allowInvestment: true,
-        investmentMultiplier: 1.0, // Use full available capacity
+        allowInvestment,
+        investmentMultiplier,
         allowWithdrawal: params.monthlyWithdrawalAmount < 0, // Only allow withdrawal if negative
         withdrawalAmount: Math.abs(Math.min(0, params.monthlyWithdrawalAmount)), // Absolute value of negative amounts
-        reasoning: "Sufficient debt capacity for both withdrawal and investment"
+        reasoning
       }
     } else {
       // We need to check if we can at least cover repayments

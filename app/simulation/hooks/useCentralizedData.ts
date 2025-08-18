@@ -43,13 +43,15 @@ export interface UseCentralizedDataReturn {
 }
 
 /**
- * Centralized data hook
- * 
+ * Centralized data hook with lazy loading support
+ *
  * This hook should be used by components that need Bitcoin price data.
  * It automatically subscribes to the centralized data service and provides
  * reactive updates when data changes.
+ *
+ * @param enabled - Whether to enable data loading (default: false for lazy loading)
  */
-export function useCentralizedData(): UseCentralizedDataReturn {
+export function useCentralizedData(enabled: boolean = false): UseCentralizedDataReturn {
   const { t } = useTranslation()
   const {
     setIsLoading,
@@ -58,17 +60,27 @@ export function useCentralizedData(): UseCentralizedDataReturn {
     setParams,
     setInitialDataLoaded,
   } = useSimulation()
-  
+
+  console.log(`🔍 useCentralizedData: Hook called with enabled=${enabled}`)
+
   // Local state for data service state
-  const [dataServiceState, setDataServiceState] = useState<DataServiceState>(() => 
-    centralizedDataService.getState()
-  )
+  const [dataServiceState, setDataServiceState] = useState<DataServiceState>(() => {
+    const initialState = centralizedDataService.getState()
+    console.log(`🔍 useCentralizedData: Initial state - histLen=${initialState.historicalData.length}, isLoaded=${initialState.isHistoricalDataLoaded}`)
+    return initialState
+  })
+
+  // Test useEffect to see if it works at all
+  useEffect(() => {
+    console.log('🧪 TEST: useEffect is working!')
+  }, [])
   
   // Subscribe to data service state changes
   useEffect(() => {
-    console.log('🔗 Subscribing to centralized data service...')
-    
+    console.log('🔗 useCentralizedData: Setting up subscription')
+
     const unsubscribe = centralizedDataService.subscribe((state: DataServiceState) => {
+      console.log(`📡 useCentralizedData: Received state update - histLen=${state.historicalData.length}, isLoaded=${state.isHistoricalDataLoaded}`)
       setDataServiceState(state)
       
       // Update simulation context with new data
@@ -103,8 +115,14 @@ export function useCentralizedData(): UseCentralizedDataReturn {
     }
   }, [setHistoricalPriceData, setInitialDataLoaded, setParams, setIsLoading, setErrors])
   
-  // Initialize data service on first mount
+  // Initialize data service on first mount (only if enabled)
   useEffect(() => {
+    // Skip if not enabled (lazy loading)
+    if (!enabled) {
+      console.log('⚡ Historical data loading disabled - lazy loading mode')
+      return
+    }
+
     const initializeDataService = async () => {
       try {
         console.log('🚀 Initializing centralized data service from hook...')
@@ -114,18 +132,18 @@ export function useCentralizedData(): UseCentralizedDataReturn {
         setErrors([t('Errors.failedToLoadHistoricalData')])
       }
     }
-    
+
     // Only initialize if not already loaded
     if (!dataServiceState.isHistoricalDataLoaded && !dataServiceState.isLoadingHistoricalData) {
       initializeDataService()
     }
-  }, [t, dataServiceState.isHistoricalDataLoaded, dataServiceState.isLoadingHistoricalData, setErrors])
+  }, [enabled, t, dataServiceState.isHistoricalDataLoaded, dataServiceState.isLoadingHistoricalData, setErrors])
   
   // Refresh historical data
-  const refreshHistoricalData = useCallback(async () => {
+  const refreshHistoricalData = useCallback(async (interval: 'daily' | 'weekly' | 'monthly' = 'weekly') => {
     try {
-      console.log('🔄 Refreshing historical data...')
-      await centralizedDataService.loadHistoricalData(true) // Force reload
+      console.log(`🔄 Refreshing historical data (${interval})...`)
+      await centralizedDataService.loadHistoricalData(true, interval) // Force reload with interval
     } catch (error) {
       console.error('❌ Failed to refresh historical data:', error)
     }
@@ -163,29 +181,38 @@ export function useCentralizedData(): UseCentralizedDataReturn {
 /**
  * Hook for components that only need historical data
  * Lighter version that doesn't trigger current price fetching
+ *
+ * @param enabled - Whether to enable data loading (default: true for backward compatibility)
+ * @param interval - Data interval to load (default: 'weekly' for performance)
  */
-export function useHistoricalDataOnly(): {
+export function useHistoricalDataOnly(enabled: boolean = true, interval: 'daily' | 'weekly' | 'monthly' = 'weekly'): {
   historicalData: HistoricalDataPoint[]
   isLoaded: boolean
   isLoading: boolean
 } {
-  const [dataServiceState, setDataServiceState] = useState<DataServiceState>(() => 
+  const [dataServiceState, setDataServiceState] = useState<DataServiceState>(() =>
     centralizedDataService.getState()
   )
-  
+
   useEffect(() => {
     const unsubscribe = centralizedDataService.subscribe(setDataServiceState)
     return unsubscribe
   }, [])
   
-  // Ensure historical data is loaded
+  // Ensure historical data is loaded (only if enabled)
   useEffect(() => {
+    // Skip if not enabled (lazy loading)
+    if (!enabled) {
+      console.log('⚡ Historical data loading disabled - lazy loading mode')
+      return
+    }
+
     if (!dataServiceState.isHistoricalDataLoaded && !dataServiceState.isLoadingHistoricalData) {
-      centralizedDataService.loadHistoricalData().catch(error => {
+      centralizedDataService.loadHistoricalData(false, interval).catch(error => {
         console.error('❌ Failed to load historical data:', error)
       })
     }
-  }, [dataServiceState.isHistoricalDataLoaded, dataServiceState.isLoadingHistoricalData])
+  }, [enabled, interval, dataServiceState.isHistoricalDataLoaded, dataServiceState.isLoadingHistoricalData])
   
   return {
     historicalData: dataServiceState.historicalData,

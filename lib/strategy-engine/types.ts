@@ -119,9 +119,12 @@ export interface StrategyEngineParams {
   maxLoanAmount: number
   expectedAnnualInflation: number
 
+  // BTC accumulation setting
+  btcAccumulation: boolean
+
   // Risk management
   riskManagement: RiskManagement
-  
+
   // Strategy selection and parameters
   investmentStrategy: InvestmentStrategy
   athBasedParams?: AthBasedStrategyParams

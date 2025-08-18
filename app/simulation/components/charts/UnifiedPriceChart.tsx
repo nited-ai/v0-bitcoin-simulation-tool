@@ -8,7 +8,7 @@ import { AlertCircle, Loader2, TrendingUp, Download } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useSimulation } from '../../context/SimulationContext'
 import { priceModelRegistry } from '../../price-models/PriceModelRegistry'
-import { useHistoricalDataOnly } from '../../hooks/useCentralizedData'
+import { useCentralizedData } from '../../hooks/useCentralizedData'
 import type { PriceProjectionResult } from '../../price-models/types'
 import type { HistoricalDataPoint } from '@/lib/services/centralized-data-service'
 
@@ -95,7 +95,7 @@ function calculateSupportLine(historicalData: HistoricalDataPoint[]): { timestam
 
 export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartProps) {
   const { params } = useSimulation()
-  const { historicalData, isLoaded, isLoading } = useHistoricalDataOnly()
+  const { historicalData, isHistoricalDataLoaded: isLoaded, isLoadingHistoricalData: isLoading } = useCentralizedData(true) // Enable loading with weekly data
   const searchParams = useSearchParams()
 
   const [projection, setProjection] = useState<PriceProjectionResult | null>(null)
@@ -109,15 +109,28 @@ export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPric
   // Set loading state based on centralized data service and projection generation
   const loading = isLoading || !isLoaded || isGeneratingProjection
 
+  // Debug: Log component state on every render
+  console.log(`🎨 UnifiedPriceChart render: histLen=${historicalData.length}, isLoaded=${isLoaded}, isLoading=${isLoading}, loading=${loading}`)
+
   // Generate projection when model or parameters change
   useEffect(() => {
     const generateProjection = async () => {
-      if (historicalData.length === 0) return
-
       // Only generate projections when on the price-projection tab
       const currentTab = searchParams.get('tab') || 'parameters'
       if (currentTab !== 'price-projection') {
         console.log(`⚡ UnifiedPriceChart: Skipping projection generation on ${currentTab} tab`)
+        return
+      }
+
+      // Wait for historical data to be loaded
+      if (historicalData.length === 0) {
+        console.log(`⚡ UnifiedPriceChart: Waiting for historical data to load (currently ${historicalData.length} points)`)
+        return
+      }
+
+      // Wait for data loading to complete
+      if (isLoading || !isLoaded) {
+        console.log(`⚡ UnifiedPriceChart: Waiting for data loading to complete (isLoading: ${isLoading}, isLoaded: ${isLoaded})`)
         return
       }
 
@@ -126,6 +139,7 @@ export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPric
       console.log(`   📊 Dependencies: histLen=${historicalData.length}, model=${params.priceModel}, price=${params.initialBtcPrice}, months=${params.simulationMonths}`)
       console.log(`   📊 Growth rates: ${JSON.stringify(params.annualGrowthRates || [])}`)
       console.log(`   📊 PowerLaw line: ${params.powerLawSettings?.prognosisLine}`)
+      console.log(`   📊 Data loading state: isLoading=${isLoading}, isLoaded=${isLoaded}`)
 
       try {
         setIsGeneratingProjection(true)
@@ -181,6 +195,8 @@ export function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPric
     generateProjection()
   }, [
     historicalData.length, // Use length instead of full array to prevent unnecessary re-renders
+    isLoaded, // Add loading state to ensure data is ready
+    isLoading, // Add loading state to prevent race conditions
     params.priceModel,
     params.initialBtcPrice,
     params.simulationMonths,

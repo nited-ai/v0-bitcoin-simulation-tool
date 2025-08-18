@@ -159,3 +159,63 @@
     @apply bg-background text-foreground p-1; /* Added p-1 for ~4px padding */
   }
 }
+
+/* Print-friendly styles for results page */
+@media print {
+  /* Hide navigation and non-essential elements */
+  .no-print,
+  nav,
+  .print-hide,
+  button:not(.print-show),
+  .tabs-list,
+  .export-section {
+    display: none !important;
+  }
+
+  /* Ensure content fits on page */
+  body {
+    font-size: 12px !important;
+    line-height: 1.4 !important;
+    color: black !important;
+    background: white !important;
+    padding: 0 !important;
+  }
+
+  /* Card styling for print */
+  .card {
+    border: 1px solid #ccc !important;
+    box-shadow: none !important;
+    margin-bottom: 15px !important;
+    page-break-inside: avoid;
+  }
+
+  /* Headers and titles */
+  h1, h2, h3, h4, h5, h6 {
+    color: black !important;
+    page-break-after: avoid;
+  }
+
+  /* Risk assessment colors (convert to grayscale) */
+  .text-green-600 { color: #333 !important; }
+  .text-red-600 { color: #000 !important; }
+  .text-yellow-600 { color: #666 !important; }
+  .text-orange-600 { color: #333 !important; }
+
+  /* Compact spacing */
+  .space-y-6 > * + * {
+    margin-top: 15px !important;
+  }
+
+  .space-y-4 > * + * {
+    margin-top: 10px !important;
+  }
+
+  /* Grid layouts for print */
+  .grid {
+    display: block !important;
+  }
+
+  .grid > * {
+    margin-bottom: 10px !important;
+  }
+}

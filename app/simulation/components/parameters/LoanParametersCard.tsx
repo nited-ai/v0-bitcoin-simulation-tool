@@ -49,14 +49,20 @@ export function LoanParametersCard() {
 
 
   /**
-   * Calculate max loan amount in USD based on percentage of BTC stack
+   * Calculate loan amount in USD based on percentage of BTC stack
    */
-  const maxLoanAmountUsd = (params.maxLoanAmountPercent / 100) * (params.btcAmount * params.initialBtcPrice)
+  const loanAmountUsd = (params.loanAmountPercent / 100) * (params.btcAmount * params.initialBtcPrice)
 
   /**
-   * Calculate collateral BTC amount based on Initial LTV
+   * Calculate origination fee
    */
-  const collateralBtcAmount = maxLoanAmountUsd / (params.initialBtcPrice * (params.riskManagement.targetLtv / 100))
+  const originationFeeUsd = loanAmountUsd * (platformConfig.originationFeePercent / 100)
+
+  /**
+   * Calculate collateral BTC amount based on Initial LTV (corrected formula)
+   * Formula: collateralBtcAmount = (loanAmount + originationFee) / (btcPrice × targetLtv)
+   */
+  const collateralBtcAmount = (loanAmountUsd + originationFeeUsd) / (params.initialBtcPrice * (params.riskManagement.targetLtv / 100))
 
   /**
    * Validate collateral sufficiency
@@ -64,10 +70,10 @@ export function LoanParametersCard() {
   const isCollateralSufficient = collateralBtcAmount <= params.btcAmount
 
   /**
-   * Calculate correct liquidation price
-   * Formula: liquidation_price = loan_amount / (collateral_btc_amount * liquidation_ltv)
+   * Calculate correct liquidation price (corrected formula)
+   * Formula: liquidation_price = (loan_amount + origination_fee) / (collateral_btc_amount * liquidation_ltv)
    */
-  const liquidationPrice = maxLoanAmountUsd / (collateralBtcAmount * (params.riskManagement.liquidationLtv / 100))
+  const liquidationPrice = (loanAmountUsd + originationFeeUsd) / (collateralBtcAmount * (params.riskManagement.liquidationLtv / 100))
 
   return (
     <Card>
@@ -79,34 +85,34 @@ export function LoanParametersCard() {
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {/* Row 1: Max Loan Amount + Initial LTV */}
+          {/* Row 1: Loan Amount + Initial LTV */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Max Loan Amount (Percentage-based) */}
+            {/* Loan Amount (Percentage-based) */}
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <DollarSign className="w-4 h-4" />
-                Max Loan Amount
+                Loan Amount
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Percentage of your total BTC stack value to use as maximum loan amount</p>
+                    <p>Percentage of your total BTC stack value to use as loan amount</p>
                   </TooltipContent>
                 </Tooltip>
               </Label>
               <NumberInput
-                value={params.maxLoanAmountPercent}
-                onChange={(value) => updateParam("maxLoanAmountPercent", value)}
+                value={params.loanAmountPercent}
+                onChange={(value) => updateParam("loanAmountPercent", value)}
                 min={1}
                 max={100}
                 step={1}
                 placeholder="15"
                 suffix="% of BTC stack"
               />
-              {/* Helper text for Max Loan Amount */}
+              {/* Helper text for Loan Amount */}
               <div className={`text-xs !mt-2 ${isCollateralSufficient ? 'text-muted-foreground' : 'text-red-600'}`}>
-                = ${Math.round(maxLoanAmountUsd).toLocaleString()} (based on {params.btcAmount} BTC × ${params.initialBtcPrice.toLocaleString()}). Needed collateral: {collateralBtcAmount.toFixed(4)} BTC at {params.riskManagement.targetLtv}% LTV
+                = ${Math.round(loanAmountUsd).toLocaleString()} (based on {params.btcAmount} BTC × ${params.initialBtcPrice.toLocaleString()}). Needed collateral: {collateralBtcAmount.toFixed(4)} BTC at {params.riskManagement.targetLtv}% LTV
               </div>
             </div>
 
@@ -114,13 +120,14 @@ export function LoanParametersCard() {
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <Percent className="w-4 h-4" />
-                Initial LTV
+                Initial LTV (max {platformConfig.maxInitialLtv}%)
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>Loan-to-Value ratio - percentage of collateral value that can be borrowed</p>
+                    <p>Maximum allowed by {platformConfig.name} platform: {platformConfig.maxInitialLtv}%</p>
                   </TooltipContent>
                 </Tooltip>
               </Label>
@@ -137,7 +144,7 @@ export function LoanParametersCard() {
               <div className="text-xs text-muted-foreground !mt-2">
                 {(() => {
                   const percentageDrop = ((params.initialBtcPrice - liquidationPrice) / params.initialBtcPrice) * 100
-                  return `If you take a loan of $${Math.round(maxLoanAmountUsd).toLocaleString()}, BTC needs to drop ${percentageDrop.toFixed(1)}% (from $${params.initialBtcPrice.toLocaleString()} to $${Math.round(liquidationPrice).toLocaleString()}) to trigger liquidation (if you do not top up the collateral)`
+                  return `If you take a loan of $${Math.round(loanAmountUsd).toLocaleString()}, BTC needs to drop ${percentageDrop.toFixed(1)}% (from $${params.initialBtcPrice.toLocaleString()} to $${Math.round(liquidationPrice).toLocaleString()}) to trigger liquidation (if you do not top up the collateral)`
                 })()}
               </div>
             </div>
@@ -184,7 +191,7 @@ export function LoanParametersCard() {
                 </Tooltip>
               </Label>
               <Select
-                value={params.loanTermMonths === Infinity ? "infinity" : params.loanTermMonths.toString()}
+                value={params.loanTermMonths === Infinity ? "infinity" : (params.loanTermMonths?.toString() || "6")}
                 onValueChange={(value) => updateParam("loanTermMonths", value === "infinity" ? Infinity : parseInt(value))}
               >
                 <SelectTrigger>

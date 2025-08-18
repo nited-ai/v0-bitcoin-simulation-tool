@@ -1,6 +1,6 @@
 "use client"
 
-import React, { createContext, useContext, useState, useCallback, ReactNode } from "react"
+import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from "react"
 import type {
   SimulationParams,
   MonthlyResult,
@@ -141,8 +141,8 @@ function saveParamsToStorage(params: SimulationParams) {
  * Replaces the scattered useState calls in the monolithic simulation.tsx.
  */
 export function SimulationProvider({ children }: SimulationProviderProps) {
-  // Core State - simplified initialization
-  const [params, setParamsState] = useState<SimulationParams>(DEFAULT_PARAMS)
+  // Core State - initialize with loaded params from storage
+  const [params, setParamsState] = useState<SimulationParams>(() => loadParamsFromStorage())
   const [results, setResults] = useState<MonthlyResult[]>([])
 
   // Loading States - start with false to avoid immediate effects
@@ -231,7 +231,7 @@ export function SimulationProvider({ children }: SimulationProviderProps) {
 
       // Update parameter sources to reflect preset application
       const updatedSources = { ...currentParams.parameterSources }
-      updatedSources.maxLoanAmountPercent = 'preset'
+      updatedSources.loanAmountPercent = 'preset'
       updatedSources.targetLtv = 'preset'
       updatedSources.annualInterestRate = 'preset'
       updatedSources.loanTermMonths = 'preset'
@@ -252,7 +252,7 @@ export function SimulationProvider({ children }: SimulationProviderProps) {
       const updatedParams = {
         ...currentParams,
         platform,
-        loanOriginationFeePercent: platformConfig.originationFeePercent,
+        originationFeePercent: platformConfig.originationFeePercent, // Updated field name for consistency
         liquidationFeePercent: platformConfig.liquidationFeePercent,
         loanTermMonths: platformConfig.availableLoanTerms.includes(currentParams.loanTermMonths === Infinity ? 'infinity' : currentParams.loanTermMonths)
           ? currentParams.loanTermMonths
@@ -313,6 +313,17 @@ export function SimulationProvider({ children }: SimulationProviderProps) {
       }
     }))
   }, [setParams])
+
+  // Initialize risk level preset on first load if no saved data exists
+  useEffect(() => {
+    // Only apply preset if this is a fresh start (no localStorage data)
+    const hasStoredData = typeof window !== "undefined" && localStorage.getItem(PARAMS_STORAGE_KEY)
+
+    if (!hasStoredData && params.riskLevel === "optimistic" && !params.selectedRiskLevel) {
+      console.log('🎯 Applying default "optimistic" risk level preset on first load...')
+      applyRiskLevelPreset("optimistic", true)
+    }
+  }, []) // Empty dependency array - only run once on mount
 
   const contextValue: SimulationContextType = {
     // Core State
