@@ -295,7 +295,7 @@ export function LoanParametersCard() {
                     }).format(loanData?.initialCurrentLoanAmount || 0)}
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    {params.loanAmountPercent}% of {new Intl.NumberFormat('en-US', {
+                    {params.loanAmountPercent.toFixed(2)}% of {new Intl.NumberFormat('en-US', {
                       style: 'currency',
                       currency: 'USD',
                       minimumFractionDigits: 0,
