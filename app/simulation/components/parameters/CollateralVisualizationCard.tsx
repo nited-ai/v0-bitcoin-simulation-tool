@@ -42,7 +42,7 @@ export function CollateralVisualizationCard() {
     if (!collateralData) {
       // Fallback values when calculations are not available
       return {
-        freeCollateralBtc: params.btcAmount,
+        freeCollateralBtc: params.initialBtcAmount,
         freeCollateralPercentage: 100,
         btcLockedAsCollateral: 0,
         collateralUtilization: 0
@@ -50,8 +50,8 @@ export function CollateralVisualizationCard() {
     }
 
     // Use centralized calculations
-    const freeCollateralPercentage = params.btcAmount > 0
-      ? (collateralData.initialFreeCollateralBtc / params.btcAmount) * 100
+    const freeCollateralPercentage = params.initialBtcAmount > 0
+      ? (collateralData.initialFreeCollateralBtc / params.initialBtcAmount) * 100
       : 100
 
     return {
@@ -60,7 +60,7 @@ export function CollateralVisualizationCard() {
       btcLockedAsCollateral: collateralData.initialLockedCollateralBtc,
       collateralUtilization: collateralData.initialCollateralUtilizationPercent
     }
-  }, [collateralData, params.btcAmount])
+  }, [collateralData, params.initialBtcAmount])
 
   // Prepare data for pie chart - Locked Collateral first to start at 12:00
   const chartData: CollateralData[] = useMemo(() => {
@@ -97,7 +97,7 @@ export function CollateralVisualizationCard() {
       </CardHeader>
       <CardContent>
         {/* Show message if no BTC amount */}
-        {params.btcAmount === 0 ? (
+        {params.initialBtcAmount === 0 ? (
           <div className="flex items-center justify-center h-64 text-muted-foreground">
             <div className="text-center">
               <PieChartIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
@@ -176,7 +176,7 @@ export function CollateralVisualizationCard() {
               {/* Center Text with Total BTC and Color Coding */}
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <div className="text-xs text-muted-foreground text-center mb-1">
-                  {params.btcAmount.toLocaleString('en-US', {
+                  {params.initialBtcAmount.toLocaleString('en-US', {
                     minimumFractionDigits: 3,
                     maximumFractionDigits: 3
                   })} BTC
@@ -196,7 +196,7 @@ export function CollateralVisualizationCard() {
         )}
 
         {/* Legend with USD values */}
-        {params.btcAmount > 0 && (
+        {params.initialBtcAmount > 0 && (
           <div className="flex justify-center gap-6 mt-4">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#22c55e" }}></div>

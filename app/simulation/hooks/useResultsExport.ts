@@ -52,7 +52,7 @@ export function useResultsExport(results: MonthlyResult[], params: SimulationPar
       metadata: {
         exportDate: new Date().toISOString(),
         simulationParams: {
-          btcAmount: params.btcAmount,
+          initialBtcAmount: params.initialBtcAmount,
           initialBtcPrice: params.initialBtcPrice,
           monthlyWithdrawalAmount: params.monthlyWithdrawalAmount,
           simulationMonths: params.simulationMonths,
@@ -63,7 +63,7 @@ export function useResultsExport(results: MonthlyResult[], params: SimulationPar
           platform: params.platform,
         },
         totalMonths: results.length,
-        btcAmount: params.btcAmount,
+        btcAmount: params.initialBtcAmount,
         initialBtcPrice: params.initialBtcPrice,
       },
       summary: {

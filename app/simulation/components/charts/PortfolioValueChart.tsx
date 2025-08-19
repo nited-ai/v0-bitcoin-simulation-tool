@@ -43,7 +43,7 @@ export function PortfolioValueChart() {
   const stats = useMemo(() => {
     if (chartData.length === 0) return null
 
-    const initialValue = params.btcAmount * params.initialBtcPrice
+    const initialValue = params.initialBtcAmount * params.initialBtcPrice
     const finalValue = chartData[chartData.length - 1].portfolioValue
     const finalNetWorth = chartData[chartData.length - 1].netWorth
     const maxValue = Math.max(...chartData.map(d => d.portfolioValue))

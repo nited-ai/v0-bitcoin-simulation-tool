@@ -6,6 +6,21 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  // Fix Windows permission issues
+  webpack: (config, { isServer }) => {
+    // Exclude problematic Windows directories
+    config.watchOptions = {
+      ...config.watchOptions,
+      ignored: [
+        '**/node_modules/**',
+        '**/.git/**',
+        '**/Anwendungsdaten/**',
+        '**/AppData/**',
+        '**/Application Data/**',
+      ],
+    };
+    return config;
+  },
   images: {
     unoptimized: true,
   },

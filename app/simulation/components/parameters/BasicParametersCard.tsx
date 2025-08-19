@@ -133,8 +133,8 @@ export function BasicParametersCard() {
                 </Tooltip>
               </Label>
               <NumberInput
-                value={params.btcAmount}
-                onChange={(value) => setParams((p) => ({ ...p, btcAmount: value }))}
+                value={params.initialBtcAmount}
+                onChange={(value) => setParams((p) => ({ ...p, initialBtcAmount: value }))}
                 min={0.001}
                 max={1000}
                 step={0.001}
@@ -163,7 +163,7 @@ export function BasicParametersCard() {
                 </Tooltip>
               </Label>
               <CollateralSummaryCard
-                btcAmount={params.btcAmount}
+                btcAmount={params.initialBtcAmount}
                 initialBtcPrice={params.initialBtcPrice}
                 className="p-0 border-none bg-transparent"
               />

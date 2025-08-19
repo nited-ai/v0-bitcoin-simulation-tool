@@ -77,7 +77,7 @@ export function useResultsAnalysis(
     const totalDebtPeak = Math.max(...results.map(r => r.totalDebt))
     
     // Performance metrics
-    const initialValue = params.btcAmount * params.initialBtcPrice
+    const initialValue = params.initialBtcAmount * params.initialBtcPrice
     const totalReturn = finalNetWorth - initialValue
     const totalReturnPercent = (totalReturn / initialValue) * 100
     const yearsElapsed = totalMonths / 12
@@ -128,7 +128,7 @@ export function useResultsAnalysis(
     const totalRepayments = results.reduce((sum, r) => sum + r.repaymentsDue, 0)
     
     // BTC metrics
-    const initialBtcAmount = params.btcAmount
+    const initialBtcAmount = params.initialBtcAmount
     const finalBtcAmount = lastResult.currentBtcAmount
     const btcGrowth = finalBtcAmount - initialBtcAmount
     const btcGrowthPercent = (btcGrowth / initialBtcAmount) * 100

@@ -147,7 +147,7 @@ export function ResultsPage() {
         <div>
           <h2 className="text-2xl font-bold">Results</h2>
           <p className="text-muted-foreground">
-            Simulation results for {results.length} months with {params.btcAmount} BTC
+            Simulation results for {results.length} months with {params.initialBtcAmount} BTC
           </p>
         </div>
 

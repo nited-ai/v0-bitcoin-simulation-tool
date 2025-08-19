@@ -87,7 +87,7 @@ export type MonthlyEvent =
  * Main simulation parameters
  */
 export interface SimulationParams {
-  btcAmount: number
+  initialBtcAmount: number
   initialBtcPrice: number
   monthlyWithdrawalAmount: number
   annualInterestRate: number
@@ -153,13 +153,13 @@ export const PARAMS_STORAGE_KEY = "bitcoin-simulation-params"
  * Default simulation parameters
  */
 export const DEFAULT_PARAMS: SimulationParams = {
-  btcAmount: 1,
+  initialBtcAmount: 1,
   initialBtcPrice: 100000,
   monthlyWithdrawalAmount: 150,
-  annualInterestRate: 6.5,
+  annualInterestRate: 9.5,
   originationFeePercent: 1.5, // Renamed from loanOriginationFeePercent for consistency
   liquidationFeePercent: 5.0, // Updated from 2.0 to 5.0
-  loanTermMonths: 6,
+  loanTermMonths: 12,
   simulationMonths: 144,
   maxLoanAmount: 15000, // Updated from 100000 to 15000
   annualGrowthRates: [180, -60, -20, 210, 250, -60, -20, 170, 200, -65, -20, 110],

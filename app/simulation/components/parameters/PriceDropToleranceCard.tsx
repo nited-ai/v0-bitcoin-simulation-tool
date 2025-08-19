@@ -63,7 +63,7 @@ export function PriceDropToleranceCard() {
         trueLiquidationPrice: 0,
         truePriceDropPercentage: 0,
         trueRemainingPricePercentage: 100,
-        freeBtcAmount: params.btcAmount,
+        freeBtcAmount: params.initialBtcAmount,
         hasFreeCollateral: true
       }
     }
@@ -85,7 +85,7 @@ export function PriceDropToleranceCard() {
       freeBtcAmount: liquidationData.initialFreeBtcAmount,
       hasFreeCollateral: liquidationData.initialHasFreeCollateral
     }
-  }, [liquidationData, params.initialBtcPrice, params.btcAmount])
+  }, [liquidationData, params.initialBtcPrice, params.initialBtcAmount])
 
   // Enhanced ATH metrics calculation using centralized service
   const athMetrics = useMemo(() => {
@@ -484,7 +484,7 @@ export function PriceDropToleranceCard() {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {params.btcAmount === 0 || params.loanAmountPercent === 0 ? (
+        {params.initialBtcAmount === 0 || params.loanAmountPercent === 0 ? (
           <div className="flex items-center justify-center h-64 text-muted-foreground">
             <p>No loan amount specified</p>
           </div>
@@ -644,7 +644,7 @@ export function PriceDropToleranceCard() {
         )}
 
         {/* Simplified Legend */}
-        {params.btcAmount > 0 && params.loanAmountPercent > 0 && (
+        {params.initialBtcAmount > 0 && params.loanAmountPercent > 0 && (
           <div className="flex justify-center gap-6 mt-4">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#ef4444" }}></div>

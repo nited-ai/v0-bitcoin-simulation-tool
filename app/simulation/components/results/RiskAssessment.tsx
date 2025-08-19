@@ -61,10 +61,10 @@ export function RiskAssessment() {
       },
       {
         name: "Concentration Risk",
-        value: params.btcAmount > 10 ? 20 : params.btcAmount > 5 ? 40 : params.btcAmount > 1 ? 60 : 80,
+        value: params.initialBtcAmount > 10 ? 20 : params.initialBtcAmount > 5 ? 40 : params.initialBtcAmount > 1 ? 60 : 80,
         maxValue: 100,
-        level: params.btcAmount > 10 ? 'low' : params.btcAmount > 5 ? 'medium' : 'high',
-        description: `${params.btcAmount} BTC concentrated in single asset`,
+        level: params.initialBtcAmount > 10 ? 'low' : params.initialBtcAmount > 5 ? 'medium' : 'high',
+        description: `${params.initialBtcAmount} BTC concentrated in single asset`,
         icon: Zap,
       },
       {
@@ -110,7 +110,7 @@ export function RiskAssessment() {
       recommendations.push("High volatility detected - consider diversification or lower leverage")
     }
 
-    if (params.btcAmount < 1) {
+    if (params.initialBtcAmount < 1) {
       recommendations.push("Small BTC holdings increase concentration risk - consider accumulating more")
     }
 

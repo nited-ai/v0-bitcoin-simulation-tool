@@ -60,7 +60,7 @@ export function LoanParametersCard() {
   }
 
   // Calculate total BTC stack value for conversions
-  const totalStackValue = params.btcAmount * params.initialBtcPrice
+  const totalStackValue = params.initialBtcAmount * params.initialBtcPrice
 
   // Convert between percentage and USD values
   const convertPercentageToUsd = (percentage: number) => {
@@ -280,7 +280,7 @@ export function LoanParametersCard() {
                           currency: 'USD',
                           minimumFractionDigits: 0,
                           maximumFractionDigits: 0,
-                        }).format(params.btcAmount * params.initialBtcPrice)}
+                        }).format(params.initialBtcAmount * params.initialBtcPrice)}
                       </p>
                     </TooltipContent>
                   </Tooltip>
@@ -300,7 +300,7 @@ export function LoanParametersCard() {
                       currency: 'USD',
                       minimumFractionDigits: 0,
                       maximumFractionDigits: 0,
-                    }).format(params.btcAmount * params.initialBtcPrice)}
+                    }).format(params.initialBtcAmount * params.initialBtcPrice)}
                   </div>
                 </div>
               </div>

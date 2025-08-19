@@ -43,12 +43,12 @@ export function useSimulationRunner() {
 
     try {
       // Calculate actual loan amount from percentage of BTC stack value
-      const btcStackValue = params.btcAmount * params.initialBtcPrice
+      const btcStackValue = params.initialBtcAmount * params.initialBtcPrice
       const calculatedLoanAmount = (params.loanAmountPercent / 100) * btcStackValue
 
       // Prepare strategy parameters
       const strategyParams: StrategyEngineParams = {
-        btcAmount: params.btcAmount,
+        btcAmount: params.initialBtcAmount,
         initialBtcPrice: params.initialBtcPrice,
         monthlyWithdrawalAmount: params.monthlyWithdrawalAmount,
         annualInterestRate: params.annualInterestRate,
@@ -67,7 +67,7 @@ export function useSimulationRunner() {
 
       console.log("🚀 Running strategy simulation with params:", {
         strategy: params.investmentStrategy,
-        btcAmount: params.btcAmount,
+        btcAmount: params.initialBtcAmount,
         simulationMonths: params.simulationMonths,
         priceDataPoints: priceChartData.length,
       })
@@ -112,8 +112,8 @@ export function useSimulationRunner() {
    * Check if simulation can be run
    */
   const canRunSimulation = useCallback(() => {
-    return priceChartData.length === 0 || !params.btcAmount || params.btcAmount <= 0
-  }, [priceChartData.length, params.btcAmount])
+    return priceChartData.length === 0 || !params.initialBtcAmount || params.initialBtcAmount <= 0
+  }, [priceChartData.length, params.initialBtcAmount])
 
   /**
    * Get simulation status
@@ -122,11 +122,11 @@ export function useSimulationRunner() {
     if (priceChartData.length === 0) {
       return "waiting_for_data"
     }
-    if (params.btcAmount <= 0) {
+    if (params.initialBtcAmount <= 0) {
       return "invalid_params"
     }
     return "ready"
-  }, [priceChartData.length, params.btcAmount])
+  }, [priceChartData.length, params.initialBtcAmount])
 
   return {
     runSimulation,

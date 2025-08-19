@@ -34,7 +34,7 @@ export function ParameterPresets() {
       icon: <Shield className="w-4 h-4" />,
       badge: "Safe",
       params: {
-        btcAmount: 0.5,
+        initialBtcAmount: 0.5,
         initialBtcPrice: 100000,
         monthlyWithdrawalAmount: 0,
         annualInterestRate: 6.5,
@@ -54,7 +54,7 @@ export function ParameterPresets() {
       icon: <Target className="w-4 h-4" />,
       badge: "Recommended",
       params: {
-        btcAmount: 1.0,
+        initialBtcAmount: 1.0,
         initialBtcPrice: 100000,
         monthlyWithdrawalAmount: 2000,
         annualInterestRate: 6.5,
@@ -74,7 +74,7 @@ export function ParameterPresets() {
       icon: <TrendingUp className="w-4 h-4" />,
       badge: "High Risk",
       params: {
-        btcAmount: 2.0,
+        initialBtcAmount: 2.0,
         initialBtcPrice: 100000,
         monthlyWithdrawalAmount: 5000,
         annualInterestRate: 7.5,
@@ -94,7 +94,7 @@ export function ParameterPresets() {
       icon: <Zap className="w-4 h-4" />,
       badge: "Premium",
       params: {
-        btcAmount: 10.0,
+        initialBtcAmount: 10.0,
         initialBtcPrice: 100000,
         monthlyWithdrawalAmount: 20000,
         annualInterestRate: 6.0,
@@ -187,7 +187,7 @@ export function ParameterPresets() {
 
                 {/* Key Parameters Preview */}
                 <div className="space-y-1 mb-4 text-xs text-muted-foreground">
-                  <div>BTC: {preset.params.btcAmount} • LTV: {preset.params.riskManagement?.targetLtv}%</div>
+                  <div>BTC: {preset.params.initialBtcAmount} • LTV: {preset.params.riskManagement?.targetLtv}%</div>
                   <div>Monthly: €{preset.params.monthlyWithdrawalAmount?.toLocaleString()}</div>
                 </div>
 

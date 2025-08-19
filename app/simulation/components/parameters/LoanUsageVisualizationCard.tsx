@@ -93,7 +93,7 @@ export function LoanUsageVisualizationCard() {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {params.btcAmount === 0 ? (
+        {params.initialBtcAmount === 0 ? (
           <div className="flex items-center justify-center h-64 text-muted-foreground">
             <p>No BTC amount specified</p>
           </div>
@@ -185,7 +185,7 @@ export function LoanUsageVisualizationCard() {
         )}
 
         {/* Legend with USD values */}
-        {params.btcAmount > 0 && (
+        {params.initialBtcAmount > 0 && (
           <div className="flex justify-center gap-6 mt-4">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#22c55e" }}></div>

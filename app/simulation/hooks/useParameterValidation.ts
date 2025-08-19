@@ -33,25 +33,25 @@ export function useParameterValidation(params: SimulationParams): ValidationResu
     const platformConfig = getPlatformConfig(params.platform)
 
     // BTC Amount Validation
-    if (params.btcAmount <= 0) {
+    if (params.initialBtcAmount <= 0) {
       errors.push({
         field: "btcAmount",
         message: "BTC amount must be greater than 0",
         severity: "error"
       })
-    } else if (params.btcAmount < 0.001) {
+    } else if (params.initialBtcAmount < 0.001) {
       errors.push({
         field: "btcAmount",
         message: "BTC amount must be at least 0.001 BTC",
         severity: "error"
       })
-    } else if (params.btcAmount > 1000) {
+    } else if (params.initialBtcAmount > 1000) {
       warnings.push({
         field: "btcAmount",
         message: "Very large BTC amount - ensure this is intentional",
         severity: "warning"
       })
-    } else if (params.btcAmount < 0.1) {
+    } else if (params.initialBtcAmount < 0.1) {
       infos.push({
         field: "btcAmount",
         message: "Small BTC amount may limit loan opportunities",
@@ -87,7 +87,7 @@ export function useParameterValidation(params: SimulationParams): ValidationResu
     }
 
     // Monthly Savings/Withdrawal Validation
-    const calculatedLoanAmountForValidation = (params.loanAmountPercent / 100) * (params.btcAmount * params.initialBtcPrice)
+    const calculatedLoanAmountForValidation = (params.loanAmountPercent / 100) * (params.initialBtcAmount * params.initialBtcPrice)
     if (Math.abs(params.monthlyWithdrawalAmount) > calculatedLoanAmountForValidation) {
       warnings.push({
         field: "monthlyWithdrawalAmount",
@@ -96,7 +96,7 @@ export function useParameterValidation(params: SimulationParams): ValidationResu
       })
     } else if (params.monthlyWithdrawalAmount < 0) {
       // Negative values are withdrawals
-      const totalCollateralValue = params.btcAmount * params.initialBtcPrice
+      const totalCollateralValue = params.initialBtcAmount * params.initialBtcPrice
       const maxSafeWithdrawal = totalCollateralValue * 0.1 // 10% of collateral per month
 
       if (Math.abs(params.monthlyWithdrawalAmount) > maxSafeWithdrawal) {
@@ -108,7 +108,7 @@ export function useParameterValidation(params: SimulationParams): ValidationResu
       }
     } else if (params.monthlyWithdrawalAmount > 0) {
       // Positive values are savings - validate reasonable savings amounts
-      const totalCollateralValue = params.btcAmount * params.initialBtcPrice
+      const totalCollateralValue = params.initialBtcAmount * params.initialBtcPrice
       const maxReasonableSavings = totalCollateralValue * 0.2 // 20% of collateral per month
 
       if (params.monthlyWithdrawalAmount > maxReasonableSavings) {
@@ -257,7 +257,7 @@ export function useParameterValidation(params: SimulationParams): ValidationResu
     }
 
     // Cross-parameter validations
-    const totalCollateralValue = params.btcAmount * params.initialBtcPrice
+    const totalCollateralValue = params.initialBtcAmount * params.initialBtcPrice
     const maxPossibleLoan = totalCollateralValue * (params.riskManagement.targetLtv / 100)
     const calculatedLoanAmount = (params.loanAmountPercent / 100) * totalCollateralValue
 
@@ -284,11 +284,11 @@ export function useParameterValidation(params: SimulationParams): ValidationResu
     const totalLoanCost = currentLoanAmount + originationFee + totalInterestPayment
     const btcLockedAsCollateral = totalLoanCost / (params.riskManagement.targetLtv / 100) / params.initialBtcPrice
 
-    if (btcLockedAsCollateral > params.btcAmount) {
-      const shortfall = btcLockedAsCollateral - params.btcAmount
+    if (btcLockedAsCollateral > params.initialBtcAmount) {
+      const shortfall = btcLockedAsCollateral - params.initialBtcAmount
       errors.push({
         field: "collateralSufficiency",
-        message: `Insufficient collateral: Need ${btcLockedAsCollateral.toFixed(4)} BTC but only have ${params.btcAmount.toFixed(4)} BTC available (shortfall: ${shortfall.toFixed(4)} BTC). Total loan cost: $${totalLoanCost.toLocaleString()} (includes $${totalInterestPayment.toFixed(0)} interest over ${params.loanTermMonths === Infinity ? 'infinite' : params.loanTermMonths} months)`,
+        message: `Insufficient collateral: Need ${btcLockedAsCollateral.toFixed(4)} BTC but only have ${params.initialBtcAmount.toFixed(4)} BTC available (shortfall: ${shortfall.toFixed(4)} BTC). Total loan cost: $${totalLoanCost.toLocaleString()} (includes $${totalInterestPayment.toFixed(0)} interest over ${params.loanTermMonths === Infinity ? 'infinite' : params.loanTermMonths} months)`,
         severity: "error"
       })
     }
