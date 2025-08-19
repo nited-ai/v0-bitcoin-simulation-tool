@@ -1,0 +1,10 @@
+# Exclude examples folder from Vercel build
+examples/
+# Exclude test files
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+**/__tests__/
+# Exclude development utilities
+test-data-loading.ts
