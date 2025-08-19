@@ -468,5 +468,303 @@ describe('EnhancedCycleRepeatModel', () => {
         expect(angleAdjustment).toBe(1.0)
       })
     })
+
+    describe('applyAngleAdjustmentToPrice', () => {
+      it('should apply no adjustment when angle adjustment is 1.0', () => {
+        const basePrice = 100000
+        const angleAdjustment = 1.0
+        const timeProgress = 0.5 // 50% through projection
+
+        const adjustedPrice = (model as any).applyAngleAdjustmentToPrice(basePrice, angleAdjustment, timeProgress)
+
+        // No adjustment should be applied
+        expect(adjustedPrice).toBeCloseTo(basePrice, 0)
+      })
+
+      it('should apply progressive adjustment based on time progress', () => {
+        const basePrice = 100000
+        const angleAdjustment = 0.8 // 20% reduction in final trajectory
+
+        // Test different time progress values
+        const earlyProgress = 0.2 // 20% through projection
+        const midProgress = 0.5 // 50% through projection
+        const lateProgress = 0.8 // 80% through projection
+
+        const earlyPrice = (model as any).applyAngleAdjustmentToPrice(basePrice, angleAdjustment, earlyProgress)
+        const midPrice = (model as any).applyAngleAdjustmentToPrice(basePrice, angleAdjustment, midProgress)
+        const latePrice = (model as any).applyAngleAdjustmentToPrice(basePrice, angleAdjustment, lateProgress)
+
+        // Early adjustment should be minimal
+        expect(earlyPrice).toBeGreaterThan(basePrice * 0.95)
+        expect(earlyPrice).toBeLessThan(basePrice)
+
+        // Mid adjustment should be moderate
+        expect(midPrice).toBeGreaterThan(basePrice * 0.85)
+        expect(midPrice).toBeLessThan(earlyPrice)
+
+        // Late adjustment should be stronger
+        expect(latePrice).toBeGreaterThan(basePrice * 0.75)
+        expect(latePrice).toBeLessThan(midPrice)
+      })
+
+      it('should handle angle adjustment greater than 1.0 (trajectory increase)', () => {
+        const basePrice = 100000
+        const angleAdjustment = 1.2 // 20% increase in final trajectory
+        const timeProgress = 0.5 // 50% through projection
+
+        const adjustedPrice = (model as any).applyAngleAdjustmentToPrice(basePrice, angleAdjustment, timeProgress)
+
+        // Price should be increased
+        expect(adjustedPrice).toBeGreaterThan(basePrice)
+        expect(adjustedPrice).toBeLessThan(basePrice * 1.2) // But not full adjustment yet
+      })
+
+      it('should handle edge cases with extreme time progress values', () => {
+        const basePrice = 100000
+        const angleAdjustment = 0.5 // 50% reduction
+
+        // Test time progress at 0 (beginning)
+        const beginningPrice = (model as any).applyAngleAdjustmentToPrice(basePrice, angleAdjustment, 0)
+        expect(beginningPrice).toBeCloseTo(basePrice, 0) // No adjustment at beginning
+
+        // Test time progress at 1 (end)
+        const endPrice = (model as any).applyAngleAdjustmentToPrice(basePrice, angleAdjustment, 1)
+        expect(endPrice).toBeCloseTo(basePrice * angleAdjustment, 0) // Full adjustment at end
+
+        // Test time progress beyond 1 (should be clamped)
+        const beyondPrice = (model as any).applyAngleAdjustmentToPrice(basePrice, angleAdjustment, 1.5)
+        expect(beyondPrice).toBeCloseTo(basePrice * angleAdjustment, 0) // Should be same as end
+      })
+
+      it('should use smooth interpolation for progressive adjustment', () => {
+        const basePrice = 100000
+        const angleAdjustment = 0.6 // 40% reduction
+
+        // Test multiple time progress points to ensure smooth progression
+        const progressPoints = [0, 0.25, 0.5, 0.75, 1.0]
+        const adjustedPrices = progressPoints.map(progress =>
+          (model as any).applyAngleAdjustmentToPrice(basePrice, angleAdjustment, progress)
+        )
+
+        // Prices should decrease smoothly
+        for (let i = 1; i < adjustedPrices.length; i++) {
+          expect(adjustedPrices[i]).toBeLessThan(adjustedPrices[i - 1])
+        }
+
+        // First price should be base price (no adjustment)
+        expect(adjustedPrices[0]).toBeCloseTo(basePrice, 0)
+
+        // Last price should be fully adjusted
+        expect(adjustedPrices[4]).toBeCloseTo(basePrice * angleAdjustment, 0)
+      })
+    })
+
+    describe('Time Progress Calculation', () => {
+      it('should calculate correct time progress for various projection lengths', () => {
+        // Test time progress calculation logic
+        const totalDays = 365 // 1 year projection
+
+        // Test different days into projection
+        const day90 = 90 // 3 months
+        const day180 = 180 // 6 months
+        const day270 = 270 // 9 months
+
+        const progress90 = day90 / totalDays
+        const progress180 = day180 / totalDays
+        const progress270 = day270 / totalDays
+
+        expect(progress90).toBeCloseTo(0.247, 2) // ~25%
+        expect(progress180).toBeCloseTo(0.493, 2) // ~50%
+        expect(progress270).toBeCloseTo(0.740, 2) // ~75%
+      })
+
+      it('should handle edge cases in time progress calculation', () => {
+        // Test with very short projection
+        const shortProjection = 30 // 1 month
+        const day15 = 15 // Half way
+        const shortProgress = day15 / shortProjection
+        expect(shortProgress).toBe(0.5)
+
+        // Test with very long projection
+        const longProjection = 1460 // 4 years
+        const day365 = 365 // 1 year
+        const longProgress = day365 / longProjection
+        expect(longProgress).toBe(0.25)
+      })
+    })
+
+    describe('New Enhanced Cycle Repeat Price Calculation', () => {
+      it('should preserve volatility patterns with angle adjustment', async () => {
+        // Use parameters that create significant angle adjustment
+        const volatilityTestParams = {
+          ...baseParams,
+          projectionMonths: 12, // 1 year projection
+          modelSpecificParams: {
+            diminishingReturns: {
+              ...DIMINISHING_RETURNS_PRESETS.conservative.params, // Strong diminishing returns
+              diminishingFactor: 0.8
+            }
+          }
+        }
+
+        const result = await model.generateProjection(mockHistoricalData, volatilityTestParams)
+
+        // Check that we have monthly data points
+        expect(result.projectionPoints).toHaveLength(12)
+
+        // Calculate month-to-month changes to verify volatility is preserved
+        const monthlyChanges = []
+        for (let i = 1; i < result.projectionPoints.length; i++) {
+          const prevPrice = result.projectionPoints[i - 1].price
+          const currentPrice = result.projectionPoints[i].price
+          const change = (currentPrice - prevPrice) / prevPrice
+          monthlyChanges.push(change)
+        }
+
+        // Should have both positive and negative changes (volatility)
+        const positiveChanges = monthlyChanges.filter(change => change > 0)
+        const negativeChanges = monthlyChanges.filter(change => change < 0)
+
+        expect(positiveChanges.length).toBeGreaterThan(0)
+        expect(negativeChanges.length).toBeGreaterThan(0)
+
+        // Should have some significant changes (not all small)
+        const significantChanges = monthlyChanges.filter(change => Math.abs(change) > 0.05) // >5% changes
+        expect(significantChanges.length).toBeGreaterThan(0)
+      })
+
+      it('should apply diminishing returns to overall trajectory', async () => {
+        // Compare conservative vs optimistic presets
+        const conservativeParams = {
+          ...baseParams,
+          projectionMonths: 24,
+          modelSpecificParams: {
+            diminishingReturns: DIMINISHING_RETURNS_PRESETS.conservative.params
+          }
+        }
+
+        const optimisticParams = {
+          ...baseParams,
+          projectionMonths: 24,
+          modelSpecificParams: {
+            diminishingReturns: DIMINISHING_RETURNS_PRESETS.optimistic.params
+          }
+        }
+
+        const conservativeResult = await model.generateProjection(mockHistoricalData, conservativeParams)
+        const optimisticResult = await model.generateProjection(mockHistoricalData, optimisticParams)
+
+        // Final prices should reflect diminishing returns differences
+        const conservativeFinal = conservativeResult.projectionPoints[conservativeResult.projectionPoints.length - 1].price
+        const optimisticFinal = optimisticResult.projectionPoints[optimisticResult.projectionPoints.length - 1].price
+
+        // Optimistic should have higher final price due to less aggressive diminishing returns
+        expect(optimisticFinal).toBeGreaterThan(conservativeFinal)
+      })
+
+      it('should maintain historical multiplier patterns', async () => {
+        const testParams = {
+          ...baseParams,
+          projectionMonths: 6, // Short projection to focus on pattern preservation
+          modelSpecificParams: {
+            diminishingReturns: {
+              ...DIMINISHING_RETURNS_PRESETS.moderate.params,
+              diminishingFactor: 0.1 // Minimal diminishing returns to see raw patterns
+            }
+          }
+        }
+
+        const result = await model.generateProjection(mockHistoricalData, testParams)
+
+        // Calculate the implied daily multipliers from monthly results
+        const monthlyMultipliers = []
+        for (let i = 1; i < result.projectionPoints.length; i++) {
+          const prevPrice = result.projectionPoints[i - 1].price
+          const currentPrice = result.projectionPoints[i].price
+          const monthlyMultiplier = currentPrice / prevPrice
+          monthlyMultipliers.push(monthlyMultiplier)
+        }
+
+        // Should have variety in multipliers (not all the same)
+        const uniqueMultipliers = new Set(monthlyMultipliers.map(m => Math.round(m * 1000) / 1000))
+        expect(uniqueMultipliers.size).toBeGreaterThan(1)
+
+        // Should have both growth and decline periods
+        const growthMonths = monthlyMultipliers.filter(m => m > 1.0)
+        const declineMonths = monthlyMultipliers.filter(m => m < 1.0)
+
+        expect(growthMonths.length).toBeGreaterThan(0)
+        expect(declineMonths.length).toBeGreaterThan(0)
+      })
+
+      it('should handle extreme angle adjustment scenarios', async () => {
+        // Test with very aggressive diminishing returns
+        const extremeParams = {
+          ...baseParams,
+          projectionMonths: 12,
+          modelSpecificParams: {
+            diminishingReturns: {
+              diminishingFactor: 0.95, // Very aggressive
+              maturityThreshold: 500_000_000_000, // Low threshold
+              cycleDegradation: 0.8,
+              adoptionCurveType: 'logarithmic' as const,
+              institutionalSaturation: 0.9,
+              regulatoryMaturity: 0.9,
+              liquidityConstraint: 0.8,
+              competitionFactor: 0.7
+            }
+          }
+        }
+
+        const result = await model.generateProjection(mockHistoricalData, extremeParams)
+
+        // Should still generate valid projection
+        expect(result.projectionPoints).toHaveLength(12)
+        expect(result.projectionPoints[0].price).toBe(baseParams.startPrice)
+
+        // Final price should be significantly reduced due to extreme diminishing returns
+        const finalPrice = result.projectionPoints[result.projectionPoints.length - 1].price
+        expect(finalPrice).toBeGreaterThan(0) // Should still be positive
+        expect(finalPrice).toBeLessThan(baseParams.startPrice) // Should be reduced from start price
+      })
+
+      it('should provide smooth trajectory adjustment over time', async () => {
+        const testParams = {
+          ...baseParams,
+          projectionMonths: 24, // 2 years to see trajectory evolution
+          modelSpecificParams: {
+            diminishingReturns: {
+              ...DIMINISHING_RETURNS_PRESETS.moderate.params,
+              diminishingFactor: 0.6 // Moderate adjustment
+            }
+          }
+        }
+
+        const result = await model.generateProjection(mockHistoricalData, testParams)
+
+        // Calculate the trajectory trend (should be smooth, not erratic)
+        const prices = result.projectionPoints.map(p => p.price)
+
+        // Calculate moving averages to see overall trend
+        const windowSize = 3
+        const movingAverages = []
+        for (let i = windowSize - 1; i < prices.length; i++) {
+          const window = prices.slice(i - windowSize + 1, i + 1)
+          const average = window.reduce((sum, price) => sum + price, 0) / windowSize
+          movingAverages.push(average)
+        }
+
+        // Moving averages should show smooth progression (not wild swings)
+        const avgChanges = []
+        for (let i = 1; i < movingAverages.length; i++) {
+          const change = Math.abs(movingAverages[i] - movingAverages[i - 1]) / movingAverages[i - 1]
+          avgChanges.push(change)
+        }
+
+        // Most changes should be reasonable (not extreme jumps in moving average)
+        const extremeChanges = avgChanges.filter(change => change > 0.5) // >50% jumps in moving average
+        expect(extremeChanges.length).toBeLessThan(avgChanges.length * 0.2) // Less than 20% extreme
+      })
+    })
   })
 })

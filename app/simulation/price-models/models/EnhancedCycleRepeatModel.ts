@@ -283,7 +283,28 @@ export class EnhancedCycleRepeatModel implements PriceProjectionModel {
   }
 
   /**
-   * Calculate projected price for a specific month using enhanced cycle repeat logic
+   * Apply angle adjustment progressively over time
+   * This creates a smooth trajectory modification while preserving daily volatility
+   */
+  private applyAngleAdjustmentToPrice(
+    basePrice: number,
+    angleAdjustment: number,
+    timeProgress: number
+  ): number {
+    // Clamp time progress to [0, 1] range
+    const clampedProgress = Math.max(0, Math.min(1, timeProgress))
+
+    // Use smooth interpolation for progressive adjustment
+    // At timeProgress = 0: no adjustment (factor = 1.0)
+    // At timeProgress = 1: full adjustment (factor = angleAdjustment)
+    const adjustmentFactor = 1 + (angleAdjustment - 1) * clampedProgress
+
+    return basePrice * adjustmentFactor
+  }
+
+  /**
+   * Calculate projected price for a specific month using enhanced cycle repeat logic with angle adjustment
+   * This new implementation preserves volatility while applying diminishing returns to the overall trajectory
    */
   private getEnhancedCycleRepeatPrice(
     month: number,
@@ -295,30 +316,41 @@ export class EnhancedCycleRepeatModel implements PriceProjectionModel {
       return initialPrice
     }
 
-    // Convert month to approximate days
+    // Convert month to approximate days for this specific month
     const daysIntoSimulation = Math.round((month - 1) * (365.25 / 12))
-    
-    // Calculate which cycle we're in (assuming 4-year cycles)
-    const cycleNumber = Math.floor(month / 48) // 48 months = 4 years
 
-    let currentProjectedPrice = initialPrice
+    // For month 1, return the initial price (no projection yet)
+    if (month === 1) {
+      return initialPrice
+    }
+
+    // Step 1: Calculate raw final price for the full projection period
+    const totalProjectionDays = Math.round((month - 1) * (365.25 / 12))
+    const rawFinalPrice = this.calculateRawFinalPrice(initialPrice, historicalMultipliers, totalProjectionDays)
+
+    // Step 2: Apply diminishing returns to the endpoint only
+    const adjustedFinalPrice = this.applyDiminishingReturnsToEndpoint(rawFinalPrice, diminishingParams)
+
+    // Step 3: Calculate angle adjustment factor
+    const angleAdjustment = this.calculateAngleAdjustment(rawFinalPrice, adjustedFinalPrice)
+
+    // Step 4: Calculate the raw price for this specific month (preserving volatility)
+    let rawMonthPrice = initialPrice
     for (let i = 0; i < daysIntoSimulation; i++) {
       const multiplierIndex = i % historicalMultipliers.length
       const baseMultiplier = historicalMultipliers[multiplierIndex]
-      
-      // Apply diminishing returns to the multiplier
-      const enhancedMultiplier = this.applyDiminishingReturns(
-        baseMultiplier,
-        currentProjectedPrice,
-        cycleNumber,
-        month,
-        diminishingParams
-      )
-      
-      currentProjectedPrice *= enhancedMultiplier
+      rawMonthPrice *= baseMultiplier
     }
 
-    return currentProjectedPrice
+    // Step 5: Apply progressive angle adjustment based on time progress
+    const timeProgress = daysIntoSimulation / totalProjectionDays
+    const adjustedMonthPrice = this.applyAngleAdjustmentToPrice(
+      rawMonthPrice,
+      angleAdjustment,
+      timeProgress
+    )
+
+    return adjustedMonthPrice
   }
   
   /**

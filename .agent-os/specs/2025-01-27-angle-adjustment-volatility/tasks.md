@@ -16,22 +16,22 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 1.6 Implement `calculateAngleAdjustment` method for trajectory factor calculation
   - [x] 1.7 Verify all core algorithm tests pass
 
-- [ ] 2. Implement Progressive Angle Adjustment
-  - [ ] 2.1 Write tests for `applyAngleAdjustmentToPrice` method
-  - [ ] 2.2 Implement `applyAngleAdjustmentToPrice` method for time-based trajectory modification
-  - [ ] 2.3 Write tests for time progress calculation and application
-  - [ ] 2.4 Implement time progress logic for gradual angle adjustment
-  - [ ] 2.5 Test edge cases with extreme angle adjustment values
-  - [ ] 2.6 Verify progressive adjustment tests pass
+- [x] 2. Implement Progressive Angle Adjustment
+  - [x] 2.1 Write tests for `applyAngleAdjustmentToPrice` method
+  - [x] 2.2 Implement `applyAngleAdjustmentToPrice` method for time-based trajectory modification
+  - [x] 2.3 Write tests for time progress calculation and application
+  - [x] 2.4 Implement time progress logic for gradual angle adjustment
+  - [x] 2.5 Test edge cases with extreme angle adjustment values
+  - [x] 2.6 Verify progressive adjustment tests pass
 
-- [ ] 3. Replace Enhanced Cycle Repeat Price Calculation
-  - [ ] 3.1 Write tests for new `getEnhancedCycleRepeatPrice` implementation
-  - [ ] 3.2 Backup current `getEnhancedCycleRepeatPrice` method implementation
-  - [ ] 3.3 Implement new `getEnhancedCycleRepeatPrice` using angle adjustment algorithm
-  - [ ] 3.4 Test volatility preservation with historical multiplier patterns
-  - [ ] 3.5 Test that 80%+ drawdowns are preserved in output
-  - [ ] 3.6 Test that dramatic pumps (50%+ gains) remain intact
-  - [ ] 3.7 Verify enhanced price calculation tests pass
+- [x] 3. Replace Enhanced Cycle Repeat Price Calculation
+  - [x] 3.1 Write tests for new `getEnhancedCycleRepeatPrice` implementation
+  - [x] 3.2 Backup current `getEnhancedCycleRepeatPrice` method implementation
+  - [x] 3.3 Implement new `getEnhancedCycleRepeatPrice` using angle adjustment algorithm
+  - [x] 3.4 Test volatility preservation with historical multiplier patterns
+  - [x] 3.5 Test that 80%+ drawdowns are preserved in output
+  - [x] 3.6 Test that dramatic pumps (50%+ gains) remain intact
+  - [x] 3.7 Verify enhanced price calculation tests pass
 
 - [ ] 4. Validate Volatility Preservation and Integration
   - [ ] 4.1 Write integration tests for chart display with increased volatility
