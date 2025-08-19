@@ -109,8 +109,9 @@ async function loadFullDataWithCache(): Promise<HistoricalDataPoint[]> {
     historicalData.sort((a, b) => a.time - b.time)
 
     // Cache the data (only in browser environment)
-    if (cache) {
-      await cache.saveToCache(historicalData)
+    // Cache functionality removed - placeholder
+    // if (cache) {
+    //   await cache.saveToCache(historicalData)
     }
 
     console.log(`✅ Loaded ${historicalData.length} records from database (${result.metadata.startDate} to ${result.metadata.endDate})`)
@@ -181,10 +182,11 @@ async function loadIncrementalData(
 
     // Merge with cached data (only in browser environment)
     let mergedData = cachedData
-    if (cache) {
-      mergedData = cache.mergeWithNewData(cachedData, newData)
-      // Update cache
-      await cache.saveToCache(mergedData)
+    // Cache functionality removed - placeholder
+    // if (cache) {
+    //   mergedData = cache.mergeWithNewData(cachedData, newData)
+    //   // Update cache
+    //   await cache.saveToCache(mergedData)
     } else {
       // Simple merge for Node.js environment
       mergedData = [...cachedData, ...newData].sort((a, b) => a.time - b.time)

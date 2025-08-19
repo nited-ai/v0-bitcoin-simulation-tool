@@ -271,7 +271,7 @@ export function LTVProgressionChart() {
                 stroke="#22c55e" 
                 strokeDasharray="5 5"
                 strokeWidth={2}
-                label={{ value: "Target LTV", position: "topRight" }}
+                label={{ value: "Target LTV", position: "top" }}
               />
               
               <ReferenceLine 
@@ -279,7 +279,7 @@ export function LTVProgressionChart() {
                 stroke="#ef4444" 
                 strokeDasharray="5 5"
                 strokeWidth={2}
-                label={{ value: "Liquidation LTV", position: "topRight" }}
+                label={{ value: "Liquidation LTV", position: "top" }}
               />
               
               {/* Current LTV Line */}

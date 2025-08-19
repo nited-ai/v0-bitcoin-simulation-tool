@@ -20,10 +20,10 @@ export function useCalculationsIntegration() {
   // Note: Removed monthlyWithdrawal and btcAccumulation as they belong in strategy tab
   const calculationParams = useMemo(() => {
     return {
-      initialBtcAmount: params.btcAmount,
+      initialBtcAmount: params.initialBtcAmount,
       initialBtcPrice: params.initialBtcPrice,
       loanAmountPercent: params.loanAmountPercent,
-      platform: params.platform,
+      platform: params.platform as "strike" | "firefish" | "custom",
       riskManagement: {
         targetLtv: params.riskManagement.targetLtv,
         maxLoanAmount: params.maxLoanAmount,
@@ -33,7 +33,7 @@ export function useCalculationsIntegration() {
       }
     }
   }, [
-    params.btcAmount,
+    params.initialBtcAmount,
     params.initialBtcPrice,
     params.loanAmountPercent,
     params.platform,
@@ -154,11 +154,11 @@ export function useCalculationsIntegration() {
     }
   }), [setParams])
 
-  // Cache management
+  // Cache management - removed as not implemented in calculations service
   const cacheManagement = useMemo(() => ({
-    clearCache: calculations?.clearCache || (() => {}),
-    getCacheStats: calculations?.getCacheStats || (() => ({ size: 0, keys: [] }))
-  }), [calculations])
+    clearCache: () => {},
+    getCacheStats: () => ({ size: 0, keys: [] })
+  }), [])
 
   return {
     // Core calculations

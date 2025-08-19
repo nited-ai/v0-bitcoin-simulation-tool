@@ -10,7 +10,6 @@ import { priceModelRegistry } from "../../price-models/PriceModelRegistry"
 import { useHistoricalDataOnly } from "../../hooks/useCentralizedData"
 import type { PriceProjectionResult, PriceLineType } from "../../price-models/types"
 import type { HistoricalDataPoint } from "@/lib/services/centralized-data-service"
-import type { HistoricalDataPoint } from "../../data/historicalDataLoader"
 
 /**
  * Price Projection Chart Component
@@ -67,12 +66,12 @@ export function PriceProjectionChart() {
       if (selectedModel === 'manual') {
         modelParams.modelSpecificParams = {
           ...modelParams.modelSpecificParams,
-          annualGrowthRates: params.annualGrowthRates || [20, 15, 10, 8, 5]
+          // annualGrowthRates: params.annualGrowthRates || [20, 15, 10, 8, 5]
         }
       } else if (selectedModel === 'powerLaw') {
         modelParams.modelSpecificParams = {
           ...modelParams.modelSpecificParams,
-          prognosisLine: 'fit' // Default to fit line
+          // prognosisLine: 'fit' // Default to fit line
         }
       }
       // cycleRepeat doesn't need specific parameters

@@ -26,6 +26,26 @@ export class AthCollateralStrategy implements InvestmentStrategyInterface {
     return "Advanced collateral management strategy that protects Bitcoin holdings during severe market downturns while enabling growth without selling."
   }
 
+  getMetadata(): any {
+    return {
+      riskLevel: "moderate",
+      timeHorizon: "long-term",
+      complexity: "advanced"
+    }
+  }
+
+  getDetailedDescription(): string {
+    return "This strategy uses ATH-based collateral management to protect Bitcoin holdings during market downturns."
+  }
+
+  getFunctionality(): string {
+    return "Dynamic debt limits, collateral management, liquidation protection"
+  }
+
+  getSuitability(): string {
+    return "Suitable for experienced investors with long-term Bitcoin accumulation goals"
+  }
+
   /**
    * Calculate the All-Time High within the specified lookback period
    */

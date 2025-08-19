@@ -289,17 +289,29 @@ export function getAvailableStrategies(): Array<{
     {
       id: "athBased",
       name: new AthBasedStrategy().getName(),
-      description: new AthBasedStrategy().getDescription()
+      description: new AthBasedStrategy().getDescription(),
+      metadata: new AthBasedStrategy().getMetadata(),
+      detailedDescription: new AthBasedStrategy().getDetailedDescription(),
+      functionality: new AthBasedStrategy().getFunctionality(),
+      suitability: new AthBasedStrategy().getSuitability()
     },
     {
       id: "movingAverage",
       name: new MovingAverageStrategy().getName(),
-      description: new MovingAverageStrategy().getDescription()
+      description: new MovingAverageStrategy().getDescription(),
+      metadata: new MovingAverageStrategy().getMetadata(),
+      detailedDescription: new MovingAverageStrategy().getDetailedDescription(),
+      functionality: new MovingAverageStrategy().getFunctionality(),
+      suitability: new MovingAverageStrategy().getSuitability()
     },
     {
       id: "athCollateral",
       name: new AthCollateralStrategy().getName(),
-      description: new AthCollateralStrategy().getDescription()
+      description: new AthCollateralStrategy().getDescription(),
+      metadata: new AthCollateralStrategy().getMetadata(),
+      detailedDescription: new AthCollateralStrategy().getDetailedDescription(),
+      functionality: new AthCollateralStrategy().getFunctionality(),
+      suitability: new AthCollateralStrategy().getSuitability()
     }
   ]
 }

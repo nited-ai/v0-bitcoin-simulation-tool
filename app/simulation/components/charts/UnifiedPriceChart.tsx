@@ -70,10 +70,10 @@ function calculateSupportLine(historicalData: HistoricalDataPoint[]): { timestam
 
     // Generate support line points
     return historicalData.map(point => ({
-      timestamp: point.time,
+      timestamp: point.timestamp,
       supportPrice: Math.exp(
         Math.log(firstBottom.price) +
-        logSlope * (point.time - firstBottom.time)
+        logSlope * (point.timestamp - firstBottom.timestamp)
       )
     }))
   }
@@ -241,7 +241,7 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
             year: 'numeric',
             month: 'short'
           }),
-          timestamp: point.time,
+          timestamp: point.timestamp,
           price: Math.round(point.price),
           // Calculated OHLC for projected data
           open: open,
@@ -337,9 +337,9 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
       const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' })
 
       // Use modern download approach
-      if (window.navigator && window.navigator.msSaveOrOpenBlob) {
+      if (window.navigator && (window.navigator as any).msSaveOrOpenBlob) {
         // IE/Edge
-        window.navigator.msSaveOrOpenBlob(blob, filename)
+        (window.navigator as any).msSaveOrOpenBlob(blob, filename)
       } else {
         // Modern browsers
         const link = document.createElement('a')

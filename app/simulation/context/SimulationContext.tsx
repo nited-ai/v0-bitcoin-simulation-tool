@@ -240,7 +240,7 @@ export function SimulationProvider({ children }: SimulationProviderProps) {
         ...updatedParams,
         selectedRiskLevel: riskLevel,
         parameterSources: updatedSources
-      }
+      } as SimulationParams
     })
   }, [setParams])
 

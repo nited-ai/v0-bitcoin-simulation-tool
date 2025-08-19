@@ -179,10 +179,9 @@ export const DEFAULT_PARAMS: SimulationParams = {
   investmentStrategy: "default",
   athBasedParams: {
     athThresholdPercent: 80,
-    investmentMultiplier: 2.0,
   },
   movingAverageParams: {
-    maPeriodDays: 200,
+    movingAveragePeriod: 200,
     investmentMultiplier: 1.5,
   },
   athCollateralParams: {
