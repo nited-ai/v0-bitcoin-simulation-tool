@@ -275,7 +275,7 @@ export function LoanParametersCard() {
                     <TooltipContent>
                       <p>Initial loan principal amount</p>
                       <p className="text-xs text-muted-foreground">
-                        {params.loanAmountPercent}% of {new Intl.NumberFormat('en-US', {
+                        {params.loanAmountPercent.toFixed(2)}% of {new Intl.NumberFormat('en-US', {
                           style: 'currency',
                           currency: 'USD',
                           minimumFractionDigits: 0,
