@@ -17,6 +17,14 @@ import { getPrismaClient } from '../../../../lib/database/connection-manager'
 const prisma = getPrismaClient()
 
 export async function GET(request: NextRequest) {
+  // Extract query parameters outside try block for error handling access
+  const { searchParams } = new URL(request.url)
+  const startDate = searchParams.get('startDate')
+  const endDate = searchParams.get('endDate')
+  const limit = searchParams.get('limit')
+  const format = searchParams.get('format') || 'json'
+  const interval = searchParams.get('interval') || 'daily'
+
   try {
     // Test Prisma Client connection first
     try {
@@ -30,13 +38,6 @@ export async function GET(request: NextRequest) {
         prismaError: prismaError instanceof Error ? prismaError.message : String(prismaError)
       }, { status: 500 })
     }
-
-    const { searchParams } = new URL(request.url)
-    const startDate = searchParams.get('startDate')
-    const endDate = searchParams.get('endDate')
-    const limit = searchParams.get('limit')
-    const format = searchParams.get('format') || 'json'
-    const interval = searchParams.get('interval') || 'daily'
 
     console.log(`📊 Historical data request: ${startDate || 'earliest'} to ${endDate || 'latest'}, limit: ${limit || 'all'}, interval: ${interval}`)
 
