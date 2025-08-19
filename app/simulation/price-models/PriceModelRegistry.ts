@@ -18,6 +18,7 @@ import type { HistoricalDataPoint } from "@/lib/services/centralized-data-servic
 import { manualGrowthModel } from "./models/ManualGrowthModel"
 import { powerLawModel } from "./models/PowerLawModel"
 import { cycleRepeatModel } from "./models/CycleRepeatModel"
+import { enhancedCycleRepeatModel } from "./models/EnhancedCycleRepeatModel"
 
 /**
  * Price Model Registry Implementation
@@ -159,7 +160,10 @@ export class PriceModelRegistry {
     
     // Register Cycle Repeat Model (medium priority - historical patterns)
     this.registerModel('cycleRepeat', cycleRepeatModel, true, 80)
-    
+
+    // Register Enhanced Cycle Repeat Model (high priority - economic theory)
+    this.registerModel('enhancedCycleRepeat', enhancedCycleRepeatModel, true, 85)
+
     console.log(`✅ Registered ${this.models.size} price projection models`)
   }
   

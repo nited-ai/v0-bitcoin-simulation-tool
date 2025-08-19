@@ -158,6 +158,22 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
           modelParams.modelSpecificParams = {
             prognosisLine: params.powerLawSettings.prognosisLine
           }
+        } else if (params.priceModel === 'enhancedCycleRepeat') {
+          // Get diminishing returns parameters from sessionStorage or use defaults
+          const savedParams = sessionStorage.getItem('bitcoin-sim-diminishing-returns-params')
+          let diminishingReturns = null
+
+          if (savedParams) {
+            try {
+              diminishingReturns = JSON.parse(savedParams)
+            } catch (error) {
+              console.warn('Failed to parse saved diminishing returns params:', error)
+            }
+          }
+
+          modelParams.modelSpecificParams = {
+            diminishingReturns
+          }
         }
         
         const result = await priceModelRegistry.generateProjection(
@@ -188,6 +204,8 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
     params.simulationMonths,
     JSON.stringify(params.annualGrowthRates || []), // Stable string representation
     params.powerLawSettings?.prognosisLine, // Only the specific property that affects projections
+    params.diminishingReturnsUpdated, // Trigger recalculation when diminishing returns params change
+    params.lastUpdated, // General trigger for any parameter updates
     searchParams, // Add searchParams to detect tab changes
   ])
 
@@ -416,7 +434,7 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5" />
+                <TrendingUp className="w-5 h-5 text-primary" />
                 Bitcoin Price Forecast
               </CardTitle>
               <CardDescription>Error loading chart data</CardDescription>
@@ -450,7 +468,7 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
+              <TrendingUp className="w-5 h-5 text-primary" />
               Bitcoin Price Forecast
             </CardTitle>
             <CardDescription>

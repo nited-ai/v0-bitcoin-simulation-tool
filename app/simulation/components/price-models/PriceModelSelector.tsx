@@ -125,7 +125,7 @@ export function PriceModelSelector({ className }: PriceModelSelectorProps) {
           {/* Left side: Title and Description */}
           <div className="flex-1">
             <CardTitle className="flex items-center gap-2">
-              <Settings className="h-5 w-5" />
+              <Settings className="w-5 h-5 text-primary" />
               Select Model and Simulation Length
             </CardTitle>
             <CardDescription className="mt-2">
@@ -141,7 +141,7 @@ export function PriceModelSelector({ className }: PriceModelSelectorProps) {
               onValueChange={handleModelChange}
               disabled={loading || error !== null || models.length === 0}
             >
-              <SelectTrigger className="w-full border-orange-500 border-2 focus:ring-orange-500">
+              <SelectTrigger className="w-full border-primary border-2 focus:ring-primary">
                 <SelectValue placeholder="Choose price prediction model">
                   {selectedModel && (
                     <div className="flex flex-col text-left">
@@ -158,7 +158,7 @@ export function PriceModelSelector({ className }: PriceModelSelectorProps) {
 
             {error && (
               <div className="mt-2 flex items-center text-sm text-destructive">
-                <AlertCircle className="h-4 w-4 mr-1" />
+                <AlertCircle className="w-4 h-4 mr-1" />
                 {error}
               </div>
             )}
@@ -172,12 +172,12 @@ export function PriceModelSelector({ className }: PriceModelSelectorProps) {
         </div>
       </CardHeader>
 
-      <CardContent>
+      <CardContent className="space-y-6">
         {/* Full-width Simulation Length Section */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <Label className="text-base font-medium flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
+              <Calendar className="w-4 h-4" />
               Simulation Length: {simulationYears} Years
             </Label>
             <div className="text-sm text-muted-foreground">

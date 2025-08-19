@@ -119,6 +119,9 @@ export interface SimulationParams {
   parameterSources: ParameterSource
   platformConfigs: PlatformConfigState
   selectedRiskLevel?: RiskLevel
+  // Chart regeneration triggers
+  lastUpdated?: number
+  diminishingReturnsUpdated?: number
 }
 
 /**

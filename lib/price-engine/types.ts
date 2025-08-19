@@ -8,7 +8,7 @@ export type PowerLawLine = "fit" | "support" | "resistance"
 /**
  * Defines the available price projection models.
  */
-export type PriceModel = "manual" | "powerLaw" | "cycleRepeat" | "cycleRepeatPowerLaw"
+export type PriceModel = "manual" | "powerLaw" | "cycleRepeat" | "enhancedCycleRepeat" | "cycleRepeatPowerLaw"
 
 /**
  * Standardized format for a single point of historical price data.

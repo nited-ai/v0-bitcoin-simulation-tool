@@ -92,9 +92,13 @@ export function CustomGrowthRateSliders({ className }: CustomGrowthRateSlidersPr
     return (currentYear + 1 + index).toString() // Start from next year
   }
 
-  // Get color for percentage value
+  // Get color for percentage value with consistent styling
   const getValueColor = (rate: number) => {
-    return rate >= 0 ? 'text-green-600' : 'text-red-600'
+    if (rate >= 0) {
+      return 'text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800'
+    } else {
+      return 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800'
+    }
   }
 
   if (!showCustomControls) {
@@ -107,12 +111,12 @@ export function CustomGrowthRateSliders({ className }: CustomGrowthRateSlidersPr
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
-              <Settings className="h-5 w-5" />
+              <Settings className="w-5 h-5 text-primary" />
               Custom Growth Rates ({simulationYears} Years)
             </CardTitle>
-            <Button 
+            <Button
               onClick={applyCustomRates}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-primary hover:bg-primary/90"
               size="sm"
             >
               Apply Changes
@@ -120,13 +124,13 @@ export function CustomGrowthRateSliders({ className }: CustomGrowthRateSlidersPr
           </div>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="space-y-6">
           {/* Vertical sliders in a horizontal row */}
-          <div className="flex justify-center items-end gap-4 p-4 overflow-x-auto">
+          <div className="flex justify-center items-end gap-4 p-4 overflow-x-auto border border-border rounded-md bg-muted/30">
             {tempCustomRates.map((rate, index) => (
               <div key={index} className="flex flex-col items-center space-y-3 min-w-[60px]">
                 {/* Value display with dynamic coloring */}
-                <div className={`text-sm font-bold text-center min-h-[20px] bg-white px-2 py-1 rounded shadow-sm border ${getValueColor(rate)}`}>
+                <div className={`text-sm font-semibold text-center min-h-[20px] px-2 py-1 rounded-md border ${getValueColor(rate)}`}>
                   {rate > 0 ? '+' : ''}{rate}%
                 </div>
 
@@ -144,7 +148,7 @@ export function CustomGrowthRateSliders({ className }: CustomGrowthRateSlidersPr
 
                   {/* Zero line indicator */}
                   <div
-                    className="absolute w-6 h-0.5 bg-gray-600 -left-1 pointer-events-none z-10"
+                    className="absolute w-6 h-0.5 bg-muted-foreground -left-1 pointer-events-none z-10"
                     style={{
                       top: `${((0 - (-100)) / (300 - (-100))) * 100}%`,
                       transform: 'translateY(-50%)'
@@ -153,7 +157,7 @@ export function CustomGrowthRateSliders({ className }: CustomGrowthRateSlidersPr
                 </div>
 
                 {/* Dynamic year label */}
-                <Label className="text-xs text-center font-medium">
+                <Label className="text-xs text-center font-medium text-muted-foreground">
                   {getYearLabel(index)}
                 </Label>
               </div>

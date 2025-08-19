@@ -155,7 +155,7 @@ export function GrowthRateAnalysis({ className, projection, startPrice = 108629 
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" />
+            <BarChart3 className="w-5 h-5 text-primary" />
             Growth Rate Analysis
           </CardTitle>
         </CardHeader>
@@ -163,39 +163,69 @@ export function GrowthRateAnalysis({ className, projection, startPrice = 108629 
         <CardContent>
           {/* Single horizontal row with 5 containers: Avg Annual, Peak Growth, Max Decline, Final Price, Total Growth */}
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div className="text-center p-4 bg-gray-50 rounded-lg">
-              <div className="text-2xl font-bold text-gray-700">
-                {metrics.avgAnnualGrowth.toFixed(0)}%
+            {/* Average Annual Growth */}
+            <div className="space-y-2">
+              <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-md border border-blue-200 dark:border-blue-800">
+                <div className="text-lg font-semibold text-blue-700 dark:text-blue-300">
+                  {metrics.avgAnnualGrowth.toFixed(0)}%
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Avg Annual Growth
+                </div>
               </div>
-              <div className="text-sm text-muted-foreground">Avg Annual</div>
             </div>
-            
-            <div className="text-center p-4 bg-green-50 rounded-lg">
-              <div className={`text-2xl font-bold ${metrics.peakGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {metrics.peakGrowth.toFixed(0)}%
+
+            {/* Peak Growth */}
+            <div className="space-y-2">
+              <div className="p-3 bg-green-50 dark:bg-green-950/20 rounded-md border border-green-200 dark:border-green-800">
+                <div className={`text-lg font-semibold ${metrics.peakGrowth >= 0 ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>
+                  {metrics.peakGrowth.toFixed(0)}%
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Peak Growth
+                </div>
               </div>
-              <div className="text-sm text-muted-foreground">Peak Growth</div>
             </div>
-            
-            <div className="text-center p-4 bg-red-50 rounded-lg">
-              <div className={`text-2xl font-bold ${metrics.maxDecline >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {metrics.maxDecline.toFixed(0)}%
+
+            {/* Max Decline */}
+            <div className="space-y-2">
+              <div className="p-3 bg-red-50 dark:bg-red-950/20 rounded-md border border-red-200 dark:border-red-800">
+                <div className={`text-lg font-semibold ${metrics.maxDecline >= 0 ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>
+                  {metrics.maxDecline.toFixed(0)}%
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Max Decline
+                </div>
               </div>
-              <div className="text-sm text-muted-foreground">Max Decline</div>
             </div>
-            
-            <div className="text-center p-4 bg-green-50 rounded-lg">
-              <div className="text-2xl font-bold text-green-600">
-                ${Math.round(metrics.finalPrice).toLocaleString()}
+
+            {/* Final Price */}
+            <div className="space-y-2">
+              <div className="p-3 bg-green-50 dark:bg-green-950/20 rounded-md border border-green-200 dark:border-green-800">
+                <div className="text-lg font-semibold text-green-700 dark:text-green-300">
+                  {new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'USD',
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                  }).format(metrics.finalPrice)}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Final Price
+                </div>
               </div>
-              <div className="text-sm text-muted-foreground">Final Price</div>
             </div>
-            
-            <div className="text-center p-4 bg-purple-50 rounded-lg">
-              <div className={`text-2xl font-bold ${metrics.totalGrowth >= 0 ? 'text-purple-600' : 'text-red-600'}`}>
-                {metrics.totalGrowth.toFixed(0)}%
+
+            {/* Total Growth */}
+            <div className="space-y-2">
+              <div className="p-3 bg-purple-50 dark:bg-purple-950/20 rounded-md border border-purple-200 dark:border-purple-800">
+                <div className={`text-lg font-semibold ${metrics.totalGrowth >= 0 ? 'text-purple-700 dark:text-purple-300' : 'text-red-700 dark:text-red-300'}`}>
+                  {metrics.totalGrowth.toFixed(0)}%
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Total Growth
+                </div>
               </div>
-              <div className="text-sm text-muted-foreground">Total Growth</div>
             </div>
           </div>
         </CardContent>
