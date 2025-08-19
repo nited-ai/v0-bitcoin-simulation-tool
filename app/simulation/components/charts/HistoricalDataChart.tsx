@@ -30,7 +30,7 @@ export function HistoricalDataChart() {
 
       if (!latestPoint || latestPoint.date !== currentDate) {
         data.push({
-          timestamp: currentPrice.timestamp,
+          time: currentPrice.timestamp,
           date: currentDate,
           open: currentPrice.price,
           high: currentPrice.price,
@@ -62,14 +62,14 @@ export function HistoricalDataChart() {
     // Sample every 7th point for weekly view
     return data.filter((_, index) => index % 7 === 0)
       .map(point => ({
-        date: new Date(point.timestamp).toLocaleDateString('de-DE', {
+        date: new Date(point.time * 1000).toLocaleDateString('de-DE', {
           year: 'numeric',
           month: 'short'
         }),
         price: Math.round(point.close),
         high: Math.round(point.high),
         low: Math.round(point.low),
-        timestamp: point.timestamp
+        timestamp: point.time
       }))
   }, [displayData])
 
