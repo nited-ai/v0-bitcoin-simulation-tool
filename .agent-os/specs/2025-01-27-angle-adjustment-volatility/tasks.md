@@ -33,15 +33,15 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 3.6 Test that dramatic pumps (50%+ gains) remain intact
   - [x] 3.7 Verify enhanced price calculation tests pass
 
-- [ ] 4. Validate Volatility Preservation and Integration
-  - [ ] 4.1 Write integration tests for chart display with increased volatility
-  - [ ] 4.2 Test backward compatibility with existing parameters and presets
-  - [ ] 4.3 Validate that diminishing returns still affect final trajectory
-  - [ ] 4.4 Test performance benchmarks with new algorithm
-  - [ ] 4.5 Verify UI components work without modification
-  - [ ] 4.6 Test parameter persistence and recalculation functionality
-  - [ ] 4.7 Run comprehensive regression tests
-  - [ ] 4.8 Verify all integration and validation tests pass
+- [x] 4. Validate Volatility Preservation and Integration
+  - [x] 4.1 Write integration tests for chart display with increased volatility
+  - [x] 4.2 Test backward compatibility with existing parameters and presets
+  - [x] 4.3 Validate that diminishing returns still affect final trajectory
+  - [x] 4.4 Test performance benchmarks with new algorithm
+  - [x] 4.5 Verify UI components work without modification
+  - [x] 4.6 Test parameter persistence and recalculation functionality
+  - [x] 4.7 Run comprehensive regression tests
+  - [x] 4.8 Verify all integration and validation tests pass
 
 ## Implementation Notes
 
