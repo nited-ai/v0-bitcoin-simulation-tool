@@ -66,14 +66,14 @@ function calculateSupportLine(historicalData: HistoricalDataPoint[]): { timestam
 
     // Calculate slope in log space for straight line in log-log view
     const logSlope = (Math.log(lastBottom.price) - Math.log(firstBottom.price)) /
-                     (lastBottom.timestamp - firstBottom.timestamp)
+                     (lastBottom.time - firstBottom.time)
 
     // Generate support line points
     return historicalData.map(point => ({
-      timestamp: point.timestamp,
+      timestamp: point.time * 1000, // Convert seconds to milliseconds
       supportPrice: Math.exp(
         Math.log(firstBottom.price) +
-        logSlope * (point.timestamp - firstBottom.timestamp)
+        logSlope * (point.time - firstBottom.time)
       )
     }))
   }
@@ -85,7 +85,7 @@ function calculateSupportLine(historicalData: HistoricalDataPoint[]): { timestam
                    (lastPoint.time - firstPoint.time)
 
   return historicalData.map(point => ({
-    timestamp: point.timestamp,
+    timestamp: point.time * 1000, // Convert seconds to milliseconds
     supportPrice: Math.exp(
       Math.log(firstPoint.close) +
       logSlope * (point.time - firstPoint.time)

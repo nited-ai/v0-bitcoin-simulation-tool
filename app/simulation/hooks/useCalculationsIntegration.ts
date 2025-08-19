@@ -20,7 +20,7 @@ export function useCalculationsIntegration() {
   // Note: Removed monthlyWithdrawal and btcAccumulation as they belong in strategy tab
   const calculationParams = useMemo(() => {
     return {
-      initialBtcAmount: params.initialBtcAmount,
+      initialBtcAmount: params.btcAmount,
       initialBtcPrice: params.initialBtcPrice,
       loanAmountPercent: params.loanAmountPercent,
       platform: params.platform as "strike" | "firefish" | "custom",
@@ -33,7 +33,7 @@ export function useCalculationsIntegration() {
       }
     }
   }, [
-    params.initialBtcAmount,
+    params.btcAmount,
     params.initialBtcPrice,
     params.loanAmountPercent,
     params.platform,

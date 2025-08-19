@@ -112,7 +112,7 @@ async function loadFullDataWithCache(): Promise<HistoricalDataPoint[]> {
     // Cache functionality removed - placeholder
     // if (cache) {
     //   await cache.saveToCache(historicalData)
-    }
+    // }
 
     console.log(`✅ Loaded ${historicalData.length} records from database (${result.metadata.startDate} to ${result.metadata.endDate})`)
     
@@ -187,10 +187,10 @@ async function loadIncrementalData(
     //   mergedData = cache.mergeWithNewData(cachedData, newData)
     //   // Update cache
     //   await cache.saveToCache(mergedData)
-    } else {
+    // } else {
       // Simple merge for Node.js environment
       mergedData = [...cachedData, ...newData].sort((a, b) => a.time - b.time)
-    }
+    // }
 
     console.log(`✅ Updated cache with ${newData.length} new data points`)
     return mergedData

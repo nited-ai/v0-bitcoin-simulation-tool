@@ -58,7 +58,7 @@ export function ParameterPresets() {
         initialBtcPrice: 100000,
         monthlyWithdrawalAmount: 2000,
         annualInterestRate: 6.5,
-        loanOriginationFeePercent: 1.5,
+        originationFeePercent: 1.5,
         loanTermMonths: 6,
         maxLoanAmount: 100000,
         riskManagement: {
@@ -78,7 +78,7 @@ export function ParameterPresets() {
         initialBtcPrice: 100000,
         monthlyWithdrawalAmount: 5000,
         annualInterestRate: 7.5,
-        loanOriginationFeePercent: 2.0,
+        originationFeePercent: 2.0,
         loanTermMonths: 12,
         maxLoanAmount: 200000,
         riskManagement: {
@@ -98,7 +98,7 @@ export function ParameterPresets() {
         initialBtcPrice: 100000,
         monthlyWithdrawalAmount: 20000,
         annualInterestRate: 6.0,
-        loanOriginationFeePercent: 1.0,
+        originationFeePercent: 1.0,
         loanTermMonths: 6,
         maxLoanAmount: 1000000,
         riskManagement: {
