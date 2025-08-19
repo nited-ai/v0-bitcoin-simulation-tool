@@ -35,8 +35,15 @@ function testCollateralCalculations() {
   // Current loan amount based on Max Loan Amount % setting
   const currentLoanAmount = (testCase1.maxLoanAmountPercent / 100) * totalStackValue
 
-  // Calculate BTC locked as collateral for current loan
-  const btcLockedAsCollateral = currentLoanAmount / (testCase1.targetLtv / 100) / testCase1.initialBtcPrice
+  // CORRECTED: Calculate total loan cost including interest
+  const originationFee = currentLoanAmount * 0.015 // 1.5% for Firefish
+  const monthlyInterestRate = 0.065 / 12 // 6.5% annual rate
+  const monthlyInterestPayment = currentLoanAmount * monthlyInterestRate
+  const totalInterestPayment = monthlyInterestPayment * 6 // 6 months term
+  const totalLoanCost = currentLoanAmount + originationFee + totalInterestPayment
+
+  // Calculate BTC locked as collateral for current loan - CORRECTED to use totalLoanCost
+  const btcLockedAsCollateral = totalLoanCost / (testCase1.targetLtv / 100) / testCase1.initialBtcPrice
 
   // Calculate remaining free BTC
   const freeBtcAmount = Math.max(0, testCase1.btcAmount - btcLockedAsCollateral)
@@ -150,7 +157,15 @@ function testCollateralValidation() {
 
   const totalStackValue = impossibleCase.btcAmount * impossibleCase.initialBtcPrice
   const currentLoanAmount = (impossibleCase.maxLoanAmountPercent / 100) * totalStackValue
-  const btcLockedAsCollateral = currentLoanAmount / (impossibleCase.targetLtv / 100) / impossibleCase.initialBtcPrice
+
+  // CORRECTED: Calculate total loan cost including interest
+  const originationFee = currentLoanAmount * 0.015 // 1.5% for Firefish
+  const monthlyInterestRate = 0.065 / 12 // 6.5% annual rate
+  const monthlyInterestPayment = currentLoanAmount * monthlyInterestRate
+  const totalInterestPayment = monthlyInterestPayment * 6 // 6 months term
+  const totalLoanCost = currentLoanAmount + originationFee + totalInterestPayment
+
+  const btcLockedAsCollateral = totalLoanCost / (impossibleCase.targetLtv / 100) / impossibleCase.initialBtcPrice
   const isCollateralSufficient = btcLockedAsCollateral <= impossibleCase.btcAmount
 
   console.log(`    BTC Available: ${impossibleCase.btcAmount} BTC`)
@@ -178,7 +193,15 @@ function testCollateralValidation() {
 
   const validTotalStackValue = validCase.btcAmount * validCase.initialBtcPrice
   const validCurrentLoanAmount = (validCase.maxLoanAmountPercent / 100) * validTotalStackValue
-  const validBtcLockedAsCollateral = validCurrentLoanAmount / (validCase.targetLtv / 100) / validCase.initialBtcPrice
+
+  // CORRECTED: Calculate total loan cost including interest
+  const validOriginationFee = validCurrentLoanAmount * 0.015 // 1.5% for Firefish
+  const validMonthlyInterestRate = 0.065 / 12 // 6.5% annual rate
+  const validMonthlyInterestPayment = validCurrentLoanAmount * validMonthlyInterestRate
+  const validTotalInterestPayment = validMonthlyInterestPayment * 6 // 6 months term
+  const validTotalLoanCost = validCurrentLoanAmount + validOriginationFee + validTotalInterestPayment
+
+  const validBtcLockedAsCollateral = validTotalLoanCost / (validCase.targetLtv / 100) / validCase.initialBtcPrice
   const validIsCollateralSufficient = validBtcLockedAsCollateral <= validCase.btcAmount
 
   console.log(`    BTC Available: ${validCase.btcAmount} BTC`)

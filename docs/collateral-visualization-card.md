@@ -49,8 +49,16 @@ CollateralVisualizationCard/
 
 ### Key Calculations
 ```javascript
-// BTC locked as collateral
-const btcLockedAsCollateral = (currentLoanAmount + originationFee) / (targetLtv / 100) / initialBtcPrice
+// Calculate total loan cost including interest
+const monthlyInterestRate = annualInterestRate / 100 / 12
+const monthlyInterestPayment = currentLoanAmount * monthlyInterestRate
+const totalInterestPayment = loanTermMonths === Infinity
+  ? monthlyInterestPayment * 12
+  : monthlyInterestPayment * loanTermMonths
+const totalLoanCost = currentLoanAmount + originationFee + totalInterestPayment
+
+// BTC locked as collateral - CORRECTED to use totalLoanCost
+const btcLockedAsCollateral = totalLoanCost / (targetLtv / 100) / initialBtcPrice
 
 // Free BTC amount
 const freeBtcAmount = Math.max(0, btcAmount - btcLockedAsCollateral)

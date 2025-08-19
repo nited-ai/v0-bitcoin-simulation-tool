@@ -9,6 +9,7 @@ import { AlertTriangle, CheckCircle, Info, XCircle, ChevronDown, ChevronUp } fro
 import { useState } from "react"
 import { useSimulation } from "../../context/SimulationContext"
 import { useParameterValidation, type ValidationError } from "../../hooks/useParameterValidation"
+import { getComponentForField } from "./validationFieldMapping"
 
 /**
  * Validation Summary Component
@@ -19,15 +20,26 @@ import { useParameterValidation, type ValidationError } from "../../hooks/usePar
 export function ValidationSummary() {
   const { params } = useSimulation()
   const validation = useParameterValidation(params)
-  const [isExpanded, setIsExpanded] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(true) // Show details directly without requiring click
 
-  // Don't render if no issues (only show when there are validation problems)
-  if (validation.errors.length === 0 && validation.warnings.length === 0 && validation.infos.length === 0) {
+  // Filter to only show validation errors that aren't handled by individual components
+  const unmappedErrors = validation.errors.filter(error =>
+    getComponentForField(error.field as string) === 'ValidationSummary'
+  )
+  const unmappedWarnings = validation.warnings.filter(warning =>
+    getComponentForField(warning.field as string) === 'ValidationSummary'
+  )
+  const unmappedInfos = validation.infos.filter(info =>
+    getComponentForField(info.field as string) === 'ValidationSummary'
+  )
+
+  // Don't render if no unmapped issues
+  if (unmappedErrors.length === 0 && unmappedWarnings.length === 0 && unmappedInfos.length === 0) {
     return null
   }
 
-  const totalIssues = validation.errors.length + validation.warnings.length + validation.infos.length
-  const hasErrors = validation.errors.length > 0
+  const totalIssues = unmappedErrors.length + unmappedWarnings.length + unmappedInfos.length
+  const hasErrors = unmappedErrors.length > 0
 
   /**
    * Get icon for validation error type
@@ -71,19 +83,19 @@ export function ValidationSummary() {
               Parameter Validation
             </CardTitle>
             <div className="flex gap-1">
-              {validation.errors.length > 0 && (
+              {unmappedErrors.length > 0 && (
                 <Badge variant="destructive" className="text-xs">
-                  {validation.errors.length} error{validation.errors.length !== 1 ? 's' : ''}
+                  {unmappedErrors.length} error{unmappedErrors.length !== 1 ? 's' : ''}
                 </Badge>
               )}
-              {validation.warnings.length > 0 && (
+              {unmappedWarnings.length > 0 && (
                 <Badge variant="secondary" className="text-xs bg-yellow-100 text-yellow-800">
-                  {validation.warnings.length} warning{validation.warnings.length !== 1 ? 's' : ''}
+                  {unmappedWarnings.length} warning{unmappedWarnings.length !== 1 ? 's' : ''}
                 </Badge>
               )}
-              {validation.infos.length > 0 && (
+              {unmappedInfos.length > 0 && (
                 <Badge variant="outline" className="text-xs">
-                  {validation.infos.length} info
+                  {unmappedInfos.length} info
                 </Badge>
               )}
             </div>
@@ -114,8 +126,8 @@ export function ValidationSummary() {
         <CollapsibleContent>
           <CardContent className="pt-0">
             <div className="space-y-3">
-              {/* Errors */}
-              {validation.errors.map((error, index) => (
+              {/* Unmapped Errors */}
+              {unmappedErrors.map((error, index) => (
                 <Alert key={`error-${index}`} className={getColorClasses(error.severity)}>
                   {getIcon(error.severity)}
                   <AlertDescription>
@@ -124,8 +136,8 @@ export function ValidationSummary() {
                 </Alert>
               ))}
 
-              {/* Warnings */}
-              {validation.warnings.map((warning, index) => (
+              {/* Unmapped Warnings */}
+              {unmappedWarnings.map((warning, index) => (
                 <Alert key={`warning-${index}`} className={getColorClasses(warning.severity)}>
                   {getIcon(warning.severity)}
                   <AlertDescription>
@@ -134,8 +146,8 @@ export function ValidationSummary() {
                 </Alert>
               ))}
 
-              {/* Info messages */}
-              {validation.infos.map((info, index) => (
+              {/* Unmapped Info messages */}
+              {unmappedInfos.map((info, index) => (
                 <Alert key={`info-${index}`} className={getColorClasses(info.severity)}>
                   {getIcon(info.severity)}
                   <AlertDescription>

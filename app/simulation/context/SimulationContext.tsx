@@ -248,44 +248,35 @@ export function SimulationProvider({ children }: SimulationProviderProps) {
     setParams(currentParams => {
       const platformConfig = getPlatformConfig(platform)
 
-      // Apply platform-specific parameters
+      // ONLY apply platform-specific parameters - preserve all user-set loan parameters
       const updatedParams = {
         ...currentParams,
         platform,
-        originationFeePercent: platformConfig.originationFeePercent, // Updated field name for consistency
+        // Platform-specific parameters only
+        originationFeePercent: platformConfig.originationFeePercent,
         liquidationFeePercent: platformConfig.liquidationFeePercent,
-        loanTermMonths: platformConfig.availableLoanTerms.includes(currentParams.loanTermMonths === Infinity ? 'infinity' : currentParams.loanTermMonths)
-          ? currentParams.loanTermMonths
-          : platformConfig.defaultLoanTerm === 'infinity' ? Infinity : platformConfig.defaultLoanTerm,
         riskManagement: {
           ...currentParams.riskManagement,
           liquidationLtv: platformConfig.liquidationLtv,
-          targetLtv: Math.min(currentParams.riskManagement.targetLtv, platformConfig.maxInitialLtv)
+          // PRESERVE user-set targetLtv completely - validation will handle incompatible values
         }
+        // PRESERVE: loanAmountPercent, annualInterestRate, loanTermMonths
+        // PRESERVE: riskManagement.targetLtv (no auto-adjustment)
       }
 
-      // If a risk level is selected, reapply it with the new platform
-      if (currentParams.selectedRiskLevel) {
-        const riskPresetParams = applyRiskPresetToParams(currentParams.selectedRiskLevel, platform, updatedParams)
-        return {
-          ...riskPresetParams,
-          parameterSources: {
-            ...currentParams.parameterSources,
-            originationFeePercent: 'platform',
-            liquidationLtv: 'platform',
-            liquidationFeePercent: 'platform',
-            loanTermMonths: 'preset' // Risk level determines loan term
-          }
-        }
-      }
+      // DO NOT reapply risk level presets on platform changes
+      // Users should explicitly select risk levels if they want to override their manual edits
 
+      // Update parameter sources for platform-specific changes only
       return {
         ...updatedParams,
         parameterSources: {
           ...currentParams.parameterSources,
+          // Only mark platform-specific parameters as platform-sourced
           originationFeePercent: 'platform',
           liquidationLtv: 'platform',
-          liquidationFeePercent: 'platform'
+          liquidationFeePercent: 'platform',
+          // PRESERVE all other parameter sources (manual/preset)
         }
       }
     })
@@ -305,13 +296,26 @@ export function SimulationProvider({ children }: SimulationProviderProps) {
   }, [setParams])
 
   const markParameterAsManual = useCallback((parameterKey: string) => {
-    setParams(currentParams => ({
-      ...currentParams,
-      parameterSources: {
-        ...currentParams.parameterSources,
-        [parameterKey]: 'manual'
+    setParams(currentParams => {
+      // Clear selectedRiskLevel when user manually edits loan parameters
+      // This prevents platform changes from reapplying risk level presets
+      const shouldClearRiskLevel = [
+        'loanAmountPercent',
+        'riskManagement.targetLtv',
+        'annualInterestRate',
+        'loanTermMonths'
+      ].includes(parameterKey)
+
+      return {
+        ...currentParams,
+        // Clear selectedRiskLevel if user is manually editing loan parameters
+        selectedRiskLevel: shouldClearRiskLevel ? undefined : currentParams.selectedRiskLevel,
+        parameterSources: {
+          ...currentParams.parameterSources,
+          [parameterKey]: 'manual'
+        }
       }
-    }))
+    })
   }, [setParams])
 
   // Initialize risk level preset on first load if no saved data exists
@@ -319,9 +323,11 @@ export function SimulationProvider({ children }: SimulationProviderProps) {
     // Only apply preset if this is a fresh start (no localStorage data)
     const hasStoredData = typeof window !== "undefined" && localStorage.getItem(PARAMS_STORAGE_KEY)
 
+    // DISABLE automatic risk level application to prevent overriding user changes
+    // Users should explicitly select risk levels if they want preset values
     if (!hasStoredData && params.riskLevel === "optimistic" && !params.selectedRiskLevel) {
-      console.log('🎯 Applying default "optimistic" risk level preset on first load...')
-      applyRiskLevelPreset("optimistic", true)
+      console.log('🎯 Skipping automatic risk level preset application - users should select explicitly')
+      // applyRiskLevelPreset("optimistic", true) // DISABLED
     }
   }, []) // Empty dependency array - only run once on mount
 

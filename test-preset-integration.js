@@ -42,18 +42,29 @@ function applyPlatformConfig(platform, currentParams) {
   }
 }
 
-// Collateral validation function
+// Collateral validation function - CORRECTED to use totalLoanCost
 function validateCollateral(params) {
   const totalStackValue = params.btcAmount * params.initialBtcPrice
   const currentLoanAmount = (params.maxLoanAmountPercent / 100) * totalStackValue
-  const btcLockedAsCollateral = currentLoanAmount / (params.targetLtv / 100) / params.initialBtcPrice
+
+  // CORRECTED: Calculate total loan cost including interest
+  const originationFee = currentLoanAmount * (params.originationFeePercent / 100)
+  const monthlyInterestRate = params.annualInterestRate / 100 / 12
+  const monthlyInterestPayment = currentLoanAmount * monthlyInterestRate
+  const totalInterestPayment = params.loanTermMonths === Infinity
+    ? monthlyInterestPayment * 12
+    : monthlyInterestPayment * params.loanTermMonths
+  const totalLoanCost = currentLoanAmount + originationFee + totalInterestPayment
+
+  const btcLockedAsCollateral = totalLoanCost / (params.targetLtv / 100) / params.initialBtcPrice
   const isCollateralSufficient = btcLockedAsCollateral <= params.btcAmount
-  
+
   return {
     isValid: isCollateralSufficient,
     btcRequired: btcLockedAsCollateral,
     btcAvailable: params.btcAmount,
-    shortfall: Math.max(0, btcLockedAsCollateral - params.btcAmount)
+    shortfall: Math.max(0, btcLockedAsCollateral - params.btcAmount),
+    totalLoanCost: totalLoanCost
   }
 }
 

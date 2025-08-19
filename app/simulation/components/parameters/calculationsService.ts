@@ -7,6 +7,8 @@
  */
 
 import { useMemo, useCallback } from 'react'
+import { athService } from '../../../../lib/services/ath-service'
+import { getPlatformConfig as getMainPlatformConfig } from '../../constants/platformPresets'
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -14,7 +16,6 @@ import { useMemo, useCallback } from 'react'
 
 /**
  * Parameters tab simulation parameters interface - all inputs needed for initial loan calculations
- * Note: Strategy-specific parameters (monthlyWithdrawal, btcAccumulation) are handled in strategy tab
  */
 export interface SimulationParams {
   /** Initial amount of BTC in the user's stack */
@@ -90,6 +91,26 @@ export interface CollateralMetrics {
 }
 
 /**
+ * ATH distance metrics for collateral risk analysis
+ */
+export interface ATHDistanceMetrics {
+  /** Current ATH price in USD */
+  athPrice: number
+  /** Current BTC price in USD */
+  currentPrice: number
+  /** Distance from ATH as percentage (positive = below ATH) */
+  distancePercent: number
+  /** Distance from ATH in USD (positive = below ATH) */
+  distanceUSD: number
+  /** Risk level based on ATH proximity */
+  riskLevel: 'low' | 'medium' | 'high'
+  /** Color code for risk visualization */
+  riskColor: string
+  /** Human-readable risk description */
+  riskDescription: string
+}
+
+/**
  * Initial loan metrics and calculations for parameters tab
  */
 export interface LoanMetrics {
@@ -145,7 +166,7 @@ export interface ValidationResult {
   warnings: string[]
   /** Validation details for each parameter */
   details: {
-    btcAmount: { valid: boolean; message?: string }
+    initialBtcAmount: { valid: boolean; message?: string }
     initialBtcPrice: { valid: boolean; message?: string }
     loanAmountPercent: { valid: boolean; message?: string }
     platform: { valid: boolean; message?: string }
@@ -195,17 +216,32 @@ export class CalculationsService {
   }
 
   /**
+   * Calculate liquidation metrics with dynamic ATH from service
+   * This is the main public method that fetches ATH and calls the calculation method
+   */
+  async calculateLiquidationMetricsWithATH(params: SimulationParams): Promise<LiquidationMetrics> {
+    try {
+      const currentATH = await athService.getCurrentATH()
+      return this.calculateLiquidationMetrics(params, currentATH)
+    } catch (error) {
+      console.warn('⚠️ Failed to fetch ATH for calculations, using fallback:', error)
+      return this.calculateLiquidationMetrics(params) // Will use fallback ATH
+    }
+  }
+
+  /**
    * Calculate liquidation metrics including immediate and true liquidation scenarios
    * This method exactly matches the logic from PriceDropToleranceCard component
    */
-  calculateLiquidationMetrics(params: SimulationParams): LiquidationMetrics {
-    const cacheKey = `liquidation-${JSON.stringify(params)}`
+  calculateLiquidationMetrics(params: SimulationParams, athPrice?: number): LiquidationMetrics {
+    const finalAthPrice = athPrice ?? 124277.98
+    const cacheKey = `liquidation-${JSON.stringify(params)}-ath-${finalAthPrice}`
     if (this.calculationCache.has(cacheKey)) {
       return this.calculationCache.get(cacheKey)
     }
 
     // Use shared basic calculation method to eliminate redundancy
-    const { platformConfig, totalStackValue, currentLoanAmount, originationFee, totalLoanCost } = this.calculateBasicLoanValues(params)
+    const { platformConfig, totalStackValue, currentLoanAmount, originationFee, totalInterestPayment, totalLoanCost } = this.calculateBasicLoanValues(params)
 
     // Calculate BTC locked as collateral for current loan
     const btcLockedAsCollateral = totalLoanCost / (params.riskManagement.targetLtv / 100) / params.initialBtcPrice
@@ -238,9 +274,8 @@ export class CalculationsService {
       truePriceDropPercentage = Math.max(0, ((params.initialBtcPrice - trueLiquidationPrice) / params.initialBtcPrice) * 100)
     }
 
-    // ATH calculations (hardcoded ATH value matching PriceDropToleranceCard)
-    const athPrice = 125000
-    const athMetrics = this.calculateAthLiquidationMetrics(liquidationPrice, trueLiquidationPrice, athPrice)
+    // ATH calculations (use dynamic ATH or fallback to constant)
+    const athMetrics = this.calculateAthLiquidationMetrics(liquidationPrice, trueLiquidationPrice, finalAthPrice)
 
     const result: LiquidationMetrics = {
       initialImmediateLiquidationPrice: Math.max(0, liquidationPrice),
@@ -250,7 +285,7 @@ export class CalculationsService {
       initialFreeBtcAmount: freeBtcAmount,
       initialHasFreeCollateral: hasFreeCollateral,
       initialCurrentBtcPrice: params.initialBtcPrice,
-      athPrice,
+      athPrice: finalAthPrice,
       athMetrics
     }
 
@@ -269,7 +304,7 @@ export class CalculationsService {
     }
 
     // Use shared basic calculation method to eliminate redundancy
-    const { totalStackValue, currentLoanAmount, originationFee, totalLoanCost } = this.calculateBasicLoanValues(params)
+    const { totalStackValue, currentLoanAmount, originationFee, totalInterestPayment, totalLoanCost } = this.calculateBasicLoanValues(params)
 
     // Calculate BTC locked as collateral for current loan (exact formula from component)
     const lockedCollateralBtc = params.initialBtcAmount > 0 && totalLoanCost > 0
@@ -321,7 +356,7 @@ export class CalculationsService {
     }
 
     // Use shared basic calculation method to eliminate redundancy
-    const { platformConfig, totalStackValue, currentLoanAmount, originationFee, totalLoanCost } = this.calculateBasicLoanValues(params)
+    const { platformConfig, totalStackValue, currentLoanAmount, originationFee, totalInterestPayment, totalLoanCost } = this.calculateBasicLoanValues(params)
 
     // Calculate maximum loan capacity based on platform's initial LTV limit (matching LoanUsageVisualizationCard)
     const maxLoanCapacity = totalStackValue * (platformConfig.maxInitialLtv / 100)
@@ -339,18 +374,9 @@ export class CalculationsService {
       ? (availableBorrowingCapacity / maxLoanCapacity) * 100
       : 100
 
-    // Calculate interest payments
+    // Calculate monthly interest payment
     const monthlyInterestRate = params.riskManagement.annualInterestRate / 100 / 12
     const monthlyInterestPayment = currentLoanAmount * monthlyInterestRate
-
-    // Calculate total interest over loan term
-    let totalInterestPayment = 0
-    if (params.riskManagement.loanTermMonths === Infinity) {
-      // For infinite term loans, calculate interest for 12 months as reference
-      totalInterestPayment = monthlyInterestPayment * 12
-    } else {
-      totalInterestPayment = monthlyInterestPayment * params.riskManagement.loanTermMonths
-    }
 
     const result: LoanMetrics = {
       initialCurrentLoanAmount: currentLoanAmount,
@@ -438,7 +464,7 @@ export class CalculationsService {
       errors,
       warnings,
       details: {
-        btcAmount: { valid: btcAmountValid, message: btcAmountValid ? undefined : 'Must be positive' },
+        initialBtcAmount: { valid: btcAmountValid, message: btcAmountValid ? undefined : 'Must be positive' },
         initialBtcPrice: { valid: btcPriceValid, message: btcPriceValid ? undefined : 'Must be positive' },
         loanAmountPercent: { valid: loanPercentValid, message: loanPercentValid ? undefined : 'Must be 0-100%' },
         platform: { valid: platformValid, message: platformValid ? undefined : 'Invalid platform' },
@@ -452,7 +478,7 @@ export class CalculationsService {
    */
   calculateAll(params: SimulationParams): CalculationResults {
     const validation = this.validateParameters(params)
-    
+
     if (!validation.isValid) {
       throw new Error(`Invalid parameters: ${validation.errors.join(', ')}`)
     }
@@ -486,53 +512,12 @@ export class CalculationsService {
 
   /**
    * Get platform configuration (private helper)
-   * Uses the exact same values as platformPresets.ts for consistency
+   * Uses the centralized platform configuration from platformPresets.ts
    */
   private getPlatformConfig(platform: string) {
-    // Built-in platform configurations matching platformPresets.ts exactly
-    const PLATFORM_CONFIGS = {
-      firefish: {
-        id: 'firefish',
-        name: 'Firefish',
-        originationFeePercent: 1.5,
-        liquidationLtv: 95, // Firefish: 95% liquidation LTV
-        liquidationFeePercent: 5.0,
-        maxInitialLtv: 60
-      },
-      strike: {
-        id: 'strike',
-        name: 'Strike',
-        originationFeePercent: 0,
-        liquidationLtv: 99, // Strike: 99% liquidation LTV
-        liquidationFeePercent: 1.0,
-        maxInitialLtv: 80
-      },
-      custom: {
-        id: 'custom',
-        name: 'Custom',
-        originationFeePercent: 1.0,
-        liquidationLtv: 97, // Custom: 97% liquidation LTV
-        liquidationFeePercent: 3.0,
-        maxInitialLtv: 75
-      }
-    }
-
-    // Check for custom platforms with custom- prefix
-    if (platform.startsWith('custom-')) {
-      // For custom platforms, try to load from localStorage or fallback to default custom
-      try {
-        if (typeof localStorage !== 'undefined') {
-          const customPlatforms = JSON.parse(localStorage.getItem('customPlatformConfigs') || '{}')
-          if (customPlatforms[platform]) {
-            return customPlatforms[platform]
-          }
-        }
-      } catch (error) {
-        console.warn('Failed to load custom platform config:', error)
-      }
-    }
-
-    return PLATFORM_CONFIGS[platform as keyof typeof PLATFORM_CONFIGS] || PLATFORM_CONFIGS.custom
+    // Use the centralized platform configuration function
+    // This ensures single source of truth and eliminates duplication
+    return getMainPlatformConfig(platform)
   }
 
   /**
@@ -544,13 +529,28 @@ export class CalculationsService {
     const totalStackValue = params.initialBtcAmount * params.initialBtcPrice
     const currentLoanAmount = (params.loanAmountPercent / 100) * totalStackValue
     const originationFee = currentLoanAmount * (platformConfig.originationFeePercent / 100)
-    const totalLoanCost = currentLoanAmount + originationFee
+
+    // Calculate total interest over loan term
+    const monthlyInterestRate = params.riskManagement.annualInterestRate / 100 / 12
+    const monthlyInterestPayment = currentLoanAmount * monthlyInterestRate
+
+    let totalInterestPayment = 0
+    if (params.riskManagement.loanTermMonths === Infinity) {
+      // For infinite term loans, calculate interest for 12 months as reference
+      totalInterestPayment = monthlyInterestPayment * 12
+    } else {
+      totalInterestPayment = monthlyInterestPayment * params.riskManagement.loanTermMonths
+    }
+
+    // CORRECTED: Total loan cost includes principal + origination fee + total interest
+    const totalLoanCost = currentLoanAmount + originationFee + totalInterestPayment
 
     return {
       platformConfig,
       totalStackValue,
       currentLoanAmount,
       originationFee,
+      totalInterestPayment,
       totalLoanCost
     }
   }
@@ -570,7 +570,7 @@ export class CalculationsService {
     warnings: string[]
   } {
     // Use shared basic calculation method to eliminate redundancy
-    const { totalStackValue, currentLoanAmount, originationFee, totalLoanCost } = this.calculateBasicLoanValues(params)
+    const { totalStackValue, currentLoanAmount, originationFee, totalInterestPayment, totalLoanCost } = this.calculateBasicLoanValues(params)
 
     const requiredCollateralBtc = totalLoanCost / (params.riskManagement.targetLtv / 100) / params.initialBtcPrice
     const availableCollateralBtc = params.initialBtcAmount
@@ -610,6 +610,59 @@ export class CalculationsService {
       utilizationPercent,
       riskLevel,
       warnings
+    }
+  }
+
+  /**
+   * Calculate ATH distance metrics for collateral risk analysis
+   * Used by BasicParametersCard for enhanced collateral display
+   */
+  calculateATHDistance(currentPrice: number, athPrice: number): ATHDistanceMetrics {
+    // Calculate distance from ATH
+    const distancePercent = athPrice > 0 ? Math.max(0, ((athPrice - currentPrice) / athPrice) * 100) : 0
+    const distanceUSD = Math.max(0, athPrice - currentPrice)
+
+    // Determine risk level based on distance from ATH
+    let riskLevel: 'low' | 'medium' | 'high'
+    let riskColor: string
+    let riskDescription: string
+
+    if (distancePercent > 40) {
+      riskLevel = 'low'
+      riskColor = '#22c55e' // Green
+      riskDescription = 'Favorable conditions for larger loan amounts and higher LTV percentages'
+    } else if (distancePercent > 15) {
+      riskLevel = 'medium'
+      riskColor = '#f59e0b' // Orange
+      riskDescription = 'Moderate conditions - consider balanced loan amounts and LTV percentages'
+    } else {
+      riskLevel = 'high'
+      riskColor = '#ef4444' // Red
+      riskDescription = 'Smaller loan amounts and lower LTV percentages recommended'
+    }
+
+    return {
+      athPrice,
+      currentPrice,
+      distancePercent,
+      distanceUSD,
+      riskLevel,
+      riskColor,
+      riskDescription
+    }
+  }
+
+  /**
+   * Calculate ATH distance metrics with dynamic ATH from service
+   * Convenience method that fetches ATH and calculates distance
+   */
+  async calculateATHDistanceWithService(currentPrice: number): Promise<ATHDistanceMetrics> {
+    try {
+      const currentATH = await athService.getCurrentATH()
+      return this.calculateATHDistance(currentPrice, currentATH)
+    } catch (error) {
+      console.warn('⚠️ Failed to fetch ATH for distance calculation, using fallback:', error)
+      return this.calculateATHDistance(currentPrice, 124277.98) // Fallback ATH
     }
   }
 
@@ -695,7 +748,7 @@ export function useCalculations(params: SimulationParams): CalculationResults | 
         errors: ['Parameter validation failed'],
         warnings: [],
         details: {
-          btcAmount: { valid: false, message: 'Validation error' },
+          initialBtcAmount: { valid: false, message: 'Validation error' },
           initialBtcPrice: { valid: false, message: 'Validation error' },
           loanAmountPercent: { valid: false, message: 'Validation error' },
           platform: { valid: false, message: 'Validation error' },
@@ -791,10 +844,8 @@ export function useCalculations(params: SimulationParams): CalculationResults | 
   }, [
     service,
     validation,
-    params.btcAmount,
+    params.initialBtcAmount,
     params.initialBtcPrice,
-    params.monthlyWithdrawal,
-    params.btcAccumulation,
     params.loanAmountPercent,
     params.platform,
     params.riskManagement.targetLtv,

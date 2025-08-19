@@ -145,13 +145,13 @@ export function TabNavigation({ children }: TabNavigationProps) {
               {/* Left Column */}
               <div className="space-y-6">
                 <BasicParametersCard />
-                <PlatformSelector />
+                <LoanParametersCard />
               </div>
 
               {/* Right Column */}
               <div className="space-y-6">
                 <RiskLevelSelector />
-                <LoanParametersCard />
+                <PlatformSelector />
               </div>
             </div>
 

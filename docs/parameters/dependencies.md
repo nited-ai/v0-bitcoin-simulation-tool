@@ -26,21 +26,25 @@ Max Loan Amount (EUR) = (maxLoanAmountPercent / 100) × BTC Stack Value
 
 ### Collateral Requirements
 ```
-Required Collateral (BTC) = Max Loan Amount / (initialBtcPrice × (targetLtv / 100))
+Total Loan Cost = Max Loan Amount + Origination Fee + Total Interest Payment
+Required Collateral (BTC) = Total Loan Cost / (initialBtcPrice × (targetLtv / 100))
 ```
 
 **Dependencies:**
 - `maxLoanAmountPercent` - Determines loan size
 - `initialBtcPrice` - Price for collateral calculation
 - `riskManagement.targetLtv` - Initial LTV ratio
+- `riskManagement.annualInterestRate` - Interest rate for total cost calculation
+- `riskManagement.loanTermMonths` - Loan term for interest calculation
+- `platform` - Platform configuration for origination fee
 
 ### Liquidation Price Calculation
 ```
-Liquidation Price = Max Loan Amount / (Collateral BTC × (liquidationLtv / 100))
+Liquidation Price = Total Loan Cost / (Collateral BTC × (liquidationLtv / 100))
 ```
 
 **Dependencies:**
-- Max Loan Amount calculation (see above)
+- Total Loan Cost calculation (see above)
 - Required Collateral calculation (see above)
 - `riskManagement.liquidationLtv` - Liquidation threshold
 

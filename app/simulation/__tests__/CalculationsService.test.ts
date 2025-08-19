@@ -54,7 +54,7 @@ describe('CalculationsService', () => {
     })
 
     it('should reject negative BTC amount', () => {
-      const invalidParams = { ...validParams, btcAmount: -1 }
+      const invalidParams = { ...validParams, initialBtcAmount: -1 }
       const result = service.validateParameters(invalidParams)
       expect(result.isValid).toBe(false)
       expect(result.errors).toContain('BTC amount must be positive')
@@ -77,10 +77,8 @@ describe('CalculationsService', () => {
 
   describe('Liquidation Calculations', () => {
     const testParams: SimulationParams = {
-      btcAmount: 1,
+      initialBtcAmount: 1,
       initialBtcPrice: 100000,
-      monthlyWithdrawal: 0,
-      btcAccumulation: false,
       loanAmountPercent: 10,
       platform: 'firefish',
       riskManagement: {
@@ -96,12 +94,12 @@ describe('CalculationsService', () => {
       const result = service.calculateLiquidationMetrics(testParams)
 
       expect(result).toBeDefined()
-      expect(typeof result.liquidationPrice).toBe('number')
-      expect(typeof result.priceDropPercentage).toBe('number')
-      expect(typeof result.trueLiquidationPrice).toBe('number')
-      expect(typeof result.truePriceDropPercentage).toBe('number')
-      expect(typeof result.freeBtcAmount).toBe('number')
-      expect(typeof result.hasFreeCollateral).toBe('boolean')
+      expect(typeof result.initialImmediateLiquidationPrice).toBe('number')
+      expect(typeof result.initialImmediatePriceDropPercentage).toBe('number')
+      expect(typeof result.initialTrueLiquidationPrice).toBe('number')
+      expect(typeof result.initialTruePriceDropPercentage).toBe('number')
+      expect(typeof result.initialFreeBtcAmount).toBe('number')
+      expect(typeof result.initialHasFreeCollateral).toBe('boolean')
     })
 
     it('should calculate immediate liquidation price correctly', () => {
