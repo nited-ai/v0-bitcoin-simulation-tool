@@ -205,4 +205,5 @@ class ATHStrategyOptimizer {
   }
 }
 
-export { ATHStrategyOptimizer, OptimizationParams, SimulationResult }
+export { ATHStrategyOptimizer }
+export type { OptimizationParams, SimulationResult }
