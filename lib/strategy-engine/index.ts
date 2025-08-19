@@ -1,9 +1,9 @@
 // lib/strategy-engine/index.ts
 
-import type { 
-  StrategyEngineParams, 
-  MonthlyResult, 
-  Loan, 
+import type {
+  StrategyEngineParams,
+  MonthlyResult,
+  Loan,
   MonthlyEvent,
   HistoricalDataPoint,
   PriceChartDataPoint,
@@ -303,3 +303,6 @@ export function getAvailableStrategies(): Array<{
     }
   ]
 }
+
+// Export types for external use
+export type { StrategyEngineParams, MonthlyResult }

@@ -12,7 +12,7 @@ import type {
   PriceProjectionResult,
   PriceModelParams 
 } from "./types"
-import type { HistoricalDataPoint } from "../data/historicalDataLoader"
+import type { HistoricalDataPoint } from "@/lib/services/centralized-data-service"
 
 // Import available models
 import { manualGrowthModel } from "./models/ManualGrowthModel"

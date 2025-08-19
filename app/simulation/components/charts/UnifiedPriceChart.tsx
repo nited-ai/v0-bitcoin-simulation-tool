@@ -53,7 +53,7 @@ function calculateSupportLine(historicalData: HistoricalDataPoint[]): { timestam
 
     if (isBottom && currentPrice > 0) {
       bottoms.push({
-        timestamp: historicalData[i].timestamp,
+        timestamp: historicalData[i].time,
         price: currentPrice
       })
     }
@@ -70,10 +70,10 @@ function calculateSupportLine(historicalData: HistoricalDataPoint[]): { timestam
 
     // Generate support line points
     return historicalData.map(point => ({
-      timestamp: point.timestamp,
+      timestamp: point.time,
       supportPrice: Math.exp(
         Math.log(firstBottom.price) +
-        logSlope * (point.timestamp - firstBottom.timestamp)
+        logSlope * (point.time - firstBottom.time)
       )
     }))
   }
@@ -82,13 +82,13 @@ function calculateSupportLine(historicalData: HistoricalDataPoint[]): { timestam
   const firstPoint = historicalData[0]
   const lastPoint = historicalData[historicalData.length - 1]
   const logSlope = (Math.log(lastPoint.close) - Math.log(firstPoint.close)) /
-                   (lastPoint.timestamp - firstPoint.timestamp)
+                   (lastPoint.time - firstPoint.time)
 
   return historicalData.map(point => ({
     timestamp: point.timestamp,
     supportPrice: Math.exp(
       Math.log(firstPoint.close) +
-      logSlope * (point.timestamp - firstPoint.timestamp)
+      logSlope * (point.time - firstPoint.time)
     ) * 0.3 // Support line below main trend
   }))
 }
@@ -241,7 +241,7 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
             year: 'numeric',
             month: 'short'
           }),
-          timestamp: point.timestamp,
+          timestamp: point.time,
           price: Math.round(point.price),
           // Calculated OHLC for projected data
           open: open,

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
-import { UnifiedPriceChart } from './UnifiedPriceChart'
+import UnifiedPriceChart from './UnifiedPriceChart'
 
 // Mock historical data loader
 const mockHistoricalData = [

@@ -12,7 +12,7 @@ import type {
   PriceModelParams,
   ProjectionPoint
 } from "../types"
-import type { HistoricalDataPoint } from "../../data/historicalDataLoader"
+import type { HistoricalDataPoint } from "@/lib/services/centralized-data-service"
 
 /**
  * Cycle Repeat Model Implementation
