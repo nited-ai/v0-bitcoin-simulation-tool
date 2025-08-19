@@ -642,7 +642,7 @@ export class MultiApiBitcoinService {
         close: quotes.close[index],
         volume: quotes.volume[index] || 0,
         source: 'yahoo'
-      })).filter(item => item.close !== null && !isNaN(item.close))
+      })).filter((item: any) => item.close !== null && !isNaN(item.close))
 
       return {
         success: true,

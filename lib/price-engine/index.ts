@@ -114,12 +114,10 @@ async function generatePriceChartDataOptimized(
 ): Promise<PriceChartDataPoint[]> {
 
   // Step 1: Convert historical data to chart format
-  const historicalChartData = historicalData.map(point => ({
-    date: new Date(point.timestamp).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short'
-    }),
-    timestamp: point.timestamp,
+  const historicalChartData = historicalData.map((point, index) => ({
+    date: point.date,
+    days: index,
+    timestamp: point.time,
     price: point.close,
     isHistorical: true,
     confidence: 1.0

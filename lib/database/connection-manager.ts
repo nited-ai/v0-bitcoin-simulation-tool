@@ -75,8 +75,8 @@ class DatabaseConnectionManager {
   } {
     return {
       connected: this.prismaClient !== null,
-      connectionCount: this.connectionCount,
-      maxConnections: this.maxConnections
+      connectionCount: this.prismaClient ? 1 : 0,
+      maxConnections: 1 // Single shared connection
     }
   }
 

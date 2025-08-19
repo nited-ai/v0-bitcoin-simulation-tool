@@ -132,7 +132,7 @@ class FinalGapFiller {
       close: quotes.close?.[index],
       volume: quotes.volume?.[index] || 0,
       source: 'yahoo'
-    })).filter(item => item.close !== null && !isNaN(item.close))
+    })).filter((item: any) => item.close !== null && !isNaN(item.close))
   }
 
   async fetchFromCoinGecko(startDate: string, endDate: string): Promise<BitcoinPriceRecord[]> {

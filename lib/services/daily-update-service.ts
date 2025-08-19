@@ -118,7 +118,7 @@ export class DailyUpdateService {
       // Step 3.5: Check and update ATH if needed
       if (currentPriceResult.success && currentPriceResult.highPrice) {
         console.log('🚀 Checking for new ATH...')
-        const athCheckResult = await this.checkAndUpdateATH(currentPriceResult.highPrice, currentPriceResult.date)
+        const athCheckResult = await this.checkAndUpdateATH(currentPriceResult.highPrice, currentPriceResult.date || new Date().toISOString().split('T')[0])
         result.athUpdated = athCheckResult.updated
         if (athCheckResult.error) {
           result.errors.push(athCheckResult.error)

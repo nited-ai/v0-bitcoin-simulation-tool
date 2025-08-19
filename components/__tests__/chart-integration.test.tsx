@@ -7,7 +7,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import React from 'react'
 
 // Import actual chart components
-import { UnifiedPriceChart } from '../../app/simulation/components/charts/UnifiedPriceChart'
+import UnifiedPriceChart from '../../app/simulation/components/charts/UnifiedPriceChart'
 import { HistoricalDataChart } from '../../app/simulation/components/charts/HistoricalDataChart'
 import { PriceProjectionChart } from '../../app/simulation/components/charts/PriceProjectionChart'
 
@@ -226,7 +226,7 @@ describe('Chart Component Integration with JSON Data', () => {
       const MockLoadingChart = () => {
         const { centralizedDataService } = require('../../lib/services/centralized-data-service')
         const [isLoading, setIsLoading] = React.useState(true)
-        const [data, setData] = React.useState([])
+        const [data, setData] = React.useState<any[]>([])
         
         React.useEffect(() => {
           centralizedDataService.loadHistoricalData()

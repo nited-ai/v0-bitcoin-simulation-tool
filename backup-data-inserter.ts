@@ -104,7 +104,7 @@ FROM "BitcoinPrice";`
           await new Promise(resolve => setTimeout(resolve, 100))
           
         } catch (batchError) {
-          console.log(`   ⚠️ Batch ${i + 1} failed: ${batchError.message}`)
+          console.log(`   ⚠️ Batch ${i + 1} failed: ${batchError instanceof Error ? batchError.message : String(batchError)}`)
         }
       }
 
@@ -117,7 +117,7 @@ FROM "BitcoinPrice";`
       await pool.end()
 
     } catch (dbError) {
-      console.log(`❌ Database insertion failed: ${dbError.message}`)
+      console.log(`❌ Database insertion failed: ${dbError instanceof Error ? dbError.message : String(dbError)}`)
       console.log('💡 SQL file is available for manual execution')
     }
 
