@@ -3,6 +3,21 @@
  * Uses the application's API endpoints to insert Bitcoin price data
  */
 
+interface BitcoinPriceRecord {
+  date: string
+  close: number
+  open?: number
+  high?: number
+  low?: number
+  volume?: number
+}
+
+interface ApiResponse {
+  success: boolean
+  data: BitcoinPriceRecord[]
+  message?: string
+}
+
 async function apiBasedDataInsert() {
   console.log('🌐 API-BASED BITCOIN PRICE DATA INSERT')
   console.log('=' .repeat(50))
@@ -157,7 +172,7 @@ async function apiBasedDataInsert() {
       console.log(`📊 Sample: ${testData.data[0].date} - $${testData.data[0].close.toLocaleString()}`)
       
       // Check for data continuity
-      const dates = testData.data.map(d => d.date).sort()
+      const dates = testData.data.map((d: BitcoinPriceRecord) => d.date).sort()
       console.log(`📅 Date range: ${dates[0]} to ${dates[dates.length - 1]}`)
     } else {
       console.log('⚠️ 2023 data still missing or limited')
