@@ -67,7 +67,7 @@ export function SimplifiedManualGrowthInterface({ className }: SimplifiedManualG
   const [customRates, setCustomRates] = useState<number[]>([])
   const [tempCustomRates, setTempCustomRates] = useState<number[]>([]) // Temporary state for sliders
   const [showCustomControls, setShowCustomControls] = useState(false)
-  const debounceTimeoutRef = useRef<NodeJS.Timeout>()
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Convert months to years for display
   const simulationYears = Math.round(params.simulationMonths / 12)

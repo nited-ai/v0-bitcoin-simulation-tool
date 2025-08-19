@@ -43,7 +43,7 @@ function calculateSupportLine(historicalData: HistoricalDataPoint[]): { timestam
   if (historicalData.length === 0) return []
 
   // Find major bottoms (local minima with significant drops)
-  const bottoms: { timestamp: number; price: number }[] = []
+  const bottoms: { time: number; price: number }[] = []
   const windowSize = 90 // 90-day window for finding bottoms
 
   for (let i = windowSize; i < historicalData.length - windowSize; i++) {
@@ -53,7 +53,7 @@ function calculateSupportLine(historicalData: HistoricalDataPoint[]): { timestam
 
     if (isBottom && currentPrice > 0) {
       bottoms.push({
-        timestamp: historicalData[i].time,
+        time: historicalData[i].time,
         price: currentPrice
       })
     }

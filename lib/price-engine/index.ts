@@ -115,7 +115,7 @@ async function generatePriceChartDataOptimized(
 
   // Step 1: Convert historical data to chart format
   const historicalChartData = historicalData.map((point, index) => ({
-    date: point.date || new Date(point.time * 1000).toISOString().split('T')[0],
+    date: new Date(point.time * 1000).toISOString().split('T')[0],
     days: index,
     timestamp: point.time,
     price: point.close,

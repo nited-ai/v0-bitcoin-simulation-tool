@@ -64,7 +64,7 @@ const DraggableDot = ({
         cursor: 'grab',
         filter: isDragging ? 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))' : 'none'
       }}
-      onMouseDown={(e: React.MouseEvent) => {
+      onMouseDown={(e: any) => {
         e.preventDefault()
         onDragStart(e, payload.yearIndex, cy, payload.price)
       }}
