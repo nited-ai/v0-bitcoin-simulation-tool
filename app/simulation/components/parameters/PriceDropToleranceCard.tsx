@@ -6,6 +6,7 @@ import { Shield } from "lucide-react"
 import { useMemo, useState } from "react"
 import { useSimulation } from "../../context/SimulationContext"
 import { useLiquidationCalculations } from "../../hooks/useCalculationsIntegration"
+import { useATH } from "../../hooks/useATH"
 import { CalculationsErrorBoundary } from "./CalculationsErrorBoundary"
 
 interface PriceDropData {
@@ -44,6 +45,7 @@ interface PriceDropMetrics {
 export function PriceDropToleranceCard() {
   const { params } = useSimulation()
   const liquidationData = useLiquidationCalculations()
+  const { ath: currentATH, loading: athLoading } = useATH()
 
   // Toggle state for view selection (default to "From Current Price")
   const [viewMode, setViewMode] = useState<'current' | 'ath'>('current')
@@ -88,8 +90,8 @@ export function PriceDropToleranceCard() {
   // Enhanced ATH metrics calculation using centralized service
   const athMetrics = useMemo(() => {
     if (!liquidationData?.athPrice || !liquidationData?.athMetrics) {
-      // Fallback ATH calculations
-      const athPrice = 125000
+      // Use dynamic ATH from service with fallback
+      const athPrice = athLoading ? 125000 : currentATH
       return {
         athPrice,
         liquidationPrice: metrics.liquidationPrice,
@@ -121,7 +123,7 @@ export function PriceDropToleranceCard() {
       trueAthPriceDropPercentage: liquidationData.athMetrics.truePriceDropPercentage,
       trueAthRemainingPricePercentage: 100 - liquidationData.athMetrics.truePriceDropPercentage
     }
-  }, [liquidationData, metrics.liquidationPrice, metrics.trueLiquidationPrice])
+  }, [liquidationData, metrics.liquidationPrice, metrics.trueLiquidationPrice, currentATH, athLoading])
 
   // Prepare data for stacked bar chart
   const chartData = useMemo(() => {
@@ -188,8 +190,8 @@ export function PriceDropToleranceCard() {
   const renderGreenLabel = (props: any) => {
     const { x, y, width, height } = props
 
-    // Only show label if segment is large enough
-    if (!metrics.remainingPricePercentage || metrics.remainingPricePercentage < 10) return null
+    // Always show liquidation price regardless of segment size
+    if (!metrics.remainingPricePercentage) return null
 
     // Position label in center of green segment
     const centerX = x + width / 2
@@ -266,8 +268,8 @@ export function PriceDropToleranceCard() {
   const renderAthGreenLabel = (props: any) => {
     const { x, y, width, height } = props
 
-    // Only show label if segment is large enough
-    if (!athMetrics.athRemainingPricePercentage || athMetrics.athRemainingPricePercentage < 10) return null
+    // Always show liquidation price regardless of segment size
+    if (!athMetrics.athRemainingPricePercentage) return null
 
     // Position label in center of green segment
     const centerX = x + width / 2
@@ -346,8 +348,8 @@ export function PriceDropToleranceCard() {
   const renderFreeCollateralCurrentGreenLabel = (props: any) => {
     const { x, y, width, height } = props
 
-    // Only show label if segment is large enough
-    if (!metrics.trueRemainingPricePercentage || metrics.trueRemainingPricePercentage < 10) return null
+    // Always show liquidation price regardless of segment size
+    if (!metrics.trueRemainingPricePercentage) return null
 
     // Position label in center of green segment
     const centerX = x + width / 2
@@ -424,8 +426,8 @@ export function PriceDropToleranceCard() {
   const renderFreeCollateralAthGreenLabel = (props: any) => {
     const { x, y, width, height } = props
 
-    // Only show label if segment is large enough
-    if (!athMetrics.trueAthRemainingPricePercentage || athMetrics.trueAthRemainingPricePercentage < 10) return null
+    // Always show liquidation price regardless of segment size
+    if (!athMetrics.trueAthRemainingPricePercentage) return null
 
     // Position label in center of green segment
     const centerX = x + width / 2

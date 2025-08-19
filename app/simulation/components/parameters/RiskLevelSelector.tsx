@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { Activity, TrendingUp, Zap, Rocket, Info } from "lucide-react"
 import { useSimulation } from "../../context/SimulationContext"
+import { ATHAlert } from "./ATHAlert"
 
 export type RiskLevel = "conservative" | "moderate" | "optimistic" | "moonshots"
 
@@ -85,11 +86,23 @@ export function RiskLevelSelector() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Activity className="w-5 h-5 text-primary" />
-          Risk Level
+          Risk Level Presets
         </CardTitle>
       </CardHeader>
-      
-      <CardContent>
+
+      <CardContent className="space-y-4">
+        <span className="text-sm text-muted-foreground">
+          
+          <p>Lending against Bitcoin is highly speculative and carries significant risk.</p> 
+          <p>This is not financial advice. Use at your own risk.</p>
+          <p>Bitcoin prices has dropped by 90% in the past. It can happen again.</p>
+          <p>&nbsp;</p>
+          <p>Don't get greedy. Don't use money you can't afford to lose.</p>
+        </span>
+        {/* ATH Alert above risk level selector cards */}
+        <ATHAlert currentPrice={params.initialBtcPrice} />
+        
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {riskLevels.map((level) => {
             const isSelected = currentRiskLevel === level.id

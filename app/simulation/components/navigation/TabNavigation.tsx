@@ -11,7 +11,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip
 import { DollarSign, Info, TrendingUp } from 'lucide-react'
 import { NumberInput } from '@/shared/ui/forms/NumberInput'
 import { PriceModelSelector } from '../price-models/PriceModelSelector'
-import { UnifiedPriceChart } from '../charts/UnifiedPriceChart'
+import UnifiedPriceChart from '../charts/UnifiedPriceChart'
 import { SimplifiedManualGrowthInterface } from '../price-models/manual/SimplifiedManualGrowthInterface'
 import { GrowthRateAnalysis } from '../price-models/GrowthRateAnalysis'
 import { CustomGrowthRateSliders } from '../price-models/manual/CustomGrowthRateSliders'
@@ -75,22 +75,26 @@ export function TabNavigation({ children }: TabNavigationProps) {
     }
   }
 
-  // Get initial tab - always return parameters since other tabs are disabled
+  // Get initial tab from URL or default to parameters
   const getInitialTab = (): TabValue => {
+    const tab = searchParams.get('tab') as TabValue
+    if (tab && ['parameters', 'price-projection', 'strategy', 'results'].includes(tab)) {
+      return tab
+    }
     return 'parameters'
   }
 
   const [activeTab, setActiveTab] = useState<TabValue>(getInitialTab)
 
-  // Update tab when URL changes - only allow parameters tab
+  // Update tab when URL changes
   useEffect(() => {
     const tabParam = searchParams.get('tab') as TabValue
-    // Only allow parameters tab, force all others to parameters
-    if (tabParam === 'parameters') {
-      setActiveTab('parameters')
+    // Allow parameters and price-projection tabs
+    if (tabParam && ['parameters', 'price-projection'].includes(tabParam)) {
+      setActiveTab(tabParam)
     } else {
       setActiveTab('parameters')
-      // Update URL to reflect the forced tab change
+      // Update URL to reflect the default tab
       const params = new URLSearchParams(searchParams.toString())
       params.set('tab', 'parameters')
       router.replace(`?${params.toString()}`)
@@ -100,8 +104,8 @@ export function TabNavigation({ children }: TabNavigationProps) {
   const handleTabChange = (value: string) => {
     const tabValue = value as TabValue
 
-    // Only allow navigation to the parameters tab
-    if (tabValue !== 'parameters') {
+    // Allow navigation to parameters and price-projection tabs
+    if (!['parameters', 'price-projection'].includes(tabValue)) {
       return
     }
 
@@ -118,9 +122,8 @@ export function TabNavigation({ children }: TabNavigationProps) {
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="parameters">Parameters</TabsTrigger>
-          <TabsTrigger value="price-projection" disabled className="relative">
-            <span className="opacity-50">Price Projection</span>
-            <Badge variant="outline" className="ml-2 text-xs">Coming Soon</Badge>
+          <TabsTrigger value="price-projection">
+            Price Projection
           </TabsTrigger>
           <TabsTrigger value="strategy" disabled className="relative">
             <span className="opacity-50">Strategy</span>
@@ -142,13 +145,13 @@ export function TabNavigation({ children }: TabNavigationProps) {
               {/* Left Column */}
               <div className="space-y-6">
                 <BasicParametersCard />
-                <PlatformSelector />
+                <LoanParametersCard />
               </div>
 
               {/* Right Column */}
               <div className="space-y-6">
                 <RiskLevelSelector />
-                <LoanParametersCard />
+                <PlatformSelector />
               </div>
             </div>
 

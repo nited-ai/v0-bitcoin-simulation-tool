@@ -25,20 +25,20 @@ export const PLATFORM_CONFIGS: Record<string, PlatformConfig> = {
     originationFeePercent: 1.5,
     liquidationLtv: 95,
     liquidationFeePercent: 5.0,
-    availableLoanTerms: [6, 12, 18, 24],
+    availableLoanTerms: [3, 6, 12, 18, 24],
     defaultLoanTerm: 24,
-    maxInitialLtv: 60
+    maxInitialLtv: 50
   },
   strike: {
     id: 'strike',
     name: 'Strike',
     description: 'Flexible lending platform with competitive rates',
     originationFeePercent: 0,
-    liquidationLtv: 99,
+    liquidationLtv: 85,
     liquidationFeePercent: 1.0,
     availableLoanTerms: [6, 12, 18, 24, 'infinity'],
     defaultLoanTerm: 'infinity',
-    maxInitialLtv: 80
+    maxInitialLtv: 50
   },
   custom: {
     id: 'custom',

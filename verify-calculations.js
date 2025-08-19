@@ -22,7 +22,16 @@ const testParams = {
 const totalStackValue = testParams.btcAmount * testParams.initialBtcPrice // $100,000
 const currentLoanAmount = (testParams.loanAmountPercent / 100) * totalStackValue // $10,000
 const originationFee = currentLoanAmount * 0.015 // 1.5% for Firefish = $150
-const totalLoanCost = currentLoanAmount + originationFee // $10,150
+
+// CORRECTED: Calculate total interest over loan term
+const monthlyInterestRate = testParams.riskManagement.annualInterestRate / 100 / 12
+const monthlyInterestPayment = currentLoanAmount * monthlyInterestRate
+const totalInterestPayment = testParams.riskManagement.loanTermMonths === Infinity
+  ? monthlyInterestPayment * 12
+  : monthlyInterestPayment * testParams.riskManagement.loanTermMonths
+
+// CORRECTED: Total loan cost includes principal + origination fee + total interest
+const totalLoanCost = currentLoanAmount + originationFee + totalInterestPayment
 
 console.log('✅ Test Parameters:')
 console.log(`   BTC Amount: ${testParams.btcAmount} BTC`)

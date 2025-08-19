@@ -29,7 +29,16 @@ console.log(`   Target LTV: ${testParams.riskManagement.targetLtv}%`)
 const totalStackValue = testParams.btcAmount * testParams.initialBtcPrice // $100,000
 const currentLoanAmount = (testParams.loanAmountPercent / 100) * totalStackValue // $10,000
 const originationFee = currentLoanAmount * 0.015 // 1.5% for Firefish = $150
-const totalLoanCost = currentLoanAmount + originationFee // $10,150
+
+// CORRECTED: Calculate total interest over loan term
+const monthlyInterestRate = testParams.riskManagement.annualInterestRate / 100 / 12
+const monthlyInterestPayment = currentLoanAmount * monthlyInterestRate
+const totalInterestPayment = testParams.riskManagement.loanTermMonths === Infinity
+  ? monthlyInterestPayment * 12
+  : monthlyInterestPayment * testParams.riskManagement.loanTermMonths
+
+// CORRECTED: Total loan cost includes principal + origination fee + total interest
+const totalLoanCost = currentLoanAmount + originationFee + totalInterestPayment
 
 // BTC locked as collateral calculation (exact formula from CollateralVisualizationCard)
 const btcLockedAsCollateral = totalLoanCost / (testParams.riskManagement.targetLtv / 100) / testParams.initialBtcPrice
@@ -106,7 +115,8 @@ console.log(`     Max Loan Capacity: $${strikeMaxLoanCapacity.toLocaleString()}`
 
 // Custom calculations (1.0% origination fee, 75% max initial LTV)
 const customOriginationFee = currentLoanAmount * 0.01 // 1.0% for Custom
-const customTotalLoanCost = currentLoanAmount + customOriginationFee
+// CORRECTED: Include interest for custom platform too
+const customTotalLoanCost = currentLoanAmount + customOriginationFee + totalInterestPayment
 const customBtcLocked = customTotalLoanCost / (testParams.riskManagement.targetLtv / 100) / testParams.initialBtcPrice
 const customMaxLoanCapacity = totalStackValue * (75 / 100) // 75% max initial LTV for Custom
 

@@ -116,14 +116,19 @@ export class ManualGrowthModel implements PriceProjectionModel {
 
     const annualGrowthRates = params.modelSpecificParams?.annualGrowthRates || []
     const projectionPoints: ProjectionPoint[] = []
+
+    // Start projection from today (current date) for future projections
     const startDate = new Date()
+
+    console.log(`📅 Manual Growth Model: Starting projection from ${startDate.toISOString().split('T')[0]} (current date)`)
+    console.log(`💰 Manual Growth Model: Starting price: $${params.startPrice.toLocaleString()}`)
 
     let currentPrice = params.startPrice
     
-    // Generate monthly projections
+    // Generate monthly projections starting from next month (future projections)
     for (let month = 1; month <= params.projectionMonths; month++) {
       const currentDate = new Date(startDate)
-      currentDate.setMonth(currentDate.getMonth() + month - 1)
+      currentDate.setMonth(currentDate.getMonth() + month) // Start from next month for future projections
       currentDate.setDate(15) // Mid-month for consistency
       
       // Get the annual growth rate for this month

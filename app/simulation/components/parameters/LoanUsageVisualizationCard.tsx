@@ -192,14 +192,14 @@ export function LoanUsageVisualizationCard() {
               <span className="text-sm font-medium text-green-600">
                 {metrics.availableCapacityPercentage.toFixed(1)}%
               </span>
-              <span className="text-sm">Available</span>
+              <span className="text-sm">Loan Available</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#ef4444" }}></div>
               <span className="text-sm font-medium text-red-600">
                 {metrics.loanUtilizationPercentage.toFixed(1)}%
               </span>
-              <span className="text-sm">Used</span>
+              <span className="text-sm">Loan Taken</span>
             </div>
           </div>
         )}

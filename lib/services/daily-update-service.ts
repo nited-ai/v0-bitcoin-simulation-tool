@@ -5,12 +5,17 @@
 
 import { PrismaClient } from '../generated/prisma'
 import { enhancedBitcoinApiService } from './bitcoin-api-service'
+import { bitcoinJsonGeneratorService, type JsonGenerationResult } from './bitcoin-json-generator-service'
+import { athService } from './ath-service'
 
 export interface UpdateResult {
   success: boolean
   recordsAdded: number
   gapsFilled: number
   currentPriceUpdated: boolean
+  jsonFilesRegenerated: boolean
+  athUpdated: boolean
+  jsonGenerationResult?: JsonGenerationResult
   errors: string[]
   duration: number
   nextUpdateTime?: Date
@@ -78,6 +83,8 @@ export class DailyUpdateService {
       recordsAdded: 0,
       gapsFilled: 0,
       currentPriceUpdated: false,
+      jsonFilesRegenerated: false,
+      athUpdated: false,
       errors: [],
       duration: 0
     }
@@ -108,18 +115,47 @@ export class DailyUpdateService {
         result.errors.push(currentPriceResult.error || 'Failed to update current price')
       }
 
+      // Step 3.5: Check and update ATH if needed
+      if (currentPriceResult.success && currentPriceResult.highPrice) {
+        console.log('🚀 Checking for new ATH...')
+        const athCheckResult = await this.checkAndUpdateATH(currentPriceResult.highPrice, currentPriceResult.date)
+        result.athUpdated = athCheckResult.updated
+        if (athCheckResult.error) {
+          result.errors.push(athCheckResult.error)
+        }
+      }
+
       result.recordsAdded = result.gapsFilled + (result.currentPriceUpdated ? 1 : 0)
 
-      // Step 4: Log the update operation
+      // Step 4: Regenerate JSON files if new data was added
+      if (result.recordsAdded > 0) {
+        console.log('📁 Regenerating JSON files with latest data...')
+        const jsonResult = await this.regenerateJsonFiles()
+        result.jsonFilesRegenerated = jsonResult.success
+        result.jsonGenerationResult = jsonResult
+
+        if (!jsonResult.success) {
+          result.errors.push(`JSON generation failed: ${jsonResult.error}`)
+          console.error('⚠️ JSON generation failed, but database update succeeded')
+        } else {
+          console.log(`✅ JSON files regenerated: ${jsonResult.filesGenerated.join(', ')}`)
+        }
+      } else {
+        console.log('📁 Skipping JSON regeneration (no new data added)')
+      }
+
+      // Step 5: Log the update operation
       await this.logUpdateOperation(result)
 
-      // Step 5: Schedule next update
+      // Step 6: Schedule next update
       this.scheduleNextUpdate()
 
       result.success = result.errors.length === 0
       result.duration = Date.now() - startTime
 
-      console.log(`✅ Daily update completed: ${result.recordsAdded} records added, ${result.errors.length} errors`)
+      const jsonStatus = result.jsonFilesRegenerated ? 'JSON files updated' : 'JSON files unchanged'
+      const athStatus = result.athUpdated ? 'ATH updated' : 'ATH unchanged'
+      console.log(`✅ Daily update completed: ${result.recordsAdded} records added, ${jsonStatus}, ${athStatus}, ${result.errors.length} errors`)
       return result
 
     } catch (error) {
@@ -188,7 +224,7 @@ export class DailyUpdateService {
   /**
    * Update current Bitcoin price
    */
-  private async updateCurrentPrice(): Promise<{ success: boolean; error?: string }> {
+  private async updateCurrentPrice(): Promise<{ success: boolean; error?: string; highPrice?: number; date?: string }> {
     try {
       const currentPriceResponse = await enhancedBitcoinApiService.fetchCurrentPrice()
 
@@ -204,13 +240,16 @@ export class DailyUpdateService {
         where: { date: today }
       })
 
+      let highPrice: number
+
       if (existingToday) {
         // Update existing record with latest price
+        highPrice = Math.max(existingToday.high, currentPrice.close)
         await this.prisma.bitcoinPrice.update({
           where: { date: today },
           data: {
             close: currentPrice.close,
-            high: Math.max(existingToday.high, currentPrice.close),
+            high: highPrice,
             low: Math.min(existingToday.low, currentPrice.close),
             volume: currentPrice.volume,
             source: currentPriceResponse.source,
@@ -219,12 +258,13 @@ export class DailyUpdateService {
         })
       } else {
         // Create new record for today
+        highPrice = currentPrice.close
         await this.prisma.bitcoinPrice.create({
           data: {
             date: today,
             timestamp: currentPrice.timestamp,
             open: currentPrice.close, // Use current price as open for today
-            high: currentPrice.close,
+            high: highPrice,
             low: currentPrice.close,
             close: currentPrice.close,
             volume: currentPrice.volume,
@@ -233,11 +273,78 @@ export class DailyUpdateService {
         })
       }
 
-      return { success: true }
+      return { success: true, highPrice, date: today }
 
     } catch (error) {
       console.error('❌ Error updating current price:', error)
       return { success: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  }
+
+  /**
+   * Check if current price is a new ATH and update ATH JSON file if needed
+   */
+  private async checkAndUpdateATH(currentHighPrice: number, date: string): Promise<{ updated: boolean; error?: string }> {
+    try {
+      // Check if this is a new ATH
+      const isNewATH = await athService.checkAndUpdateATH(currentHighPrice)
+
+      if (isNewATH) {
+        console.log(`🎉 New ATH detected! Updating ATH JSON file: $${currentHighPrice} on ${date}`)
+
+        // Update the ATH JSON file
+        const updateSuccess = await this.updateATHJsonFile(currentHighPrice, date)
+
+        if (updateSuccess) {
+          console.log('✅ ATH JSON file updated successfully')
+          return { updated: true }
+        } else {
+          return { updated: false, error: 'Failed to update ATH JSON file' }
+        }
+      } else {
+        console.log(`📊 Current high price $${currentHighPrice} is not a new ATH`)
+        return { updated: false }
+      }
+
+    } catch (error) {
+      console.error('❌ Error checking/updating ATH:', error)
+      return { updated: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  }
+
+  /**
+   * Update the ATH JSON file with new ATH data
+   */
+  private async updateATHJsonFile(newATHValue: number, date: string): Promise<boolean> {
+    try {
+      const fs = await import('fs/promises')
+      const path = await import('path')
+
+      const athFilePath = path.join(process.cwd(), 'public', 'data', 'bitcoin', 'ath.json')
+
+      const athData = {
+        meta: {
+          lastUpdated: new Date().toISOString(),
+          source: 'daily_update_service',
+          version: '1.0.0',
+          description: 'Bitcoin All-Time High (ATH) data - automatically updated when new highs are detected'
+        },
+        ath: {
+          value: newATHValue,
+          date: date,
+          timestamp: new Date(date).getTime(),
+          source: 'daily_price_update'
+        }
+      }
+
+      await fs.writeFile(athFilePath, JSON.stringify(athData, null, 2), 'utf8')
+      console.log(`📁 ATH JSON file updated: $${newATHValue} on ${date}`)
+
+      return true
+
+    } catch (error) {
+      console.error('❌ Error updating ATH JSON file:', error)
+      return false
     }
   }
 
@@ -258,6 +365,37 @@ export class DailyUpdateService {
       })
     } catch (error) {
       console.error('❌ Failed to log update operation:', error)
+    }
+  }
+
+  /**
+   * Regenerate JSON files with latest database data
+   */
+  private async regenerateJsonFiles(): Promise<JsonGenerationResult> {
+    try {
+      console.log('🔄 Starting JSON file regeneration...')
+      const result = await bitcoinJsonGeneratorService.generateJsonFiles()
+
+      if (result.success) {
+        console.log(`✅ JSON regeneration completed: ${result.filesGenerated.length} files, ${result.recordsProcessed} records processed`)
+      } else {
+        console.error(`❌ JSON regeneration failed: ${result.error}`)
+      }
+
+      return result
+
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error)
+      console.error('❌ JSON regeneration error:', error)
+
+      return {
+        success: false,
+        filesGenerated: [],
+        recordsProcessed: 0,
+        dateRange: { startDate: '', endDate: '' },
+        duration: 0,
+        error: errorMsg
+      }
     }
   }
 

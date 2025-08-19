@@ -206,17 +206,18 @@ export function CollateralVisualizationCard() {
                   maximumFractionDigits: 0
                 })}
               </span>
-              <span className="text-sm">Free</span>
+              <span className="text-sm">Free Collateral</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#ef4444" }}></div>
+              <span className="text-sm">Locked Collateral</span>
               <span className="text-sm font-medium text-red-600">
                 ${(metrics.btcLockedAsCollateral * params.initialBtcPrice).toLocaleString('en-US', {
                   minimumFractionDigits: 0,
                   maximumFractionDigits: 0
                 })}
               </span>
-              <span className="text-sm">Locked</span>
+              
             </div>
           </div>
         )}

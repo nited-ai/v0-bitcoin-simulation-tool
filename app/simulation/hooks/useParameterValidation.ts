@@ -269,15 +269,26 @@ export function useParameterValidation(params: SimulationParams): ValidationResu
       })
     }
 
-    // Collateral Sufficiency Validation
+    // Collateral Sufficiency Validation - FIXED to use totalLoanCost
     const currentLoanAmount = calculatedLoanAmount
-    const btcLockedAsCollateral = currentLoanAmount / (params.riskManagement.targetLtv / 100) / params.initialBtcPrice
+    const originationFee = currentLoanAmount * (platformConfig.originationFeePercent / 100)
+
+    // Calculate total interest over loan term
+    const monthlyInterestRate = params.annualInterestRate / 100 / 12
+    const monthlyInterestPayment = currentLoanAmount * monthlyInterestRate
+    const totalInterestPayment = params.loanTermMonths === Infinity
+      ? monthlyInterestPayment * 12
+      : monthlyInterestPayment * params.loanTermMonths
+
+    // CORRECTED: Use total loan cost (principal + origination fee + total interest)
+    const totalLoanCost = currentLoanAmount + originationFee + totalInterestPayment
+    const btcLockedAsCollateral = totalLoanCost / (params.riskManagement.targetLtv / 100) / params.initialBtcPrice
 
     if (btcLockedAsCollateral > params.btcAmount) {
       const shortfall = btcLockedAsCollateral - params.btcAmount
       errors.push({
         field: "collateralSufficiency",
-        message: `Insufficient collateral: Need ${btcLockedAsCollateral.toFixed(4)} BTC but only have ${params.btcAmount.toFixed(4)} BTC available (shortfall: ${shortfall.toFixed(4)} BTC)`,
+        message: `Insufficient collateral: Need ${btcLockedAsCollateral.toFixed(4)} BTC but only have ${params.btcAmount.toFixed(4)} BTC available (shortfall: ${shortfall.toFixed(4)} BTC). Total loan cost: $${totalLoanCost.toLocaleString()} (includes $${totalInterestPayment.toFixed(0)} interest over ${params.loanTermMonths === Infinity ? 'infinite' : params.loanTermMonths} months)`,
         severity: "error"
       })
     }

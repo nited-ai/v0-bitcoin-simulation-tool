@@ -61,26 +61,15 @@ export function useCentralizedData(enabled: boolean = false): UseCentralizedData
     setInitialDataLoaded,
   } = useSimulation()
 
-  console.log(`🔍 useCentralizedData: Hook called with enabled=${enabled}`)
-
   // Local state for data service state
   const [dataServiceState, setDataServiceState] = useState<DataServiceState>(() => {
     const initialState = centralizedDataService.getState()
-    console.log(`🔍 useCentralizedData: Initial state - histLen=${initialState.historicalData.length}, isLoaded=${initialState.isHistoricalDataLoaded}`)
     return initialState
   })
-
-  // Test useEffect to see if it works at all
-  useEffect(() => {
-    console.log('🧪 TEST: useEffect is working!')
-  }, [])
   
   // Subscribe to data service state changes
   useEffect(() => {
-    console.log('🔗 useCentralizedData: Setting up subscription')
-
     const unsubscribe = centralizedDataService.subscribe((state: DataServiceState) => {
-      console.log(`📡 useCentralizedData: Received state update - histLen=${state.historicalData.length}, isLoaded=${state.isHistoricalDataLoaded}`)
       setDataServiceState(state)
       
       // Update simulation context with new data
@@ -125,7 +114,6 @@ export function useCentralizedData(enabled: boolean = false): UseCentralizedData
 
     const initializeDataService = async () => {
       try {
-        console.log('🚀 Initializing centralized data service from hook...')
         await centralizedDataService.initialize()
       } catch (error) {
         console.error('❌ Failed to initialize data service:', error)

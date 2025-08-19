@@ -1,14 +1,17 @@
 "use client"
 
-
+import { useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
-import { RefreshCw, Info, Bitcoin, DollarSign } from "lucide-react"
+import { RefreshCw, Info, Bitcoin, DollarSign, Banknote, CreditCard } from "lucide-react"
 import { useSimulation } from "../../context/SimulationContext"
 import { centralizedDataService } from "@/lib/services/centralized-data-service"
 import { NumberInput } from "@/shared/ui/forms/NumberInput"
+import { CollateralSummaryCard } from "./CollateralSummaryCard"
+import { useLoanCalculations } from "../../hooks/useCalculationsIntegration"
+import { CalculationsErrorBoundary } from "./CalculationsErrorBoundary"
 
 /**
  * Basic Parameters Card Component
@@ -23,6 +26,14 @@ export function BasicParametersCard() {
     loadingBtcPrice,
     setLoadingBtcPrice
   } = useSimulation()
+
+  // Use centralized loan calculations through integration hook
+  const loanData = useLoanCalculations()
+
+  // Get max loan capacity from centralized calculations
+  const maxLoanCapacity = useMemo(() => {
+    return loanData?.initialMaxLoanCapacity || 0
+  }, [loanData])
 
   // BTC accumulation state and handlers moved to Strategy tab
 
@@ -53,13 +64,14 @@ export function BasicParametersCard() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Bitcoin className="w-5 h-5 text-orange-500" />
-          Basic Parameters
-        </CardTitle>
-      </CardHeader>
+    <CalculationsErrorBoundary>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Bitcoin className="w-5 h-5 text-orange-500" />
+            Basic Parameters
+          </CardTitle>
+        </CardHeader>
 
       <CardContent className="space-y-6">
         {/* Two-column layout: Input fields on left, Collateral value summary on right */}
@@ -133,37 +145,52 @@ export function BasicParametersCard() {
             </div>
           </div>
 
-          {/* Right Column: Collateral Value Summary Card */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2">
-              <Bitcoin className="w-4 h-4 text-orange-500" />
-              Total Collateral Value
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Total value of your BTC stack available as collateral</p>
-                  <p>Formula: BTC Amount × Initial BTC Price</p>
-                </TooltipContent>
-              </Tooltip>
-            </Label>
-            <div className="p-6 bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-200 rounded-lg">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-orange-600 mb-2">
-                  {new Intl.NumberFormat('en-US', {
-                    style: 'currency',
-                    currency: 'USD',
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 0,
-                  }).format(params.btcAmount * params.initialBtcPrice)}
-                </div>
-                <div className="text-sm text-muted-foreground mb-1">
-                  {params.btcAmount.toFixed(4)} BTC × ${params.initialBtcPrice.toLocaleString()}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  Available for loan collateral
-                </div>
+          {/* Right Column: Total Fiat Value and Max Loan Amount */}
+          <div className="space-y-6">
+            {/* Total Fiat Value */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Banknote className="w-4 h-4 text-orange-500" />
+                Total Fiat Value
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Total fiat value of your BTC stack available as collateral</p>
+                    <p>Formula: BTC Amount × Initial BTC Price</p>
+                  </TooltipContent>
+                </Tooltip>
+              </Label>
+              <CollateralSummaryCard
+                btcAmount={params.btcAmount}
+                initialBtcPrice={params.initialBtcPrice}
+                className="p-0 border-none bg-transparent"
+              />
+            </div>
+
+            {/* Max Loan Amount */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-orange-500" />
+                Max Loan Amount
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Maximum loan amount available on selected platform</p>
+                    <p>Formula: (BTC Amount × Price) × Platform Max LTV</p>
+                  </TooltipContent>
+                </Tooltip>
+              </Label>
+              <div className="text-4xl font-bold text-orange-600">
+                {new Intl.NumberFormat('en-US', {
+                  style: 'currency',
+                  currency: 'USD',
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
+                }).format(maxLoanCapacity)}
               </div>
             </div>
           </div>
@@ -174,5 +201,6 @@ export function BasicParametersCard() {
 
       </CardContent>
     </Card>
+    </CalculationsErrorBoundary>
   )
 }

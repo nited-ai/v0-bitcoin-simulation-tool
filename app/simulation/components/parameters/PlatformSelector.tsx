@@ -7,7 +7,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { Fish, Zap, Info, Settings, ExternalLink, Edit, Save, X, ChevronDown, Plus, Trash2 } from "lucide-react"
+import { Fish, Zap, Info, Settings, ExternalLink, Edit, Save, X, ChevronDown, Plus, Trash2, Building2 } from "lucide-react"
 import { NumberInput } from "@/shared/ui/forms/NumberInput"
 import { useState, useEffect } from "react"
 import { useSimulation } from "../../context/SimulationContext"
@@ -19,6 +19,20 @@ interface PlatformOption {
   name: string
   description: string
   icon: React.ReactNode
+  badge: string
+  badgeClassName: string
+  features: string[]
+  disabled?: boolean
+  url?: string
+  isCustom?: boolean
+  createdAt?: number
+}
+
+interface SerializablePlatformOption {
+  id: Platform | "custom" | string
+  name: string
+  description: string
+  iconType: string // Store icon type as string instead of React element
   badge: string
   badgeClassName: string
   features: string[]
@@ -53,10 +67,43 @@ export function PlatformSelector() {
   const [customPlatformName, setCustomPlatformName] = useState<string>('')
   const [customPlatformDescription, setCustomPlatformDescription] = useState<string>('')
 
+  // Helper function to get icon component by type
+  const getIconComponent = (iconType: string): React.ReactNode => {
+    switch (iconType) {
+      case 'settings':
+        return <Settings className="w-5 h-5" />
+      case 'fish':
+        return <Fish className="w-5 h-5" />
+      case 'zap':
+        return <Zap className="w-5 h-5" />
+      case 'plus':
+        return <Plus className="w-5 h-5" />
+      default:
+        return <Settings className="w-5 h-5" />
+    }
+  }
+
+  // Convert PlatformOption to SerializablePlatformOption for storage
+  const toSerializable = (platform: PlatformOption): SerializablePlatformOption => {
+    return {
+      ...platform,
+      iconType: 'settings' // Default to settings icon for custom platforms
+    }
+  }
+
+  // Convert SerializablePlatformOption to PlatformOption for rendering
+  const fromSerializable = (serializable: SerializablePlatformOption): PlatformOption => {
+    return {
+      ...serializable,
+      icon: getIconComponent(serializable.iconType)
+    }
+  }
+
   // localStorage utility functions
   const saveCustomPlatforms = (platforms: PlatformOption[]) => {
     try {
-      localStorage.setItem('customPlatforms', JSON.stringify(platforms))
+      const serializable = platforms.map(toSerializable)
+      localStorage.setItem('customPlatforms', JSON.stringify(serializable))
     } catch (error) {
       console.error('Failed to save custom platforms:', error)
     }
@@ -65,7 +112,9 @@ export function PlatformSelector() {
   const loadCustomPlatforms = (): PlatformOption[] => {
     try {
       const saved = localStorage.getItem('customPlatforms')
-      return saved ? JSON.parse(saved) : []
+      if (!saved) return []
+      const serializable: SerializablePlatformOption[] = JSON.parse(saved)
+      return serializable.map(fromSerializable)
     } catch (error) {
       console.error('Failed to load custom platforms:', error)
       return []
@@ -93,8 +142,8 @@ export function PlatformSelector() {
       name: "Strike",
       description: "Lightning-fast loans with instant approval",
       icon: <Zap className="w-5 h-5" />,
-      badge: "High LTV",
-      badgeClassName: "border-transparent bg-yellow-500 text-white hover:bg-yellow-600",
+      badge: "Low Rates",
+      badgeClassName: "border-transparent bg-green-500 text-white hover:bg-green-600",
       features: [],
       url: "https://strike.me/lending/"
     },
@@ -158,17 +207,19 @@ export function PlatformSelector() {
     setEditingPlatform(platformId)
 
     if (platformId === "custom") {
-      // Initialize for custom platform creation
-      setCustomPlatformName('')
-      setCustomPlatformDescription('')
-      setEditValues({
-        originationFeePercent: 1.0,
-        liquidationLtv: 95,
-        liquidationFeePercent: 3.0,
-        maxInitialLtv: 70,
-        availableLoanTerms: [6, 12, 24, 'infinity'] as (number | 'infinity')[]
-      })
-      setLoanTermsInput('6, 12, 24, infinity')
+      // Initialize for custom platform creation only if not already editing
+      if (editingPlatform !== "custom") {
+        setCustomPlatformName('')
+        setCustomPlatformDescription('')
+        setEditValues({
+          originationFeePercent: 1.0,
+          liquidationLtv: 95,
+          liquidationFeePercent: 3.0,
+          maxInitialLtv: 70,
+          availableLoanTerms: [6, 12, 24, 'infinity'] as (number | 'infinity')[]
+        })
+        setLoanTermsInput('6, 12, 24, infinity')
+      }
     } else {
       // Initialize edit values with current platform config
       const currentConfig = params.platformConfigs[platformId] || {}
@@ -209,7 +260,7 @@ export function PlatformSelector() {
         id: newPlatformId,
         name: customPlatformName,
         description: customPlatformDescription || `Custom platform: ${customPlatformName}`,
-        icon: <Settings className="w-5 h-5" />,
+        icon: getIconComponent('settings'),
         badge: "Custom",
         badgeClassName: "border-transparent bg-purple-500 text-white hover:bg-purple-600",
         features: [],
@@ -277,13 +328,16 @@ export function PlatformSelector() {
     e.stopPropagation()
     setEditingPlatform(null)
     setEditValues({})
+    // Only reset custom platform fields when explicitly canceling
+    setCustomPlatformName('')
+    setCustomPlatformDescription('')
   }
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Fish className="w-5 h-5 text-primary" />
+          <Building2 className="w-5 h-5 text-primary" />
           Lending Platform
         </CardTitle>
       </CardHeader>
@@ -308,9 +362,12 @@ export function PlatformSelector() {
                   if (platform.id === "custom") {
                     // Open edit mode for custom platform creation
                     setEditingPlatform("custom")
-                    setCustomPlatformName('')
-                    setCustomPlatformDescription('')
-                    setEditValues({})
+                    // Only reset if not already editing custom platform
+                    if (editingPlatform !== "custom") {
+                      setCustomPlatformName('')
+                      setCustomPlatformDescription('')
+                      setEditValues({})
+                    }
                   } else {
                     handlePlatformChange(platform.id as Platform)
                   }
@@ -330,16 +387,26 @@ export function PlatformSelector() {
                   {isSelected && (
                     <div className="w-2 h-2 bg-primary rounded-full ml-auto" />
                   )}
-                  {/* Edit Button */}
+                  {/* Edit/Info Button */}
                   {!platform.disabled && (
                     <Button
                       variant="ghost"
                       size="sm"
                       className="ml-auto h-6 w-6 p-0"
                       onClick={(e) => handleEditPlatform(e, platform.id as string)}
-                      title={platform.id === "custom" ? "Create custom platform" : `Edit ${platform.name} settings`}
+                      title={
+                        platform.id === "custom"
+                          ? "Create custom platform"
+                          : platform.isCustom
+                            ? `Edit ${platform.name} settings`
+                            : `View ${platform.name} parameters`
+                      }
                     >
-                      <Edit className="h-3 w-3" />
+                      {platform.id === "custom" || platform.isCustom ? (
+                        <Edit className="h-3 w-3" />
+                      ) : (
+                        <Info className="h-3 w-3" />
+                      )}
                     </Button>
                   )}
 
@@ -371,28 +438,48 @@ export function PlatformSelector() {
                     <div className="space-y-3">
                       <div className="flex items-center justify-between mb-2">
                         <h4 className="text-sm font-medium">
-                          {platform.id === "custom" ? "Create Custom Platform" : "Edit Platform Settings"}
+                          {platform.id === "custom"
+                            ? "Create Custom Platform"
+                            : platform.isCustom
+                              ? "Edit Platform Settings"
+                              : "Platform Parameters"
+                          }
                         </h4>
-                        <div className="flex gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 w-6 p-0"
-                            onClick={(e) => handleSavePlatformEdit(e, platform.id as string)}
-                            title="Save changes"
-                          >
-                            <Save className="h-3 w-3 text-green-600" />
-                          </Button>
+                        {/* Only show Save/Cancel buttons for custom platforms */}
+                        {(platform.id === "custom" || platform.isCustom) && (
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0"
+                              onClick={(e) => handleSavePlatformEdit(e, platform.id as string)}
+                              title="Save changes"
+                            >
+                              <Save className="h-3 w-3 text-green-600" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0"
+                              onClick={handleCancelPlatformEdit}
+                              title="Cancel editing"
+                            >
+                              <X className="h-3 w-3 text-red-600" />
+                            </Button>
+                          </div>
+                        )}
+                        {/* Close button for info-only dialogs */}
+                        {!(platform.id === "custom" || platform.isCustom) && (
                           <Button
                             variant="ghost"
                             size="sm"
                             className="h-6 w-6 p-0"
                             onClick={handleCancelPlatformEdit}
-                            title="Cancel editing"
+                            title="Close"
                           >
-                            <X className="h-3 w-3 text-red-600" />
+                            <X className="h-3 w-3 text-muted-foreground" />
                           </Button>
-                        </div>
+                        )}
                       </div>
 
                       {/* Editable Parameters */}
@@ -443,6 +530,7 @@ export function PlatformSelector() {
                             max={10}
                             step={0.1}
                             className="h-7 text-xs"
+                            disabled={!(platform.id === "custom" || platform.isCustom)}
                           />
                         </div>
                         <div>
@@ -454,6 +542,7 @@ export function PlatformSelector() {
                             max={100}
                             step={1}
                             className="h-7 text-xs"
+                            disabled={!(platform.id === "custom" || platform.isCustom)}
                           />
                         </div>
                         <div>
@@ -465,6 +554,7 @@ export function PlatformSelector() {
                             max={20}
                             step={0.1}
                             className="h-7 text-xs"
+                            disabled={!(platform.id === "custom" || platform.isCustom)}
                           />
                         </div>
                         <div>
@@ -476,6 +566,7 @@ export function PlatformSelector() {
                             max={95}
                             step={1}
                             className="h-7 text-xs"
+                            disabled={!(platform.id === "custom" || platform.isCustom)}
                           />
                         </div>
                         <div>
@@ -500,10 +591,15 @@ export function PlatformSelector() {
                             }}
                             placeholder="6, 12, 24, infinity"
                             className="h-7 text-xs"
+                            disabled={!(platform.id === "custom" || platform.isCustom)}
+                            readOnly={!(platform.id === "custom" || platform.isCustom)}
                           />
-                          <div className="text-xs text-muted-foreground mt-1">
-                            Enter loan terms separated by commas (e.g., "6, 12, 24, infinity")
-                          </div>
+                          {/* Only show helper text for custom platforms */}
+                          {(platform.id === "custom" || platform.isCustom) && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              Enter loan terms separated by commas (e.g., "6, 12, 24, infinity")
+                            </div>
+                          )}
                         </div>
 
                       </div>
