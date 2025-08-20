@@ -7,10 +7,10 @@ import { Slider } from '@/components/ui/slider'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import {
-  TrendingDown,
-  Info,
-  Settings,
+import { 
+  TrendingDown, 
+  Info, 
+  Settings, 
   Zap,
   Target,
   RotateCcw,
@@ -189,9 +189,9 @@ export function DiminishingReturnsControls({ className }: DiminishingReturnsCont
     const baseGrowth = 100 // Base 100% annual growth
     const diminishingEffect = customParams.diminishingFactor * 0.6
     const cycleEffect = customParams.cycleDegradation * 0.4
-
+    
     const adjustedGrowth = baseGrowth * (1 - diminishingEffect - cycleEffect)
-
+    
     return {
       firstCycleGrowth: Math.max(10, adjustedGrowth),
       secondCycleGrowth: Math.max(5, adjustedGrowth * (1 - customParams.cycleDegradation)),
@@ -223,7 +223,7 @@ export function DiminishingReturnsControls({ className }: DiminishingReturnsCont
           {/* Risk Level Preset Selection - Card-based like Parameters tab */}
           <div className="space-y-4">
             <Label className="text-base font-medium">Risk Level Presets</Label>
-
+            
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {Object.entries(PRESETS).map(([key, preset]) => {
                 const Icon = preset.icon
@@ -268,7 +268,7 @@ export function DiminishingReturnsControls({ className }: DiminishingReturnsCont
                   </div>
                 )
               })}
-
+              
               {/* Custom Option */}
               <div
                 className={`relative p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
@@ -327,7 +327,8 @@ export function DiminishingReturnsControls({ className }: DiminishingReturnsCont
                   >
                     <RotateCcw className="w-4 h-4" />
                     Reset
-                </Button>
+                  </Button>
+                </div>
               </div>
 
               {/* Two Key Parameters */}
