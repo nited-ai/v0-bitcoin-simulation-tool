@@ -433,6 +433,7 @@ export function DiminishingReturnsControls({ className }: DiminishingReturnsCont
                 The two key parameters above control how these movements are modified to account for market maturation over time.
               </p>
             </div>
+          </div>
         </CardContent>
       </Card>
     </div>
