@@ -1,50 +1,154 @@
-﻿  I need to implement a comprehensive Curve Controls feature for the Enhanced Cycle Repeat Model in `app\simulation\price-models\models\EnhancedCycleRepeatModel.ts`. Please implement the following changes in the specified priority order:  **PRIORITY 1: Curve Type Selection System** Add a new curve type selector with four mathematical projection methods:  1. **Logarithmic Curve** (Pure Cycle Repeat): Apply historical percentage movements exactly as extracted from 4 years ago - this maintains the current working implementation 2. **Linear Curve**: Transform historical movements to create steady, consistent growth rate over the projection period 3. **S-Curve (Sigmoid)**: Apply sigmoid transformation to historical movements - slow growth initially, then accelerating, then tapering 4. **Exponential Curve**: Apply exponential transformation to historical movements for accelerating compound growth  **Technical Requirements:** - All curves MUST start from the firsthistorical price we have (2013) and end with the last date of the price projection lengh. - Each curve type applies a different mathematical transformation to these base movements  **PRIORITY 2: Multi-Curve Chart Visualization** Implement simultaneous display of multiple curve projections: - Each curve type gets a distinct color (Logarithmic: blue, Linear: green, S-Curve: orange, Exponential: red) - Toggle system allowing users to show/hide individual curves - All enabled curves display simultaneously on the same chart for comparison - Maintain existing chart functionality (zoom, pan, legend)  **PRIORITY 3: Preset System Clarification** Correct the preset hierarchy (implement after curve types): - **Optimistic**: Pure cycle repeat (Logarithmic curve with minimal curve controls) - **Moderate**: Balanced approach with moderate curve adjustments - **Conservative**: Strong curve dampening effects - **Moonshots**: Most aggressive/bullish with growth-enhancing parameters (not pure repeat)  **PRIORITY 4: Parameter Integration** Define how existing Curve Controls parameters affect each curve type: - Market Maturity Impact: How does this modify Linear vs Exponential transformations? - Institutional Saturation: Different effects on S-Curve vs Logarithmic projections? - Cycle Evolution Rate: How does this interact with mathematical curve transformations?  **Context Notes:** - The current implementation successfully extracts 208 weekly movements and repeats them over 624 weeks - The diminishing returns system is working but needs reframing as "Curve Controls" - User mentioned a logarithmic function screenshot and Reddit post for reference (not provided in context) - Maintain backward compatibility with existing sessionStorage parameter system  **Implementation Order:** 1. First implement the four curve type mathematical transformations 2. Then add multi-curve chart display capability   3. Then update preset system with corrected hierarchy 4. Finally integrate curve controls parameters with each curve type  Please start with Priority 1 (Curve Type Selection) and ask for clarification on the mathematical transformations before proceeding to chart visualization.I need to implement a comprehensive Curve Controls feature for the Enhanced Cycle Repeat Model in `app\simulation\price-models\models\EnhancedCycleRepeatModel.ts`. Please implement the following changes in the specified priority order:
+﻿import type {
+  PriceProjectionModel,
+  ProjectionParams,
+  ProjectionResult,
+  ProjectionPoint,
+  HistoricalDataPoint
+} from '../types'
 
-**PRIORITY 1: Curve Type Selection System**
-Add a new curve type selector with four mathematical projection methods:
+// Enhanced Cycle Repeat Model parameters
+export interface EnhancedCycleRepeatParams {
+  diminishingFactor: number    // 0-1, how much returns diminish over time
+  cycleDegradation: number     // 0-0.5, how much each cycle weakens
+}
 
-1. **Logarithmic Curve** (Pure Cycle Repeat): Apply historical percentage movements exactly as extracted from 4 years ago - this maintains the current working implementation
-2. **Linear Curve**: Transform historical movements to create steady, consistent growth rate over the projection period
-3. **S-Curve (Sigmoid)**: Apply sigmoid transformation to historical movements - slow growth initially, then accelerating, then tapering
-4. **Exponential Curve**: Apply exponential transformation to historical movements for accelerating compound growth
+/**
+ * Enhanced Cycle Repeat Model
+ * Applies historical Bitcoin price movements from exactly 4 years ago with economic maturation theory
+ */
+export class EnhancedCycleRepeatModel implements PriceProjectionModel {
+  readonly name = "Enhanced Cycle Repeat Model"
+  readonly version = "2.0.0"
+  readonly description = "Advanced Bitcoin price prediction with economic maturation theory"
 
-**Technical Requirements:**
-- All curves MUST start from the firsthistorical price we have (2013) and end with the last date of the price projection lengh.
-- Each curve type applies a different mathematical transformation to these base movements
+  /**
+   * Validate model-specific parameters
+   */
+  validateParams(params: ProjectionParams): boolean {
+    const modelParams = params.modelSpecificParams?.enhancedCycleRepeat
+    if (!modelParams) return false
 
-**PRIORITY 2: Multi-Curve Chart Visualization**
-Implement simultaneous display of multiple curve projections:
-- Each curve type gets a distinct color (Logarithmic: blue, Linear: green, S-Curve: orange, Exponential: red)
-- Toggle system allowing users to show/hide individual curves
-- All enabled curves display simultaneously on the same chart for comparison
-- Maintain existing chart functionality (zoom, pan, legend)
+    return (
+      typeof modelParams.diminishingFactor === 'number' &&
+      modelParams.diminishingFactor >= 0 &&
+      modelParams.diminishingFactor <= 1 &&
+      typeof modelParams.cycleDegradation === 'number' &&
+      modelParams.cycleDegradation >= 0 &&
+      modelParams.cycleDegradation <= 0.5
+    )
+  }
 
-**PRIORITY 3: Preset System Clarification**
-Correct the preset hierarchy (implement after curve types):
-- **Optimistic**: Pure cycle repeat (Logarithmic curve with minimal curve controls)
-- **Moderate**: Balanced approach with moderate curve adjustments
-- **Conservative**: Strong curve dampening effects
-- **Moonshots**: Most aggressive/bullish with growth-enhancing parameters (not pure repeat)
+  /**
+   * Get default parameters for this model
+   */
+  getDefaultParams(): EnhancedCycleRepeatParams {
+    return {
+      diminishingFactor: 0.2,  // 20% diminishing returns (Optimistic default)
+      cycleDegradation: 0.05   // 5% cycle degradation
+    }
+  }
 
-**PRIORITY 4: Parameter Integration**
-Define how existing Curve Controls parameters affect each curve type:
-- Market Maturity Impact: How does this modify Linear vs Exponential transformations?
-- Institutional Saturation: Different effects on S-Curve vs Logarithmic projections?
-- Cycle Evolution Rate: How does this interact with mathematical curve transformations?
+  /**
+   * Generate price projection using enhanced cycle repeat methodology
+   */
+  async generateProjection(
+    historicalData: HistoricalDataPoint[],
+    params: ProjectionParams
+  ): Promise<ProjectionResult> {
+    if (!this.validateParams(params)) {
+      throw new Error('Invalid parameters for Enhanced Cycle Repeat Model')
+    }
 
-**Context Notes:**
-- The current implementation successfully extracts 208 weekly movements and repeats them over 624 weeks
-- The diminishing returns system is working but needs reframing as "Curve Controls"
-- User mentioned a logarithmic function screenshot and Reddit post for reference (not provided in context)
-- Maintain backward compatibility with existing sessionStorage parameter system
+    const modelParams = params.modelSpecificParams?.enhancedCycleRepeat || this.getDefaultParams()
 
-**Implementation Order:**
-1. First implement the four curve type mathematical transformations
-2. Then add multi-curve chart display capability  
-3. Then update preset system with corrected hierarchy
-4. Finally integrate curve controls parameters with each curve type
+    // Extract historical movements from exactly 4 years ago (1460 days)
+    const historicalMovements = this.extractHistoricalMovements(historicalData)
 
-Please start with Priority 1 (Curve Type Selection) and ask for clarification on the mathematical transformations before proceeding to chart visualization.
+    if (historicalMovements.length === 0) {
+      throw new Error('Insufficient historical data for Enhanced Cycle Repeat Model')
+    }
 
-Create the specs and tasks following  @.augment/rules/create-spec.md  rules and execute following the guidlines from @.augment/rules/execute-tasks.md 
+    // Generate monthly projection points
+    const projectionPoints: ProjectionPoint[] = []
+    const startDate = new Date()
+    let runningPrice = params.startPrice
 
+    for (let month = 1; month <= params.projectionMonths; month++) {
+      const currentDate = new Date(startDate)
+      currentDate.setMonth(currentDate.getMonth() + month - 1)
+      currentDate.setDate(15) // Mid-month for consistency
+
+      // Calculate days in this month (approximately 30.44 days per month)
+      const daysInThisMonth = Math.round(365.25 / 12)
+
+      // Apply movements for this month with diminishing returns and cycle degradation
+      for (let dayInMonth = 0; dayInMonth < daysInThisMonth; dayInMonth++) {
+        const totalDayIndex = (month - 1) * daysInThisMonth + dayInMonth
+        const movementIndex = totalDayIndex % historicalMovements.length
+        const originalMovement = historicalMovements[movementIndex]
+
+        // Apply diminishing returns and cycle degradation
+        const timeProgress = totalDayIndex / (params.projectionMonths * daysInThisMonth)
+        const diminishingEffect = 1 - (modelParams.diminishingFactor * timeProgress)
+        const cycleEffect = 1 - (modelParams.cycleDegradation * Math.floor(totalDayIndex / 1460))
+
+        // Transform the movement
+        const transformedMovement = 1 + ((originalMovement - 1) * diminishingEffect * cycleEffect)
+
+        // Apply to running price
+        runningPrice *= transformedMovement
+      }
+
+      // Create projection point
+      projectionPoints.push({
+        price: Math.round(runningPrice),
+        timestamp: currentDate.getTime(),
+        confidence: Math.max(0.1, 1 - (month / params.projectionMonths) * 0.9)
+      })
+    }
+
+    // Calculate metadata
+    const totalGrowth = ((runningPrice - params.startPrice) / params.startPrice) * 100
+    const averageMonthlyGrowth = totalGrowth / params.projectionMonths
+
+    return {
+      projectionPoints,
+      metadata: {
+        totalMonths: params.projectionMonths,
+        totalGrowth,
+        averageMonthlyGrowth,
+        confidence: 0.8,
+        generatedAt: Date.now(),
+        modelName: this.name,
+        modelVersion: this.version,
+        historicalMovementsCount: historicalMovements.length,
+        diminishingFactor: modelParams.diminishingFactor,
+        cycleDegradation: modelParams.cycleDegradation
+      }
+    }
+  }
+
+  /**
+   * Extract historical price movements from exactly 4 years ago (1460 days)
+   */
+  private extractHistoricalMovements(historicalData: HistoricalDataPoint[]): number[] {
+    if (!historicalData || historicalData.length < 1460) {
+      return []
+    }
+
+    const movements: number[] = []
+    const startIndex = historicalData.length - 1460 // Start from 1460 days ago
+
+    for (let i = startIndex; i < historicalData.length - 1; i++) {
+      const currentPrice = historicalData[i].close
+      const nextPrice = historicalData[i + 1].close
+
+      if (currentPrice > 0 && nextPrice > 0) {
+        const movement = nextPrice / currentPrice
+        movements.push(movement)
+      }
+    }
+
+    return movements
+  }
+}
