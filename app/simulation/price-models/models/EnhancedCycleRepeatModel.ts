@@ -1,10 +1,10 @@
 ﻿import type {
   PriceProjectionModel,
-  ProjectionParams,
-  ProjectionResult,
-  ProjectionPoint,
-  HistoricalDataPoint
+  PriceModelParams,
+  PriceProjectionResult,
+  ProjectionPoint
 } from '../types'
+import type { HistoricalDataPoint } from '@/lib/services/centralized-data-service'
 
 // Enhanced Cycle Repeat Model parameters
 export interface EnhancedCycleRepeatParams {
@@ -24,7 +24,7 @@ export class EnhancedCycleRepeatModel implements PriceProjectionModel {
   /**
    * Validate model-specific parameters
    */
-  validateParams(params: ProjectionParams): boolean {
+  validateParams(params: PriceModelParams): boolean {
     const modelParams = params.modelSpecificParams?.enhancedCycleRepeat
     if (!modelParams) return false
 
@@ -53,8 +53,8 @@ export class EnhancedCycleRepeatModel implements PriceProjectionModel {
    */
   async generateProjection(
     historicalData: HistoricalDataPoint[],
-    params: ProjectionParams
-  ): Promise<ProjectionResult> {
+    params: PriceModelParams
+  ): Promise<PriceProjectionResult> {
     if (!this.validateParams(params)) {
       throw new Error('Invalid parameters for Enhanced Cycle Repeat Model')
     }
@@ -112,15 +112,15 @@ export class EnhancedCycleRepeatModel implements PriceProjectionModel {
     const averageMonthlyGrowth = totalGrowth / params.projectionMonths
 
     return {
+      modelName: this.name,
+      modelVersion: this.version,
       projectionPoints,
       metadata: {
         totalMonths: params.projectionMonths,
         totalGrowth,
         averageMonthlyGrowth,
         confidence: 0.8,
-        generatedAt: Date.now(),
-        modelName: this.name,
-        modelVersion: this.version,
+        generatedAt: new Date().toISOString(),
         historicalMovementsCount: historicalMovements.length,
         diminishingFactor: modelParams.diminishingFactor,
         cycleDegradation: modelParams.cycleDegradation
@@ -152,3 +152,6 @@ export class EnhancedCycleRepeatModel implements PriceProjectionModel {
     return movements
   }
 }
+
+// Export singleton instance
+export const enhancedCycleRepeatModel = new EnhancedCycleRepeatModel()

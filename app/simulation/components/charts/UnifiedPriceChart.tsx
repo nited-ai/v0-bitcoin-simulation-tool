@@ -190,8 +190,24 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
           modelParams.modelSpecificParams = {
             logarithmicCurve
           }
+        } else if (params.priceModel === 'enhancedCycleRepeat') {
+          // Get enhanced cycle repeat parameters from sessionStorage or use defaults
+          const savedParams = sessionStorage.getItem('bitcoin-sim-enhanced-cycle-params')
+          let enhancedCycleRepeat = null
+
+          if (savedParams) {
+            try {
+              enhancedCycleRepeat = JSON.parse(savedParams)
+            } catch (error) {
+              console.warn('Failed to parse saved enhanced cycle repeat params:', error)
+            }
+          }
+
+          modelParams.modelSpecificParams = {
+            enhancedCycleRepeat
+          }
         }
-        
+
         const result = await priceModelRegistry.generateProjection(
           params.priceModel,
           historicalData,
@@ -222,6 +238,7 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
     params.powerLawSettings?.prognosisLine, // Only the specific property that affects projections
     params.diminishingReturnsUpdated, // Trigger recalculation when diminishing returns params change
     params.logarithmicCurveUpdated, // Trigger recalculation when logarithmic curve params change
+    params.enhancedCycleUpdated, // Trigger recalculation when enhanced cycle repeat params change
     params.lastUpdated, // General trigger for any parameter updates
     searchParams, // Add searchParams to detect tab changes
   ])
