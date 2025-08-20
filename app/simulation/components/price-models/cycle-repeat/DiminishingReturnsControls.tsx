@@ -8,26 +8,16 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import {
   TrendingDown,
   Info,
   Settings,
-  ChevronDown,
-  ChevronUp,
-  Building2,
-  Scale,
   Zap,
   Target,
-  Rocket,
   RotateCcw
 } from 'lucide-react'
-import { useSimulation } from '../../../context/SimulationContext'
-import type { DiminishingReturnsParams, DIMINISHING_RETURNS_PRESETS } from '../../../price-models/models/EnhancedCycleRepeatModel'
-
-interface DiminishingReturnsControlsProps {
-  className?: string
-}
+import { useSimulation } from '@/app/simulation/hooks/useSimulation'
+import type { DiminishingReturnsParams } from '../../../price-models/models/EnhancedCycleRepeatModel'
 
 // Import presets from the model
 import { DIMINISHING_RETURNS_PRESETS } from '../../../price-models/models/EnhancedCycleRepeatModel'
@@ -40,7 +30,7 @@ const PRESET_UI_CONFIG = {
     icon: TrendingDown
   },
   moderate: {
-    name: 'Moderate',
+    name: 'Moderate', 
     description: 'Balanced diminishing returns reflecting gradual market evolution',
     icon: Target
   },
@@ -52,9 +42,13 @@ const PRESET_UI_CONFIG = {
   moonshots: {
     name: 'Moonshots',
     description: 'Aggressive growth assumptions with minimal constraints',
-    icon: Rocket
+    icon: Zap // Use Zap instead of Rocket for now
   }
 } as const
+
+interface DiminishingReturnsControlsProps {
+  className?: string
+}
 
 // SessionStorage keys
 const STORAGE_KEYS = {
@@ -103,7 +97,7 @@ export function DiminishingReturnsControls({ className }: DiminishingReturnsCont
   // Handle preset selection
   const handlePresetSelect = (presetKey: string) => {
     setSelectedPreset(presetKey)
-
+    
     if (presetKey === 'custom') {
       setShowCustomControls(true)
       setHasUnappliedChanges(false)
@@ -169,29 +163,12 @@ export function DiminishingReturnsControls({ className }: DiminishingReturnsCont
       return `$${(value / 1_000_000_000_000).toFixed(1)}T`
     } else if (value >= 1_000_000_000) {
       return `$${(value / 1_000_000_000).toFixed(0)}B`
-    }
-    return `$${value.toLocaleString()}`
-  }
-
-  // Calculate preview metrics
-  const calculatePreviewMetrics = () => {
-    const baseGrowth = 100 // Base 100% annual growth
-    const maturityEffect = customParams.diminishingFactor * 0.5
-    const cycleEffect = customParams.cycleDegradation * 0.3
-    const institutionalEffect = customParams.institutionalSaturation * 0.2
-    
-    const adjustedGrowth = baseGrowth * (1 - maturityEffect - cycleEffect - institutionalEffect)
-    
-    return {
-      firstCycleGrowth: adjustedGrowth,
-      secondCycleGrowth: adjustedGrowth * (1 - customParams.cycleDegradation),
-      thirdCycleGrowth: adjustedGrowth * Math.pow(1 - customParams.cycleDegradation, 2)
+    } else {
+      return `$${(value / 1_000_000).toFixed(0)}M`
     }
   }
 
-  const previewMetrics = calculatePreviewMetrics()
-
-  // Only show this component when enhanced cycle repeat model is selected
+  // Only show for Enhanced Cycle Repeat Model
   if (params.priceModel !== 'enhancedCycleRepeat') {
     return null
   }
@@ -214,7 +191,7 @@ export function DiminishingReturnsControls({ className }: DiminishingReturnsCont
           {/* Simplified Preset Selection */}
           <div className="space-y-4">
             <Label className="text-base font-medium">Risk Level Preset</Label>
-
+            
             <Select value={selectedPreset} onValueChange={handlePresetSelect}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select risk level..." />
@@ -352,215 +329,8 @@ export function DiminishingReturnsControls({ className }: DiminishingReturnsCont
                   </div>
                 </div>
               </div>
-            )}
-        </CardContent>
-      </Card>
-    </div>
-  )
-}
-            <CollapsibleTrigger asChild>
-              <Button variant="ghost" className="w-full justify-between p-0 h-auto">
-                <div className="flex items-center gap-2">
-                  <Settings className="w-4 h-4" />
-                  <span className="text-base font-medium">Advanced Economic Factors</span>
-                </div>
-                {advancedExpanded ? (
-                  <ChevronUp className="w-4 h-4" />
-                ) : (
-                  <ChevronDown className="w-4 h-4" />
-                )}
-              </Button>
-            </CollapsibleTrigger>
-
-            <CollapsibleContent className="space-y-4 mt-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Adoption Curve Type */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Label className="text-sm font-medium">Adoption Curve Model</Label>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        <p>Mathematical model for how Bitcoin adoption affects growth potential:</p>
-                        <ul className="mt-1 text-xs text-muted-foreground list-disc list-inside">
-                          <li>Linear: Steady decline in growth</li>
-                          <li>Logarithmic: Rapid early decline, then stabilizes</li>
-                          <li>Sigmoid: S-curve with inflection point</li>
-                        </ul>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <Select
-                    value={customParams.adoptionCurveType}
-                    onValueChange={(value) => handleParamChange('adoptionCurveType', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="linear">Linear Decline</SelectItem>
-                      <SelectItem value="logarithmic">Logarithmic Curve</SelectItem>
-                      <SelectItem value="sigmoid">S-Curve (Sigmoid)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Regulatory Maturity */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Label className="text-sm font-medium">Regulatory Maturity</Label>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        <p>Level of regulatory clarity and framework development.</p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          Higher maturity reduces volatility but may limit explosive growth
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <Slider
-                    value={[customParams.regulatoryMaturity * 100]}
-                    onValueChange={(value) => handleParamChange('regulatoryMaturity', value[0] / 100)}
-                    min={0}
-                    max={100}
-                    step={5}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Uncertain</span>
-                    <Badge variant="secondary" className="text-xs">
-                      {(customParams.regulatoryMaturity * 100).toFixed(0)}%
-                    </Badge>
-                    <span>Clear Framework</span>
-                  </div>
-                </div>
-
-                {/* Liquidity Constraint */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Label className="text-sm font-medium">Liquidity Constraints</Label>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        <p>Market liquidity limitations that affect price movements at higher market caps.</p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          Higher constraints mean larger market caps require more capital for significant moves
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <Slider
-                    value={[customParams.liquidityConstraint * 100]}
-                    onValueChange={(value) => handleParamChange('liquidityConstraint', value[0] / 100)}
-                    min={0}
-                    max={100}
-                    step={5}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>High Liquidity</span>
-                    <Badge variant="secondary" className="text-xs">
-                      {(customParams.liquidityConstraint * 100).toFixed(0)}%
-                    </Badge>
-                    <span>Constrained</span>
-                  </div>
-                </div>
-
-                {/* Competition Factor */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Label className="text-sm font-medium">Competition Effect</Label>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        <p>Impact of competing cryptocurrencies and alternative investments on Bitcoin's growth.</p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          Higher competition reduces Bitcoin's exclusive growth potential over time
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <Slider
-                    value={[customParams.competitionFactor * 100]}
-                    onValueChange={(value) => handleParamChange('competitionFactor', value[0] / 100)}
-                    min={0}
-                    max={100}
-                    step={5}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>No Competition</span>
-                    <Badge variant="secondary" className="text-xs">
-                      {(customParams.competitionFactor * 100).toFixed(0)}%
-                    </Badge>
-                    <span>High Competition</span>
-                  </div>
-                </div>
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-
-          {/* Growth Preview */}
-          <div className="space-y-4 pt-4 border-t border-border">
-            <div className="flex items-center justify-between">
-              <Label className="text-base font-medium">Growth Impact Preview</Label>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowPreview(!showPreview)}
-                className="text-xs"
-              >
-                {showPreview ? 'Hide' : 'Show'} Preview
-              </Button>
             </div>
-
-            {showPreview && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted/30 rounded-lg border border-border">
-                  <div className="text-center">
-                    <div className="text-lg font-semibold text-green-700 dark:text-green-300">
-                      {previewMetrics.firstCycleGrowth.toFixed(0)}%
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">1st Cycle Growth</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-lg font-semibold text-orange-700 dark:text-orange-300">
-                      {previewMetrics.secondCycleGrowth.toFixed(0)}%
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">2nd Cycle Growth</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-lg font-semibold text-red-700 dark:text-red-300">
-                      {previewMetrics.thirdCycleGrowth.toFixed(0)}%
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">3rd Cycle Growth</div>
-                  </div>
-                </div>
-
-                <div className="text-xs text-muted-foreground p-3 bg-blue-50 dark:bg-blue-950/20 rounded-md border border-blue-200 dark:border-blue-800">
-                  <p className="font-medium mb-2">Economic Theory Explanation:</p>
-                  <p>
-                    Diminishing returns theory suggests that as Bitcoin's market cap grows, each additional dollar of investment
-                    yields progressively smaller price increases. This model accounts for market maturation, institutional
-                    saturation, regulatory clarity, and competitive pressures that naturally reduce explosive growth potential over time.
-                  </p>
-                  <p className="mt-2">
-                    The preview shows how your current settings would affect growth rates across multiple 4-year cycles,
-                    demonstrating the economic principle that mature markets tend to have more stable, predictable growth patterns.
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
+          )}
         </CardContent>
       </Card>
     </div>
