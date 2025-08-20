@@ -159,14 +159,14 @@ export class PriceModelRegistry {
     // Register Power Law Model (high priority - mathematical foundation)
     this.registerModel('powerLaw', powerLawModel, true, 90)
     
-    // Register Cycle Repeat Model (medium priority - historical patterns)
-    this.registerModel('cycleRepeat', cycleRepeatModel, true, 80)
+    // Register Cycle Repeat Model (DISABLED - replaced by Enhanced version)
+    this.registerModel('cycleRepeat', cycleRepeatModel, false, 80)
 
     // Register Enhanced Cycle Repeat Model (high priority - economic theory)
     this.registerModel('enhancedCycleRepeat', enhancedCycleRepeatModel, true, 85)
 
-    // Register Logarithmic Curve Repeat Model (high priority - mathematical transformation)
-    this.registerModel('logarithmicCurveRepeat', logarithmicCurveRepeatModel, true, 87)
+    // Register Logarithmic Curve Repeat Model (DISABLED - has exponential growth issues)
+    this.registerModel('logarithmicCurveRepeat', logarithmicCurveRepeatModel, false, 87)
 
     console.log(`✅ Registered ${this.models.size} price projection models`)
   }
