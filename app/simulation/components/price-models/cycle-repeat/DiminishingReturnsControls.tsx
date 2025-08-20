@@ -16,7 +16,7 @@ import {
   Target,
   RotateCcw
 } from 'lucide-react'
-import { useSimulation } from '@/app/simulation/hooks/useSimulation'
+import { useSimulation } from '../../../context/SimulationContext'
 import type { DiminishingReturnsParams } from '../../../price-models/models/EnhancedCycleRepeatModel'
 
 // Import presets from the model
