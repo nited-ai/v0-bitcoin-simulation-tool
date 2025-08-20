@@ -9,16 +9,17 @@ import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { 
-  TrendingDown, 
-  Info, 
-  Settings, 
-  ChevronDown, 
+import {
+  TrendingDown,
+  Info,
+  Settings,
+  ChevronDown,
   ChevronUp,
   Building2,
   Scale,
   Zap,
   Target,
+  Rocket,
   RotateCcw
 } from 'lucide-react'
 import { useSimulation } from '../../../context/SimulationContext'
@@ -28,78 +29,54 @@ interface DiminishingReturnsControlsProps {
   className?: string
 }
 
-// Import presets (we'll need to make them available)
-const PRESETS = {
+// Import presets from the model
+import { DIMINISHING_RETURNS_PRESETS } from '../../../price-models/models/EnhancedCycleRepeatModel'
+
+// UI-specific preset configuration
+const PRESET_UI_CONFIG = {
   conservative: {
     name: 'Conservative',
     description: 'Strong diminishing returns with high market maturity assumptions',
-    icon: TrendingDown,
-    params: {
-      diminishingFactor: 0.8,
-      maturityThreshold: 1_000_000_000_000,
-      cycleDegradation: 0.3,
-      adoptionCurveType: 'logarithmic' as const,
-      institutionalSaturation: 0.7,
-      regulatoryMaturity: 0.8,
-      liquidityConstraint: 0.6,
-      competitionFactor: 0.5
-    }
+    icon: TrendingDown
   },
   moderate: {
     name: 'Moderate',
     description: 'Balanced diminishing returns reflecting gradual market evolution',
-    icon: Target,
-    params: {
-      diminishingFactor: 0.5,
-      maturityThreshold: 2_000_000_000_000,
-      cycleDegradation: 0.15,
-      adoptionCurveType: 'sigmoid' as const,
-      institutionalSaturation: 0.4,
-      regulatoryMaturity: 0.5,
-      liquidityConstraint: 0.4,
-      competitionFactor: 0.3
-    }
+    icon: Target
   },
   optimistic: {
     name: 'Optimistic',
     description: 'Minimal diminishing returns with continued growth potential',
-    icon: Zap,
-    params: {
-      diminishingFactor: 0.2,
-      maturityThreshold: 5_000_000_000_000,
-      cycleDegradation: 0.05,
-      adoptionCurveType: 'linear' as const,
-      institutionalSaturation: 0.2,
-      regulatoryMaturity: 0.3,
-      liquidityConstraint: 0.2,
-      competitionFactor: 0.1
-    }
+    icon: Zap
+  },
+  moonshots: {
+    name: 'Moonshots',
+    description: 'Aggressive growth assumptions with minimal constraints',
+    icon: Rocket
   }
 } as const
 
 // SessionStorage keys
 const STORAGE_KEYS = {
-  selectedPreset: 'bitcoin-sim-diminishing-returns-preset',
-  customParams: 'bitcoin-sim-diminishing-returns-params',
-  advancedExpanded: 'bitcoin-sim-diminishing-returns-advanced'
+  selectedPreset: 'bitcoin-sim-enhanced-cycle-preset',
+  customParams: 'bitcoin-sim-enhanced-cycle-params'
 }
 
 export function DiminishingReturnsControls({ className }: DiminishingReturnsControlsProps) {
   const { params, setParams } = useSimulation()
   const [selectedPreset, setSelectedPreset] = useState<string>('moderate')
-  const [customParams, setCustomParams] = useState<DiminishingReturnsParams>(PRESETS.moderate.params)
-  const [advancedExpanded, setAdvancedExpanded] = useState(false)
-  const [showPreview, setShowPreview] = useState(false)
+  const [customParams, setCustomParams] = useState<DiminishingReturnsParams>(DIMINISHING_RETURNS_PRESETS.moderate.params)
+  const [showCustomControls, setShowCustomControls] = useState(false)
   const [hasUnappliedChanges, setHasUnappliedChanges] = useState(false)
 
   // Load saved state from sessionStorage
   useEffect(() => {
     const savedPreset = sessionStorage.getItem(STORAGE_KEYS.selectedPreset)
     const savedParams = sessionStorage.getItem(STORAGE_KEYS.customParams)
-    const savedAdvanced = sessionStorage.getItem(STORAGE_KEYS.advancedExpanded)
 
-    if (savedPreset && savedPreset in PRESETS) {
+    if (savedPreset && savedPreset in DIMINISHING_RETURNS_PRESETS) {
       setSelectedPreset(savedPreset)
+      setShowCustomControls(savedPreset === 'custom')
     }
 
     if (savedParams) {
@@ -107,12 +84,8 @@ export function DiminishingReturnsControls({ className }: DiminishingReturnsCont
         const parsed = JSON.parse(savedParams)
         setCustomParams(parsed)
       } catch (error) {
-        console.warn('Failed to parse saved diminishing returns params:', error)
+        console.warn('Failed to parse saved enhanced cycle params:', error)
       }
-    }
-
-    if (savedAdvanced) {
-      setAdvancedExpanded(savedAdvanced === 'true')
     }
   }, [])
 
@@ -120,8 +93,7 @@ export function DiminishingReturnsControls({ className }: DiminishingReturnsCont
   const saveToStorage = useCallback(() => {
     sessionStorage.setItem(STORAGE_KEYS.selectedPreset, selectedPreset)
     sessionStorage.setItem(STORAGE_KEYS.customParams, JSON.stringify(customParams))
-    sessionStorage.setItem(STORAGE_KEYS.advancedExpanded, advancedExpanded.toString())
-  }, [selectedPreset, customParams, advancedExpanded])
+  }, [selectedPreset, customParams])
 
   // Save to storage whenever state changes
   useEffect(() => {
@@ -130,16 +102,21 @@ export function DiminishingReturnsControls({ className }: DiminishingReturnsCont
 
   // Handle preset selection
   const handlePresetSelect = (presetKey: string) => {
-    if (presetKey in PRESETS) {
-      setSelectedPreset(presetKey)
-      const preset = PRESETS[presetKey as keyof typeof PRESETS]
+    setSelectedPreset(presetKey)
+
+    if (presetKey === 'custom') {
+      setShowCustomControls(true)
+      setHasUnappliedChanges(false)
+    } else if (presetKey in DIMINISHING_RETURNS_PRESETS) {
+      setShowCustomControls(false)
+      const preset = DIMINISHING_RETURNS_PRESETS[presetKey as keyof typeof DIMINISHING_RETURNS_PRESETS]
       setCustomParams(preset.params)
-      setHasUnappliedChanges(false) // Presets are auto-applied
+      setHasUnappliedChanges(false)
 
       // Auto-apply preset parameters
       setTimeout(() => {
         applyParameters()
-      }, 100) // Small delay to ensure state is updated
+      }, 100)
     }
   }
 
@@ -180,7 +157,10 @@ export function DiminishingReturnsControls({ className }: DiminishingReturnsCont
   // Reset to defaults
   const resetToDefaults = () => {
     setSelectedPreset('moderate')
-    setCustomParams(PRESETS.moderate.params)
+    setCustomParams(DIMINISHING_RETURNS_PRESETS.moderate.params)
+    setShowCustomControls(false)
+    setHasUnappliedChanges(false)
+    applyParameters()
   }
 
   // Format market cap for display
@@ -231,225 +211,153 @@ export function DiminishingReturnsControls({ className }: DiminishingReturnsCont
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {/* Preset Selection */}
+          {/* Simplified Preset Selection */}
           <div className="space-y-4">
-            <Label className="text-base font-medium">Economic Scenario Presets</Label>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {Object.entries(PRESETS).map(([key, preset]) => {
-                const Icon = preset.icon
-                const isSelected = selectedPreset === key
+            <Label className="text-base font-medium">Risk Level Preset</Label>
 
-                return (
-                  <div
-                    key={key}
-                    className={`relative p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
-                      isSelected
-                        ? "border-primary bg-primary/5 shadow-sm"
-                        : "border-border hover:border-primary/50"
-                    }`}
-                    onClick={() => handlePresetSelect(key)}
-                  >
-                    {/* Header */}
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="text-primary"><Icon className="w-5 h-5" /></div>
-                      <h3 className="font-medium">{preset.name}</h3>
-                      {isSelected && (
-                        <div className="w-2 h-2 bg-primary rounded-full ml-auto" />
-                      )}
-                    </div>
-
-                    {/* Description */}
-                    <p className="text-sm text-muted-foreground">
-                      {preset.description}
-                    </p>
-
-                    {/* Key metrics */}
-                    <div className="mt-3 space-y-1">
-                      <div className="text-xs text-muted-foreground">
-                        Diminishing Factor: {(preset.params.diminishingFactor * 100).toFixed(0)}%
+            <Select value={selectedPreset} onValueChange={handlePresetSelect}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select risk level..." />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(PRESET_UI_CONFIG).map(([key, config]) => {
+                  const Icon = config.icon
+                  return (
+                    <SelectItem key={key} value={key}>
+                      <div className="flex items-center gap-2">
+                        <Icon className="w-4 h-4" />
+                        <span>{config.name}</span>
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        Maturity Threshold: {formatMarketCap(preset.params.maturityThreshold)}
-                      </div>
-                    </div>
+                    </SelectItem>
+                  )
+                })}
+                <SelectItem value="custom">
+                  <div className="flex items-center gap-2">
+                    <Settings className="w-4 h-4" />
+                    <span>Custom</span>
                   </div>
-                )
-              })}
-            </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Show description for selected preset */}
+            {selectedPreset !== 'custom' && selectedPreset in PRESET_UI_CONFIG && (
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <p className="text-sm text-muted-foreground">
+                  {PRESET_UI_CONFIG[selectedPreset as keyof typeof PRESET_UI_CONFIG].description}
+                </p>
+              </div>
+            )}
           </div>
 
-          {/* Core Parameters */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Label className="text-base font-medium">Core Economic Parameters</Label>
-                {hasUnappliedChanges && (
-                  <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
-                    Changes Pending
-                  </Badge>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  onClick={applyParameters}
-                  className={hasUnappliedChanges
-                    ? "bg-orange-600 hover:bg-orange-700 animate-pulse"
-                    : "bg-primary hover:bg-primary/90"
-                  }
-                  size="sm"
-                >
-                  {hasUnappliedChanges ? 'Apply Changes' : 'Recalculate'}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={resetToDefaults}
-                  className="flex items-center gap-2"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  Reset
-                </Button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Diminishing Factor */}
-              <div className="space-y-3">
+          {/* Custom Parameters - Only show when Custom is selected */}
+          {showCustomControls && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Label className="text-sm font-medium">Diminishing Returns Strength</Label>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
-                      <p>Controls how strongly diminishing returns affect growth as market cap increases.</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        0% = No diminishing returns, 100% = Strong diminishing returns
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
+                  <Label className="text-base font-medium">Custom Parameters</Label>
+                  {hasUnappliedChanges && (
+                    <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
+                      Changes Pending
+                    </Badge>
+                  )}
                 </div>
-                <Slider
-                  value={[customParams.diminishingFactor * 100]}
-                  onValueChange={(value) => handleParamChange('diminishingFactor', value[0] / 100)}
-                  min={0}
-                  max={100}
-                  step={5}
-                  className="w-full"
-                />
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>No Effect</span>
-                  <Badge variant="secondary" className="text-xs">
-                    {(customParams.diminishingFactor * 100).toFixed(0)}%
-                  </Badge>
-                  <span>Strong Effect</span>
-                </div>
-              </div>
-
-              {/* Maturity Threshold */}
-              <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <Label className="text-sm font-medium">Market Maturity Threshold</Label>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
-                      <p>Market cap level where diminishing returns effects begin to apply.</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Below this threshold, historical patterns repeat normally
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-                <Slider
-                  value={[customParams.maturityThreshold / 1_000_000_000_000]}
-                  onValueChange={(value) => handleParamChange('maturityThreshold', value[0] * 1_000_000_000_000)}
-                  min={0.5}
-                  max={10}
-                  step={0.5}
-                  className="w-full"
-                />
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>$0.5T</span>
-                  <Badge variant="secondary" className="text-xs">
-                    {formatMarketCap(customParams.maturityThreshold)}
-                  </Badge>
-                  <span>$10T</span>
+                  <Button
+                    onClick={applyParameters}
+                    className={hasUnappliedChanges
+                      ? "bg-orange-600 hover:bg-orange-700 animate-pulse"
+                      : "bg-primary hover:bg-primary/90"
+                    }
+                    size="sm"
+                  >
+                    {hasUnappliedChanges ? 'Apply Changes' : 'Recalculate'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={resetToDefaults}
+                    className="flex items-center gap-2"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Reset
+                  </Button>
                 </div>
               </div>
 
-              {/* Cycle Degradation */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Label className="text-sm font-medium">Cycle Degradation Rate</Label>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
-                      <p>How much each 4-year cycle becomes less explosive than the previous one.</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Higher values mean each cycle has significantly lower growth potential
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Diminishing Returns Strength */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-sm font-medium">Diminishing Returns Strength</Label>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p>Controls how strongly diminishing returns affect growth as market cap increases.</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          0% = No diminishing returns, 50% = Maximum recommended effect
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <Slider
+                    value={[customParams.diminishingFactor * 100]}
+                    onValueChange={(value) => handleParamChange('diminishingFactor', value[0] / 100)}
+                    min={0}
+                    max={50}
+                    step={2.5}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>No Effect</span>
+                    <Badge variant="secondary" className="text-xs">
+                      {(customParams.diminishingFactor * 100).toFixed(1)}%
+                    </Badge>
+                    <span>Maximum Effect</span>
+                  </div>
                 </div>
-                <Slider
-                  value={[customParams.cycleDegradation * 100]}
-                  onValueChange={(value) => handleParamChange('cycleDegradation', value[0] / 100)}
-                  min={0}
-                  max={50}
-                  step={2.5}
-                  className="w-full"
-                />
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>No Degradation</span>
-                  <Badge variant="secondary" className="text-xs">
-                    {(customParams.cycleDegradation * 100).toFixed(1)}%
-                  </Badge>
-                  <span>High Degradation</span>
+
+                {/* Cycle Degradation Rate */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-sm font-medium">Cycle Degradation Rate</Label>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p>How much each 4-year cycle becomes less explosive than the previous one.</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Higher values = lower future prices (fixed logic)
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <Slider
+                    value={[customParams.cycleDegradation * 100]}
+                    onValueChange={(value) => handleParamChange('cycleDegradation', value[0] / 100)}
+                    min={0}
+                    max={50}
+                    step={2.5}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>No Degradation</span>
+                    <Badge variant="secondary" className="text-xs">
+                      {(customParams.cycleDegradation * 100).toFixed(1)}%
+                    </Badge>
+                    <span>High Degradation</span>
+                  </div>
                 </div>
               </div>
-
-              {/* Institutional Saturation */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Label className="text-sm font-medium">Institutional Saturation</Label>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
-                      <p>Current level of institutional Bitcoin adoption and investment.</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Higher saturation means less room for institutional-driven growth
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-                <Slider
-                  value={[customParams.institutionalSaturation * 100]}
-                  onValueChange={(value) => handleParamChange('institutionalSaturation', value[0] / 100)}
-                  min={0}
-                  max={100}
-                  step={5}
-                  className="w-full"
-                />
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Early Stage</span>
-                  <Badge variant="secondary" className="text-xs">
-                    {(customParams.institutionalSaturation * 100).toFixed(0)}%
-                  </Badge>
-                  <span>Fully Saturated</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Advanced Controls */}
-          <Collapsible open={advancedExpanded} onOpenChange={setAdvancedExpanded}>
+            )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
             <CollapsibleTrigger asChild>
               <Button variant="ghost" className="w-full justify-between p-0 h-auto">
                 <div className="flex items-center gap-2">
