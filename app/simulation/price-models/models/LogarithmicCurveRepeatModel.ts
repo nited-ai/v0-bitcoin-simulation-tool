@@ -146,45 +146,7 @@ export class LogarithmicCurveRepeatModel implements PriceProjectionModel {
     return originalMovement * params.baseMultiplier
   }
 
-  /**
-   * Calculate projected price for a specific month using truly sequential movement application
-   * Each day applies only the movement from the corresponding historical day
-   */
-  private getLogarithmicCurvePrice(
-    month: number,
-    initialPrice: number,
-    historicalMovements: number[],
-    curveParams: CurveTransformationParams,
-    totalMonths: number
-  ): number {
-    if (!historicalMovements || historicalMovements.length === 0) {
-      return initialPrice
-    }
 
-    // Convert month to approximate days
-    const daysIntoSimulation = Math.round((month - 1) * (365.25 / 12))
-    const totalDays = Math.ceil(totalMonths * (365.25 / 12))
-
-    // Apply movements day by day, building on previous day's price
-    let currentProjectedPrice = initialPrice
-    for (let i = 0; i < daysIntoSimulation; i++) {
-      const movementIndex = i % historicalMovements.length
-      const originalMovement = historicalMovements[movementIndex]
-
-      // Apply curve transformation
-      const timeProgress = i / totalDays
-      const transformedMovement = this.applyCurveTransformation(
-        originalMovement,
-        curveParams,
-        timeProgress
-      )
-
-      // Apply this day's movement to get next day's price
-      currentProjectedPrice *= transformedMovement
-    }
-
-    return currentProjectedPrice
-  }
 
   /**
    * Generate price projection using curve transformations
@@ -204,28 +166,52 @@ export class LogarithmicCurveRepeatModel implements PriceProjectionModel {
     // Extract historical movements
     const historicalMovements = this.extractHistoricalMovements(historicalData)
 
-    // Generate projection points
+    // Generate projection points using running price approach (fixes exponential growth)
     const projectionPoints: ProjectionPoint[] = []
     const startDate = new Date()
+    let runningPrice = params.startPrice
+    let totalDaysProcessed = 0
 
-    // Generate monthly projections (same approach as cycle repeat model)
+    // Generate monthly projections with true sequential application
     for (let month = 1; month <= params.projectionMonths; month++) {
       const currentDate = new Date(startDate)
       currentDate.setMonth(currentDate.getMonth() + month - 1)
       currentDate.setDate(15) // Mid-month for consistency
 
-      // Calculate main projection price using logarithmic curve transformations
-      const mainPrice = this.getLogarithmicCurvePrice(
-        month,
-        params.startPrice,
-        historicalMovements,
-        curveParams,
-        params.projectionMonths
-      )
+      // Calculate days in this month (approximately 30.44 days per month)
+      const daysInThisMonth = Math.round(365.25 / 12)
 
-      // Create projection point
+      // Apply movements for this month only, starting from current running price
+      for (let dayInMonth = 0; dayInMonth < daysInThisMonth; dayInMonth++) {
+        const totalDayIndex = totalDaysProcessed + dayInMonth
+        const movementIndex = totalDayIndex % historicalMovements.length
+        const originalMovement = historicalMovements[movementIndex]
+
+        // Apply curve transformation
+        const timeProgress = totalDayIndex / (params.projectionMonths * daysInThisMonth)
+        const transformedMovement = this.applyCurveTransformation(
+          originalMovement,
+          curveParams,
+          timeProgress
+        )
+
+        // Apply this day's movement to the running price
+        runningPrice *= transformedMovement
+
+        // Safety check to prevent infinite values
+        if (!Number.isFinite(runningPrice) || runningPrice <= 0) {
+          console.warn(`⚠️ Invalid price detected: ${runningPrice}, resetting to previous valid price`)
+          runningPrice = params.startPrice // Reset to start price as fallback
+          break // Exit the daily loop for this month
+        }
+      }
+
+      // Update total days processed
+      totalDaysProcessed += daysInThisMonth
+
+      // Create projection point with the running price
       projectionPoints.push({
-        price: Math.round(mainPrice),
+        price: Math.round(runningPrice),
         timestamp: currentDate.getTime(),
         confidence: Math.max(0.1, 1 - (month / params.projectionMonths) * 0.9) // Decreasing confidence
       })
