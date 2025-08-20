@@ -1,158 +1,50 @@
-﻿/**
- * Enhanced Cycle Repeat Model with Diminishing Returns Theory
- */
+﻿  I need to implement a comprehensive Curve Controls feature for the Enhanced Cycle Repeat Model in `app\simulation\price-models\models\EnhancedCycleRepeatModel.ts`. Please implement the following changes in the specified priority order:  **PRIORITY 1: Curve Type Selection System** Add a new curve type selector with four mathematical projection methods:  1. **Logarithmic Curve** (Pure Cycle Repeat): Apply historical percentage movements exactly as extracted from 4 years ago - this maintains the current working implementation 2. **Linear Curve**: Transform historical movements to create steady, consistent growth rate over the projection period 3. **S-Curve (Sigmoid)**: Apply sigmoid transformation to historical movements - slow growth initially, then accelerating, then tapering 4. **Exponential Curve**: Apply exponential transformation to historical movements for accelerating compound growth  **Technical Requirements:** - All curves MUST start from the firsthistorical price we have (2013) and end with the last date of the price projection lengh. - Each curve type applies a different mathematical transformation to these base movements  **PRIORITY 2: Multi-Curve Chart Visualization** Implement simultaneous display of multiple curve projections: - Each curve type gets a distinct color (Logarithmic: blue, Linear: green, S-Curve: orange, Exponential: red) - Toggle system allowing users to show/hide individual curves - All enabled curves display simultaneously on the same chart for comparison - Maintain existing chart functionality (zoom, pan, legend)  **PRIORITY 3: Preset System Clarification** Correct the preset hierarchy (implement after curve types): - **Optimistic**: Pure cycle repeat (Logarithmic curve with minimal curve controls) - **Moderate**: Balanced approach with moderate curve adjustments - **Conservative**: Strong curve dampening effects - **Moonshots**: Most aggressive/bullish with growth-enhancing parameters (not pure repeat)  **PRIORITY 4: Parameter Integration** Define how existing Curve Controls parameters affect each curve type: - Market Maturity Impact: How does this modify Linear vs Exponential transformations? - Institutional Saturation: Different effects on S-Curve vs Logarithmic projections? - Cycle Evolution Rate: How does this interact with mathematical curve transformations?  **Context Notes:** - The current implementation successfully extracts 208 weekly movements and repeats them over 624 weeks - The diminishing returns system is working but needs reframing as "Curve Controls" - User mentioned a logarithmic function screenshot and Reddit post for reference (not provided in context) - Maintain backward compatibility with existing sessionStorage parameter system  **Implementation Order:** 1. First implement the four curve type mathematical transformations 2. Then add multi-curve chart display capability   3. Then update preset system with corrected hierarchy 4. Finally integrate curve controls parameters with each curve type  Please start with Priority 1 (Curve Type Selection) and ask for clarification on the mathematical transformations before proceeding to chart visualization.I need to implement a comprehensive Curve Controls feature for the Enhanced Cycle Repeat Model in `app\simulation\price-models\models\EnhancedCycleRepeatModel.ts`. Please implement the following changes in the specified priority order:
 
-import type { 
-  PriceProjectionModel, 
-  PriceProjectionResult,
-  PriceModelParams,
-  ProjectionPoint
-} from "../types"
-import type { HistoricalDataPoint } from "@/lib/services/centralized-data-service"
+**PRIORITY 1: Curve Type Selection System**
+Add a new curve type selector with four mathematical projection methods:
 
-export interface DiminishingReturnsParams {
-  diminishingFactor: number
-  maturityThreshold: number
-  cycleDegradation: number
-  adoptionCurveType: 'linear' | 'logarithmic' | 'sigmoid'
-  institutionalSaturation: number
-  regulatoryMaturity: number
-  liquidityConstraint: number
-  competitionFactor: number
-}
+1. **Logarithmic Curve** (Pure Cycle Repeat): Apply historical percentage movements exactly as extracted from 4 years ago - this maintains the current working implementation
+2. **Linear Curve**: Transform historical movements to create steady, consistent growth rate over the projection period
+3. **S-Curve (Sigmoid)**: Apply sigmoid transformation to historical movements - slow growth initially, then accelerating, then tapering
+4. **Exponential Curve**: Apply exponential transformation to historical movements for accelerating compound growth
 
-export const DIMINISHING_RETURNS_PRESETS = {
-  conservative: {
-    name: 'Conservative',
-    description: 'Strong diminishing returns with high market maturity assumptions',
-    params: {
-      diminishingFactor: 0.8,
-      maturityThreshold: 1_000_000_000_000,
-      cycleDegradation: 0.3,
-      adoptionCurveType: 'logarithmic' as const,
-      institutionalSaturation: 0.7,
-      regulatoryMaturity: 0.8,
-      liquidityConstraint: 0.6,
-      competitionFactor: 0.5
-    }
-  },
-  moderate: {
-    name: 'Moderate',
-    description: 'Balanced diminishing returns reflecting gradual market evolution',
-    params: {
-      diminishingFactor: 0.5,
-      maturityThreshold: 2_000_000_000_000,
-      cycleDegradation: 0.15,
-      adoptionCurveType: 'sigmoid' as const,
-      institutionalSaturation: 0.4,
-      regulatoryMaturity: 0.5,
-      liquidityConstraint: 0.4,
-      competitionFactor: 0.3
-    }
-  },
-  optimistic: {
-    name: 'Optimistic',
-    description: 'Minimal diminishing returns with continued growth potential',
-    params: {
-      diminishingFactor: 0.2,
-      maturityThreshold: 5_000_000_000_000,
-      cycleDegradation: 0.05,
-      adoptionCurveType: 'linear' as const,
-      institutionalSaturation: 0.2,
-      regulatoryMaturity: 0.3,
-      liquidityConstraint: 0.2,
-      competitionFactor: 0.1
-    }
-  },
-  moonshots: {
-    name: 'Moonshots',
-    description: 'Maximum growth potential with minimal market maturation effects',
-    params: {
-      diminishingFactor: 0.1,
-      maturityThreshold: 10_000_000_000_000,
-      cycleDegradation: 0.02,
-      adoptionCurveType: 'linear' as const,
-      institutionalSaturation: 0.1,
-      regulatoryMaturity: 0.1,
-      liquidityConstraint: 0.1,
-      competitionFactor: 0.05
-    }
-  }
-} as const
+**Technical Requirements:**
+- All curves MUST start from the firsthistorical price we have (2013) and end with the last date of the price projection lengh.
+- Each curve type applies a different mathematical transformation to these base movements
 
-export class EnhancedCycleRepeatModel implements PriceProjectionModel {
-  readonly name = "Enhanced Cycle Repeat Model"
-  readonly version = "2.0.0"
-  readonly description = "Bitcoin price prediction with diminishing returns theory"
-  
-  validateParams(params: PriceModelParams): boolean {
-    return params.startPrice > 0 && params.projectionMonths > 0
-  }
+**PRIORITY 2: Multi-Curve Chart Visualization**
+Implement simultaneous display of multiple curve projections:
+- Each curve type gets a distinct color (Logarithmic: blue, Linear: green, S-Curve: orange, Exponential: red)
+- Toggle system allowing users to show/hide individual curves
+- All enabled curves display simultaneously on the same chart for comparison
+- Maintain existing chart functionality (zoom, pan, legend)
 
-  async generateProjection(
-    historicalData: HistoricalDataPoint[],
-    params: PriceModelParams
-  ): Promise<PriceProjectionResult> {
-    
-    const diminishingParams: DiminishingReturnsParams = {
-      ...DIMINISHING_RETURNS_PRESETS.moderate.params,
-      ...(params.modelSpecificParams?.diminishingReturns || {})
-    }
+**PRIORITY 3: Preset System Clarification**
+Correct the preset hierarchy (implement after curve types):
+- **Optimistic**: Pure cycle repeat (Logarithmic curve with minimal curve controls)
+- **Moderate**: Balanced approach with moderate curve adjustments
+- **Conservative**: Strong curve dampening effects
+- **Moonshots**: Most aggressive/bullish with growth-enhancing parameters (not pure repeat)
 
-    const projectionPoints: ProjectionPoint[] = []
-    let currentPrice = params.startPrice
-    const startDate = new Date()
+**PRIORITY 4: Parameter Integration**
+Define how existing Curve Controls parameters affect each curve type:
+- Market Maturity Impact: How does this modify Linear vs Exponential transformations?
+- Institutional Saturation: Different effects on S-Curve vs Logarithmic projections?
+- Cycle Evolution Rate: How does this interact with mathematical curve transformations?
 
-    // Simple implementation: apply basic cycle repeat with diminishing returns
-    for (let month = 1; month <= params.projectionMonths; month++) {
-      const currentDate = new Date(startDate)
-      currentDate.setMonth(currentDate.getMonth() + month - 1)
-      currentDate.setDate(15)
+**Context Notes:**
+- The current implementation successfully extracts 208 weekly movements and repeats them over 624 weeks
+- The diminishing returns system is working but needs reframing as "Curve Controls"
+- User mentioned a logarithmic function screenshot and Reddit post for reference (not provided in context)
+- Maintain backward compatibility with existing sessionStorage parameter system
 
-      // Basic monthly growth with diminishing returns
-      const baseGrowth = 0.08 // 8% base monthly growth
-      const diminishingFactor = Math.pow(0.99, month) // Gradual reduction
-      const cycleFactor = Math.pow(1 - diminishingParams.cycleDegradation, Math.floor(month / 48))
-      
-      const adjustedGrowth = baseGrowth * diminishingFactor * cycleFactor
-      currentPrice *= (1 + adjustedGrowth)
+**Implementation Order:**
+1. First implement the four curve type mathematical transformations
+2. Then add multi-curve chart display capability  
+3. Then update preset system with corrected hierarchy
+4. Finally integrate curve controls parameters with each curve type
 
-      const volatilityBand = 0.15 * Math.pow(0.995, month)
-      
-      projectionPoints.push({
-        timestamp: currentDate.getTime(),
-        price: currentPrice,
-        support: currentPrice * (1 - volatilityBand),
-        resistance: currentPrice * (1 + volatilityBand),
-        confidence: Math.max(0.3, 0.9 * Math.exp(-0.01 * month)),
-        metadata: {
-          month: month,
-          diminishingReturnsApplied: true
-        }
-      })
-    }
+Please start with Priority 1 (Curve Type Selection) and ask for clarification on the mathematical transformations before proceeding to chart visualization.
 
-    const totalGrowth = ((currentPrice - params.startPrice) / params.startPrice) * 100
+Create the specs and tasks following  @.augment/rules/create-spec.md  rules and execute following the guidlines from @.augment/rules/execute-tasks.md 
 
-    return {
-      modelName: this.name,
-      modelVersion: this.version,
-      projectionPoints: projectionPoints,
-      metadata: {
-        totalMonths: params.projectionMonths,
-        totalGrowth,
-        averageMonthlyGrowth: totalGrowth / params.projectionMonths,
-        confidence: 0.7,
-        generatedAt: new Date().toISOString(),
-        diminishingReturnsEnabled: true,
-        parameters: {
-          startPrice: params.startPrice,
-          projectionMonths: params.projectionMonths,
-          historicalDataPoints: historicalData.length
-        }
-      }
-    }
-  }
-}
-
-export const enhancedCycleRepeatModel = new EnhancedCycleRepeatModel()
