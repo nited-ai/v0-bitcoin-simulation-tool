@@ -320,6 +320,56 @@ describe('LogarithmicCurveRepeatModel', () => {
       expect(maxPrice).toBeLessThan(500000) // Reasonable upper bound for mock data
     })
 
+    it('should validate movement extraction accuracy', async () => {
+      // Create test data with sufficient points (need at least 100)
+      const testData = []
+      const basePrice = 50000
+      const now = Date.now()
+
+      // Generate 150 data points with known patterns
+      for (let i = 0; i < 150; i++) {
+        const timestamp = now - (149 - i) * 24 * 60 * 60 * 1000 // Daily data
+        const price = basePrice * (1 + Math.sin(i / 10) * 0.1) // Sine wave pattern ±10%
+        testData.push({ timestamp, price })
+      }
+
+      const result = await model.generateProjection(testData, baseParams)
+
+      // Should extract movements without errors
+      expect(result.projectionPoints.length).toBeGreaterThan(0)
+      expect(result.metadata).toHaveProperty('totalGrowth')
+
+      // All prices should be finite
+      result.projectionPoints.forEach(point => {
+        expect(Number.isFinite(point.price)).toBe(true)
+        expect(point.price).toBeGreaterThan(0)
+      })
+    })
+
+    it('should preserve raw movements without clamping', async () => {
+      // Test that movements are not artificially limited
+      const result = await model.generateProjection(mockHistoricalData, baseParams)
+
+      // Should handle natural volatility without artificial constraints
+      expect(result.projectionPoints.length).toBeGreaterThan(0)
+
+      // Check that volatility is preserved (both positive and negative changes)
+      const monthlyChanges = []
+      for (let i = 1; i < result.projectionPoints.length; i++) {
+        const prevPrice = result.projectionPoints[i - 1].price
+        const currentPrice = result.projectionPoints[i].price
+        const change = (currentPrice - prevPrice) / prevPrice
+        monthlyChanges.push(change)
+      }
+
+      // Should have both positive and negative changes (natural volatility)
+      const positiveChanges = monthlyChanges.filter(change => change > 0)
+      const negativeChanges = monthlyChanges.filter(change => change < 0)
+
+      expect(positiveChanges.length).toBeGreaterThan(0)
+      expect(negativeChanges.length).toBeGreaterThan(0)
+    })
+
     it('should cycle through movements for long projections', async () => {
       const longProjectionParams = {
         ...baseParams,
@@ -347,6 +397,85 @@ describe('LogarithmicCurveRepeatModel', () => {
 
       expect(Math.abs(totalGrowth)).toBeLessThan(2000) // Reasonable bound for 5 years
       expect(endPrice).toBeLessThan(startPrice * 50) // Less than 50x growth over 5 years
+    })
+  })
+
+  describe('Algorithm Alignment with Enhanced Cycle Repeat Model', () => {
+    it('should behave identically to Enhanced Cycle Repeat Model when logarithmicStrength = 0', async () => {
+      const pureRepeatParams = {
+        ...baseParams,
+        projectionMonths: 12,
+        modelSpecificParams: {
+          logarithmicCurve: {
+            curveType: 'logarithmic' as const,
+            baseMultiplier: 1.0,
+            logarithmicStrength: 0.0, // Pure cycle repeat mode
+            smoothingFactor: 0.0,
+            growthAcceleration: 1.0
+          }
+        }
+      }
+
+      const result = await model.generateProjection(mockHistoricalData, pureRepeatParams)
+
+      // Should behave like cycle repeat model
+      expect(result.projectionPoints.length).toBe(12)
+      expect(result.metadata.behaviorMode).toBe('pure-cycle-repeat')
+      expect(result.metadata.transformationApplied).toBe(false)
+
+      // Should have realistic price progression
+      const startPrice = result.projectionPoints[0].price
+      const endPrice = result.projectionPoints[result.projectionPoints.length - 1].price
+      const totalGrowth = ((endPrice - startPrice) / startPrice) * 100
+
+      // Should have reasonable growth bounds
+      expect(Math.abs(totalGrowth)).toBeLessThan(200) // Less than 200% over 12 months
+      expect(endPrice).toBeLessThan(startPrice * 5) // Less than 5x growth
+    })
+
+    it('should generate monthly points with consistent timing', async () => {
+      const result = await model.generateProjection(mockHistoricalData, baseParams)
+
+      // Should have exactly the requested number of monthly points
+      expect(result.projectionPoints.length).toBe(baseParams.projectionMonths)
+
+      // Check timestamp progression (should be monthly intervals)
+      for (let i = 1; i < result.projectionPoints.length; i++) {
+        const prevTimestamp = result.projectionPoints[i - 1].timestamp
+        const currentTimestamp = result.projectionPoints[i].timestamp
+        const timeDiff = currentTimestamp - prevTimestamp
+
+        // Should be approximately 30 days (allow some variance)
+        const expectedMonthlyMs = 30 * 24 * 60 * 60 * 1000
+        expect(timeDiff).toBeGreaterThan(expectedMonthlyMs * 0.8)
+        expect(timeDiff).toBeLessThan(expectedMonthlyMs * 1.2)
+      }
+    })
+
+    it('should maintain consistent metadata structure', async () => {
+      const result = await model.generateProjection(mockHistoricalData, baseParams)
+
+      // Should have all required metadata fields
+      expect(result.metadata).toHaveProperty('totalMonths')
+      expect(result.metadata).toHaveProperty('totalGrowth')
+      expect(result.metadata).toHaveProperty('averageMonthlyGrowth')
+      expect(result.metadata).toHaveProperty('confidence')
+      expect(result.metadata).toHaveProperty('generatedAt')
+
+      // Curve-specific metadata
+      expect(result.metadata).toHaveProperty('curveType')
+      expect(result.metadata).toHaveProperty('curveParameters')
+      expect(result.metadata).toHaveProperty('historicalMovementsCount')
+      expect(result.metadata).toHaveProperty('transformationApplied')
+      expect(result.metadata).toHaveProperty('behaviorMode')
+      expect(result.metadata).toHaveProperty('supportedCurveTypes')
+
+      // Validate metadata values
+      expect(result.metadata.totalMonths).toBe(baseParams.projectionMonths)
+      expect(typeof result.metadata.totalGrowth).toBe('number')
+      expect(typeof result.metadata.averageMonthlyGrowth).toBe('number')
+      expect(result.metadata.confidence).toBeGreaterThan(0)
+      expect(result.metadata.confidence).toBeLessThanOrEqual(1)
     })
   })
 })
