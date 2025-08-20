@@ -94,428 +94,107 @@ export class EnhancedCycleRepeatModel implements PriceProjectionModel {
   private readonly BITCOIN_CURRENT_SUPPLY = 19_800_000 // Approximate current supply
   
   /**
-   * Calculate historical daily multipliers from price data
+   * Extract percentage movements from exactly 4 years ago to today
    */
-  private calculateHistoricalMultipliers(historicalData: HistoricalDataPoint[]): number[] {
+  private extractPercentageMovements(historicalData: HistoricalDataPoint[], fourYearsAgo: Date, today: Date): number[] {
     if (historicalData.length < 2) {
-      console.warn("⚠️ Enhanced Cycle Repeat Model: Insufficient historical data for multipliers")
+      console.warn(`⚠️ Enhanced Cycle Repeat Model: Insufficient historical data. Need at least 2 points, have ${historicalData.length}`)
       return []
     }
-    
-    // Use last 4 years of data (approximately 1458 days)
-    const cycleDays = 1458
-    const recentData = historicalData.slice(-cycleDays)
-    
-    const multipliers: number[] = []
-    for (let i = 1; i < recentData.length; i++) {
-      const prevPrice = recentData[i - 1].close
-      const currentPrice = recentData[i].close
-      
-      if (prevPrice > 0) {
-        const multiplier = currentPrice / prevPrice
-        // Clamp extreme values to prevent unrealistic projections
-        const clampedMultiplier = Math.max(0.5, Math.min(2.0, multiplier))
-        multipliers.push(clampedMultiplier)
+
+    // Convert dates to timestamps (in seconds to match historical data)
+    const fourYearsAgoTimestamp = Math.floor(fourYearsAgo.getTime() / 1000)
+    const todayTimestamp = Math.floor(today.getTime() / 1000)
+
+    // Filter data to the 4-year period
+    const fourYearData = historicalData.filter(point =>
+      point.time >= fourYearsAgoTimestamp && point.time <= todayTimestamp
+    ).sort((a, b) => a.time - b.time) // Ensure chronological order
+
+    if (fourYearData.length < 2) {
+      console.warn(`⚠️ Enhanced Cycle Repeat Model: Insufficient data in 4-year period. Need at least 2 points, have ${fourYearData.length}`)
+      return []
+    }
+
+    // Calculate daily percentage movements
+    const percentageMovements: number[] = []
+    for (let i = 1; i < fourYearData.length; i++) {
+      const previousPrice = fourYearData[i - 1].close
+      const currentPrice = fourYearData[i].close
+
+      if (previousPrice > 0) {
+        const percentageChange = currentPrice / previousPrice // This gives us the multiplier (e.g., 1.05 for +5%)
+        percentageMovements.push(percentageChange)
       }
     }
-    
-    console.log(`📊 Enhanced Cycle Repeat Model: Calculated ${multipliers.length} daily multipliers from ${recentData.length} historical points`)
-    return multipliers
+
+    const startDate = new Date(fourYearData[0].time * 1000).toDateString()
+    const endDate = new Date(fourYearData[fourYearData.length - 1].time * 1000).toDateString()
+
+    console.log(`📊 Extracted ${percentageMovements.length} percentage movements from ${startDate} to ${endDate}`)
+    console.log(`📈 Movement range: ${(Math.min(...percentageMovements) * 100 - 100).toFixed(1)}% to ${(Math.max(...percentageMovements) * 100 - 100).toFixed(1)}%`)
+
+    return percentageMovements
   }
-  
+
   /**
-   * Apply diminishing returns effects to historical multipliers
+   * Apply diminishing returns to percentage movements
    */
   private applyDiminishingReturns(
-    baseMultiplier: number,
-    currentPrice: number,
-    cycleNumber: number,
-    month: number,
+    originalMovement: number,
+    weekIndex: number,
+    totalWeeks: number,
     params: DiminishingReturnsParams
   ): number {
-    // Calculate current market cap
-    const currentMarketCap = currentPrice * this.BITCOIN_CURRENT_SUPPLY
-    
-    // Market maturity effect - diminishing returns kick in after threshold
-    let maturityFactor = 1.0
-    if (currentMarketCap > params.maturityThreshold) {
-      const excessMarketCap = currentMarketCap - params.maturityThreshold
-      const maturityRatio = excessMarketCap / params.maturityThreshold
-      maturityFactor = Math.pow(1 + maturityRatio, -params.diminishingFactor)
+    // Add comprehensive safety checks
+    if (!params) {
+      console.warn('⚠️ No diminishing returns params provided, using original movement')
+      return originalMovement
     }
-    
-    // Cycle degradation - each cycle becomes less explosive
-    const cycleFactor = Math.pow(1 - params.cycleDegradation, cycleNumber)
-    
-    // Institutional saturation effect
-    const institutionalFactor = 1 - (params.institutionalSaturation * 0.5)
-    
-    // Regulatory maturity dampening effect
-    const regulatoryFactor = 1 - (params.regulatoryMaturity * 0.3)
-    
-    // Liquidity constraint effect (stronger at higher prices)
-    const liquidityFactor = 1 - (params.liquidityConstraint * Math.min(1, currentMarketCap / 10_000_000_000_000))
-    
-    // Competition factor (reduces growth potential over time)
-    const competitionFactor = 1 - (params.competitionFactor * Math.min(1, month / 120)) // Increases over 10 years
-    
-    // Adoption curve effect
-    let adoptionFactor = 1.0
-    const adoptionProgress = Math.min(1, currentMarketCap / 10_000_000_000_000) // Progress toward $10T
-    
-    switch (params.adoptionCurveType) {
-      case 'logarithmic':
-        adoptionFactor = 1 - (0.5 * Math.log(1 + adoptionProgress * 9) / Math.log(10))
-        break
-      case 'sigmoid':
-        adoptionFactor = 1 - (0.6 / (1 + Math.exp(-10 * (adoptionProgress - 0.5))))
-        break
-      case 'linear':
-        adoptionFactor = 1 - (0.3 * adoptionProgress)
-        break
+
+    // Validate required properties exist
+    if (typeof params.diminishingFactor !== 'number' || typeof params.cycleDegradation !== 'number') {
+      console.warn('⚠️ Invalid diminishing returns params structure:', params)
+      return originalMovement
     }
-    
-    // Combine all factors
-    const combinedFactor = maturityFactor * cycleFactor * institutionalFactor * 
-                          regulatoryFactor * liquidityFactor * competitionFactor * adoptionFactor
-    
-    // Apply factors to the base multiplier
-    const adjustedMultiplier = 1 + ((baseMultiplier - 1) * combinedFactor)
-    
-    // Ensure reasonable bounds
-    return Math.max(0.5, Math.min(2.0, adjustedMultiplier))
+
+    const gain = originalMovement - 1 // Convert to gain percentage (e.g., 1.15 → 0.15)
+
+    // Preserve losses completely (market crashes should remain realistic)
+    if (gain <= 0) {
+      return originalMovement
+    }
+
+    // Preserve small gains below threshold
+    const threshold = params.cycleDegradation * 0.1 // Convert to decimal (e.g., 0.15 → 0.015)
+    if (gain <= threshold) {
+      return originalMovement
+    }
+
+    // Calculate progressive dampening (starts low, increases over time)
+    const progressRatio = weekIndex / totalWeeks
+    const maxDampeningReduction = params.diminishingFactor * 0.8 // Max 80% of dampening strength
+    const currentDampeningReduction = progressRatio * maxDampeningReduction
+
+    // Apply dampening: reduce large gains progressively over time
+    const dampenedGain = gain * (1 - currentDampeningReduction)
+
+    // Ensure we never reduce gains below 20% of original to prevent collapse
+    const minGainRatio = 0.2
+    const finalGain = Math.max(gain * minGainRatio, dampenedGain)
+
+    // Log significant dampening for debugging
+    if (currentDampeningReduction > 0.1 && weekIndex % 100 === 0) {
+      console.log(`   🔧 Week ${weekIndex}: Dampening ${(gain * 100).toFixed(1)}% → ${(finalGain * 100).toFixed(1)}% (reduction: ${(currentDampeningReduction * 100).toFixed(1)}%)`)
+    }
+
+    return 1 + finalGain
   }
 
-  /**
-   * Calculate where the raw cycle would end without diminishing returns
-   * This applies historical multipliers directly to get the "natural" endpoint
-   */
-  private calculateRawFinalPrice(
-    initialPrice: number,
-    historicalMultipliers: number[],
-    totalDays: number
-  ): number {
-    if (!historicalMultipliers || historicalMultipliers.length === 0) {
-      return initialPrice
-    }
 
-    let currentPrice = initialPrice
-    for (let i = 0; i < totalDays; i++) {
-      const multiplierIndex = i % historicalMultipliers.length
-      currentPrice *= historicalMultipliers[multiplierIndex]
-    }
 
-    return currentPrice
-  }
 
-  /**
-   * Apply diminishing returns to the final endpoint only
-   * This preserves volatility while adjusting the overall trajectory
-   */
-  private applyDiminishingReturnsToEndpoint(
-    rawFinalPrice: number,
-    params: DiminishingReturnsParams
-  ): number {
-    // Calculate market cap at the raw final price
-    const finalMarketCap = rawFinalPrice * this.BITCOIN_CURRENT_SUPPLY
 
-    // Apply all diminishing returns factors to the final price
-    let adjustmentFactor = 1.0
-
-    // Market maturity effect
-    if (finalMarketCap > params.maturityThreshold) {
-      const excessMarketCap = finalMarketCap - params.maturityThreshold
-      const maturityRatio = excessMarketCap / params.maturityThreshold
-      const maturityFactor = Math.pow(1 + maturityRatio, -params.diminishingFactor)
-      adjustmentFactor *= maturityFactor
-    }
-
-    // Institutional saturation effect
-    const institutionalFactor = 1 - (params.institutionalSaturation * 0.5)
-    adjustmentFactor *= institutionalFactor
-
-    // Regulatory maturity dampening effect
-    const regulatoryFactor = 1 - (params.regulatoryMaturity * 0.3)
-    adjustmentFactor *= regulatoryFactor
-
-    // Liquidity constraint effect (stronger at higher prices)
-    const liquidityFactor = 1 - (params.liquidityConstraint * Math.min(1, finalMarketCap / 10_000_000_000_000))
-    adjustmentFactor *= liquidityFactor
-
-    // Competition factor (assume maximum effect for final price)
-    const competitionFactor = 1 - (params.competitionFactor * 0.5)
-    adjustmentFactor *= competitionFactor
-
-    // Adoption curve effect
-    const adoptionProgress = Math.min(1, finalMarketCap / 10_000_000_000_000)
-    let adoptionFactor = 1.0
-
-    switch (params.adoptionCurveType) {
-      case 'logarithmic':
-        adoptionFactor = 1 - (0.5 * Math.log(1 + adoptionProgress * 9) / Math.log(10))
-        break
-      case 'sigmoid':
-        adoptionFactor = 1 - (0.6 / (1 + Math.exp(-10 * (adoptionProgress - 0.5))))
-        break
-      case 'linear':
-        adoptionFactor = 1 - (0.3 * adoptionProgress)
-        break
-    }
-    adjustmentFactor *= adoptionFactor
-
-    return rawFinalPrice * adjustmentFactor
-  }
-
-  /**
-   * Calculate the angle adjustment factor
-   * This determines how much to modify the trajectory
-   */
-  private calculateAngleAdjustment(
-    rawFinalPrice: number,
-    adjustedFinalPrice: number
-  ): number {
-    // Handle edge case of zero raw final price
-    if (rawFinalPrice <= 0) {
-      return 1.0
-    }
-
-    return adjustedFinalPrice / rawFinalPrice
-  }
-
-  /**
-   * Apply angle adjustment progressively over time
-   * This creates a smooth trajectory modification while preserving daily volatility
-   */
-  private applyAngleAdjustmentToPrice(
-    basePrice: number,
-    angleAdjustment: number,
-    timeProgress: number
-  ): number {
-    // Clamp time progress to [0, 1] range
-    const clampedProgress = Math.max(0, Math.min(1, timeProgress))
-
-    // Use smooth interpolation for progressive adjustment
-    // At timeProgress = 0: no adjustment (factor = 1.0)
-    // At timeProgress = 1: full adjustment (factor = angleAdjustment)
-    const adjustmentFactor = 1 + (angleAdjustment - 1) * clampedProgress
-
-    return basePrice * adjustmentFactor
-  }
-
-  /**
-   * Get cycle information for a given month
-   */
-  private getCycleInfo(month: number): { cycleNumber: number, monthInCycle: number } {
-    const cycleNumber = Math.floor((month - 1) / 48) // 0, 1, 2, etc. (48 months = 4 years per cycle)
-    const monthInCycle = ((month - 1) % 48) + 1      // 1-48 within each cycle
-    return { cycleNumber, monthInCycle }
-  }
-
-  /**
-   * Convert projection points back to historical data format for use in next cycle
-   */
-  private convertProjectionToHistorical(projectionPoints: ProjectionPoint[]): HistoricalDataPoint[] {
-    return projectionPoints.map(point => ({
-      time: Math.floor(point.timestamp / 1000), // Convert milliseconds to seconds
-      close: point.price,
-      open: point.support || point.price * 0.98, // Use support as open, or slight discount
-      high: point.resistance || point.price * 1.05, // Use resistance as high, or slight premium
-      low: point.support || point.price * 0.95, // Use support as low, or slight discount
-      volume: 0, // No volume data for projected points
-      date: new Date(point.timestamp).toISOString().split('T')[0],
-      source: 'projected'
-    }))
-  }
-
-  /**
-   * Adjust diminishing returns parameters for later cycles to make them more conservative
-   */
-  private adjustDiminishingParamsForCycle(
-    baseParams: DiminishingReturnsParams,
-    cycleNumber: number
-  ): DiminishingReturnsParams {
-    // Each cycle becomes progressively more conservative
-    const cycleMultiplier = Math.pow(1.2, cycleNumber) // 1.0, 1.2, 1.44, 1.73, etc.
-
-    return {
-      ...baseParams,
-      // Increase diminishing factor for later cycles (more aggressive diminishing returns)
-      diminishingFactor: Math.min(0.95, baseParams.diminishingFactor * cycleMultiplier),
-      // Lower maturity threshold for later cycles (effects kick in sooner)
-      maturityThreshold: baseParams.maturityThreshold / cycleMultiplier,
-      // Increase cycle degradation for later cycles
-      cycleDegradation: Math.min(0.8, baseParams.cycleDegradation + (cycleNumber * 0.1)),
-      // Increase institutional saturation for later cycles
-      institutionalSaturation: Math.min(0.9, baseParams.institutionalSaturation + (cycleNumber * 0.1)),
-      // Increase regulatory maturity for later cycles
-      regulatoryMaturity: Math.min(0.9, baseParams.regulatoryMaturity + (cycleNumber * 0.05)),
-      // Increase liquidity constraints for later cycles
-      liquidityConstraint: Math.min(0.8, baseParams.liquidityConstraint + (cycleNumber * 0.1)),
-      // Increase competition factor for later cycles
-      competitionFactor: Math.min(0.7, baseParams.competitionFactor + (cycleNumber * 0.1))
-    }
-  }
-
-  /**
-   * Calculate projected price for a specific month within a single cycle using angle adjustment
-   * This is simplified to work within one cycle only
-   */
-  private getEnhancedCycleRepeatPrice(
-    monthInCycle: number,
-    cycleStartPrice: number,
-    historicalMultipliers: number[],
-    diminishingParams: DiminishingReturnsParams
-  ): number {
-    if (!historicalMultipliers || historicalMultipliers.length === 0) {
-      return cycleStartPrice
-    }
-
-    // For month 1 of cycle, return the cycle start price
-    if (monthInCycle === 1) {
-      return cycleStartPrice
-    }
-
-    // Convert month to approximate days within this cycle
-    const daysInCycle = Math.round((monthInCycle - 1) * (365.25 / 12))
-
-    // Step 1: Calculate raw final price for the full cycle (48 months)
-    const totalCycleDays = Math.round(47 * (365.25 / 12)) // 47 months of growth
-    const rawCycleFinalPrice = this.calculateRawFinalPrice(cycleStartPrice, historicalMultipliers, totalCycleDays)
-
-    // Step 2: Apply diminishing returns to the cycle endpoint only
-    const adjustedCycleFinalPrice = this.applyDiminishingReturnsToEndpoint(rawCycleFinalPrice, diminishingParams)
-
-    // Step 3: Calculate angle adjustment factor for this cycle
-    const angleAdjustment = this.calculateAngleAdjustment(rawCycleFinalPrice, adjustedCycleFinalPrice)
-
-    // Step 4: Calculate the raw price for this specific month within the cycle
-    let rawMonthPrice = cycleStartPrice
-    for (let i = 0; i < daysInCycle; i++) {
-      const multiplierIndex = i % historicalMultipliers.length
-      const baseMultiplier = historicalMultipliers[multiplierIndex]
-      rawMonthPrice *= baseMultiplier
-    }
-
-    // Step 5: Apply progressive angle adjustment based on progress within this cycle
-    const cycleProgress = daysInCycle / totalCycleDays
-    const adjustedMonthPrice = this.applyAngleAdjustmentToPrice(
-      rawMonthPrice,
-      angleAdjustment,
-      cycleProgress
-    )
-
-    return adjustedMonthPrice
-  }
-
-  /**
-   * Generate a single 4-year cycle projection
-   */
-  private async generateSingleCycle(
-    cycleNumber: number,
-    historicalData: HistoricalDataPoint[],
-    cycleStartPrice: number,
-    baseDiminishingParams: DiminishingReturnsParams,
-    cycleStartDate: Date
-  ): Promise<ProjectionPoint[]> {
-    console.log(`🔄 Generating Cycle ${cycleNumber + 1} starting at $${cycleStartPrice.toFixed(0)}`)
-
-    // Calculate historical multipliers from this cycle's "historical" data
-    const historicalMultipliers = this.calculateHistoricalMultipliers(historicalData)
-
-    if (historicalMultipliers.length === 0) {
-      throw new Error(`Enhanced Cycle Repeat Model: Unable to calculate multipliers for cycle ${cycleNumber + 1}`)
-    }
-
-    // Adjust diminishing returns parameters for this cycle
-    const cycleDiminishingParams = this.adjustDiminishingParamsForCycle(baseDiminishingParams, cycleNumber)
-
-    console.log(`   📊 Cycle ${cycleNumber + 1} using ${historicalMultipliers.length} multipliers with adjusted params:`)
-    console.log(`   📉 Diminishing factor: ${cycleDiminishingParams.diminishingFactor.toFixed(3)} (base: ${baseDiminishingParams.diminishingFactor.toFixed(3)})`)
-    console.log(`   💰 Maturity threshold: $${(cycleDiminishingParams.maturityThreshold / 1e12).toFixed(1)}T (base: $${(baseDiminishingParams.maturityThreshold / 1e12).toFixed(1)}T)`)
-
-    const cycleProjectionPoints: ProjectionPoint[] = []
-    const cycleMonths = 48 // 4 years per cycle
-
-    // Generate monthly projections for this cycle
-    for (let monthInCycle = 1; monthInCycle <= cycleMonths; monthInCycle++) {
-      const currentDate = new Date(cycleStartDate)
-      currentDate.setMonth(currentDate.getMonth() + monthInCycle - 1)
-      currentDate.setDate(15) // Mid-month for consistency
-
-      // Calculate main projection price using enhanced cycle repeat logic
-      const mainPrice = this.getEnhancedCycleRepeatPrice(
-        monthInCycle,
-        cycleStartPrice,
-        historicalMultipliers,
-        cycleDiminishingParams
-      )
-
-      // Calculate support and resistance as percentage bands around main price
-      // Bands get narrower over time as market matures and in later cycles
-      const baseVolatilityBand = 0.15
-      const maturityAdjustment = Math.min(0.5, (mainPrice * this.BITCOIN_CURRENT_SUPPLY) / 10_000_000_000_000)
-      const cycleAdjustment = cycleNumber * 0.02 // Reduce volatility in later cycles
-      const volatilityBand = baseVolatilityBand * (1 - maturityAdjustment * 0.3 - cycleAdjustment)
-
-      const support = mainPrice * (1 - volatilityBand)
-      const resistance = mainPrice * (1 + volatilityBand)
-
-      cycleProjectionPoints.push({
-        timestamp: currentDate.getTime(),
-        price: mainPrice,
-        support: support,
-        resistance: resistance,
-        confidence: this.calculateConfidence(monthInCycle, historicalMultipliers, cycleMonths, cycleDiminishingParams),
-        metadata: {
-          cycleDay: ((monthInCycle - 1) * 30.44) % historicalMultipliers.length,
-          cycleNumber: cycleNumber,
-          monthInCycle: monthInCycle,
-          historicalMultipliersUsed: historicalMultipliers.length,
-          volatilityBand: volatilityBand,
-          marketCap: mainPrice * this.BITCOIN_CURRENT_SUPPLY,
-          diminishingReturnsApplied: true,
-          diminishingParams: cycleDiminishingParams,
-          cycleStartPrice: cycleStartPrice,
-          historicalDataSource: historicalData[0]?.source || 'unknown'
-        }
-      })
-    }
-
-    const cycleEndPrice = cycleProjectionPoints[cycleProjectionPoints.length - 1].price
-    const cycleGrowth = ((cycleEndPrice - cycleStartPrice) / cycleStartPrice) * 100
-
-    console.log(`   ✅ Cycle ${cycleNumber + 1} complete: $${cycleStartPrice.toFixed(0)} → $${cycleEndPrice.toFixed(0)} (${cycleGrowth.toFixed(1)}% growth)`)
-
-    return cycleProjectionPoints
-  }
-
-  /**
-   * Calculate confidence based on cycle position, volatility, and diminishing returns
-   */
-  private calculateConfidence(
-    month: number, 
-    historicalMultipliers: number[],
-    totalMonths: number,
-    diminishingParams: DiminishingReturnsParams
-  ): number {
-    if (historicalMultipliers.length === 0) return 0.3
-    
-    // Calculate volatility of historical multipliers
-    const avgMultiplier = historicalMultipliers.reduce((sum, m) => sum + m, 0) / historicalMultipliers.length
-    const variance = historicalMultipliers.reduce((sum, m) => sum + Math.pow(m - avgMultiplier, 2), 0) / historicalMultipliers.length
-    const volatility = Math.sqrt(variance)
-    
-    // Base confidence starts high and decreases with time and volatility
-    const baseConfidence = 0.85
-    const timeDecay = Math.exp(-0.015 * month) // Slower decay than basic model
-    const volatilityPenalty = Math.max(0.3, 1 - volatility * 1.5)
-    
-    // Diminishing returns confidence adjustment
-    const diminishingFactor = 1 - (diminishingParams.diminishingFactor * 0.2) // Higher diminishing = lower confidence
-    
-    const confidence = baseConfidence * timeDecay * volatilityPenalty * diminishingFactor
-    return Math.max(0.25, Math.min(0.95, confidence))
-  }
 
   /**
    * Validate model parameters
@@ -560,14 +239,14 @@ export class EnhancedCycleRepeatModel implements PriceProjectionModel {
   }
 
   /**
-   * Generate price projection using Enhanced Cycle Repeat model with dynamic cycle approach
+   * Generate price projection using Enhanced Cycle Repeat model with progressive dampening
    */
   async generateProjection(
     historicalData: HistoricalDataPoint[],
     params: PriceModelParams
   ): Promise<PriceProjectionResult> {
 
-    console.log(`🚀 Enhanced Cycle Repeat Model: Generating dynamic cycle projection for ${params.projectionMonths} months`)
+    console.log(`🚀 Enhanced Cycle Repeat Model: Generating projection for ${params.projectionMonths} months with progressive dampening`)
 
     // Get diminishing returns parameters or use defaults
     const baseDiminishingParams: DiminishingReturnsParams = {
@@ -575,56 +254,116 @@ export class EnhancedCycleRepeatModel implements PriceProjectionModel {
       ...(params.modelSpecificParams?.diminishingReturns || {})
     }
 
-    console.log(`📊 Using base diminishing returns params:`, baseDiminishingParams)
+    console.log(`📊 Using dampening strength: ${baseDiminishingParams.diminishingFactor}, threshold: ${baseDiminishingParams.cycleDegradation}`)
+    console.log(`📊 Full diminishing params:`, baseDiminishingParams)
+    console.log(`📊 Model specific params:`, params.modelSpecificParams)
 
-    // Calculate how many complete cycles we need (48 months = 4 years per cycle)
-    const totalCycles = Math.ceil(params.projectionMonths / 48)
-    const remainingMonths = params.projectionMonths % 48
+    // Calculate the exact 4-year lookback period from today
+    const today = new Date()
+    const fourYearsAgo = new Date(today)
+    fourYearsAgo.setFullYear(fourYearsAgo.getFullYear() - 4)
 
-    console.log(`🔄 Planning ${totalCycles} cycles for ${params.projectionMonths} months (${remainingMonths} months in final cycle)`)
+    console.log(`📅 Today: ${today.toDateString()}`)
+    console.log(`📅 Four years ago: ${fourYearsAgo.toDateString()}`)
 
-    const allProjectionPoints: ProjectionPoint[] = []
-    const startDate = new Date()
+    // Extract percentage movements from exactly 4 years ago
+    const percentageMovements = this.extractPercentageMovements(historicalData, fourYearsAgo, today)
 
-    // Initialize for first cycle
-    let currentHistoricalData = historicalData
-    let currentStartPrice = params.startPrice
-    let currentCycleStartDate = new Date(startDate)
+    console.log(`📊 Available data: ${historicalData.length} points, extracted ${percentageMovements.length} percentage movements`)
 
-    // Generate each cycle
-    for (let cycleIndex = 0; cycleIndex < totalCycles; cycleIndex++) {
-      // Determine how many months to generate for this cycle
-      const isLastCycle = cycleIndex === totalCycles - 1
-      const monthsInThisCycle = isLastCycle && remainingMonths > 0 ? remainingMonths : 48
-
-      // Generate the full cycle (48 months) to get proper historical data for next cycle
-      const fullCycleProjection = await this.generateSingleCycle(
-        cycleIndex,
-        currentHistoricalData,
-        currentStartPrice,
-        baseDiminishingParams,
-        currentCycleStartDate
-      )
-
-      // Add only the required months from this cycle to the final result
-      const cyclePointsToAdd = fullCycleProjection.slice(0, monthsInThisCycle)
-      allProjectionPoints.push(...cyclePointsToAdd)
-
-      // Prepare for next cycle (if there is one)
-      if (cycleIndex < totalCycles - 1) {
-        // Convert this cycle's projection to historical data for the next cycle
-        currentHistoricalData = this.convertProjectionToHistorical(fullCycleProjection)
-
-        // Start next cycle from the end price of this cycle
-        currentStartPrice = fullCycleProjection[fullCycleProjection.length - 1].price
-
-        // Advance the start date for the next cycle
-        currentCycleStartDate = new Date(currentCycleStartDate)
-        currentCycleStartDate.setMonth(currentCycleStartDate.getMonth() + 48)
-
-        console.log(`   🔗 Prepared for Cycle ${cycleIndex + 2}: ${currentHistoricalData.length} historical points, starting at $${currentStartPrice.toFixed(0)}`)
+    if (percentageMovements.length === 0) {
+      console.warn("⚠️ No historical percentage movements available, using fallback")
+      const fallbackPoint = { price: params.startPrice, timestamp: Date.now(), confidence: 0.1 }
+      return {
+        modelName: this.name,
+        modelVersion: this.version,
+        projectionPoints: [fallbackPoint],
+        metadata: {
+          totalMonths: params.projectionMonths,
+          totalGrowth: 0,
+          averageMonthlyGrowth: 0,
+          confidence: 0.1,
+          generatedAt: new Date().toISOString(),
+          parameters: {
+            startPrice: params.startPrice,
+            projectionMonths: params.projectionMonths,
+            historicalDataPoints: historicalData.length,
+            modelSpecificParams: params.modelSpecificParams
+          }
+        }
       }
     }
+
+    console.log(`📊 Enhanced Cycle Repeat Model: Extracted ${percentageMovements.length} percentage movements from 4 years ago`)
+
+    // Generate projection by applying the same percentage movements from 4 years ago
+    const allProjectionPoints: ProjectionPoint[] = []
+    let currentPrice = params.startPrice
+    const startDate = new Date()
+
+    console.log(`🎯 Starting projection from $${currentPrice.toFixed(0)} using movements from 4 years ago`)
+
+    // Apply percentage movements for the projection period
+    // Since we have weekly data (208 movements over 4 years = ~52 per year),
+    // we need to repeat this pattern over the full projection period
+    const totalWeeksNeeded = Math.ceil(params.projectionMonths * 4.33) // ~4.33 weeks per month
+
+    console.log(`🔄 Starting projection loop: ${totalWeeksNeeded} weeks to process (repeating ${percentageMovements.length} historical movements)`)
+
+    for (let weekIndex = 0; weekIndex < totalWeeksNeeded; weekIndex++) {
+      // Cycle through the historical movements repeatedly
+      const movementIndex = weekIndex % percentageMovements.length
+      const movement = percentageMovements[movementIndex]
+
+      // Apply diminishing returns to large movements
+      let adjustedMovement: number
+      try {
+        adjustedMovement = this.applyDiminishingReturns(
+          movement,
+          weekIndex,
+          totalWeeksNeeded,
+          baseDiminishingParams
+        )
+      } catch (error) {
+        console.error(`❌ Error in applyDiminishingReturns at week ${weekIndex}:`, error)
+        console.log(`   Movement: ${movement}, Params:`, baseDiminishingParams)
+        adjustedMovement = movement // Fallback to original movement
+      }
+
+      // Apply the percentage movement to current price
+      currentPrice *= adjustedMovement
+
+      // Create projection point (generate monthly points)
+      // Generate a point every ~4.33 weeks (monthly) or at the end
+      if (weekIndex % Math.round(4.33) === 0 || weekIndex === totalWeeksNeeded - 1) {
+        const currentDate = new Date(startDate)
+        // Add weeks to the start date
+        currentDate.setDate(currentDate.getDate() + (weekIndex * 7))
+
+        allProjectionPoints.push({
+          price: currentPrice,
+          timestamp: currentDate.getTime(),
+          confidence: Math.max(0.1, 1 - (weekIndex / totalWeeksNeeded) * 0.5),
+          metadata: {
+            weekIndex: weekIndex + 1,
+            movementIndex: movementIndex,
+            cycleNumber: Math.floor(weekIndex / percentageMovements.length) + 1,
+            originalMovement: movement,
+            adjustedMovement: adjustedMovement,
+            approach: 'cycle-repeat-percentage-movements'
+          }
+        })
+
+        if (weekIndex % Math.round(4.33 * 3) === 0) { // Log every 3 months
+          console.log(`   📈 Week ${weekIndex}: $${currentPrice.toFixed(0)} (movement: ${((adjustedMovement - 1) * 100).toFixed(1)}%, cycle: ${Math.floor(weekIndex / percentageMovements.length) + 1})`)
+        }
+      }
+    }
+
+    const totalCycles = Math.ceil(totalWeeksNeeded / percentageMovements.length)
+    console.log(`✅ Projection loop complete: Generated ${allProjectionPoints.length} points over ${totalCycles} cycles`)
+    console.log(`   📊 Projection period: ${totalWeeksNeeded} weeks (${(totalWeeksNeeded / 52.18).toFixed(1)} years)`)
+    console.log(`   🔄 Repeated 4-year pattern ${totalCycles} times`)
 
     // Calculate projection metadata
     const startPrice = allProjectionPoints[0]?.price || params.startPrice
@@ -632,7 +371,7 @@ export class EnhancedCycleRepeatModel implements PriceProjectionModel {
     const totalGrowth = ((endPrice - startPrice) / startPrice) * 100
     const averageMonthlyGrowth = totalGrowth / params.projectionMonths
 
-    console.log(`✅ Enhanced Cycle Repeat Model: Generated ${allProjectionPoints.length} points across ${totalCycles} cycles`)
+    console.log(`✅ Enhanced Cycle Repeat Model: Generated ${allProjectionPoints.length} points`)
     console.log(`   📊 Price range: $${startPrice.toFixed(0)} → $${endPrice.toFixed(0)} (${totalGrowth.toFixed(1)}% total)`)
     console.log(`   🎯 Average monthly growth: ${averageMonthlyGrowth.toFixed(2)}%`)
 
@@ -646,8 +385,7 @@ export class EnhancedCycleRepeatModel implements PriceProjectionModel {
         averageMonthlyGrowth,
         confidence: this.calculateOverallConfidence(allProjectionPoints),
         generatedAt: new Date().toISOString(),
-        totalCycles: totalCycles,
-        cycleApproach: 'dynamic',
+        approach: 'progressive-dampening',
         diminishingReturnsEnabled: true,
         baseDiminishingReturnsParams: baseDiminishingParams,
         parameters: {

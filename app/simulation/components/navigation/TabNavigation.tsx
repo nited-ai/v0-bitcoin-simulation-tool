@@ -16,6 +16,7 @@ import { SimplifiedManualGrowthInterface } from '../price-models/manual/Simplifi
 import { GrowthRateAnalysis } from '../price-models/GrowthRateAnalysis'
 import { CustomGrowthRateSliders } from '../price-models/manual/CustomGrowthRateSliders'
 import { DiminishingReturnsControls } from '../price-models/cycle-repeat/DiminishingReturnsControls'
+import { LogarithmicCurveControls } from '../price-models/logarithmic-curve/LogarithmicCurveControls'
 import { BasicParametersCard } from '../parameters/BasicParametersCard'
 import { ValidationSummary } from '../parameters/ValidationSummary'
 import { RiskLevelSelector } from '../parameters/RiskLevelSelector'
@@ -189,6 +190,11 @@ export function TabNavigation({ children }: TabNavigationProps) {
             {/* Diminishing Returns Controls (when enhanced cycle repeat model is selected) */}
             {params.priceModel === 'enhancedCycleRepeat' && (
               <DiminishingReturnsControls />
+            )}
+
+            {/* Logarithmic Curve Controls (when logarithmic curve repeat model is selected) */}
+            {params.priceModel === 'logarithmicCurveRepeat' && (
+              <LogarithmicCurveControls />
             )}
 
             {/* Universal Growth Rate Analysis (for all models) */}
