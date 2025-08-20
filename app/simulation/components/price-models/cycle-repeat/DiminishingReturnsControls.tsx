@@ -6,7 +6,6 @@ import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   TrendingDown,
@@ -14,7 +13,10 @@ import {
   Settings,
   Zap,
   Target,
-  RotateCcw
+  RotateCcw,
+  Shield,
+  TrendingUp,
+  Rocket
 } from 'lucide-react'
 import { useSimulation } from '../../../context/SimulationContext'
 import type { DiminishingReturnsParams } from '../../../price-models/models/EnhancedCycleRepeatModel'
@@ -26,23 +28,31 @@ import { DIMINISHING_RETURNS_PRESETS } from '../../../price-models/models/Enhanc
 const PRESET_UI_CONFIG = {
   conservative: {
     name: 'Conservative',
-    description: 'Strong diminishing returns with high market maturity assumptions',
-    icon: TrendingDown
+    description: 'Low-risk approach with safety-first mindset',
+    icon: Shield,
+    badge: 'Safe',
+    badgeClassName: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
   },
   moderate: {
     name: 'Moderate', 
-    description: 'Balanced diminishing returns reflecting gradual market evolution',
-    icon: Target
+    description: 'Balanced approach for typical investors',
+    icon: Target,
+    badge: 'Balanced',
+    badgeClassName: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
   },
   optimistic: {
     name: 'Optimistic',
-    description: 'Minimal diminishing returns with continued growth potential',
-    icon: Zap
+    description: 'Growth-focused with higher risk tolerance',
+    icon: TrendingUp,
+    badge: 'Growth',
+    badgeClassName: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
   },
   moonshots: {
     name: 'Moonshots',
-    description: 'Aggressive growth assumptions with minimal constraints',
-    icon: Zap // Use Zap instead of Rocket for now
+    description: 'Maximum risk for maximum potential returns',
+    icon: Rocket,
+    badge: 'High Risk',
+    badgeClassName: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
   }
 } as const
 
@@ -50,10 +60,26 @@ interface DiminishingReturnsControlsProps {
   className?: string
 }
 
+// Helper function to get preset impact descriptions
+function getPresetImpactDescription(preset: keyof typeof PRESET_UI_CONFIG): string {
+  switch (preset) {
+    case 'conservative':
+      return 'Strong market maturation effects will significantly reduce explosive growth in future cycles, leading to more stable but lower returns.'
+    case 'moderate':
+      return 'Balanced approach with moderate diminishing returns, expecting gradual reduction in cycle explosiveness over time.'
+    case 'optimistic':
+      return 'Minimal constraints on growth with low diminishing returns, maintaining strong potential for explosive cycles.'
+    case 'moonshots':
+      return 'Maximum growth potential with minimal market maturation effects, allowing for continued explosive price movements.'
+    default:
+      return 'Custom configuration with user-defined parameters.'
+  }
+}
+
 // SessionStorage keys
 const STORAGE_KEYS = {
   selectedPreset: 'bitcoin-sim-enhanced-cycle-preset',
-  customParams: 'bitcoin-sim-enhanced-cycle-params'
+  customParams: 'bitcoin-sim-diminishing-returns-params' // Match UnifiedPriceChart expectation
 }
 
 export function DiminishingReturnsControls({ className }: DiminishingReturnsControlsProps) {
@@ -157,17 +183,6 @@ export function DiminishingReturnsControls({ className }: DiminishingReturnsCont
     applyParameters()
   }
 
-  // Format market cap for display
-  const formatMarketCap = (value: number) => {
-    if (value >= 1_000_000_000_000) {
-      return `$${(value / 1_000_000_000_000).toFixed(1)}T`
-    } else if (value >= 1_000_000_000) {
-      return `$${(value / 1_000_000_000).toFixed(0)}B`
-    } else {
-      return `$${(value / 1_000_000).toFixed(0)}M`
-    }
-  }
-
   // Only show for Enhanced Cycle Repeat Model
   if (params.priceModel !== 'enhancedCycleRepeat') {
     return null
@@ -188,44 +203,119 @@ export function DiminishingReturnsControls({ className }: DiminishingReturnsCont
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {/* Simplified Preset Selection */}
+          {/* Card-based Preset Selection */}
           <div className="space-y-4">
             <Label className="text-base font-medium">Risk Level Preset</Label>
             
-            <Select value={selectedPreset} onValueChange={handlePresetSelect}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select risk level..." />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(PRESET_UI_CONFIG).map(([key, config]) => {
-                  const Icon = config.icon
-                  return (
-                    <SelectItem key={key} value={key}>
-                      <div className="flex items-center gap-2">
-                        <Icon className="w-4 h-4" />
-                        <span>{config.name}</span>
-                      </div>
-                    </SelectItem>
-                  )
-                })}
-                <SelectItem value="custom">
-                  <div className="flex items-center gap-2">
-                    <Settings className="w-4 h-4" />
-                    <span>Custom</span>
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {Object.entries(PRESET_UI_CONFIG).map(([key, config]) => {
+                const Icon = config.icon
+                const isSelected = selectedPreset === key
+                
+                return (
+                  <div
+                    key={key}
+                    className={`relative p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
+                      isSelected 
+                        ? "border-primary bg-primary/5 shadow-sm" 
+                        : "border-border hover:border-primary/50"
+                    }`}
+                    onClick={() => handlePresetSelect(key)}
+                  >
+                    {/* Badge */}
+                    <Badge className={`absolute -top-2 -right-2 text-xs ${config.badgeClassName}`}>
+                      {config.badge}
+                    </Badge>
 
-            {/* Show description for selected preset */}
-            {selectedPreset !== 'custom' && selectedPreset in PRESET_UI_CONFIG && (
-              <div className="p-3 bg-muted/50 rounded-lg">
+                    {/* Header */}
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="text-primary">
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <h3 className="font-medium">{config.name}</h3>
+                      {isSelected && (
+                        <div className="w-2 h-2 bg-primary rounded-full ml-auto" />
+                      )}
+                    </div>
+
+                    {/* Description */}
+                    <p className="text-sm text-muted-foreground">
+                      {config.description}
+                    </p>
+                  </div>
+                )
+              })}
+              
+              {/* Custom Option */}
+              <div
+                className={`relative p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
+                  selectedPreset === 'custom'
+                    ? "border-primary bg-primary/5 shadow-sm" 
+                    : "border-border hover:border-primary/50"
+                }`}
+                onClick={() => handlePresetSelect('custom')}
+              >
+                {/* Badge */}
+                <Badge className="absolute -top-2 -right-2 text-xs bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200">
+                  Custom
+                </Badge>
+
+                {/* Header */}
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="text-primary">
+                    <Settings className="w-4 h-4" />
+                  </div>
+                  <h3 className="font-medium">Custom</h3>
+                  {selectedPreset === 'custom' && (
+                    <div className="w-2 h-2 bg-primary rounded-full ml-auto" />
+                  )}
+                </div>
+
+                {/* Description */}
                 <p className="text-sm text-muted-foreground">
-                  {PRESET_UI_CONFIG[selectedPreset as keyof typeof PRESET_UI_CONFIG].description}
+                  Advanced users: customize all parameters
                 </p>
               </div>
-            )}
+            </div>
           </div>
+
+          {/* Growth Preview */}
+          {selectedPreset !== 'custom' && selectedPreset in PRESET_UI_CONFIG && (
+            <div className="space-y-4">
+              <Label className="text-base font-medium">Growth Preview</Label>
+              <div className="p-4 bg-muted/30 rounded-lg border">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Selected Preset:</span>
+                    <Badge className={PRESET_UI_CONFIG[selectedPreset as keyof typeof PRESET_UI_CONFIG].badgeClassName}>
+                      {PRESET_UI_CONFIG[selectedPreset as keyof typeof PRESET_UI_CONFIG].name}
+                    </Badge>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Diminishing Returns:</span>
+                      <div className="font-medium">
+                        {(customParams.diminishingFactor * 100).toFixed(1)}%
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Cycle Degradation:</span>
+                      <div className="font-medium">
+                        {(customParams.cycleDegradation * 100).toFixed(1)}%
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="pt-2 border-t">
+                    <p className="text-xs text-muted-foreground">
+                      <strong>Impact:</strong> {getPresetImpactDescription(selectedPreset as keyof typeof PRESET_UI_CONFIG)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Custom Parameters - Only show when Custom is selected */}
           {showCustomControls && (
