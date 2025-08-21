@@ -118,7 +118,7 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
   const loadDataManually = async () => {
     console.log('🔄 Manual data load triggered')
     try {
-      await refreshHistoricalData('weekly')
+      await refreshHistoricalData('')
       console.log('✅ Manual data load completed')
     } catch (error) {
       console.error('❌ Manual data load failed:', error)
