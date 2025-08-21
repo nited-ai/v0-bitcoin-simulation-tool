@@ -8,7 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
-import { DollarSign, Info, TrendingUp } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
+import { DollarSign, Info, TrendingUp, Menu, Settings, BarChart3, Target, TrendingDown } from 'lucide-react'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { NumberInput } from '@/shared/ui/forms/NumberInput'
 import { PriceModelSelector } from '../price-models/PriceModelSelector'
 import UnifiedPriceChart from '../charts/UnifiedPriceChart'
@@ -37,13 +40,45 @@ interface TabNavigationProps {
   children?: React.ReactNode
 }
 
+// Tab configuration with icons and labels
+const tabConfig = {
+  parameters: {
+    label: 'Parameters',
+    shortLabel: 'Params',
+    icon: Settings,
+    enabled: true
+  },
+  'price-projection': {
+    label: 'Price Projection',
+    shortLabel: 'Price',
+    icon: BarChart3,
+    enabled: true
+  },
+  strategy: {
+    label: 'Strategy',
+    shortLabel: 'Strategy',
+    icon: Target,
+    enabled: false,
+    badge: 'Coming Soon'
+  },
+  results: {
+    label: 'Results',
+    shortLabel: 'Results',
+    icon: TrendingDown,
+    enabled: false,
+    badge: 'Coming Soon'
+  }
+} as const
+
 export function TabNavigation({ children }: TabNavigationProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { params, setParams } = useSimulation()
+  const isMobile = useIsMobile()
 
   // State for projection data from UnifiedPriceChart
   const [projection, setProjection] = useState<PriceProjectionResult | null>(null)
+  const [isSheetOpen, setIsSheetOpen] = useState(false)
 
   // Get BTC accumulation state (default to true)
   const btcAccumulation = (params as any).btcAccumulation ?? true
@@ -112,6 +147,7 @@ export function TabNavigation({ children }: TabNavigationProps) {
     }
 
     setActiveTab(tabValue)
+    setIsSheetOpen(false) // Close mobile sheet when tab changes
 
     // Update URL without page reload
     const params = new URLSearchParams(searchParams.toString())
@@ -119,25 +155,106 @@ export function TabNavigation({ children }: TabNavigationProps) {
     router.replace(`?${params.toString()}`)
   }
 
+  // Get current tab config
+  const currentTabConfig = tabConfig[activeTab]
+
   return (
     <div className="w-full">
+      {/* Mobile Navigation Header */}
+      {isMobile && (
+        <div className="flex items-center justify-between p-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-40">
+          <div className="flex items-center gap-3">
+            <currentTabConfig.icon className="h-5 w-5 text-muted-foreground" />
+            <h1 className="font-semibold text-lg">{currentTabConfig.label}</h1>
+          </div>
+          <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="icon">
+                <Menu className="h-4 w-4" />
+                <span className="sr-only">Open navigation menu</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-80">
+              <SheetHeader>
+                <SheetTitle>Navigation</SheetTitle>
+              </SheetHeader>
+              <div className="flex flex-col gap-2 mt-6">
+                {Object.entries(tabConfig).map(([key, config]) => {
+                  const Icon = config.icon
+                  const isActive = activeTab === key
+                  const isEnabled = config.enabled
+
+                  return (
+                    <Button
+                      key={key}
+                      variant={isActive ? "default" : "ghost"}
+                      className={`
+                        justify-start gap-3 h-12
+                        ${!isEnabled ? 'opacity-50 cursor-not-allowed' : ''}
+                      `}
+                      disabled={!isEnabled}
+                      onClick={() => isEnabled && handleTabChange(key)}
+                    >
+                      <Icon className="h-5 w-5" />
+                      <span className="flex-1 text-left">{config.label}</span>
+                      {config.badge && (
+                        <Badge variant="outline" className="text-xs">
+                          {config.badge}
+                        </Badge>
+                      )}
+                    </Button>
+                  )
+                })}
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
+      )}
+
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="parameters">Parameters</TabsTrigger>
-          <TabsTrigger value="price-projection">
-            Price Projection
-          </TabsTrigger>
-          <TabsTrigger value="strategy" disabled className="relative">
-            <span className="opacity-50">Strategy</span>
-            <Badge variant="outline" className="ml-2 text-xs">Coming Soon</Badge>
-          </TabsTrigger>
-          <TabsTrigger value="results" disabled className="relative">
-            <span className="opacity-50">Results</span>
-            <Badge variant="outline" className="ml-2 text-xs">Coming Soon</Badge>
-          </TabsTrigger>
-        </TabsList>
+        {/* Desktop Navigation */}
+        {!isMobile && (
+          <TabsList className="
+            grid w-full
+            grid-cols-2 sm:grid-cols-4
+            h-auto p-1
+            bg-muted/50
+          ">
+            {Object.entries(tabConfig).map(([key, config]) => {
+              const Icon = config.icon
+              const isEnabled = config.enabled
+
+              return (
+                <TabsTrigger
+                  key={key}
+                  value={key}
+                  disabled={!isEnabled}
+                  className={`
+                    flex flex-col gap-1 h-16 px-3
+                    data-[state=active]:bg-background
+                    data-[state=active]:shadow-sm
+                    ${!isEnabled ? 'opacity-50' : ''}
+                  `}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span className="text-xs font-medium hidden sm:block">
+                    {config.label}
+                  </span>
+                  <span className="text-xs font-medium sm:hidden">
+                    {config.shortLabel}
+                  </span>
+                  {config.badge && (
+                    <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 hidden sm:flex">
+                      {config.badge}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+              )
+            })}
+          </TabsList>
+        )}
         
-        <TabsContent value="parameters" className="mt-6">
+        <TabsContent value="parameters" className={`${isMobile ? 'mt-0 px-4' : 'mt-6'}`}>
           <div className="space-y-6">
             {/* Validation Summary - Only show if parameters are not valid */}
             <ValidationSummary />
@@ -168,7 +285,7 @@ export function TabNavigation({ children }: TabNavigationProps) {
           </div>
         </TabsContent>
         
-        <TabsContent value="price-projection" className="mt-6">
+        <TabsContent value="price-projection" className={`${isMobile ? 'mt-0 px-4' : 'mt-6'}`}>
           <div className="space-y-6">
 
             {/* Price Model Selection */}
@@ -216,7 +333,7 @@ export function TabNavigation({ children }: TabNavigationProps) {
           </div>
         </TabsContent>
         
-        <TabsContent value="strategy" className="mt-6">
+        <TabsContent value="strategy" className={`${isMobile ? 'mt-0 px-4' : 'mt-6'}`}>
           <div className="space-y-6">
             <div>
               <h2 className="text-2xl font-bold">Strategy</h2>
@@ -293,7 +410,7 @@ export function TabNavigation({ children }: TabNavigationProps) {
           </div>
         </TabsContent>
         
-        <TabsContent value="results" className="mt-6">
+        <TabsContent value="results" className={`${isMobile ? 'mt-0 px-4' : 'mt-6'}`}>
           <ResultsPage />
         </TabsContent>
       </Tabs>

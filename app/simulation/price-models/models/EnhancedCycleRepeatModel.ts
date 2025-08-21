@@ -10,6 +10,7 @@ import type {
   PriceProjectionResult,
   PriceModelParams,
   ProjectionPoint
+
 } from "../types"
 import type { HistoricalDataPoint } from "@/lib/services/centralized-data-service"
 
@@ -376,7 +377,6 @@ export class EnhancedCycleRepeatModel implements PriceProjectionModel {
 
     return true
   }
-
   /**
    * Get default parameters for the model
    */

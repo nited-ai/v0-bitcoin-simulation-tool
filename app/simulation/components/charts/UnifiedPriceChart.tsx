@@ -204,9 +204,11 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
             diminishingReturns
           }
         }
+
         
         console.log(`🎯 Generating projection with model: ${params.priceModel}`)
         console.log(`📊 Model parameters:`, modelParams)
+
 
         const result = await priceModelRegistry.generateProjection(
           params.priceModel,

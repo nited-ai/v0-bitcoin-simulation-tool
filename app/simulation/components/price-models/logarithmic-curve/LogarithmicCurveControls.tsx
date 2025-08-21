@@ -173,9 +173,8 @@ export function LogarithmicCurveControls({ className }: LogarithmicCurveControls
     setParams(prev => ({
       ...prev,
       // Update timestamp to trigger chart regeneration
-      lastUpdated: Date.now(),
-      // Also store a flag to indicate parameters changed
-      logarithmicCurveUpdated: Date.now()
+      lastUpdated: Date.now()
+      // Note: logarithmicCurveUpdated property removed as it's not in SimulationParams type
     }))
   }
 

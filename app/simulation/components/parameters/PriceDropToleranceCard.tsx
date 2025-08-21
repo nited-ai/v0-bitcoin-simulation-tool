@@ -491,11 +491,11 @@ export function PriceDropToleranceCard() {
         ) : (
           <div className="flex flex-col items-center">
             {/* Two Charts Container - Toggle-based View */}
-            <div className="flex flex-row items-center justify-center gap-4">
+            <div className="flex flex-col md:flex-row items-center justify-center gap-4">
               {viewMode === 'current' ? (
                 <>
                   {/* Current Immediate Risk */}
-                  <div className="relative w-56 h-80 sm:w-60 sm:h-80">
+                  <div className="relative w-48 h-64 sm:w-56 sm:h-80 md:w-60 md:h-80">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart
                         data={chartData}
@@ -530,7 +530,7 @@ export function PriceDropToleranceCard() {
                   </div>
 
                   {/* Current + Free Collateral */}
-                  <div className="relative w-56 h-80 sm:w-60 sm:h-80">
+                  <div className="relative w-48 h-64 sm:w-56 sm:h-80 md:w-60 md:h-80">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart
                         data={freeCollateralCurrentData}
@@ -567,7 +567,7 @@ export function PriceDropToleranceCard() {
               ) : (
                 <>
                   {/* ATH Immediate Risk */}
-                  <div className="relative w-56 h-80 sm:w-60 sm:h-80">
+                  <div className="relative w-48 h-64 sm:w-56 sm:h-80 md:w-60 md:h-80">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart
                         data={athChartData}
@@ -602,7 +602,7 @@ export function PriceDropToleranceCard() {
                   </div>
 
                   {/* ATH + Free Collateral */}
-                  <div className="relative w-56 h-80 sm:w-60 sm:h-80">
+                  <div className="relative w-48 h-64 sm:w-56 sm:h-80 md:w-60 md:h-80">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart
                         data={freeCollateralAthData}
