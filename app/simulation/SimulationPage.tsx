@@ -13,12 +13,14 @@ function SimulationContent() {
   // Historical data and price generation are now lazy-loaded when needed
 
   return (
-    <div className="container mx-auto p-4">
-      {/* Header with title and controls */}
-      <SimulationHeader />
+    <div className="w-full">
+      <div className="max-w-7xl center-container px-4 sm:px-6 lg:px-8">
+        {/* Header with title and controls */}
+        <SimulationHeader />
 
-      {/* Main content with modular tab navigation */}
-      <TabNavigation />
+        {/* Main content with modular tab navigation */}
+        <TabNavigation />
+      </div>
     </div>
   )
 }
