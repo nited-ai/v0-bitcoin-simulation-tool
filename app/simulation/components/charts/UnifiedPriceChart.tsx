@@ -174,8 +174,8 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
           modelParams.modelSpecificParams = {
             diminishingReturns
           }
+        }
 
-        
         const result = await priceModelRegistry.generateProjection(
           params.priceModel,
           historicalData,
@@ -205,7 +205,6 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
     JSON.stringify(params.annualGrowthRates || []), // Stable string representation
     params.powerLawSettings?.prognosisLine, // Only the specific property that affects projections
     params.diminishingReturnsUpdated, // Trigger recalculation when diminishing returns params change
-    params.logarithmicCurveUpdated, // Trigger recalculation when logarithmic curve params change
     params.lastUpdated, // General trigger for any parameter updates
     searchParams, // Add searchParams to detect tab changes
   ])
