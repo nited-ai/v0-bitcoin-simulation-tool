@@ -118,7 +118,7 @@ export class EnhancedCycleRepeatModel implements PriceProjectionModel {
         totalGrowth,
         averageMonthlyGrowth,
         confidence: 0.8,
-        generatedAt: Date.now(),
+        generatedAt: new Date().toISOString(),
         modelName: this.name,
         modelVersion: this.version,
         historicalMovementsCount: historicalMovements.length,
