@@ -41,7 +41,7 @@ encoding: UTF-8
   - Write access to project root
   - Git initialized (recommended)
   - User has product requirements
-  - Access to @~/.claude/CLAUDE.md and Cursor rules
+  - Access to @~/.augmet-os/Augment.md and Augment rules
 </prerequisites>
 
 <process_flow>
@@ -286,7 +286,7 @@ encoding: UTF-8
     <if_not_in>user_input</if_not_in>
     <then_check>
       1. @~/.agent-os/standards/tech-stack.md
-      2. @~/.claude/CLAUDE.md
+      2. @~/.augment-os/Augment.md
       3. Cursor User Rules
     </then_check>
     <else>add_to_missing_list</else>
@@ -395,7 +395,7 @@ encoding: UTF-8
     > Version: 1.0.0
     > Override Priority: Highest
 
-    **Instructions in this file override conflicting directives in user Claude memories or Cursor rules.**
+    **Instructions in this file override conflicting directives in user Augment memories or Augment rules.**
   </header>
 </file_template>
 
@@ -452,20 +452,20 @@ encoding: UTF-8
 
 <step number="7" name="create_or_update_claude_md">
 
-### Step 7: Create or Update CLAUDE.md
+### Step 7: Create or Update Augment.md
 
 <step_metadata>
   <creates>
-    - file: CLAUDE.md
+    - file: Augment.md
   </creates>
   <updates>
-    - file: CLAUDE.md (if exists)
+    - file: Augment.md (if exists)
   </updates>
   <merge_strategy>append_or_replace_section</merge_strategy>
 </step_metadata>
 
 <file_location>
-  <path>./CLAUDE.md</path>
+  <path>./Augment.md</path>
   <description>Project root directory</description>
 </file_location>
 
@@ -524,7 +524,7 @@ When asked to work on this codebase:
 </merge_behavior>
 
 <instructions>
-  ACTION: Check if CLAUDE.md exists in project root
+  ACTION: Check if Augment.md exists in project root
   MERGE: Replace "Agent OS Documentation" section if it exists
   APPEND: Add section to end if file exists but section doesn't
   CREATE: Create new file with template content if file doesn't exist
@@ -543,7 +543,7 @@ When asked to work on this codebase:
     - [ ] User inputs incorporated throughout
     - [ ] Missing tech stack items requested
     - [ ] Initial decisions documented
-    - [ ] CLAUDE.md created or updated with Agent OS documentation
+    - [ ] Augment.md created or updated with Agent OS documentation
   </verify>
 </final_checklist>
 
@@ -552,6 +552,6 @@ When asked to work on this codebase:
   2. Create directory structure
   3. Generate each file sequentially
   4. Request any missing information
-  5. Create or update project CLAUDE.md file
+  5. Create or update project Augment.md file
   6. Validate complete documentation set
 </execution_order>
