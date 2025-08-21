@@ -40,8 +40,17 @@ interface TabNavigationProps {
   children?: React.ReactNode
 }
 
+// Tab configuration interface
+interface TabConfig {
+  label: string
+  shortLabel: string
+  icon: React.ComponentType<any>
+  enabled: boolean
+  badge?: string // Optional badge property
+}
+
 // Tab configuration with icons and labels
-const tabConfig = {
+const tabConfig: Record<TabValue, TabConfig> = {
   parameters: {
     label: 'Parameters',
     shortLabel: 'Params',
