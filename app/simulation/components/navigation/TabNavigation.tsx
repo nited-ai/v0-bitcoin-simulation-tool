@@ -19,7 +19,7 @@ import { SimplifiedManualGrowthInterface } from '../price-models/manual/Simplifi
 import { GrowthRateAnalysis } from '../price-models/GrowthRateAnalysis'
 import { CustomGrowthRateSliders } from '../price-models/manual/CustomGrowthRateSliders'
 import { DiminishingReturnsControls } from '../price-models/cycle-repeat/DiminishingReturnsControls'
-// import { LogarithmicCurveControls } from '../price-models/logarithmic-curve/LogarithmicCurveControls'
+import { LogarithmicCurveControls } from '../price-models/logarithmic-curve/LogarithmicCurveControls'
 import { BasicParametersCard } from '../parameters/BasicParametersCard'
 import { ValidationSummary } from '../parameters/ValidationSummary'
 import { RiskLevelSelector } from '../parameters/RiskLevelSelector'
@@ -46,15 +46,13 @@ const tabConfig = {
     label: 'Parameters',
     shortLabel: 'Params',
     icon: Settings,
-    enabled: true,
-    badge: undefined
+    enabled: true
   },
   'price-projection': {
     label: 'Price Projection',
     shortLabel: 'Price',
     icon: BarChart3,
-    enabled: true,
-    badge: undefined
+    enabled: true
   },
   strategy: {
     label: 'Strategy',
@@ -311,10 +309,10 @@ export function TabNavigation({ children }: TabNavigationProps) {
               <DiminishingReturnsControls />
             )}
 
-            {/* Logarithmic Curve Controls - DISABLED (model not registered) */}
-            {/* {params.priceModel === 'logarithmicCurveRepeat' && (
+            {/* Logarithmic Curve Controls (when logarithmic curve repeat model is selected) */}
+            {params.priceModel === 'logarithmicCurveRepeat' && (
               <LogarithmicCurveControls />
-            )} */}
+            )}
 
             {/* Universal Growth Rate Analysis (for all models) */}
             <GrowthRateAnalysis
