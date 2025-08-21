@@ -156,7 +156,14 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground p-1; /* Added p-1 for ~4px padding */
+    @apply bg-background text-foreground;
+  }
+
+  /* Force center container */
+  .center-container {
+    margin-left: auto !important;
+    margin-right: auto !important;
+    box-sizing: border-box !important;
   }
 }
 

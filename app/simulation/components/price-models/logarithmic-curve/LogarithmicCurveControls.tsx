@@ -173,9 +173,8 @@ export function LogarithmicCurveControls({ className }: LogarithmicCurveControls
     setParams(prev => ({
       ...prev,
       // Update timestamp to trigger chart regeneration
-      lastUpdated: Date.now(),
-      // Also store a flag to indicate parameters changed
-      logarithmicCurveUpdated: Date.now()
+      lastUpdated: Date.now()
+      // Note: logarithmicCurveUpdated property removed as it's not in SimulationParams type
     }))
   }
 
@@ -185,10 +184,13 @@ export function LogarithmicCurveControls({ className }: LogarithmicCurveControls
     setCustomParams(PRESETS.pureRepeat.params)
   }
 
-  // Only show this component when logarithmic curve repeat model is selected
-  if (params.priceModel !== 'logarithmicCurveRepeat') {
-    return null
-  }
+  // This component is disabled since logarithmicCurveRepeat model is not registered
+  // if (params.priceModel !== 'logarithmicCurveRepeat') {
+  //   return null
+  // }
+
+  // Always return null since the model is not available
+  return null
 
   return (
     <div className={className}>
