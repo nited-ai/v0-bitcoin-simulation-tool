@@ -1,10 +1,10 @@
 ﻿import type {
   PriceProjectionModel,
-  ProjectionParams,
-  ProjectionResult,
-  ProjectionPoint,
-  HistoricalDataPoint
+  PriceProjectionResult,
+  PriceModelParams,
+  ProjectionPoint
 } from '../types'
+import type { HistoricalDataPoint } from "@/lib/services/centralized-data-service"
 
 // Enhanced Cycle Repeat Model parameters
 export interface EnhancedCycleRepeatParams {
@@ -24,7 +24,7 @@ export class EnhancedCycleRepeatModel implements PriceProjectionModel {
   /**
    * Validate model-specific parameters
    */
-  validateParams(params: ProjectionParams): boolean {
+  validateParams(params: PriceModelParams): boolean {
     const modelParams = params.modelSpecificParams?.enhancedCycleRepeat
     if (!modelParams) return false
 
@@ -53,8 +53,8 @@ export class EnhancedCycleRepeatModel implements PriceProjectionModel {
    */
   async generateProjection(
     historicalData: HistoricalDataPoint[],
-    params: ProjectionParams
-  ): Promise<ProjectionResult> {
+    params: PriceModelParams
+  ): Promise<PriceProjectionResult> {
     if (!this.validateParams(params)) {
       throw new Error('Invalid parameters for Enhanced Cycle Repeat Model')
     }
