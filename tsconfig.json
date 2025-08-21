@@ -24,5 +24,22 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "examples-disabled", "**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx", "**/__tests__"]
+  "exclude": [
+    "node_modules",
+    "examples-disabled",
+    "questionsWT",
+    "questionsWT/**/*",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "**/__tests__",
+    "test-*.ts",
+    "**/test-*.ts",
+    "analyze-api-status.ts",
+    "api-based-data-insert.ts",
+    "debug-api-issues.ts",
+    "final-verification.ts",
+    "resume-gap-filling.ts"
+  ]
 }

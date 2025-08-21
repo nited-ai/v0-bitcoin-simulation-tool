@@ -40,8 +40,17 @@ interface TabNavigationProps {
   children?: React.ReactNode
 }
 
+// Tab configuration interface
+interface TabConfig {
+  label: string
+  shortLabel: string
+  icon: React.ComponentType<any>
+  enabled: boolean
+  badge?: string // Optional badge property
+}
+
 // Tab configuration with icons and labels
-const tabConfig = {
+const tabConfig: Record<TabValue, TabConfig> = {
   parameters: {
     label: 'Parameters',
     shortLabel: 'Params',
@@ -310,9 +319,10 @@ export function TabNavigation({ children }: TabNavigationProps) {
             )}
 
             {/* Logarithmic Curve Controls (when logarithmic curve repeat model is selected) */}
-            {params.priceModel === 'logarithmicCurveRepeat' && (
+            {/* Temporarily disabled - model not fully implemented */}
+            {/* {params.priceModel === 'logarithmicCurveRepeat' && (
               <LogarithmicCurveControls />
-            )}
+            )} */}
 
             {/* Universal Growth Rate Analysis (for all models) */}
             <GrowthRateAnalysis

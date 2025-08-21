@@ -8,3 +8,19 @@ examples/
 **/__tests__/
 # Exclude development utilities
 test-data-loading.ts
+test-*.ts
+**/test-*.ts
+analyze-api-status.ts
+api-based-data-insert.ts
+debug-api-issues.ts
+final-verification.ts
+resume-gap-filling.ts
+backup-data-inserter.ts
+comprehensive-database-fix.ts
+direct-database-insert.ts
+direct-postgres-seeder.ts
+simple-gap-filler.ts
+
+# Exclude backup/duplicate folder completely
+questionsWT/
+questionsWT/**/*

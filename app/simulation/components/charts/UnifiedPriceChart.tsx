@@ -95,13 +95,14 @@ function calculateSupportLine(historicalData: HistoricalDataPoint[]): { timestam
 
 function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartProps) {
   const { params } = useSimulation()
-  const { historicalData, isHistoricalDataLoaded: isLoaded, isLoadingHistoricalData: isLoading } = useCentralizedData(true) // Enable loading with weekly data
+  const { historicalData, isHistoricalDataLoaded: isLoaded, isLoadingHistoricalData: isLoading, refreshHistoricalData } = useCentralizedData(true) // Enable loading with weekly data
   const searchParams = useSearchParams()
 
   const [projection, setProjection] = useState<PriceProjectionResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isDownloading, setIsDownloading] = useState(false)
   const [isGeneratingProjection, setIsGeneratingProjection] = useState(false)
+  const [isLogScale, setIsLogScale] = useState(true) // Default to log scale for Bitcoin analysis
 
   // Debug counter to track useEffect calls
   const effectCallCount = useRef(0)
@@ -109,7 +110,20 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
   // Set loading state based on centralized data service and projection generation
   const loading = isLoading || !isLoaded || isGeneratingProjection
 
-  // Removed excessive debug logging for performance
+  // Debug logging
+  console.log(`🎨 UnifiedPriceChart component rendered - Model: ${params.priceModel}`)
+  console.log(`📊 Data state - Loaded: ${isLoaded}, Loading: ${isLoading}, Data points: ${historicalData.length}`)
+
+  // Manual data loading function for debugging
+  const loadDataManually = async () => {
+    console.log('🔄 Manual data load triggered')
+    try {
+      await refreshHistoricalData()
+      console.log('✅ Manual data load completed')
+    } catch (error) {
+      console.error('❌ Manual data load failed:', error)
+    }
+  }
 
   // Generate projection when model or parameters change
   useEffect(() => {
@@ -171,17 +185,40 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
             }
           }
 
+          // Use default moderate parameters if none are saved
+          if (!diminishingReturns) {
+            diminishingReturns = {
+              diminishingFactor: 0.25,
+              maturityThreshold: 2_000_000_000_000,
+              cycleDegradation: 0.15,
+              adoptionCurveType: 'sigmoid',
+              institutionalSaturation: 0.4,
+              regulatoryMaturity: 0.5,
+              liquidityConstraint: 0.4,
+              competitionFactor: 0.3
+            }
+            console.log('🔧 Using default moderate diminishing returns parameters')
+          }
+
           modelParams.modelSpecificParams = {
             diminishingReturns
           }
         }
+
+        
+        console.log(`🎯 Generating projection with model: ${params.priceModel}`)
+        console.log(`📊 Model parameters:`, modelParams)
+
 
         const result = await priceModelRegistry.generateProjection(
           params.priceModel,
           historicalData,
           modelParams
         )
-        
+
+        console.log(`✅ Projection generated successfully:`, result)
+        console.log(`📈 Projection points: ${result?.projectionPoints?.length || 0}`)
+
         setProjection(result)
         onProjectionChange?.(result)
 
@@ -205,6 +242,7 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
     JSON.stringify(params.annualGrowthRates || []), // Stable string representation
     params.powerLawSettings?.prognosisLine, // Only the specific property that affects projections
     params.diminishingReturnsUpdated, // Trigger recalculation when diminishing returns params change
+    // params.logarithmicCurveUpdated, // Trigger recalculation when logarithmic curve params change
     params.lastUpdated, // General trigger for any parameter updates
     searchParams, // Add searchParams to detect tab changes
   ])
@@ -276,7 +314,17 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
 
     // Sort by timestamp to ensure continuous timeline
     const sortedData = data.sort((a, b) => a.timestamp - b.timestamp)
-    // Removed excessive debug logging for performance
+
+    // Debug logging for chart data
+    if (sortedData.length > 0) {
+      console.log(`📊 Chart data prepared: ${sortedData.length} points`)
+      console.log('📊 First data point:', sortedData[0])
+      console.log('📊 Last data point:', sortedData[sortedData.length - 1])
+      console.log('📊 Sample price values:', sortedData.slice(0, 5).map(d => d.price))
+    } else {
+      console.log('📊 No chart data available')
+    }
+
     return sortedData
   }, [historicalData, projection])
 
@@ -405,6 +453,14 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
               <CardDescription>Historical and projected Bitcoin price based on the selected model.</CardDescription>
             </div>
             <Button
+              variant={isLogScale ? "default" : "outline"}
+              size="sm"
+              onClick={() => setIsLogScale(!isLogScale)}
+              title={isLogScale ? "Switch to Linear Scale" : "Switch to Logarithmic Scale"}
+            >
+              {isLogScale ? "Log Scale" : "Linear"}
+            </Button>
+            <Button
               variant="outline"
               size="sm"
               disabled={true}
@@ -439,15 +495,25 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
               </CardTitle>
               <CardDescription>Error loading chart data</CardDescription>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={true}
-              className="flex items-center gap-2 text-xs"
-            >
-              <Download className="h-3 w-3" />
-              CSV
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant={isLogScale ? "default" : "outline"}
+                size="sm"
+                onClick={() => setIsLogScale(!isLogScale)}
+                title={isLogScale ? "Switch to Linear Scale" : "Switch to Logarithmic Scale"}
+              >
+                {isLogScale ? "Log Scale" : "Linear"}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={true}
+                className="flex items-center gap-2 text-xs"
+              >
+                <Download className="h-3 w-3" />
+                CSV
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -475,16 +541,41 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
               Historical and projected Bitcoin price based on the selected model.
             </CardDescription>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={downloadCSV}
-            disabled={isDownloading || chartData.length === 0}
-            className="flex items-center gap-2 text-xs bg-orange-500 hover:bg-orange-600 text-white border-orange-500 hover:border-orange-600"
-          >
-            <Download className="h-3 w-3" />
-            {isDownloading ? 'Downloading...' : 'CSV'}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant={isLogScale ? "default" : "outline"}
+              size="sm"
+              onClick={() => setIsLogScale(!isLogScale)}
+              title={isLogScale ? "Switch to Linear Scale" : "Switch to Logarithmic Scale"}
+            >
+              {isLogScale ? "Log Scale" : "Linear"}
+            </Button>
+            <Button
+              onClick={loadDataManually}
+              disabled={isLoading}
+              variant="outline"
+              size="sm"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Loading...
+                </>
+              ) : (
+                'Load Data'
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={downloadCSV}
+              disabled={isDownloading || chartData.length === 0}
+              className="flex items-center gap-2 text-xs bg-orange-500 hover:bg-orange-600 text-white border-orange-500 hover:border-orange-600"
+            >
+              <Download className="h-3 w-3" />
+              {isDownloading ? 'Downloading...' : 'CSV'}
+            </Button>
+          </div>
         </div>
       </CardHeader>
       
@@ -513,9 +604,9 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
               />
 
               <YAxis
-                scale="log"
+                scale={isLogScale ? "log" : "linear"}
                 type="number"
-                domain={['dataMin * 0.5', 'dataMax * 2']}
+                domain={isLogScale ? ['dataMin * 0.5', 'dataMax * 2'] : ['dataMin * 0.9', 'dataMax * 1.1']}
                 tickFormatter={(value) => {
                   if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`
                   if (value >= 1000) return `$${(value / 1000).toFixed(0)}k`

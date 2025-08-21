@@ -184,13 +184,13 @@ export function LogarithmicCurveControls({ className }: LogarithmicCurveControls
     setCustomParams(PRESETS.pureRepeat.params)
   }
 
-  // This component is disabled since logarithmicCurveRepeat model is not registered
+  // Only show this component when logarithmic curve repeat model is selected
+  // Temporarily disabled - model not fully implemented
+  return null
+
   // if (params.priceModel !== 'logarithmicCurveRepeat') {
   //   return null
   // }
-
-  // Always return null since the model is not available
-  return null
 
   return (
     <div className={className}>
