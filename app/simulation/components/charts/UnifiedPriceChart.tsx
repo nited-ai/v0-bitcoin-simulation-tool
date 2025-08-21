@@ -174,23 +174,7 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
           modelParams.modelSpecificParams = {
             diminishingReturns
           }
-        } else if (params.priceModel === 'logarithmicCurveRepeat') {
-          // Get logarithmic curve parameters from sessionStorage or use defaults
-          const savedParams = sessionStorage.getItem('bitcoin-sim-logarithmic-curve-params')
-          let logarithmicCurve = null
 
-          if (savedParams) {
-            try {
-              logarithmicCurve = JSON.parse(savedParams)
-            } catch (error) {
-              console.warn('Failed to parse saved logarithmic curve params:', error)
-            }
-          }
-
-          modelParams.modelSpecificParams = {
-            logarithmicCurve
-          }
-        }
         
         const result = await priceModelRegistry.generateProjection(
           params.priceModel,

@@ -152,3 +152,6 @@ export class EnhancedCycleRepeatModel implements PriceProjectionModel {
     return movements
   }
 }
+
+// Export singleton instance
+export const enhancedCycleRepeatModel = new EnhancedCycleRepeatModel()

@@ -19,7 +19,7 @@ import { manualGrowthModel } from "./models/ManualGrowthModel"
 import { powerLawModel } from "./models/PowerLawModel"
 import { cycleRepeatModel } from "./models/CycleRepeatModel"
 import { enhancedCycleRepeatModel } from "./models/EnhancedCycleRepeatModel"
-import { logarithmicCurveRepeatModel } from "./models/LogarithmicCurveRepeatModel"
+// import { logarithmicCurveRepeatModel } from "./models/LogarithmicCurveRepeatModel"
 
 /**
  * Price Model Registry Implementation
@@ -166,7 +166,7 @@ export class PriceModelRegistry {
     this.registerModel('enhancedCycleRepeat', enhancedCycleRepeatModel, true, 85)
 
     // Register Logarithmic Curve Repeat Model (DISABLED - has exponential growth issues)
-    this.registerModel('logarithmicCurveRepeat', logarithmicCurveRepeatModel, false, 87)
+    // this.registerModel('logarithmicCurveRepeat', logarithmicCurveRepeatModel, false, 87)
 
     console.log(`✅ Registered ${this.models.size} price projection models`)
   }
