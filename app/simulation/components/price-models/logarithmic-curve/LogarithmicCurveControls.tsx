@@ -186,9 +186,12 @@ export function LogarithmicCurveControls({ className }: LogarithmicCurveControls
   }
 
   // Only show this component when logarithmic curve repeat model is selected
-  if (params.priceModel !== 'logarithmicCurveRepeat') {
-    return null
-  }
+  // Temporarily disabled - model not fully implemented
+  return null
+
+  // if (params.priceModel !== 'logarithmicCurveRepeat') {
+  //   return null
+  // }
 
   return (
     <div className={className}>

@@ -193,9 +193,10 @@ export function TabNavigation({ children }: TabNavigationProps) {
             )}
 
             {/* Logarithmic Curve Controls (when logarithmic curve repeat model is selected) */}
-            {params.priceModel === 'logarithmicCurveRepeat' && (
+            {/* Temporarily disabled - model not fully implemented */}
+            {/* {params.priceModel === 'logarithmicCurveRepeat' && (
               <LogarithmicCurveControls />
-            )}
+            )} */}
 
             {/* Universal Growth Rate Analysis (for all models) */}
             <GrowthRateAnalysis
