@@ -11,8 +11,12 @@ import { Label } from '@/components/ui/label'
 import { HybridTooltip, HybridTooltipTrigger, HybridTooltipContent } from '@/components/ui/hybrid-tooltip'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
-import { DollarSign, Info, TrendingUp, Menu, Settings, BarChart3, Target, TrendingDown } from 'lucide-react'
+import { DollarSign, Info, TrendingUp, Menu, Settings, BarChart3, Target, TrendingDown, Home, Globe, Sun, Moon } from 'lucide-react'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { ModeToggle } from "@/components/mode-toggle"
+import { LocaleSwitcher } from "@/components/locale-switcher"
+import { useTheme } from "next-themes"
+import Link from "next/link"
 import { NumberInput } from '@/shared/ui/forms/NumberInput'
 import { PriceModelSelector } from '../price-models/PriceModelSelector'
 import UnifiedPriceChart from '../charts/UnifiedPriceChart'
@@ -56,6 +60,7 @@ export function TabNavigation({ children }: TabNavigationProps) {
   const searchParams = useSearchParams()
   const { params, setParams } = useSimulation()
   const isMobile = useIsMobile()
+  const { setTheme, theme } = useTheme()
 
   // Tab configuration with icons and labels - using translation function
   const tabConfig: Record<TabValue, TabConfig> = {
@@ -189,33 +194,105 @@ export function TabNavigation({ children }: TabNavigationProps) {
               <SheetHeader>
                 <SheetTitle>{t('Navigation.title', 'Navigation')}</SheetTitle>
               </SheetHeader>
-              <div className="flex flex-col gap-2 mt-6">
-                {Object.entries(tabConfig).map(([key, config]) => {
-                  const Icon = config.icon
-                  const isActive = activeTab === key
-                  const isEnabled = config.enabled
+              <div className="flex flex-col gap-4 mt-6">
+                {/* Home Button */}
+                <Button
+                  variant="ghost"
+                  asChild
+                  className="justify-start gap-3 h-12"
+                  onClick={() => setIsSheetOpen(false)}
+                >
+                  <Link href="/">
+                    <Home className="w-5 h-5" />
+                    <span className="flex-1 text-left">{t("Navigation.backToLanding.button", "Back to Landing")}</span>
+                  </Link>
+                </Button>
 
-                  return (
-                    <Button
-                      key={key}
-                      variant={isActive ? "default" : "ghost"}
-                      className={`
-                        justify-start gap-3 h-12
-                        ${!isEnabled ? 'opacity-50 cursor-not-allowed' : ''}
-                      `}
-                      disabled={!isEnabled}
-                      onClick={() => isEnabled && handleTabChange(key)}
-                    >
-                      <Icon className="h-5 w-5" />
-                      <span className="flex-1 text-left">{config.label}</span>
-                      {config.badge && (
-                        <Badge variant="outline" className="text-xs">
-                          {config.badge}
-                        </Badge>
-                      )}
-                    </Button>
-                  )
-                })}
+                {/* Divider */}
+                <div className="border-t border-border my-2" />
+
+                {/* Tab Navigation */}
+                <div className="flex flex-col gap-2">
+                  <h3 className="text-sm font-medium text-muted-foreground px-3">Simulation Tabs</h3>
+                  {Object.entries(tabConfig).map(([key, config]) => {
+                    const Icon = config.icon
+                    const isActive = activeTab === key
+                    const isEnabled = config.enabled
+
+                    return (
+                      <Button
+                        key={key}
+                        variant={isActive ? "default" : "ghost"}
+                        className={`
+                          justify-start gap-3 h-12
+                          ${!isEnabled ? 'opacity-50 cursor-not-allowed' : ''}
+                        `}
+                        disabled={!isEnabled}
+                        onClick={() => isEnabled && handleTabChange(key)}
+                      >
+                        <Icon className="h-5 w-5" />
+                        <span className="flex-1 text-left">{config.label}</span>
+                        {config.badge && (
+                          <Badge variant="outline" className="text-xs">
+                            {config.badge}
+                          </Badge>
+                        )}
+                      </Button>
+                    )
+                  })}
+                </div>
+
+                {/* Divider */}
+                <div className="border-t border-border my-2" />
+
+                {/* Language Selector */}
+                <div className="flex flex-col gap-2">
+                  <h3 className="text-sm font-medium text-muted-foreground px-3">Settings</h3>
+                  <div className="flex items-center gap-3 px-3 py-2">
+                    <Globe className="w-5 h-5 text-muted-foreground" />
+                    <span className="text-sm font-medium">Language</span>
+                    <div className="ml-auto">
+                      <LocaleSwitcher />
+                    </div>
+                  </div>
+
+                  {/* Theme Toggle */}
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-3 px-3 py-2">
+                      <div className="w-5 h-5 flex items-center justify-center">
+                        <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                        <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                      </div>
+                      <span className="text-sm font-medium">Theme</span>
+                    </div>
+                    <div className="flex flex-col gap-1 ml-8">
+                      <Button
+                        variant={theme === "light" ? "default" : "ghost"}
+                        size="sm"
+                        className="justify-start"
+                        onClick={() => setTheme("light")}
+                      >
+                        Light
+                      </Button>
+                      <Button
+                        variant={theme === "dark" ? "default" : "ghost"}
+                        size="sm"
+                        className="justify-start"
+                        onClick={() => setTheme("dark")}
+                      >
+                        Dark
+                      </Button>
+                      <Button
+                        variant={theme === "system" ? "default" : "ghost"}
+                        size="sm"
+                        className="justify-start"
+                        onClick={() => setTheme("system")}
+                      >
+                        System
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </SheetContent>
           </Sheet>
