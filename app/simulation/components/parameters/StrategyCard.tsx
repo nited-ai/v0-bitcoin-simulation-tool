@@ -3,7 +3,7 @@
 import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
+import { HybridTooltip, HybridTooltipTrigger, HybridTooltipContent } from "@/components/ui/hybrid-tooltip"
 import { Info } from "lucide-react"
 import { NumberInput } from "@/shared/ui/forms/NumberInput"
 import { useSimulation } from "../../context/SimulationContext"
@@ -43,14 +43,14 @@ export function StrategyCard() {
         <div>
           <Label htmlFor="monthlyWithdrawalAmount">
             {t("Strategy.monthlyWithdrawal")}
-            <Tooltip>
-              <TooltipTrigger asChild>
+            <HybridTooltip>
+              <HybridTooltipTrigger asChild>
                 <Info className="w-4 h-4 ml-1 inline" />
-              </TooltipTrigger>
-              <TooltipContent>
+              </HybridTooltipTrigger>
+              <HybridTooltipContent>
                 <p>{t("Strategy.monthlyWithdrawalTooltip")}</p>
-              </TooltipContent>
-            </Tooltip>
+              </HybridTooltipContent>
+            </HybridTooltip>
           </Label>
           <NumberInput
             value={params.monthlyWithdrawalAmount}

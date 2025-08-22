@@ -2,6 +2,7 @@ import type React from "react"
 import type { Metadata } from "next"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
+import { TouchProvider, HybridTooltipProvider } from "@/components/ui/hybrid-tooltip"
 import { cn } from "@/lib/utils"
 import { fontSans } from "@/lib/fonts"
 import { Suspense } from "react"
@@ -29,9 +30,13 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={cn("min-h-screen bg-background font-sans antialiased", fontSans.variable)}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <Suspense fallback={<div className="w-full h-screen animate-pulse bg-secondary" />}>{children}</Suspense>
-        </ThemeProvider>
+        <TouchProvider>
+          <HybridTooltipProvider>
+            <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+              <Suspense fallback={<div className="w-full h-screen animate-pulse bg-secondary" />}>{children}</Suspense>
+            </ThemeProvider>
+          </HybridTooltipProvider>
+        </TouchProvider>
         {/* Development testing script */}
         {process.env.NODE_ENV === 'development' && (
           <script src="/test-price-switching.js" async />

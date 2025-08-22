@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { TooltipProvider } from "@/components/ui/tooltip"
+
 import { Bitcoin } from "lucide-react"
 import { SimulationProvider } from "../simulation/context/SimulationContext"
 import { BasicParametersCard } from "../simulation/components/parameters/BasicParametersCard"
@@ -241,10 +241,8 @@ function SimulationContent() {
 
 export default function FixedSimulationPage() {
   return (
-    <TooltipProvider>
-      <SimulationProvider>
-        <SimulationContent />
-      </SimulationProvider>
-    </TooltipProvider>
+    <SimulationProvider>
+      <SimulationContent />
+    </SimulationProvider>
   )
 }

@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
-import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
+import { HybridTooltip, HybridTooltipTrigger, HybridTooltipContent } from '@/components/ui/hybrid-tooltip'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { DollarSign, Info, TrendingUp, Menu, Settings, BarChart3, Target, TrendingDown } from 'lucide-react'
@@ -361,14 +361,14 @@ export function TabNavigation({ children }: TabNavigationProps) {
                     <Label className="flex items-center gap-2">
                       <DollarSign className="w-4 h-4 text-blue-500" />
                       Monthly Savings/Withdrawal
-                      <Tooltip>
-                        <TooltipTrigger asChild>
+                      <HybridTooltip>
+                        <HybridTooltipTrigger asChild>
                           <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent>
+                        </HybridTooltipTrigger>
+                        <HybridTooltipContent>
                           <p>Positive values: Monthly savings added to BTC stack. Negative values: Monthly withdrawals from BTC stack for living expenses.</p>
-                        </TooltipContent>
-                      </Tooltip>
+                        </HybridTooltipContent>
+                      </HybridTooltip>
                     </Label>
                     <NumberInput
                       value={params.monthlyWithdrawalAmount}
@@ -397,14 +397,14 @@ export function TabNavigation({ children }: TabNavigationProps) {
                       >
                         <TrendingUp className="w-4 h-4 text-green-500" />
                         BTC Accumulation
-                        <Tooltip>
-                          <TooltipTrigger asChild>
+                        <HybridTooltip>
+                          <HybridTooltipTrigger asChild>
                             <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-xs">
+                          </HybridTooltipTrigger>
+                          <HybridTooltipContent className="max-w-xs">
                             <p>Decide whether you want to accumulate more BTC or live off your stack</p>
-                          </TooltipContent>
-                        </Tooltip>
+                          </HybridTooltipContent>
+                        </HybridTooltip>
                       </Label>
                     </div>
                   </div>

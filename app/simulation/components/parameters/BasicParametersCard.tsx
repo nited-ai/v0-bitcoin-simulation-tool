@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
+import { HybridTooltip, HybridTooltipTrigger, HybridTooltipContent } from "@/components/ui/hybrid-tooltip"
 import { RefreshCw, Info, Bitcoin, DollarSign, Banknote, CreditCard } from "lucide-react"
 import { useSimulation } from "../../context/SimulationContext"
 import { centralizedDataService } from "@/lib/services/centralized-data-service"
@@ -86,14 +86,14 @@ export function BasicParametersCard() {
               <Label className="flex items-center gap-2">
                 <DollarSign className="w-4 h-4 text-orange-500" />
                 {t('BasicParameters.initialBtcPrice.label')}
-                <Tooltip>
-                  <TooltipTrigger asChild>
+                <HybridTooltip>
+                  <HybridTooltipTrigger asChild>
                     <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent>
+                  </HybridTooltipTrigger>
+                  <HybridTooltipContent>
                     <p>{t('BasicParameters.initialBtcPrice.tooltip')}</p>
-                  </TooltipContent>
-                </Tooltip>
+                  </HybridTooltipContent>
+                </HybridTooltip>
               </Label>
               <div className="flex gap-2">
                 <NumberInput
@@ -125,14 +125,14 @@ export function BasicParametersCard() {
               <Label className="flex items-center gap-2">
                 <Bitcoin className="w-4 h-4 text-orange-500" />
                 {t('BasicParameters.btcAmount.label')}
-                <Tooltip>
-                  <TooltipTrigger asChild>
+                <HybridTooltip>
+                  <HybridTooltipTrigger asChild>
                     <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent>
+                  </HybridTooltipTrigger>
+                  <HybridTooltipContent>
                     <p>{t('BasicParameters.btcAmount.tooltip')}</p>
-                  </TooltipContent>
-                </Tooltip>
+                  </HybridTooltipContent>
+                </HybridTooltip>
               </Label>
               <NumberInput
                 value={params.initialBtcAmount}
@@ -154,15 +154,15 @@ export function BasicParametersCard() {
               <Label className="flex items-center gap-2">
                 <Banknote className="w-4 h-4 text-orange-500" />
                 {t('BasicParameters.totalFiatValue.label', 'Total Fiat Value')}
-                <Tooltip>
-                  <TooltipTrigger asChild>
+                <HybridTooltip>
+                  <HybridTooltipTrigger asChild>
                     <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent>
+                  </HybridTooltipTrigger>
+                  <HybridTooltipContent>
                     <p>{t('BasicParameters.totalFiatValue.tooltip', 'Total fiat value of your BTC stack available as collateral')}</p>
                     <p>{t('BasicParameters.totalFiatValue.formula', 'Formula: BTC Amount × Initial BTC Price')}</p>
-                  </TooltipContent>
-                </Tooltip>
+                  </HybridTooltipContent>
+                </HybridTooltip>
               </Label>
               <CollateralSummaryCard
                 btcAmount={params.initialBtcAmount}
@@ -176,15 +176,15 @@ export function BasicParametersCard() {
               <Label className="flex items-center gap-2">
                 <CreditCard className="w-4 h-4 text-orange-500" />
                 {t('BasicParameters.maxLoanAmount.label', 'Max Loan Amount')}
-                <Tooltip>
-                  <TooltipTrigger asChild>
+                <HybridTooltip>
+                  <HybridTooltipTrigger asChild>
                     <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent>
+                  </HybridTooltipTrigger>
+                  <HybridTooltipContent>
                     <p>{t('BasicParameters.maxLoanAmount.tooltip', 'Maximum loan amount available on selected platform')}</p>
                     <p>{t('BasicParameters.maxLoanAmount.formula', 'Formula: (BTC Amount × Price) × Platform Max LTV')}</p>
-                  </TooltipContent>
-                </Tooltip>
+                  </HybridTooltipContent>
+                </HybridTooltip>
               </Label>
               <div className="text-4xl font-bold text-orange-600">
                 {new Intl.NumberFormat('en-US', {

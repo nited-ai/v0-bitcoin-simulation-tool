@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
+import { HybridTooltip, HybridTooltipTrigger, HybridTooltipContent } from "@/components/ui/hybrid-tooltip"
 import { Info } from "lucide-react"
 import { useSimulation } from "../../context/SimulationContext"
 
@@ -45,14 +45,14 @@ export function RiskManagementCard() {
           <div>
             <Label htmlFor="targetLtv">
               {t("RiskManagement.targetLtv")}
-              <Tooltip>
-                <TooltipTrigger asChild>
+              <HybridTooltip>
+                <HybridTooltipTrigger asChild>
                   <Info className="w-4 h-4 ml-1 inline" />
-                </TooltipTrigger>
-                <TooltipContent>
+                </HybridTooltipTrigger>
+                <HybridTooltipContent>
                   <p>{t("RiskManagement.targetLtvTooltip")}</p>
-                </TooltipContent>
-              </Tooltip>
+                </HybridTooltipContent>
+              </HybridTooltip>
             </Label>
             <Input
               id="targetLtv"
@@ -74,14 +74,14 @@ export function RiskManagementCard() {
           <div>
             <Label htmlFor="liquidationLtv">
               {t("RiskManagement.liquidationLtv")}
-              <Tooltip>
-                <TooltipTrigger asChild>
+              <HybridTooltip>
+                <HybridTooltipTrigger asChild>
                   <Info className="w-4 h-4 ml-1 inline" />
-                </TooltipTrigger>
-                <TooltipContent>
+                </HybridTooltipTrigger>
+                <HybridTooltipContent>
                   <p>{t("RiskManagement.liquidationLtvTooltip")}</p>
-                </TooltipContent>
-              </Tooltip>
+                </HybridTooltipContent>
+              </HybridTooltip>
             </Label>
             <Input
               id="liquidationLtv"
