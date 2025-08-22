@@ -26,7 +26,7 @@ export function SimulationHeader() {
   }
 
   return (
-    <div className="flex justify-between items-center mb-8">
+    <div className="hidden md:flex justify-between items-center mb-8">
       {/* Left: Navigation */}
       <div className="flex-1">
         <Button variant="ghost" asChild className="gap-2">
