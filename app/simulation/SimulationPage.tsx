@@ -1,6 +1,6 @@
 "use client"
 
-import { TooltipProvider } from "@/components/ui/tooltip"
+
 import { SimulationProvider } from "./context/SimulationContext"
 import { SimulationHeader } from "./components/layout/SimulationHeader"
 import { TabNavigation } from "./components/navigation/TabNavigation"
@@ -42,11 +42,9 @@ function SimulationContent() {
  */
 export default function SimulationPage() {
   return (
-    <TooltipProvider>
-      <SimulationProvider>
-        <SimulationContent />
-      </SimulationProvider>
-    </TooltipProvider>
+    <SimulationProvider>
+      <SimulationContent />
+    </SimulationProvider>
   )
 }
 

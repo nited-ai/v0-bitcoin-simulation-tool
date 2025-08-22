@@ -7,7 +7,7 @@ import { Slider } from '@/components/ui/slider'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { HybridTooltip, HybridTooltipContent, HybridTooltipTrigger } from '@/components/ui/hybrid-tooltip'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { 
   TrendingDown, 
@@ -318,17 +318,17 @@ export function DiminishingReturnsControls({ className }: DiminishingReturnsCont
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <Label className="text-sm font-medium">Diminishing Returns Strength</Label>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
+                  <HybridTooltip>
+                    <HybridTooltipTrigger asChild>
                       <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
+                    </HybridTooltipTrigger>
+                    <HybridTooltipContent className="max-w-xs">
                       <p>Controls how strongly diminishing returns affect growth as market cap increases.</p>
                       <p className="mt-1 text-xs text-muted-foreground">
                         0% = No diminishing returns, 100% = Strong diminishing returns
                       </p>
-                    </TooltipContent>
-                  </Tooltip>
+                    </HybridTooltipContent>
+                  </HybridTooltip>
                 </div>
                 <Slider
                   value={[customParams.diminishingFactor * 100]}
@@ -351,17 +351,17 @@ export function DiminishingReturnsControls({ className }: DiminishingReturnsCont
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <Label className="text-sm font-medium">Market Maturity Threshold</Label>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
+                  <HybridTooltip>
+                    <HybridTooltipTrigger asChild>
                       <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
+                    </HybridTooltipTrigger>
+                    <HybridTooltipContent className="max-w-xs">
                       <p>Market cap level where diminishing returns effects begin to apply.</p>
                       <p className="mt-1 text-xs text-muted-foreground">
                         Below this threshold, historical patterns repeat normally
                       </p>
-                    </TooltipContent>
-                  </Tooltip>
+                    </HybridTooltipContent>
+                  </HybridTooltip>
                 </div>
                 <Slider
                   value={[customParams.maturityThreshold / 1_000_000_000_000]}
@@ -384,17 +384,17 @@ export function DiminishingReturnsControls({ className }: DiminishingReturnsCont
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <Label className="text-sm font-medium">Cycle Degradation Rate</Label>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
+                  <HybridTooltip>
+                    <HybridTooltipTrigger asChild>
                       <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
+                    </HybridTooltipTrigger>
+                    <HybridTooltipContent className="max-w-xs">
                       <p>How much each 4-year cycle becomes less explosive than the previous one.</p>
                       <p className="mt-1 text-xs text-muted-foreground">
                         Higher values mean each cycle has significantly lower growth potential
                       </p>
-                    </TooltipContent>
-                  </Tooltip>
+                    </HybridTooltipContent>
+                  </HybridTooltip>
                 </div>
                 <Slider
                   value={[customParams.cycleDegradation * 100]}
@@ -417,17 +417,17 @@ export function DiminishingReturnsControls({ className }: DiminishingReturnsCont
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <Label className="text-sm font-medium">Institutional Saturation</Label>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
+                  <HybridTooltip>
+                    <HybridTooltipTrigger asChild>
                       <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
+                    </HybridTooltipTrigger>
+                    <HybridTooltipContent className="max-w-xs">
                       <p>Current level of institutional Bitcoin adoption and investment.</p>
                       <p className="mt-1 text-xs text-muted-foreground">
                         Higher saturation means less room for institutional-driven growth
                       </p>
-                    </TooltipContent>
-                  </Tooltip>
+                    </HybridTooltipContent>
+                  </HybridTooltip>
                 </div>
                 <Slider
                   value={[customParams.institutionalSaturation * 100]}
@@ -470,19 +470,19 @@ export function DiminishingReturnsControls({ className }: DiminishingReturnsCont
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <Label className="text-sm font-medium">Adoption Curve Model</Label>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
+                    <HybridTooltip>
+                      <HybridTooltipTrigger asChild>
                         <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
+                      </HybridTooltipTrigger>
+                      <HybridTooltipContent className="max-w-xs">
                         <p>Mathematical model for how Bitcoin adoption affects growth potential:</p>
                         <ul className="mt-1 text-xs text-muted-foreground list-disc list-inside">
                           <li>Linear: Steady decline in growth</li>
                           <li>Logarithmic: Rapid early decline, then stabilizes</li>
                           <li>Sigmoid: S-curve with inflection point</li>
                         </ul>
-                      </TooltipContent>
-                    </Tooltip>
+                      </HybridTooltipContent>
+                    </HybridTooltip>
                   </div>
                   <Select
                     value={customParams.adoptionCurveType}
@@ -503,17 +503,17 @@ export function DiminishingReturnsControls({ className }: DiminishingReturnsCont
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <Label className="text-sm font-medium">Regulatory Maturity</Label>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
+                    <HybridTooltip>
+                      <HybridTooltipTrigger asChild>
                         <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
+                      </HybridTooltipTrigger>
+                      <HybridTooltipContent className="max-w-xs">
                         <p>Level of regulatory clarity and framework development.</p>
                         <p className="mt-1 text-xs text-muted-foreground">
                           Higher maturity reduces volatility but may limit explosive growth
                         </p>
-                      </TooltipContent>
-                    </Tooltip>
+                      </HybridTooltipContent>
+                    </HybridTooltip>
                   </div>
                   <Slider
                     value={[customParams.regulatoryMaturity * 100]}
@@ -536,17 +536,17 @@ export function DiminishingReturnsControls({ className }: DiminishingReturnsCont
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <Label className="text-sm font-medium">Liquidity Constraints</Label>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
+                    <HybridTooltip>
+                      <HybridTooltipTrigger asChild>
                         <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
+                      </HybridTooltipTrigger>
+                      <HybridTooltipContent className="max-w-xs">
                         <p>Market liquidity limitations that affect price movements at higher market caps.</p>
                         <p className="mt-1 text-xs text-muted-foreground">
                           Higher constraints mean larger market caps require more capital for significant moves
                         </p>
-                      </TooltipContent>
-                    </Tooltip>
+                      </HybridTooltipContent>
+                    </HybridTooltip>
                   </div>
                   <Slider
                     value={[customParams.liquidityConstraint * 100]}
@@ -569,17 +569,17 @@ export function DiminishingReturnsControls({ className }: DiminishingReturnsCont
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <Label className="text-sm font-medium">Competition Effect</Label>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
+                    <HybridTooltip>
+                      <HybridTooltipTrigger asChild>
                         <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
+                      </HybridTooltipTrigger>
+                      <HybridTooltipContent className="max-w-xs">
                         <p>Impact of competing cryptocurrencies and alternative investments on Bitcoin's growth.</p>
                         <p className="mt-1 text-xs text-muted-foreground">
                           Higher competition reduces Bitcoin's exclusive growth potential over time
                         </p>
-                      </TooltipContent>
-                    </Tooltip>
+                      </HybridTooltipContent>
+                    </HybridTooltip>
                   </div>
                   <Slider
                     value={[customParams.competitionFactor * 100]}

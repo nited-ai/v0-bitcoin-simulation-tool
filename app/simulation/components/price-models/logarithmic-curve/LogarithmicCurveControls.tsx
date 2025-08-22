@@ -7,7 +7,7 @@ import { Slider } from '@/components/ui/slider'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { HybridTooltip, HybridTooltipContent, HybridTooltipTrigger } from '@/components/ui/hybrid-tooltip'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { 
   TrendingUp, 
@@ -284,17 +284,17 @@ export function LogarithmicCurveControls({ className }: LogarithmicCurveControls
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <Label className="text-sm font-medium">Base Multiplier</Label>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
+                    <HybridTooltip>
+                      <HybridTooltipTrigger asChild>
                         <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
+                      </HybridTooltipTrigger>
+                      <HybridTooltipContent className="max-w-xs">
                         <p>Amplifies or dampens all price movements uniformly.</p>
                         <p className="mt-1 text-xs text-muted-foreground">
                           1.0 = No change, &lt;1.0 = Dampened, &gt;1.0 = Amplified (max 1.2x)
                         </p>
-                      </TooltipContent>
-                    </Tooltip>
+                      </HybridTooltipContent>
+                    </HybridTooltip>
                   </div>
                   <Slider
                     value={[customParams.baseMultiplier * 100]}
@@ -317,17 +317,17 @@ export function LogarithmicCurveControls({ className }: LogarithmicCurveControls
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <Label className="text-sm font-medium">Logarithmic Strength</Label>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
+                    <HybridTooltip>
+                      <HybridTooltipTrigger asChild>
                         <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
+                      </HybridTooltipTrigger>
+                      <HybridTooltipContent className="max-w-xs">
                         <p>Controls logarithmic dampening of large movements (&gt;1%) while preserving volatility.</p>
                         <p className="mt-1 text-xs text-muted-foreground">
                           0% = Pure cycle repeat, Higher % = More dampened large movements
                         </p>
-                      </TooltipContent>
-                    </Tooltip>
+                      </HybridTooltipContent>
+                    </HybridTooltip>
                   </div>
                   <Slider
                     value={[customParams.logarithmicStrength * 100]}
@@ -350,17 +350,17 @@ export function LogarithmicCurveControls({ className }: LogarithmicCurveControls
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <Label className="text-sm font-medium">Smoothing Factor</Label>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
+                    <HybridTooltip>
+                      <HybridTooltipTrigger asChild>
                         <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
+                      </HybridTooltipTrigger>
+                      <HybridTooltipContent className="max-w-xs">
                         <p>Reduces extreme volatility while preserving natural market movements.</p>
                         <p className="mt-1 text-xs text-muted-foreground">
                           0% = Full volatility, Higher % = Smoother curves
                         </p>
-                      </TooltipContent>
-                    </Tooltip>
+                      </HybridTooltipContent>
+                    </HybridTooltip>
                   </div>
                   <Slider
                     value={[customParams.smoothingFactor * 100]}
@@ -383,17 +383,17 @@ export function LogarithmicCurveControls({ className }: LogarithmicCurveControls
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <Label className="text-sm font-medium">Growth Acceleration</Label>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
+                    <HybridTooltip>
+                      <HybridTooltipTrigger asChild>
                         <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
+                      </HybridTooltipTrigger>
+                      <HybridTooltipContent className="max-w-xs">
                         <p>Modifies the overall growth trajectory steepness.</p>
                         <p className="mt-1 text-xs text-muted-foreground">
                           1.0 = Normal, &lt;1.0 = Slower growth, &gt;1.0 = Faster growth
                         </p>
-                      </TooltipContent>
-                    </Tooltip>
+                      </HybridTooltipContent>
+                    </HybridTooltip>
                   </div>
                   <Slider
                     value={[customParams.growthAcceleration * 100]}

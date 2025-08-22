@@ -3,7 +3,7 @@
 import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { HybridTooltip, HybridTooltipContent, HybridTooltipTrigger } from "@/components/ui/hybrid-tooltip"
 import { Activity, TrendingUp, Zap, Rocket, Info } from "lucide-react"
 import { useSimulation } from "../../context/SimulationContext"
 import { ATHAlert } from "./ATHAlert"

@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { HybridTooltip, HybridTooltipContent, HybridTooltipTrigger } from "@/components/ui/hybrid-tooltip"
 import { Button } from "@/components/ui/button"
 import { CreditCard, Info, Calendar, DollarSign, Percent, Calculator, Receipt, TrendingUp } from "lucide-react"
 import { NumberInput } from "@/shared/ui/forms/NumberInput"
@@ -127,19 +127,19 @@ export function LoanParametersCard() {
               <Label className="flex items-center gap-2">
                 <DollarSign className="w-4 h-4" />
                 {t('LoanParameters.loanAmount.label', 'Loan Amount')}
-                <Tooltip>
-                  <TooltipTrigger asChild>
+                <HybridTooltip>
+                  <HybridTooltipTrigger asChild>
                     <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent>
+                  </HybridTooltipTrigger>
+                  <HybridTooltipContent>
                     <p>
                       {loanInputMode === 'percentage'
                         ? 'Percentage of your total BTC stack value to use as loan amount'
                         : 'Direct USD amount to borrow'
                       }
                     </p>
-                  </TooltipContent>
-                </Tooltip>
+                  </HybridTooltipContent>
+                </HybridTooltip>
               </Label>
               <div className="flex gap-2">
                 <NumberInput
@@ -174,15 +174,15 @@ export function LoanParametersCard() {
               <Label className="flex items-center gap-2">
                 <Percent className="w-4 h-4" />
                 {t('LoanParameters.initialLtv.label', 'Initial LTV')} (max {platformConfig.maxInitialLtv}%)
-                <Tooltip>
-                  <TooltipTrigger asChild>
+                <HybridTooltip>
+                  <HybridTooltipTrigger asChild>
                     <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent>
+                  </HybridTooltipTrigger>
+                  <HybridTooltipContent>
                     <p>Loan-to-Value ratio - percentage of collateral value that can be borrowed</p>
                     <p>Maximum allowed by {platformConfig.name} platform: {platformConfig.maxInitialLtv}%</p>
-                  </TooltipContent>
-                </Tooltip>
+                  </HybridTooltipContent>
+                </HybridTooltip>
               </Label>
               <NumberInput
                 value={params.riskManagement.targetLtv}
@@ -202,14 +202,14 @@ export function LoanParametersCard() {
               <Label className="flex items-center gap-2">
                 <Percent className="w-4 h-4" />
                 {t('LoanParameters.interestRate.label', 'Annual Interest Rate')}
-                <Tooltip>
-                  <TooltipTrigger asChild>
+                <HybridTooltip>
+                  <HybridTooltipTrigger asChild>
                     <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent>
+                  </HybridTooltipTrigger>
+                  <HybridTooltipContent>
                     <p>Yearly interest rate charged on the loan amount, compounded over the loan term</p>
-                  </TooltipContent>
-                </Tooltip>
+                  </HybridTooltipContent>
+                </HybridTooltip>
               </Label>
               <NumberInput
                 value={params.annualInterestRate}
@@ -227,14 +227,14 @@ export function LoanParametersCard() {
               <Label className="flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
                 {t('LoanParameters.loanTerm.label', 'Loan Term')}
-                <Tooltip>
-                  <TooltipTrigger asChild>
+                <HybridTooltip>
+                  <HybridTooltipTrigger asChild>
                     <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent>
+                  </HybridTooltipTrigger>
+                  <HybridTooltipContent>
                     <p>Duration of the loan repayment period. Choose 'Infinity' for interest-only loans with no fixed repayment schedule</p>
-                  </TooltipContent>
-                </Tooltip>
+                  </HybridTooltipContent>
+                </HybridTooltip>
               </Label>
               <Select
                 value={params.loanTermMonths === Infinity ? "infinity" : (params.loanTermMonths?.toString() || "6")}
@@ -270,11 +270,11 @@ export function LoanParametersCard() {
                 <Label className="flex items-center gap-2 text-xs">
                   <DollarSign className="w-3 h-3 text-green-500" />
                   Loan Amount
-                  <Tooltip>
-                    <TooltipTrigger asChild>
+                  <HybridTooltip>
+                    <HybridTooltipTrigger asChild>
                       <Info className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent>
+                    </HybridTooltipTrigger>
+                    <HybridTooltipContent>
                       <p>Initial loan principal amount</p>
                       <p className="text-xs text-muted-foreground">
                         {params.loanAmountPercent.toFixed(2)}% of {new Intl.NumberFormat('en-US', {
@@ -284,8 +284,8 @@ export function LoanParametersCard() {
                           maximumFractionDigits: 0,
                         }).format(params.initialBtcAmount * params.initialBtcPrice)}
                       </p>
-                    </TooltipContent>
-                  </Tooltip>
+                    </HybridTooltipContent>
+                  </HybridTooltip>
                 </Label>
                 <div className="p-3 bg-green-50 dark:bg-green-950/20 rounded-md border border-green-200 dark:border-green-800">
                   <div className="text-lg font-semibold text-green-700 dark:text-green-300">
@@ -312,17 +312,17 @@ export function LoanParametersCard() {
                 <Label className="flex items-center gap-2 text-xs">
                   <TrendingUp className="w-3 h-3 text-blue-500" />
                   {t('LoanParameters.totalInterest', 'Total Interest')}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
+                  <HybridTooltip>
+                    <HybridTooltipTrigger asChild>
                       <Info className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent>
+                    </HybridTooltipTrigger>
+                    <HybridTooltipContent>
                       <p>Total interest paid over the loan term</p>
                       <p className="text-xs text-muted-foreground">
                         Formula: Loan Amount × Annual Rate × Term (months) ÷ 12
                       </p>
-                    </TooltipContent>
-                  </Tooltip>
+                    </HybridTooltipContent>
+                  </HybridTooltip>
                 </Label>
                 <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-md border border-blue-200 dark:border-blue-800">
                   <div className="text-lg font-semibold text-blue-700 dark:text-blue-300">
@@ -349,17 +349,17 @@ export function LoanParametersCard() {
                 <Label className="flex items-center gap-2 text-xs">
                   <Receipt className="w-3 h-3 text-orange-500" />
                   {t('LoanParameters.originationFee', 'Origination Fee')}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
+                  <HybridTooltip>
+                    <HybridTooltipTrigger asChild>
                       <Info className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent>
+                    </HybridTooltipTrigger>
+                    <HybridTooltipContent>
                       <p>One-time fee charged when the loan is originated</p>
                       <p className="text-xs text-muted-foreground">
                         Formula: Loan Amount × Platform Origination Fee %
                       </p>
-                    </TooltipContent>
-                  </Tooltip>
+                    </HybridTooltipContent>
+                  </HybridTooltip>
                 </Label>
                 <div className="p-3 bg-orange-50 dark:bg-orange-950/20 rounded-md border border-orange-200 dark:border-orange-800">
                   <div className="text-lg font-semibold text-orange-700 dark:text-orange-300">
@@ -386,17 +386,17 @@ export function LoanParametersCard() {
                 <Label className="flex items-center gap-2 text-xs">
                   <CreditCard className="w-3 h-3 text-red-500" />
                   {t('LoanParameters.totalRepayment', 'Total Repayment')}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
+                  <HybridTooltip>
+                    <HybridTooltipTrigger asChild>
                       <Info className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent>
+                    </HybridTooltipTrigger>
+                    <HybridTooltipContent>
                       <p>Total amount you'll pay back over the loan term</p>
                       <p className="text-xs text-muted-foreground">
                         Formula: Loan Principal + Origination Fee + Total Interest
                       </p>
-                    </TooltipContent>
-                  </Tooltip>
+                    </HybridTooltipContent>
+                  </HybridTooltip>
                 </Label>
                 <div className="p-3 bg-red-50 dark:bg-red-950/20 rounded-md border border-red-200 dark:border-red-800">
                   <div className="text-lg font-semibold text-red-700 dark:text-red-300">
