@@ -444,31 +444,36 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
     return (
       <Card className={className}>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
+          {/* Responsive header layout: stacked on mobile, side-by-side on desktop */}
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex-1">
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="h-5 w-5" />
                 Bitcoin Price Forecast
               </CardTitle>
               <CardDescription>Historical and projected Bitcoin price based on the selected model.</CardDescription>
             </div>
-            <Button
-              variant={isLogScale ? "default" : "outline"}
-              size="sm"
-              onClick={() => setIsLogScale(!isLogScale)}
-              title={isLogScale ? "Switch to Linear Scale" : "Switch to Logarithmic Scale"}
-            >
-              {isLogScale ? "Log Scale" : "Linear"}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={true}
-              className="flex items-center gap-2 text-xs"
-            >
-              <Download className="h-3 w-3" />
-              CSV
-            </Button>
+            {/* Button group - full width on mobile, auto width on desktop */}
+            <div className="flex gap-2 w-full md:w-auto">
+              <Button
+                variant={isLogScale ? "default" : "outline"}
+                size="sm"
+                onClick={() => setIsLogScale(!isLogScale)}
+                title={isLogScale ? "Switch to Linear Scale" : "Switch to Logarithmic Scale"}
+                className="flex-1 md:flex-none"
+              >
+                {isLogScale ? "Log Scale" : "Linear"}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={true}
+                className="flex items-center gap-2 text-xs flex-1 md:flex-none"
+              >
+                <Download className="h-3 w-3" />
+                CSV
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -487,20 +492,23 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
     return (
       <Card className={className}>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
+          {/* Responsive header layout: stacked on mobile, side-by-side on desktop */}
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex-1">
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="w-5 h-5 text-primary" />
                 Bitcoin Price Forecast
               </CardTitle>
               <CardDescription>Error loading chart data</CardDescription>
             </div>
-            <div className="flex gap-2">
+            {/* Button group - full width on mobile, auto width on desktop */}
+            <div className="flex gap-2 w-full md:w-auto">
               <Button
                 variant={isLogScale ? "default" : "outline"}
                 size="sm"
                 onClick={() => setIsLogScale(!isLogScale)}
                 title={isLogScale ? "Switch to Linear Scale" : "Switch to Logarithmic Scale"}
+                className="flex-1 md:flex-none"
               >
                 {isLogScale ? "Log Scale" : "Linear"}
               </Button>
@@ -508,7 +516,7 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
                 variant="outline"
                 size="sm"
                 disabled={true}
-                className="flex items-center gap-2 text-xs"
+                className="flex items-center gap-2 text-xs flex-1 md:flex-none"
               >
                 <Download className="h-3 w-3" />
                 CSV
@@ -531,8 +539,9 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
   return (
     <Card className={className}>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
+        {/* Responsive header layout: stacked on mobile, side-by-side on desktop */}
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex-1">
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-primary" />
               Bitcoin Price Forecast
@@ -541,12 +550,14 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
               Historical and projected Bitcoin price based on the selected model.
             </CardDescription>
           </div>
-          <div className="flex gap-2">
+          {/* Button group - full width on mobile, auto width on desktop */}
+          <div className="flex gap-2 w-full md:w-auto">
             <Button
               variant={isLogScale ? "default" : "outline"}
               size="sm"
               onClick={() => setIsLogScale(!isLogScale)}
               title={isLogScale ? "Switch to Linear Scale" : "Switch to Logarithmic Scale"}
+              className="flex-1 md:flex-none"
             >
               {isLogScale ? "Log Scale" : "Linear"}
             </Button>
@@ -555,6 +566,7 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
               disabled={isLoading}
               variant="outline"
               size="sm"
+              className="flex-1 md:flex-none"
             >
               {isLoading ? (
                 <>
@@ -570,7 +582,7 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
               size="sm"
               onClick={downloadCSV}
               disabled={isDownloading || chartData.length === 0}
-              className="flex items-center gap-2 text-xs bg-orange-500 hover:bg-orange-600 text-white border-orange-500 hover:border-orange-600"
+              className="flex items-center gap-2 text-xs bg-orange-500 hover:bg-orange-600 text-white border-orange-500 hover:border-orange-600 flex-1 md:flex-none"
             >
               <Download className="h-3 w-3" />
               {isDownloading ? 'Downloading...' : 'CSV'}
