@@ -6,6 +6,31 @@
     "title": "FIRE hodl Simulator",
     "description": "Simuliere Sparen, Entnahmen und Kredite gesichert durch Bitcoin"
   },
+  "Navigation": {
+    "title": "Navigation",
+    "parameters": {
+      "label": "Parameter",
+      "shortLabel": "Parameter"
+    },
+    "priceProjection": {
+      "label": "Preisprognose",
+      "shortLabel": "Preis"
+    },
+    "strategy": {
+      "label": "Strategie",
+      "shortLabel": "Strategie"
+    },
+    "results": {
+      "label": "Ergebnisse",
+      "shortLabel": "Ergebnisse"
+    },
+    "comingSoon": {
+      "badge": "Demnächst verfügbar"
+    },
+    "backToLanding": {
+      "button": "Zurück zur Startseite"
+    }
+  },
   "Tabs": {
     "parameters": "Parameter",
     "results": "Ergebnisse",
@@ -18,6 +43,35 @@
     "reset": "Alle Parameter zurücksetzen",
     "exportCsv": "CSV Export",
     "errorsTitle": "Fehler bei der Validierung"
+  },
+  "BasicParameters": {
+    "title": "Grundparameter",
+    "initialBtcPrice": {
+      "label": "Initialer BTC-Preis",
+      "tooltip": "Startpreis von Bitcoin in USD für die Simulation",
+      "placeholder": "100.000"
+    },
+    "btcAmount": {
+      "label": "BTC-Menge",
+      "tooltip": "Die Menge an Bitcoin, die Sie als Sicherheit für Kredite verwenden möchten"
+    },
+    "monthlyAmount": {
+      "label": "Monatliches Sparen/Entnahme",
+      "tooltip": "Monatlicher Betrag zum Sparen oder Entnehmen"
+    },
+    "loadCurrentPrice": {
+      "button": "Aktuellen Preis laden"
+    },
+    "totalFiatValue": {
+      "label": "Gesamter Fiat-Wert",
+      "tooltip": "Gesamter Fiat-Wert Ihres BTC-Bestands als verfügbare Sicherheit",
+      "formula": "Formel: BTC-Menge × Initialer BTC-Preis"
+    },
+    "maxLoanAmount": {
+      "label": "Max. Kreditbetrag",
+      "tooltip": "Maximaler Kreditbetrag auf der ausgewählten Plattform",
+      "formula": "Formel: (BTC-Menge × Preis) × Plattform Max. LTV"
+    }
   },
   "BasicParams": {
     "title": "Grundparameter",
@@ -37,6 +91,38 @@
     "maxLoanAmount": "Max. Kredithöhe (€)",
     "maxLoanAmountTooltip": "Die maximale Höhe eines einzelnen Kredits. Bei höherem Bedarf werden mehrere Kredite aufgenommen."
   },
+  "LoanParameters": {
+    "title": "Kreditparameter",
+    "platform": {
+      "label": "Plattform"
+    },
+    "loanAmount": {
+      "label": "Kreditbetrag"
+    },
+    "interestRate": {
+      "label": "Jährlicher Zinssatz"
+    },
+    "loanTerm": {
+      "label": "Kreditlaufzeit"
+    },
+    "maxLoanAmount": {
+      "label": "Max. Kreditbetrag"
+    },
+    "initialLtv": {
+      "label": "Initialer Beleihungsgrad"
+    },
+    "liquidationFee": {
+      "label": "Liquidationsgebühr"
+    },
+    "percentOfBtcStack": "% des BTC-Bestands",
+    "infinity": "Unbegrenzt",
+    "monthsUnit": "{{count}} Monat",
+    "monthsUnit_plural": "{{count}} Monate",
+    "loanBreakdown": "Kreditaufschlüsselung",
+    "totalInterest": "Gesamtzinsen",
+    "originationFee": "Bearbeitungsgebühr",
+    "totalRepayment": "Gesamtrückzahlung"
+  },
   "Strategy": {
     "title": "Strategie: Sparen/Entnahme",
     "description": "Definieren Sie Ihre monatlichen Spar- oder Entnahmeziele.",
@@ -54,8 +140,16 @@
     "liquidationFeeTooltip": "Die Gebühr, die die Plattform im Falle einer Liquidation vom verkauften Collateral einbehält."
   },
   "EconomicAssumptions": {
-    "title": "Price Model",
-    "description": "Definieren Sie Ihre Erwartungen für die Preisentwicklung.",
+    "title": "Wirtschaftliche Annahmen",
+    "description": "Konfigurieren Sie Preismodelle und Wachstumsannahmen",
+    "priceModel": "Preismodell",
+    "powerLaw": "Power Law",
+    "manual": "Manuelle Wachstumsraten",
+    "cycleRepeat": "Zykluswiederholung",
+    "prognosisLine": "Prognoselinie",
+    "fit": "Anpassung",
+    "support": "Unterstützung",
+    "resistance": "Widerstand",
     "inflation": "Erwartete jährliche Inflation (%)",
     "inflationTooltip": "Die erwartete jährliche Inflationsrate. Dieser Wert wird verwendet, um den realen (inflationsbereinigten) Wert von Vermögen und Schulden zu berechnen."
   },
@@ -78,7 +172,154 @@
   },
   "InvestmentStrategy": {
     "title": "Investitionsstrategie",
-    "description": "Wählen Sie, wie Investitionsentscheidungen basierend auf Marktbedingungen getroffen werden.",
+    "description": "Wählen Sie Ihre Investitionsstrategie",
+    "athBased": "ATH-basierte Strategie",
+    "movingAverage": "Gleitender Durchschnitt Strategie",
+    "athCollateral": "ATH Sicherheiten Strategie",
+    "athBasedDescription": "Strategie basierend auf Allzeithoch-Analyse",
+    "movingAverageDescription": "Strategie basierend auf gleitenden Durchschnitten",
+    "athCollateralDescription": "Strategie basierend auf ATH Sicherheitenverwaltung"
+  },
+  "Results": {
+    "title": "Ergebnisse",
+    "loading": "Lade Simulationsergebnisse...",
+    "description": "Betrachten Sie Ihre Simulationsergebnisse und Analysen.",
+    "running": "Läuft...",
+    "runSimulation": "Simulation starten",
+    "noResultsTitle": "Keine Ergebnisse verfügbar",
+    "waitingForData": "Warte auf das Laden der Preisdaten...",
+    "invalidParams": "Bitte konfigurieren Sie zuerst gültige Parameter",
+    "runToSeeResults": "Führen Sie eine Simulation aus, um Ihre Ergebnisse hier zu sehen",
+    "configureAndRun": "Konfigurieren Sie Ihre Parameter und führen Sie eine Simulation aus, um detaillierte Ergebnisse, Diagramme und Analysen zu sehen.",
+    "runningSimulation": "Simulation läuft...",
+    "portfolioPerformance": "Portfolio-Performance",
+    "financialAnalysis": "Finanzanalyse",
+    "riskAssessment": "Risikobewertung",
+    "simulationSummary": "Simulationsergebnisse für {{months}} Monate mit {{btc}} BTC",
+    "rerunning": "Läuft erneut...",
+    "rerunSimulation": "Simulation erneut ausführen",
+    "advancedFeaturesTitle": "🚧 Erweiterte Funktionen kommen bald",
+    "advancedFeaturesDescription": "Phase 5 Funktionen werden als nächstes hinzugefügt",
+    "scenarioComparison": "Szenario-Vergleich",
+    "scenarioComparisonDescription": "Vergleichen Sie verschiedene Parametersätze nebeneinander",
+    "stressTesting": "Stresstests",
+    "stressTestingDescription": "Erweiterte Stresstests und Sensitivitätsanalyse"
+  },
+  "CollateralVisualization": {
+    "freeCollateral": "Freie Sicherheiten",
+    "lockedCollateral": "Gesperrte Sicherheiten"
+  },
+  "PriceDropTolerance": {
+    "title": "Liquidationstoleranz",
+    "noLoanAmount": "Kein Kreditbetrag angegeben"
+  },
+  "ValidationSummary": {
+    "title": "Parameter-Validierung",
+    "errorCount": "{{count}} Fehler",
+    "warningCount": "{{count}} Warnung",
+    "warningCount_plural": "{{count}} Warnungen",
+    "showDetails": "Details anzeigen"
+  },
+  "PortfolioValueChart": {
+    "title": "Portfolio-Wert über Zeit",
+    "description": "Verfolgen Sie Ihren Portfolio-Wert, Nettovermögen und Schuldenstände während der Simulation",
+    "runSimulation": "Führen Sie eine Simulation aus, um das Portfolio-Wert-Diagramm zu sehen",
+    "portfolioValue": "Portfolio-Wert",
+    "totalDebt": "Gesamtschulden",
+    "netWorth": "Nettovermögen"
+  },
+  "RiskLevelSelector": {
+    "title": "Risikostufen-Voreinstellungen",
+    "riskWarning": "Kredite gegen Bitcoin sind hochspekulativ und bergen erhebliche Risiken. Dies ist keine Finanzberatung. Nutzung auf eigene Gefahr. Bitcoin-Preise sind in der Vergangenheit um 90% gefallen. Das kann wieder passieren. Werden Sie nicht gierig. Verwenden Sie kein Geld, das Sie sich nicht leisten können zu verlieren.",
+    "conservative": {
+      "name": "Konservativ",
+      "description": "Risikoarmer Ansatz mit Sicherheit im Vordergrund",
+      "badge": "Sicher"
+    },
+    "moderate": {
+      "name": "Moderat",
+      "description": "Ausgewogener Ansatz für typische Investoren",
+      "badge": "Ausgewogen"
+    },
+    "optimistic": {
+      "name": "Optimistisch",
+      "description": "Wachstumsorientiert mit höherer Risikotoleranz",
+      "badge": "Wachstum"
+    },
+    "moonshots": {
+      "name": "Moonshots",
+      "description": "Maximales Risiko für maximale potenzielle Renditen",
+      "badge": "Hohes Risiko"
+    }
+  },
+  "PlatformSelector": {
+    "title": "Kreditplattform",
+    "visitPlatform": "Plattform besuchen",
+    "firefish": {
+      "name": "Firefish",
+      "description": "Flexible Kreditplattform mit wettbewerbsfähigen Zinsen",
+      "badge": "Nicht-Verwahrend"
+    },
+    "strike": {
+      "name": "Strike",
+      "description": "Blitzschnelle Kredite mit sofortiger Genehmigung",
+      "badge": "Niedrige Zinsen"
+    },
+    "custom": {
+      "name": "Benutzerdefiniert",
+      "description": "Konfigurieren Sie Ihre eigenen Plattformparameter",
+      "badge": "Benutzerdefiniert"
+    }
+  },
+  "LoanUsageVisualization": {
+    "used": "Verwendet",
+    "available": "Verfügbar",
+    "loanAvailable": "Kredit verfügbar",
+    "loanTaken": "Kredit aufgenommen"
+  },
+  "PriceModelSelector": {
+    "title": "Modell und Simulationslänge auswählen",
+    "description": "Bitcoin-Preisprognosemodelle und Simulationszeitplan auswählen und konfigurieren",
+    "priceProjectionModel": "Preisprognosemodell",
+    "choosePriceModel": "Preisprognosemodell auswählen",
+    "loadingModels": "Lade Modelle...",
+    "errorLoadingModels": "Fehler beim Laden der Modelle",
+    "noModelsAvailable": "Keine Modelle verfügbar",
+    "noModelsRegistry": "Derzeit sind keine Preismodelle verfügbar. Bitte überprüfen Sie die Modellregistrierung.",
+    "customModel": "Benutzerdefiniertes Modell",
+    "customModelDescription": "Erstellen Sie Ihr eigenes Preisprognosemodell",
+    "comingSoon": "Demnächst verfügbar",
+    "simulationLength": "Simulationslänge: {{years}} Jahre",
+    "simulationDetails": "{{months}} Monate • Ende: {{endYear}}"
+  },
+  "ManualGrowthInterface": {
+    "title": "Manuelles Wachstumsratenmodell",
+    "description": "Passen Sie Bitcoin-Preisprognosen mit benutzerdefinierten jährlichen Wachstumsraten an",
+    "quickPresets": "Schnellvoreinstellungen",
+    "presets": {
+      "conservative": {
+        "name": "Konservativ",
+        "description": "Stetiges, realistisches Wachstum mit moderater Volatilität"
+      },
+      "moderate": {
+        "name": "Moderat",
+        "description": "Ausgewogenes Wachstum mit typischen Bitcoin-Zyklen"
+      },
+      "optimistic": {
+        "name": "Optimistisch",
+        "description": "Hohes Wachstumspotenzial mit erheblicher Volatilität"
+      },
+      "moonshot": {
+        "name": "Moonshot",
+        "description": "Extremes Bullenszenario"
+      },
+      "custom": {
+        "name": "Benutzerdefiniert",
+        "description": "Individuelle Wachstumsraten anpassen"
+      }
+    }
+  },
+  "Strategy": {
     "selectStrategy": "Strategie auswählen",
     "defaultStrategy": "Standard-Strategie",
     "athBasedStrategy": "ATH-basierte Strategie",
@@ -104,7 +345,7 @@
     "complexityTooltip": "1 = Sehr einfach, 5 = Sehr komplex",
     "ratingOutOf5": "von 5"
   },
-  "Results": {
+  "ResultsSummary": {
     "summaryTitle": "Zusammenfassung",
     "firstLiquidation": "Erste Liquidation",
     "none": "Keine",

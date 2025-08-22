@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo } from "react"
+import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Area, AreaChart } from "recharts"
 import { TrendingUp, DollarSign } from "lucide-react"
@@ -23,6 +24,7 @@ interface ChartDataPoint {
  * Shows the relationship between collateral value and debt levels throughout the simulation.
  */
 export function PortfolioValueChart() {
+  const { t } = useTranslation()
   const { results, params } = useSimulation()
 
   // Transform results data for chart display
@@ -67,17 +69,17 @@ export function PortfolioValueChart() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5" />
-            Portfolio Value Over Time
+            {t('PortfolioValueChart.title', 'Portfolio Value Over Time')}
           </CardTitle>
           <CardDescription>
-            Track your portfolio value, net worth, and debt levels throughout the simulation
+            {t('PortfolioValueChart.description', 'Track your portfolio value, net worth, and debt levels throughout the simulation')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-64 text-muted-foreground">
             <div className="text-center">
               <DollarSign className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Run a simulation to see portfolio value chart</p>
+              <p>{t('PortfolioValueChart.runSimulation', 'Run a simulation to see portfolio value chart')}</p>
             </div>
           </div>
         </CardContent>
@@ -167,7 +169,7 @@ export function PortfolioValueChart() {
                 stroke="#f97316"
                 fill="#f97316"
                 fillOpacity={0.1}
-                name="Portfolio Value"
+                name={t('PortfolioValueChart.portfolioValue', 'Portfolio Value')}
               />
               
               {/* Total Debt Area */}
@@ -178,7 +180,7 @@ export function PortfolioValueChart() {
                 stroke="#ef4444"
                 fill="#ef4444"
                 fillOpacity={0.1}
-                name="Total Debt"
+                name={t('PortfolioValueChart.totalDebt', 'Total Debt')}
               />
               
               {/* Net Worth Line */}
@@ -188,7 +190,7 @@ export function PortfolioValueChart() {
                 stroke="#22c55e"
                 strokeWidth={3}
                 dot={false}
-                name="Net Worth"
+                name={t('PortfolioValueChart.netWorth', 'Net Worth')}
               />
             </AreaChart>
           </ResponsiveContainer>

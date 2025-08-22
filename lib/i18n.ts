@@ -10,6 +10,15 @@ const fallbackTranslations = {
     title: "FIRE hodl Simulator",
     description: "Simulate savings, withdrawals and loans secured by Bitcoin",
   },
+  Navigation: {
+    title: "Navigation",
+    parameters: { label: "Parameters", shortLabel: "Params" },
+    priceProjection: { label: "Price Projection", shortLabel: "Price" },
+    strategy: { label: "Strategy", shortLabel: "Strategy" },
+    results: { label: "Results", shortLabel: "Results" },
+    comingSoon: { badge: "Coming Soon" },
+    backToLanding: { button: "Back to Landing" }
+  },
   Tabs: {
     parameters: "Parameters",
     results: "Results",
@@ -22,6 +31,155 @@ const fallbackTranslations = {
     reset: "Reset All Parameters",
     exportCsv: "Export CSV",
     errorsTitle: "Validation Errors",
+  },
+  BasicParameters: {
+    title: "Basic Parameters",
+    initialBtcPrice: {
+      label: "Initial BTC Price",
+      tooltip: "Starting Bitcoin price in USD for the simulation",
+      placeholder: "100,000"
+    },
+    btcAmount: {
+      label: "BTC Amount",
+      tooltip: "Amount of Bitcoin to simulate with"
+    },
+    monthlyAmount: {
+      label: "Monthly Savings/Withdrawal",
+      tooltip: "Monthly amount to save or withdraw"
+    }
+  },
+  LoanParameters: {
+    title: "Loan Parameters",
+    platform: { label: "Platform" },
+    interestRate: { label: "Interest Rate" },
+    loanTerm: { label: "Loan Term" },
+    maxLoanAmount: { label: "Max Loan Amount" },
+    initialLtv: { label: "Initial LTV" },
+    liquidationFee: { label: "Liquidation Fee" },
+    percentOfBtcStack: "% of BTC stack",
+    infinity: "Infinity",
+    loanBreakdown: "Loan Breakdown",
+    totalInterest: "Total Interest",
+    originationFee: "Origination Fee",
+    totalRepayment: "Total Repayment"
+  },
+  Results: {
+    title: "Results",
+    loading: "Loading simulation results...",
+    description: "View your simulation results and analysis.",
+    running: "Running...",
+    runSimulation: "Run Simulation",
+    noResultsTitle: "No Results Available",
+    portfolioPerformance: "Portfolio Performance",
+    financialAnalysis: "Financial Analysis",
+    riskAssessment: "Risk Assessment"
+  },
+  CollateralVisualization: {
+    freeCollateral: "Free Collateral",
+    lockedCollateral: "Locked Collateral"
+  },
+  PriceDropTolerance: {
+    title: "Liquidation Tolerance",
+    noLoanAmount: "No loan amount specified"
+  },
+  ValidationSummary: {
+    title: "Parameter Validation",
+    showDetails: "Show Details"
+  },
+  PortfolioValueChart: {
+    title: "Portfolio Value Over Time",
+    description: "Track your portfolio value, net worth, and debt levels throughout the simulation",
+    portfolioValue: "Portfolio Value",
+    totalDebt: "Total Debt",
+    netWorth: "Net Worth"
+  },
+  RiskLevelSelector: {
+    title: "Risk Level Presets",
+    riskWarning: "Lending against Bitcoin is highly speculative and carries significant risk. This is not financial advice. Use at your own risk. Bitcoin prices has dropped by 90% in the past. It can happen again. Don't get greedy. Don't use money you can't afford to lose.",
+    conservative: {
+      name: "Conservative",
+      description: "Low-risk approach with safety-first mindset",
+      badge: "Safe"
+    },
+    moderate: {
+      name: "Moderate",
+      description: "Balanced approach for typical investors",
+      badge: "Balanced"
+    },
+    optimistic: {
+      name: "Optimistic",
+      description: "Growth-focused with higher risk tolerance",
+      badge: "Growth"
+    },
+    moonshots: {
+      name: "Moonshots",
+      description: "Maximum risk for maximum potential returns",
+      badge: "High Risk"
+    }
+  },
+  PlatformSelector: {
+    title: "Lending Platform",
+    visitPlatform: "Visit Platform",
+    firefish: {
+      name: "Firefish",
+      description: "Flexible lending platform with competitive rates",
+      badge: "Non Custodial"
+    },
+    strike: {
+      name: "Strike",
+      description: "Lightning-fast loans with instant approval",
+      badge: "Low Rates"
+    },
+    custom: {
+      name: "Custom",
+      description: "Configure your own platform parameters",
+      badge: "Custom"
+    }
+  },
+  LoanUsageVisualization: {
+    used: "Used",
+    available: "Available",
+    loanAvailable: "Loan Available",
+    loanTaken: "Loan Taken"
+  },
+  PriceModelSelector: {
+    title: "Select Model and Simulation Length",
+    description: "Select and configure Bitcoin price projection models and simulation timeline",
+    priceProjectionModel: "Price Projection Model",
+    choosePriceModel: "Choose price prediction model",
+    loadingModels: "Loading models...",
+    errorLoadingModels: "Error loading models",
+    noModelsAvailable: "No models available",
+    customModel: "Custom Model",
+    customModelDescription: "Create your own price projection model",
+    comingSoon: "Coming Soon"
+  },
+  ManualGrowthInterface: {
+    title: "Manual Growth Rate Model",
+    description: "Customize Bitcoin price projections with user-defined annual growth rates",
+    quickPresets: "Quick Presets",
+    presets: {
+      conservative: {
+        name: "Conservative",
+        description: "Steady, realistic growth with moderate volatility"
+      },
+      moderate: {
+        name: "Moderate",
+        description: "Balanced growth with typical Bitcoin cycles"
+      },
+      optimistic: {
+        name: "Optimistic",
+        description: "High growth potential with significant volatility"
+      },
+      moonshot: {
+        name: "Moonshot",
+        description: "Extreme bull case scenario"
+      },
+      custom: {
+        name: "Custom",
+        description: "Customize individual growth rates"
+      }
+    }
   },
   BasicParams: {
     title: "Basic Parameters",

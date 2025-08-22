@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -21,6 +22,7 @@ interface PriceModelSelectorProps {
 }
 
 export function PriceModelSelector({ className }: PriceModelSelectorProps) {
+  const { t } = useTranslation()
   const { params, setParams } = useSimulation()
   const [models, setModels] = useState<ModelInfo[]>([])
   const [loading, setLoading] = useState(true)
@@ -60,7 +62,7 @@ export function PriceModelSelector({ className }: PriceModelSelectorProps) {
       return (
         <div className="flex items-center justify-center p-4">
           <Loader2 className="h-4 w-4 animate-spin mr-2" />
-          <span className="text-sm text-muted-foreground">Loading models...</span>
+          <span className="text-sm text-muted-foreground">{t('PriceModelSelector.loadingModels', 'Loading models...')}</span>
         </div>
       )
     }
@@ -69,7 +71,7 @@ export function PriceModelSelector({ className }: PriceModelSelectorProps) {
       return (
         <div className="flex items-center justify-center p-4">
           <AlertCircle className="h-4 w-4 text-destructive mr-2" />
-          <span className="text-sm text-destructive">Error loading models</span>
+          <span className="text-sm text-destructive">{t('PriceModelSelector.errorLoadingModels', 'Error loading models')}</span>
         </div>
       )
     }
@@ -77,7 +79,7 @@ export function PriceModelSelector({ className }: PriceModelSelectorProps) {
     if (models.length === 0) {
       return (
         <div className="flex items-center justify-center p-4">
-          <span className="text-sm text-muted-foreground">No models available</span>
+          <span className="text-sm text-muted-foreground">{t('PriceModelSelector.noModelsAvailable', 'No models available')}</span>
         </div>
       )
     }
@@ -95,11 +97,11 @@ export function PriceModelSelector({ className }: PriceModelSelectorProps) {
       <SelectItem key="custom" value="custom" disabled className="cursor-not-allowed opacity-60">
         <div className="flex items-center justify-between w-full">
           <div className="flex flex-col text-left">
-            <span className="font-medium">Custom Model</span>
-            <span className="text-sm text-muted-foreground">Create your own price projection model</span>
+            <span className="font-medium">{t('PriceModelSelector.customModel', 'Custom Model')}</span>
+            <span className="text-sm text-muted-foreground">{t('PriceModelSelector.customModelDescription', 'Create your own price projection model')}</span>
           </div>
           <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-700 border-orange-200 ml-2">
-            Coming Soon
+            {t('PriceModelSelector.comingSoon', 'Coming Soon')}
           </Badge>
         </div>
       </SelectItem>
@@ -126,23 +128,23 @@ export function PriceModelSelector({ className }: PriceModelSelectorProps) {
           <div className="flex-1">
             <CardTitle className="flex items-center gap-2">
               <Settings className="w-5 h-5 text-primary" />
-              Select Model and Simulation Length
+              {t('PriceModelSelector.title', 'Select Model and Simulation Length')}
             </CardTitle>
             <CardDescription className="mt-2">
-              Select and configure Bitcoin price projection models and simulation timeline
+              {t('PriceModelSelector.description', 'Select and configure Bitcoin price projection models and simulation timeline')}
             </CardDescription>
           </div>
 
           {/* Right side: Price Model Selection */}
           <div className="flex-shrink-0 space-y-2">
-            <Label className="text-base font-medium">Price Projection Model</Label>
+            <Label className="text-base font-medium">{t('PriceModelSelector.priceProjectionModel', 'Price Projection Model')}</Label>
             <Select
               value={params.priceModel || ''}
               onValueChange={handleModelChange}
               disabled={loading || error !== null || models.length === 0}
             >
               <SelectTrigger className="w-full border-primary border-2 focus:ring-primary">
-                <SelectValue placeholder="Choose price prediction model">
+                <SelectValue placeholder={t('PriceModelSelector.choosePriceModel', 'Choose price prediction model')}>
                   {selectedModel && (
                     <div className="flex flex-col text-left">
                       <span className="font-medium">{selectedModel.name}</span>
@@ -165,7 +167,7 @@ export function PriceModelSelector({ className }: PriceModelSelectorProps) {
 
             {!loading && !error && models.length === 0 && (
               <div className="mt-2 text-sm text-muted-foreground">
-                No price models are currently available. Please check the model registry.
+                {t('PriceModelSelector.noModelsRegistry', 'No price models are currently available. Please check the model registry.')}
               </div>
             )}
           </div>
@@ -178,10 +180,13 @@ export function PriceModelSelector({ className }: PriceModelSelectorProps) {
           <div className="flex items-center justify-between">
             <Label className="text-base font-medium flex items-center gap-2">
               <Calendar className="w-4 h-4" />
-              Simulation Length: {simulationYears} Years
+              {t('PriceModelSelector.simulationLength', 'Simulation Length: {{years}} Years', { years: simulationYears })}
             </Label>
             <div className="text-sm text-muted-foreground">
-              {params.simulationMonths} months • End: {new Date().getFullYear() + simulationYears}
+              {t('PriceModelSelector.simulationDetails', '{{months}} months • End: {{endYear}}', {
+                months: params.simulationMonths,
+                endYear: new Date().getFullYear() + simulationYears
+              })}
             </div>
           </div>
 

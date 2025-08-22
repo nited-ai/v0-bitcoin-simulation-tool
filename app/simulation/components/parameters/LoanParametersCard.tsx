@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -22,6 +23,7 @@ import { COMPONENT_FIELDS } from "./validationFieldMapping"
  * interest rates, fees, and risk management parameters.
  */
 export function LoanParametersCard() {
+  const { t } = useTranslation()
   const { params, setParams, markParameterAsManual } = useSimulation()
 
   // Use centralized calculations
@@ -111,7 +113,7 @@ export function LoanParametersCard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CreditCard className="w-5 h-5 text-primary" />
-              Loan Parameters
+              {t('LoanParameters.title')}
             </CardTitle>
             {/* Validation alerts for loan-related errors */}
             <ValidationAlert fields={COMPONENT_FIELDS.LoanParametersCard} className="mt-3" />
@@ -124,7 +126,7 @@ export function LoanParametersCard() {
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <DollarSign className="w-4 h-4" />
-                Loan Amount
+                {t('LoanParameters.loanAmount.label', 'Loan Amount')}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
@@ -147,7 +149,7 @@ export function LoanParametersCard() {
                   max={loanInputMode === 'percentage' ? 100 : totalStackValue}
                   step={loanInputMode === 'percentage' ? 1 : 100}
                   placeholder={loanInputMode === 'percentage' ? "15" : "15,000"}
-                  suffix={loanInputMode === 'percentage' ? "% of BTC stack" : "$"}
+                  suffix={loanInputMode === 'percentage' ? t('LoanParameters.percentOfBtcStack', '% of BTC stack') : "$"}
                   className="flex-1"
                 />
                 <Button
@@ -171,7 +173,7 @@ export function LoanParametersCard() {
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <Percent className="w-4 h-4" />
-                Initial LTV (max {platformConfig.maxInitialLtv}%)
+                {t('LoanParameters.initialLtv.label', 'Initial LTV')} (max {platformConfig.maxInitialLtv}%)
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
@@ -199,7 +201,7 @@ export function LoanParametersCard() {
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <Percent className="w-4 h-4" />
-                Annual Interest Rate
+                {t('LoanParameters.interestRate.label', 'Annual Interest Rate')}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
@@ -224,7 +226,7 @@ export function LoanParametersCard() {
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
-                Loan Term
+                {t('LoanParameters.loanTerm.label', 'Loan Term')}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
@@ -247,7 +249,7 @@ export function LoanParametersCard() {
                       key={term}
                       value={term === 'infinity' ? 'infinity' : term.toString()}
                     >
-                      {term === 'infinity' ? 'Infinity' : `${term} months`}
+                      {term === 'infinity' ? t('LoanParameters.infinity', 'Infinity') : t('LoanParameters.monthsUnit', '{{count}} months', { count: term })}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -259,7 +261,7 @@ export function LoanParametersCard() {
           <div className="space-y-4 pt-6 border-t border-border">
             <div className="flex items-center gap-2 mb-4">
               <Calculator className="w-4 h-4 text-primary" />
-              <h3 className="text-sm font-medium text-foreground">Loan Breakdown</h3>
+              <h3 className="text-sm font-medium text-foreground">{t('LoanParameters.loanBreakdown', 'Loan Breakdown')}</h3>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -309,7 +311,7 @@ export function LoanParametersCard() {
               <div className="space-y-2">
                 <Label className="flex items-center gap-2 text-xs">
                   <TrendingUp className="w-3 h-3 text-blue-500" />
-                  Total Interest
+                  {t('LoanParameters.totalInterest', 'Total Interest')}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Info className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-help" />
@@ -346,7 +348,7 @@ export function LoanParametersCard() {
               <div className="space-y-2">
                 <Label className="flex items-center gap-2 text-xs">
                   <Receipt className="w-3 h-3 text-orange-500" />
-                  Origination Fee
+                  {t('LoanParameters.originationFee', 'Origination Fee')}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Info className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-help" />
@@ -383,7 +385,7 @@ export function LoanParametersCard() {
               <div className="space-y-2">
                 <Label className="flex items-center gap-2 text-xs">
                   <CreditCard className="w-3 h-3 text-red-500" />
-                  Total Repayment
+                  {t('LoanParameters.totalRepayment', 'Total Repayment')}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Info className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-help" />

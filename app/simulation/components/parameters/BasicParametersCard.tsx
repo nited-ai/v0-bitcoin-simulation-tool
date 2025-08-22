@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo } from "react"
+import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -20,6 +21,7 @@ import { CalculationsErrorBoundary } from "./CalculationsErrorBoundary"
  * and monthly withdrawal with BTC accumulation options.
  */
 export function BasicParametersCard() {
+  const { t } = useTranslation()
   const {
     params,
     setParams,
@@ -69,7 +71,7 @@ export function BasicParametersCard() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Bitcoin className="w-5 h-5 text-orange-500" />
-            Basic Parameters
+            {t('BasicParameters.title')}
           </CardTitle>
         </CardHeader>
 
@@ -83,13 +85,13 @@ export function BasicParametersCard() {
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <DollarSign className="w-4 h-4 text-orange-500" />
-                Initial BTC Price
+                {t('BasicParameters.initialBtcPrice.label')}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Starting Bitcoin price in USD for the simulation</p>
+                    <p>{t('BasicParameters.initialBtcPrice.tooltip')}</p>
                   </TooltipContent>
                 </Tooltip>
               </Label>
@@ -102,7 +104,7 @@ export function BasicParametersCard() {
                   step={100}
                   decimals={0}
                   suffix="$"
-                  placeholder="100,000"
+                  placeholder={t('BasicParameters.initialBtcPrice.placeholder')}
                   className="flex-1"
                 />
                 <Button
@@ -110,7 +112,7 @@ export function BasicParametersCard() {
                   size="icon"
                   onClick={handleLoadCurrentPrice}
                   disabled={loadingBtcPrice}
-                  title="Load Current Price"
+                  title={t('BasicParameters.loadCurrentPrice.button', 'Load Current Price')}
                   className="shrink-0"
                 >
                   <RefreshCw className={`w-4 h-4 ${loadingBtcPrice ? "animate-spin" : ""}`} />
@@ -122,13 +124,13 @@ export function BasicParametersCard() {
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <Bitcoin className="w-4 h-4 text-orange-500" />
-                BTC Amount
+                {t('BasicParameters.btcAmount.label')}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>The amount of Bitcoin you want to use as collateral for loans</p>
+                    <p>{t('BasicParameters.btcAmount.tooltip')}</p>
                   </TooltipContent>
                 </Tooltip>
               </Label>
@@ -151,14 +153,14 @@ export function BasicParametersCard() {
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <Banknote className="w-4 h-4 text-orange-500" />
-                Total Fiat Value
+                {t('BasicParameters.totalFiatValue.label', 'Total Fiat Value')}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Total fiat value of your BTC stack available as collateral</p>
-                    <p>Formula: BTC Amount × Initial BTC Price</p>
+                    <p>{t('BasicParameters.totalFiatValue.tooltip', 'Total fiat value of your BTC stack available as collateral')}</p>
+                    <p>{t('BasicParameters.totalFiatValue.formula', 'Formula: BTC Amount × Initial BTC Price')}</p>
                   </TooltipContent>
                 </Tooltip>
               </Label>
@@ -173,14 +175,14 @@ export function BasicParametersCard() {
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <CreditCard className="w-4 h-4 text-orange-500" />
-                Max Loan Amount
+                {t('BasicParameters.maxLoanAmount.label', 'Max Loan Amount')}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Maximum loan amount available on selected platform</p>
-                    <p>Formula: (BTC Amount × Price) × Platform Max LTV</p>
+                    <p>{t('BasicParameters.maxLoanAmount.tooltip', 'Maximum loan amount available on selected platform')}</p>
+                    <p>{t('BasicParameters.maxLoanAmount.formula', 'Formula: (BTC Amount × Price) × Platform Max LTV')}</p>
                   </TooltipContent>
                 </Tooltip>
               </Label>

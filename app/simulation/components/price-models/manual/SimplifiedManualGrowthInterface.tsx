@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
@@ -22,38 +23,7 @@ interface SimplifiedManualGrowthInterfaceProps {
   className?: string
 }
 
-const PRESETS = {
-  conservative: {
-    name: 'Conservative',
-    icon: Activity, // Changed from TrendingDown to Activity
-    rates: [15, -10, -5, 25, 30, -15, -5, 20, 25, -10, -5, 15],
-    description: 'Steady, realistic growth with moderate volatility'
-  },
-  moderate: {
-    name: 'Moderate',
-    icon: TrendingUp, // Changed from Activity to TrendingUp
-    rates: [50, -30, -10, 80, 100, -40, -15, 60, 80, -35, -10, 40],
-    description: 'Balanced growth with typical Bitcoin cycles'
-  },
-  optimistic: {
-    name: 'Optimistic',
-    icon: Zap, // Changed from TrendingUp to Zap
-    rates: [180, -60, -20, 210, 250, -60, -20, 170, 200, -65, -20, 110],
-    description: 'High growth potential with significant volatility'
-  },
-  moonshot: {
-    name: 'Moonshot',
-    icon: Rocket, // Changed from Zap to Rocket
-    rates: [300, -70, -30, 400, 500, -80, -40, 350, 450, -75, -35, 250],
-    description: 'Extreme bull case scenario'
-  },
-  custom: {
-    name: 'Custom',
-    icon: Settings,
-    rates: [], // Will be populated dynamically
-    description: 'Customize individual growth rates'
-  }
-}
+// PRESETS will be created inside the component to access t() function
 
 // SessionStorage keys
 const STORAGE_KEYS = {
@@ -62,6 +32,7 @@ const STORAGE_KEYS = {
 }
 
 export function SimplifiedManualGrowthInterface({ className }: SimplifiedManualGrowthInterfaceProps) {
+  const { t } = useTranslation()
   const { params, setParams } = useSimulation()
   const [selectedPreset, setSelectedPreset] = useState<string>('optimistic')
   const [customRates, setCustomRates] = useState<number[]>([])
@@ -71,6 +42,39 @@ export function SimplifiedManualGrowthInterface({ className }: SimplifiedManualG
 
   // Convert months to years for display
   const simulationYears = Math.round(params.simulationMonths / 12)
+
+  const PRESETS = {
+    conservative: {
+      name: t('ManualGrowthInterface.presets.conservative.name', 'Conservative'),
+      icon: Activity,
+      rates: [15, -10, -5, 25, 30, -15, -5, 20, 25, -10, -5, 15],
+      description: t('ManualGrowthInterface.presets.conservative.description', 'Steady, realistic growth with moderate volatility')
+    },
+    moderate: {
+      name: t('ManualGrowthInterface.presets.moderate.name', 'Moderate'),
+      icon: TrendingUp,
+      rates: [50, -30, -10, 80, 100, -40, -15, 60, 80, -35, -10, 40],
+      description: t('ManualGrowthInterface.presets.moderate.description', 'Balanced growth with typical Bitcoin cycles')
+    },
+    optimistic: {
+      name: t('ManualGrowthInterface.presets.optimistic.name', 'Optimistic'),
+      icon: Zap,
+      rates: [180, -60, -20, 210, 250, -60, -20, 170, 200, -65, -20, 110],
+      description: t('ManualGrowthInterface.presets.optimistic.description', 'High growth potential with significant volatility')
+    },
+    moonshot: {
+      name: t('ManualGrowthInterface.presets.moonshot.name', 'Moonshot'),
+      icon: Rocket,
+      rates: [300, -70, -30, 400, 500, -80, -40, 350, 450, -75, -35, 250],
+      description: t('ManualGrowthInterface.presets.moonshot.description', 'Extreme bull case scenario')
+    },
+    custom: {
+      name: t('ManualGrowthInterface.presets.custom.name', 'Custom'),
+      icon: Settings,
+      rates: [], // Will be populated dynamically
+      description: t('ManualGrowthInterface.presets.custom.description', 'Customize individual growth rates')
+    }
+  }
 
   // Load from sessionStorage on mount
   useEffect(() => {
@@ -176,17 +180,17 @@ export function SimplifiedManualGrowthInterface({ className }: SimplifiedManualG
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Target className="h-5 w-5" />
-            Manual Growth Rate Model
+            {t('ManualGrowthInterface.title', 'Manual Growth Rate Model')}
           </CardTitle>
           <CardDescription>
-            Customize Bitcoin price projections with user-defined annual growth rates
+            {t('ManualGrowthInterface.description', 'Customize Bitcoin price projections with user-defined annual growth rates')}
           </CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-8">
           {/* Quick Presets */}
           <div className="space-y-4">
-            <Label className="text-base font-medium">Quick Presets</Label>
+            <Label className="text-base font-medium">{t('ManualGrowthInterface.quickPresets', 'Quick Presets')}</Label>
             
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
               {Object.entries(PRESETS).map(([key, preset]) => {

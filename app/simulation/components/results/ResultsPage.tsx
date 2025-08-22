@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useSimulation } from "../../context/SimulationContext"
@@ -22,6 +23,7 @@ import { AlertCircle, BarChart3, TrendingUp, DollarSign, Play, Loader2 } from "l
  * It displays simulation results, analytics, and provides access to advanced features.
  */
 export function ResultsPage() {
+  const { t } = useTranslation()
   const { results, params, isLoading } = useSimulation()
   const { runSimulation, canRunSimulation, getSimulationStatus } = useSimulationRunner()
 
@@ -30,8 +32,8 @@ export function ResultsPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-bold">Results</h2>
-          <p className="text-muted-foreground">Loading simulation results...</p>
+          <h2 className="text-2xl font-bold">{t('Results.title', 'Results')}</h2>
+          <p className="text-muted-foreground">{t('Results.loading', 'Loading simulation results...')}</p>
         </div>
         <div className="flex items-center justify-center p-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -50,8 +52,8 @@ export function ResultsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold">Results</h2>
-            <p className="text-muted-foreground">View your simulation results and analysis.</p>
+            <h2 className="text-2xl font-bold">{t('Results.title', 'Results')}</h2>
+            <p className="text-muted-foreground">{t('Results.description', 'View your simulation results and analysis.')}</p>
           </div>
 
           {/* Run Simulation Button */}
@@ -64,12 +66,12 @@ export function ResultsPage() {
             {isLoading ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Running...
+                {t('Results.running', 'Running...')}
               </>
             ) : (
               <>
                 <Play className="h-4 w-4" />
-                Run Simulation
+                {t('Results.runSimulation', 'Run Simulation')}
               </>
             )}
           </Button>
@@ -79,14 +81,14 @@ export function ResultsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-muted-foreground" />
-              No Results Available
+              {t('Results.noResultsTitle', 'No Results Available')}
             </CardTitle>
             <CardDescription>
               {simulationStatus === "waiting_for_data"
-                ? "Waiting for price data to load..."
+                ? t('Results.waitingForData', 'Waiting for price data to load...')
                 : simulationStatus === "invalid_params"
-                ? "Please configure valid parameters first"
-                : "Run a simulation to see your results here"
+                ? t('Results.invalidParams', 'Please configure valid parameters first')
+                : t('Results.runToSeeResults', 'Run a simulation to see your results here')
               }
             </CardDescription>
           </CardHeader>
@@ -96,7 +98,7 @@ export function ResultsPage() {
                 <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto" />
               </div>
               <p className="text-muted-foreground mb-6">
-                Configure your parameters and run a simulation to see detailed results, charts, and analysis.
+                {t('Results.configureAndRun', 'Configure your parameters and run a simulation to see detailed results, charts, and analysis.')}
               </p>
 
               {/* Run Simulation Button (duplicate for convenience) */}
@@ -109,12 +111,12 @@ export function ResultsPage() {
                 {isLoading ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Running Simulation...
+                    {t('Results.runningSimulation', 'Running Simulation...')}
                   </>
                 ) : (
                   <>
                     <Play className="h-4 w-4 mr-2" />
-                    Run Simulation
+                    {t('Results.runSimulation', 'Run Simulation')}
                   </>
                 )}
               </Button>
@@ -122,15 +124,15 @@ export function ResultsPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <TrendingUp className="h-4 w-4" />
-                  Portfolio Performance
+                  {t('Results.portfolioPerformance', 'Portfolio Performance')}
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <DollarSign className="h-4 w-4" />
-                  Financial Analysis
+                  {t('Results.financialAnalysis', 'Financial Analysis')}
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <BarChart3 className="h-4 w-4" />
-                  Risk Assessment
+                  {t('Results.riskAssessment', 'Risk Assessment')}
                 </div>
               </div>
             </div>
@@ -145,9 +147,12 @@ export function ResultsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Results</h2>
+          <h2 className="text-2xl font-bold">{t('Results.title', 'Results')}</h2>
           <p className="text-muted-foreground">
-            Simulation results for {results.length} months with {params.initialBtcAmount} BTC
+            {t('Results.simulationSummary', 'Simulation results for {{months}} months with {{btc}} BTC', {
+              months: results.length,
+              btc: params.initialBtcAmount
+            })}
           </p>
         </div>
 
@@ -161,12 +166,12 @@ export function ResultsPage() {
           {isLoading ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              Re-running...
+              {t('Results.rerunning', 'Re-running...')}
             </>
           ) : (
             <>
               <Play className="h-4 w-4" />
-              Re-run Simulation
+              {t('Results.rerunSimulation', 'Re-run Simulation')}
             </>
           )}
         </Button>
@@ -202,23 +207,23 @@ export function ResultsPage() {
       {/* Placeholder for Phase 5 features */}
       <Card>
         <CardHeader>
-          <CardTitle>🚧 Advanced Features Coming Soon</CardTitle>
+          <CardTitle>{t('Results.advancedFeaturesTitle', '🚧 Advanced Features Coming Soon')}</CardTitle>
           <CardDescription>
-            Phase 5 features will be added next
+            {t('Results.advancedFeaturesDescription', 'Phase 5 features will be added next')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="p-4 border rounded-lg">
-              <h4 className="font-medium mb-2">Scenario Comparison</h4>
+              <h4 className="font-medium mb-2">{t('Results.scenarioComparison', 'Scenario Comparison')}</h4>
               <p className="text-sm text-muted-foreground">
-                Compare different parameter sets side-by-side
+                {t('Results.scenarioComparisonDescription', 'Compare different parameter sets side-by-side')}
               </p>
             </div>
             <div className="p-4 border rounded-lg">
-              <h4 className="font-medium mb-2">Stress Testing</h4>
+              <h4 className="font-medium mb-2">{t('Results.stressTesting', 'Stress Testing')}</h4>
               <p className="text-sm text-muted-foreground">
-                Advanced stress testing and sensitivity analysis
+                {t('Results.stressTestingDescription', 'Advanced stress testing and sensitivity analysis')}
               </p>
             </div>
           </div>

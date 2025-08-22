@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { BarChart, Bar, Cell, ResponsiveContainer, XAxis, YAxis, LabelList } from "recharts"
 import { Shield } from "lucide-react"
 import { useMemo, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { useSimulation } from "../../context/SimulationContext"
 import { useLiquidationCalculations } from "../../hooks/useCalculationsIntegration"
 import { useATH } from "../../hooks/useATH"
@@ -43,6 +44,7 @@ interface PriceDropMetrics {
  */
 
 export function PriceDropToleranceCard() {
+  const { t } = useTranslation()
   const { params } = useSimulation()
   const liquidationData = useLiquidationCalculations()
   const { ath: currentATH, loading: athLoading } = useATH()
@@ -480,13 +482,13 @@ export function PriceDropToleranceCard() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Shield className="w-5 h-5 text-primary" />
-          Liquidation Tolerance
+          {t('PriceDropTolerance.title', 'Liquidation Tolerance')}
         </CardTitle>
       </CardHeader>
       <CardContent>
         {params.initialBtcAmount === 0 || params.loanAmountPercent === 0 ? (
           <div className="flex items-center justify-center h-64 text-muted-foreground">
-            <p>No loan amount specified</p>
+            <p>{t('PriceDropTolerance.noLoanAmount', 'No loan amount specified')}</p>
           </div>
         ) : (
           <div className="flex flex-col items-center">

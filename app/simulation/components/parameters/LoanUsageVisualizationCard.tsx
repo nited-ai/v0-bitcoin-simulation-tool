@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts"
 import { CreditCard } from "lucide-react"
 import { useMemo } from "react"
+import { useTranslation } from "react-i18next"
 import { useSimulation } from "../../context/SimulationContext"
 import { useLoanCalculations } from "../../hooks/useCalculationsIntegration"
 import { CalculationsErrorBoundary } from "./CalculationsErrorBoundary"
@@ -35,6 +36,7 @@ interface LoanMetrics {
  */
 
 export function LoanUsageVisualizationCard() {
+  const { t } = useTranslation()
   const { params } = useSimulation()
   const loanData = useLoanCalculations()
 
@@ -65,7 +67,7 @@ export function LoanUsageVisualizationCard() {
   const chartData: LoanData[] = useMemo(() => {
     return [
       {
-        name: "Used",
+        name: t('LoanUsageVisualization.used', 'Used'),
         value: metrics.loanUtilizationPercentage,
         usdAmount: metrics.currentLoanAmount,
         color: "#ef4444", // Red
@@ -73,7 +75,7 @@ export function LoanUsageVisualizationCard() {
         isActive: true // Make used capacity the active segment
       },
       {
-        name: "Available",
+        name: t('LoanUsageVisualization.available', 'Available'),
         value: metrics.availableCapacityPercentage,
         usdAmount: metrics.availableBorrowingCapacity,
         color: "#22c55e", // Green
@@ -192,14 +194,14 @@ export function LoanUsageVisualizationCard() {
               <span className="text-sm font-medium text-green-600">
                 {metrics.availableCapacityPercentage.toFixed(1)}%
               </span>
-              <span className="text-sm">Loan Available</span>
+              <span className="text-sm">{t('LoanUsageVisualization.loanAvailable', 'Loan Available')}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#ef4444" }}></div>
               <span className="text-sm font-medium text-red-600">
                 {metrics.loanUtilizationPercentage.toFixed(1)}%
               </span>
-              <span className="text-sm">Loan Taken</span>
+              <span className="text-sm">{t('LoanUsageVisualization.loanTaken', 'Loan Taken')}</span>
             </div>
           </div>
         )}
