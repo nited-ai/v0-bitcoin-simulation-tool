@@ -32,7 +32,7 @@ export function SimulationHeader() {
         <Button variant="ghost" asChild className="gap-2">
           <Link href="/">
             <Home className="w-4 h-4" />
-            Back to Landing
+            {safeT("Navigation.backToLanding.button", "Back to Landing")}
           </Link>
         </Button>
       </div>
@@ -47,8 +47,7 @@ export function SimulationHeader() {
 
       {/* Right: Controls */}
       <div className="flex-1 flex justify-end gap-2">
-        {/* Language Selector hidden as requested */}
-        {/* <LocaleSwitcher /> */}
+        <LocaleSwitcher />
         <ModeToggle />
       </div>
     </div>

@@ -6,6 +6,31 @@
     "title": "FIRE hodl Simulator",
     "description": "Simulate savings, withdrawals and loans secured by Bitcoin"
   },
+  "Navigation": {
+    "title": "Navigation",
+    "parameters": {
+      "label": "Parameters",
+      "shortLabel": "Params"
+    },
+    "priceProjection": {
+      "label": "Price Projection",
+      "shortLabel": "Price"
+    },
+    "strategy": {
+      "label": "Strategy",
+      "shortLabel": "Strategy"
+    },
+    "results": {
+      "label": "Results",
+      "shortLabel": "Results"
+    },
+    "comingSoon": {
+      "badge": "Coming Soon"
+    },
+    "backToLanding": {
+      "button": "Back to Landing"
+    }
+  },
   "Tabs": {
     "parameters": "Parameters",
     "results": "Results",
@@ -18,6 +43,35 @@
     "reset": "Reset All Parameters",
     "exportCsv": "Export CSV",
     "errorsTitle": "Validation Errors"
+  },
+  "BasicParameters": {
+    "title": "Basic Parameters",
+    "initialBtcPrice": {
+      "label": "Initial BTC Price",
+      "tooltip": "Starting Bitcoin price in USD for the simulation",
+      "placeholder": "100,000"
+    },
+    "btcAmount": {
+      "label": "BTC Amount",
+      "tooltip": "The amount of Bitcoin you want to use as collateral for loans"
+    },
+    "monthlyAmount": {
+      "label": "Monthly Savings/Withdrawal",
+      "tooltip": "Monthly amount to save or withdraw"
+    },
+    "loadCurrentPrice": {
+      "button": "Load Current Price"
+    },
+    "totalFiatValue": {
+      "label": "Total Fiat Value",
+      "tooltip": "Total fiat value of your BTC stack available as collateral",
+      "formula": "Formula: BTC Amount × Initial BTC Price"
+    },
+    "maxLoanAmount": {
+      "label": "Max Loan Amount",
+      "tooltip": "Maximum loan amount available on selected platform",
+      "formula": "Formula: (BTC Amount × Price) × Platform Max LTV"
+    }
   },
   "BasicParams": {
     "title": "Basic Parameters",
@@ -37,6 +91,38 @@
     "maxLoanAmount": "Max. Loan Amount (€)",
     "maxLoanAmountTooltip": "The maximum amount of a single loan. If higher amounts are needed, multiple loans will be taken."
   },
+  "LoanParameters": {
+    "title": "Loan Parameters",
+    "platform": {
+      "label": "Platform"
+    },
+    "loanAmount": {
+      "label": "Loan Amount"
+    },
+    "interestRate": {
+      "label": "Annual Interest Rate"
+    },
+    "loanTerm": {
+      "label": "Loan Term"
+    },
+    "maxLoanAmount": {
+      "label": "Max Loan Amount"
+    },
+    "initialLtv": {
+      "label": "Initial LTV"
+    },
+    "liquidationFee": {
+      "label": "Liquidation Fee"
+    },
+    "percentOfBtcStack": "% of BTC stack",
+    "infinity": "Infinity",
+    "monthsUnit": "{{count}} month",
+    "monthsUnit_plural": "{{count}} months",
+    "loanBreakdown": "Loan Breakdown",
+    "totalInterest": "Total Interest",
+    "originationFee": "Origination Fee",
+    "totalRepayment": "Total Repayment"
+  },
   "Strategy": {
     "title": "Strategy: Savings/Withdrawal",
     "description": "Define your monthly savings or withdrawal goals.",
@@ -54,8 +140,16 @@
     "liquidationFeeTooltip": "The fee the platform retains from the sold collateral in case of liquidation."
   },
   "EconomicAssumptions": {
-    "title": "Price Model",
-    "description": "Define your expectations for price development.",
+    "title": "Economic Assumptions",
+    "description": "Configure price models and growth assumptions",
+    "priceModel": "Price Model",
+    "powerLaw": "Power Law",
+    "manual": "Manual Growth Rates",
+    "cycleRepeat": "Cycle Repeat",
+    "prognosisLine": "Prognosis Line",
+    "fit": "Fit",
+    "support": "Support",
+    "resistance": "Resistance",
     "inflation": "Expected Annual Inflation (%)",
     "inflationTooltip": "The expected annual inflation rate. This value is used to calculate the real (inflation-adjusted) value of assets and debts."
   },
@@ -78,33 +172,38 @@
   },
   "InvestmentStrategy": {
     "title": "Investment Strategy",
-    "description": "Choose how investment decisions are made based on market conditions.",
-    "selectStrategy": "Select Strategy",
-    "defaultStrategy": "Default Strategy",
-    "athBasedStrategy": "ATH-Based Strategy",
-    "movingAverageStrategy": "Moving Average Strategy",
-    "athSettingsTitle": "ATH-Based Strategy Settings",
-    "athSettingsDescription": "Configure the All-Time High based investment limits.",
-    "athThreshold": "ATH Threshold (%)",
-    "athThresholdTooltip": "Investment is blocked when BTC price exceeds this percentage of the All-Time High.",
-    "movingAverageSettingsTitle": "Moving Average Strategy Settings",
-    "movingAverageSettingsDescription": "Configure the moving average based investment adjustments.",
-    "movingAveragePeriod": "Moving Average Period (Weeks)",
-    "movingAveragePeriodTooltip": "The period in weeks for calculating the moving average (default: 200 weeks).",
-    "investmentMultiplier": "Investment Multiplier",
-    "investmentMultiplierTooltip": "Base multiplier for investment capacity when above moving average.",
-    "settingsTitle": "Settings",
-    "explanationTitle": "Strategy Explanation",
-    "functionality": "How It Works",
-    "suitability": "Suitability",
-    "criteria": "Decision Criteria",
-    "securityRating": "Security Rating",
-    "complexityRating": "Complexity Rating",
-    "securityTooltip": "1 = Very risky, 5 = Very safe",
-    "complexityTooltip": "1 = Very simple, 5 = Very complex",
-    "ratingOutOf5": "out of 5"
+    "description": "Select your investment strategy",
+    "athBased": "ATH-Based Strategy",
+    "movingAverage": "Moving Average Strategy",
+    "athCollateral": "ATH Collateral Strategy",
+    "athBasedDescription": "Strategy based on all-time high analysis",
+    "movingAverageDescription": "Strategy based on moving averages",
+    "athCollateralDescription": "Strategy based on ATH collateral management"
   },
   "Results": {
+    "title": "Results",
+    "loading": "Loading simulation results...",
+    "description": "View your simulation results and analysis.",
+    "running": "Running...",
+    "runSimulation": "Run Simulation",
+    "noResultsTitle": "No Results Available",
+    "waitingForData": "Waiting for price data to load...",
+    "invalidParams": "Please configure valid parameters first",
+    "runToSeeResults": "Run a simulation to see your results here",
+    "configureAndRun": "Configure your parameters and run a simulation to see detailed results, charts, and analysis.",
+    "runningSimulation": "Running Simulation...",
+    "portfolioPerformance": "Portfolio Performance",
+    "financialAnalysis": "Financial Analysis",
+    "riskAssessment": "Risk Assessment",
+    "simulationSummary": "Simulation results for {{months}} months with {{btc}} BTC",
+    "rerunning": "Re-running...",
+    "rerunSimulation": "Re-run Simulation",
+    "advancedFeaturesTitle": "🚧 Advanced Features Coming Soon",
+    "advancedFeaturesDescription": "Phase 5 features will be added next",
+    "scenarioComparison": "Scenario Comparison",
+    "scenarioComparisonDescription": "Compare different parameter sets side-by-side",
+    "stressTesting": "Stress Testing",
+    "stressTestingDescription": "Advanced stress testing and sensitivity analysis",
     "summaryTitle": "Summary",
     "firstLiquidation": "First Liquidation",
     "none": "None",
@@ -141,6 +240,147 @@
     "eventDeleveraged": "FORCED SALE: {{amount}} BTC",
     "eventLiquidated": "LIQUIDATION: Loan #{{id}}",
     "eventCollateralToppedUp": "TOPPED UP: {{amount}} BTC for loan #{{id}}"
+  },
+  "CollateralVisualization": {
+    "freeCollateral": "Free Collateral",
+    "lockedCollateral": "Locked Collateral"
+  },
+  "PriceDropTolerance": {
+    "title": "Liquidation Tolerance",
+    "noLoanAmount": "No loan amount specified"
+  },
+  "ValidationSummary": {
+    "title": "Parameter Validation",
+    "errorCount": "{{count}} error",
+    "errorCount_plural": "{{count}} errors",
+    "warningCount": "{{count}} warning",
+    "warningCount_plural": "{{count}} warnings",
+    "showDetails": "Show Details"
+  },
+  "PortfolioValueChart": {
+    "title": "Portfolio Value Over Time",
+    "description": "Track your portfolio value, net worth, and debt levels throughout the simulation",
+    "runSimulation": "Run a simulation to see portfolio value chart",
+    "portfolioValue": "Portfolio Value",
+    "totalDebt": "Total Debt",
+    "netWorth": "Net Worth"
+  },
+  "RiskLevelSelector": {
+    "title": "Risk Level Presets",
+    "riskWarning": "Lending against Bitcoin is highly speculative and carries significant risk. This is not financial advice. Use at your own risk. Bitcoin prices has dropped by 90% in the past. It can happen again. Don't get greedy. Don't use money you can't afford to lose.",
+    "conservative": {
+      "name": "Conservative",
+      "description": "Low-risk approach with safety-first mindset",
+      "badge": "Safe"
+    },
+    "moderate": {
+      "name": "Moderate",
+      "description": "Balanced approach for typical investors",
+      "badge": "Balanced"
+    },
+    "optimistic": {
+      "name": "Optimistic",
+      "description": "Growth-focused with higher risk tolerance",
+      "badge": "Growth"
+    },
+    "moonshots": {
+      "name": "Moonshots",
+      "description": "Maximum risk for maximum potential returns",
+      "badge": "High Risk"
+    }
+  },
+  "PlatformSelector": {
+    "title": "Lending Platform",
+    "visitPlatform": "Visit Platform",
+    "firefish": {
+      "name": "Firefish",
+      "description": "Flexible lending platform with competitive rates",
+      "badge": "Non Custodial"
+    },
+    "strike": {
+      "name": "Strike",
+      "description": "Lightning-fast loans with instant approval",
+      "badge": "Low Rates"
+    },
+    "custom": {
+      "name": "Custom",
+      "description": "Configure your own platform parameters",
+      "badge": "Custom"
+    }
+  },
+  "LoanUsageVisualization": {
+    "used": "Used",
+    "available": "Available",
+    "loanAvailable": "Loan Available",
+    "loanTaken": "Loan Taken"
+  },
+  "PriceModelSelector": {
+    "title": "Select Model and Simulation Length",
+    "description": "Select and configure Bitcoin price projection models and simulation timeline",
+    "priceProjectionModel": "Price Projection Model",
+    "choosePriceModel": "Choose price prediction model",
+    "loadingModels": "Loading models...",
+    "errorLoadingModels": "Error loading models",
+    "noModelsAvailable": "No models available",
+    "noModelsRegistry": "No price models are currently available. Please check the model registry.",
+    "customModel": "Custom Model",
+    "customModelDescription": "Create your own price projection model",
+    "comingSoon": "Coming Soon",
+    "simulationLength": "Simulation Length: {{years}} Years",
+    "simulationDetails": "{{months}} months • End: {{endYear}}"
+  },
+  "ManualGrowthInterface": {
+    "title": "Manual Growth Rate Model",
+    "description": "Customize Bitcoin price projections with user-defined annual growth rates",
+    "quickPresets": "Quick Presets",
+    "presets": {
+      "conservative": {
+        "name": "Conservative",
+        "description": "Steady, realistic growth with moderate volatility"
+      },
+      "moderate": {
+        "name": "Moderate",
+        "description": "Balanced growth with typical Bitcoin cycles"
+      },
+      "optimistic": {
+        "name": "Optimistic",
+        "description": "High growth potential with significant volatility"
+      },
+      "moonshot": {
+        "name": "Moonshot",
+        "description": "Extreme bull case scenario"
+      },
+      "custom": {
+        "name": "Custom",
+        "description": "Customize individual growth rates"
+      }
+    }
+  },
+  "Strategy": {
+    "selectStrategy": "Select Strategy",
+    "defaultStrategy": "Default Strategy",
+    "athBasedStrategy": "ATH-Based Strategy",
+    "movingAverageStrategy": "Moving Average Strategy",
+    "athSettingsTitle": "ATH-Based Strategy Settings",
+    "athSettingsDescription": "Configure the All-Time High based investment limits.",
+    "athThreshold": "ATH Threshold (%)",
+    "athThresholdTooltip": "Investment is blocked when BTC price exceeds this percentage of the All-Time High.",
+    "movingAverageSettingsTitle": "Moving Average Strategy Settings",
+    "movingAverageSettingsDescription": "Configure the moving average based investment adjustments.",
+    "movingAveragePeriod": "Moving Average Period (Weeks)",
+    "movingAveragePeriodTooltip": "The period in weeks for calculating the moving average (default: 200 weeks).",
+    "investmentMultiplier": "Investment Multiplier",
+    "investmentMultiplierTooltip": "Base multiplier for investment capacity when above moving average.",
+    "settingsTitle": "Settings",
+    "explanationTitle": "Strategy Explanation",
+    "functionality": "How It Works",
+    "suitability": "Suitability",
+    "criteria": "Decision Criteria",
+    "securityRating": "Security Rating",
+    "complexityRating": "Complexity Rating",
+    "securityTooltip": "1 = Very risky, 5 = Very safe",
+    "complexityTooltip": "1 = Very simple, 5 = Very complex",
+    "ratingOutOf5": "out of 5"
   },
   "Chart": {
     "debtVsCollateralTitle": "Portfolio Overview: Assets, Debt & Price",

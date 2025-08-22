@@ -10,6 +10,15 @@ const fallbackTranslations = {
     title: "FIRE hodl Simulator",
     description: "Simulate savings, withdrawals and loans secured by Bitcoin",
   },
+  Navigation: {
+    title: "Navigation",
+    parameters: { label: "Parameters", shortLabel: "Params" },
+    priceProjection: { label: "Price Projection", shortLabel: "Price" },
+    strategy: { label: "Strategy", shortLabel: "Strategy" },
+    results: { label: "Results", shortLabel: "Results" },
+    comingSoon: { badge: "Coming Soon" },
+    backToLanding: { button: "Back to Landing" }
+  },
   Tabs: {
     parameters: "Parameters",
     results: "Results",
@@ -22,6 +31,205 @@ const fallbackTranslations = {
     reset: "Reset All Parameters",
     exportCsv: "Export CSV",
     errorsTitle: "Validation Errors",
+  },
+  BasicParameters: {
+    title: "Basic Parameters",
+    initialBtcPrice: {
+      label: "Initial BTC Price",
+      tooltip: "Starting Bitcoin price in USD for the simulation",
+      placeholder: "100,000"
+    },
+    btcAmount: {
+      label: "BTC Amount",
+      tooltip: "Amount of Bitcoin to simulate with"
+    },
+    monthlyAmount: {
+      label: "Monthly Savings/Withdrawal",
+      tooltip: "Monthly amount to save or withdraw"
+    }
+  },
+  LoanParameters: {
+    title: "Loan Parameters",
+    platform: { label: "Platform" },
+    interestRate: { label: "Interest Rate" },
+    loanTerm: { label: "Loan Term" },
+    maxLoanAmount: { label: "Max Loan Amount" },
+    initialLtv: { label: "Initial LTV" },
+    liquidationFee: { label: "Liquidation Fee" },
+    percentOfBtcStack: "% of BTC stack",
+    infinity: "Infinity",
+    loanBreakdown: "Loan Breakdown",
+    totalInterest: "Total Interest",
+    originationFee: "Origination Fee",
+    totalRepayment: "Total Repayment"
+  },
+  Results: {
+    title: "Results",
+    loading: "Loading simulation results...",
+    description: "View your simulation results and analysis.",
+    running: "Running...",
+    runSimulation: "Run Simulation",
+    noResultsTitle: "No Results Available",
+    waitingForData: "Waiting for price data to load...",
+    invalidParams: "Please configure valid parameters first",
+    runToSeeResults: "Run a simulation to see your results here",
+    configureAndRun: "Configure your parameters and run a simulation to see detailed results, charts, and analysis.",
+    runningSimulation: "Running Simulation...",
+    portfolioPerformance: "Portfolio Performance",
+    financialAnalysis: "Financial Analysis",
+    riskAssessment: "Risk Assessment",
+    simulationSummary: "Simulation results for {{months}} months with {{btc}} BTC",
+    rerunning: "Re-running...",
+    rerunSimulation: "Re-run Simulation",
+    advancedFeaturesTitle: "🚧 Advanced Features Coming Soon",
+    advancedFeaturesDescription: "Phase 5 features will be added next",
+    scenarioComparison: "Scenario Comparison",
+    scenarioComparisonDescription: "Compare different parameter sets side-by-side",
+    stressTesting: "Stress Testing",
+    stressTestingDescription: "Advanced stress testing and sensitivity analysis",
+    summaryTitle: "Summary",
+    firstLiquidation: "First Liquidation",
+    none: "None",
+    month: "Month",
+    maxDebt: "Maximum Debt",
+    finalCollateral: "Final Collateral Value",
+    finalNetWorth: "Final Net Worth",
+    finalBtcAmount: "Final BTC Holdings",
+    monthlyResults: "Monthly Results",
+    monthlyResultsDescription: "Detailed breakdown of the simulation",
+    tableMonth: "Month",
+    tableDate: "Date",
+    tableBtcPrice: "BTC Price ($)",
+    tableCollateral: "Collateral ($)",
+    tableTotalDebt: "Total Debt ($)",
+    tableLockedCollateral: "Locked Collateral ($)",
+    tableHighestLtv: "Highest LTV (%)",
+    tableBtcAmount: "BTC Amount",
+    tableLiquidatedBtc: "Liquidated (BTC)",
+    tableMaxSafeDebt: "Max Safe Debt ($)",
+    tableLoanCount: "Loan Count",
+    tableEvents: "Events",
+    tableNewLoans: "New Loans ($)",
+    tableRepayments: "Repayments ($)",
+    tableWithdrawal: "Withdrawal ($)",
+    tableReinvestment: "Reinvestment ($)",
+    tableBtcTotal: "BTC Holdings",
+    paginationShowing: "Showing {{start}} to {{end}} of {{total}} months",
+    paginationPrevious: "Previous",
+    paginationNext: "Next",
+    liquidationWarningTitle: "Warning: Liquidation!",
+    liquidationWarningText: "In month {{month}} a liquidation occurred. Your risk profile was too aggressive for this scenario. Review your risk parameters.",
+    eventWithdrawalSkipped: "Withdrawal suspended",
+    eventDeleveraged: "FORCED SALE: {{amount}} BTC",
+    eventLiquidated: "LIQUIDATION: Loan #{{id}}",
+    eventCollateralToppedUp: "TOPPED UP: {{amount}} BTC for loan #{{id}}"
+  },
+  CollateralVisualization: {
+    freeCollateral: "Free Collateral",
+    lockedCollateral: "Locked Collateral"
+  },
+  PriceDropTolerance: {
+    title: "Liquidation Tolerance",
+    noLoanAmount: "No loan amount specified"
+  },
+  ValidationSummary: {
+    title: "Parameter Validation",
+    showDetails: "Show Details"
+  },
+  PortfolioValueChart: {
+    title: "Portfolio Value Over Time",
+    description: "Track your portfolio value, net worth, and debt levels throughout the simulation",
+    portfolioValue: "Portfolio Value",
+    totalDebt: "Total Debt",
+    netWorth: "Net Worth"
+  },
+  RiskLevelSelector: {
+    title: "Risk Level Presets",
+    riskWarning: "Lending against Bitcoin is highly speculative and carries significant risk. This is not financial advice. Use at your own risk. Bitcoin prices has dropped by 90% in the past. It can happen again. Don't get greedy. Don't use money you can't afford to lose.",
+    conservative: {
+      name: "Conservative",
+      description: "Low-risk approach with safety-first mindset",
+      badge: "Safe"
+    },
+    moderate: {
+      name: "Moderate",
+      description: "Balanced approach for typical investors",
+      badge: "Balanced"
+    },
+    optimistic: {
+      name: "Optimistic",
+      description: "Growth-focused with higher risk tolerance",
+      badge: "Growth"
+    },
+    moonshots: {
+      name: "Moonshots",
+      description: "Maximum risk for maximum potential returns",
+      badge: "High Risk"
+    }
+  },
+  PlatformSelector: {
+    title: "Lending Platform",
+    visitPlatform: "Visit Platform",
+    firefish: {
+      name: "Firefish",
+      description: "Flexible lending platform with competitive rates",
+      badge: "Non Custodial"
+    },
+    strike: {
+      name: "Strike",
+      description: "Lightning-fast loans with instant approval",
+      badge: "Low Rates"
+    },
+    custom: {
+      name: "Custom",
+      description: "Configure your own platform parameters",
+      badge: "Custom"
+    }
+  },
+  LoanUsageVisualization: {
+    used: "Used",
+    available: "Available",
+    loanAvailable: "Loan Available",
+    loanTaken: "Loan Taken"
+  },
+  PriceModelSelector: {
+    title: "Select Model and Simulation Length",
+    description: "Select and configure Bitcoin price projection models and simulation timeline",
+    priceProjectionModel: "Price Projection Model",
+    choosePriceModel: "Choose price prediction model",
+    loadingModels: "Loading models...",
+    errorLoadingModels: "Error loading models",
+    noModelsAvailable: "No models available",
+    customModel: "Custom Model",
+    customModelDescription: "Create your own price projection model",
+    comingSoon: "Coming Soon"
+  },
+  ManualGrowthInterface: {
+    title: "Manual Growth Rate Model",
+    description: "Customize Bitcoin price projections with user-defined annual growth rates",
+    quickPresets: "Quick Presets",
+    presets: {
+      conservative: {
+        name: "Conservative",
+        description: "Steady, realistic growth with moderate volatility"
+      },
+      moderate: {
+        name: "Moderate",
+        description: "Balanced growth with typical Bitcoin cycles"
+      },
+      optimistic: {
+        name: "Optimistic",
+        description: "High growth potential with significant volatility"
+      },
+      moonshot: {
+        name: "Moonshot",
+        description: "Extreme bull case scenario"
+      },
+      custom: {
+        name: "Custom",
+        description: "Customize individual growth rates"
+      }
+    }
   },
   BasicParams: {
     title: "Basic Parameters",
@@ -111,44 +319,6 @@ const fallbackTranslations = {
     securityTooltip: "1 = Very risky, 5 = Very safe",
     complexityTooltip: "1 = Very simple, 5 = Very complex",
     ratingOutOf5: "out of 5",
-  },
-  Results: {
-    summaryTitle: "Summary",
-    firstLiquidation: "First Liquidation",
-    none: "None",
-    month: "Month",
-    maxDebt: "Maximum Debt",
-    finalCollateral: "Final Collateral Value",
-    finalNetWorth: "Final Net Worth",
-    finalBtcAmount: "Final BTC Holdings",
-    monthlyResults: "Monthly Results",
-    monthlyResultsDescription: "Detailed breakdown of the simulation",
-    tableMonth: "Month",
-    tableDate: "Date",
-    tableBtcPrice: "BTC Price (€)",
-    tableCollateral: "Collateral (€)",
-    tableTotalDebt: "Total Debt (€)",
-    tableLockedCollateral: "Locked Collateral (€)",
-    tableHighestLtv: "Highest LTV (%)",
-    tableBtcAmount: "BTC Amount",
-    tableLiquidatedBtc: "Liquidated (BTC)",
-    tableLoanCount: "Loan Count",
-    tableEvents: "Events",
-    tableNewLoans: "New Loans (€)",
-    tableRepayments: "Repayments (€)",
-    tableWithdrawal: "Withdrawal ($)",
-    tableReinvestment: "Reinvestment ($)",
-    tableBtcTotal: "BTC Holdings",
-    paginationShowing: "Showing {{start}} to {{end}} of {{total}} months",
-    paginationPrevious: "Previous",
-    paginationNext: "Next",
-    liquidationWarningTitle: "Warning: Liquidation!",
-    liquidationWarningText:
-      "In month {{month}} a liquidation occurred. Your risk profile was too aggressive for this scenario. Review your risk parameters.",
-    eventWithdrawalSkipped: "Withdrawal suspended",
-    eventDeleveraged: "FORCED SALE: {{amount}} BTC",
-    eventLiquidated: "LIQUIDATION: Loan #{{id}}",
-    eventCollateralToppedUp: "TOPPED UP: {{amount}} BTC for loan #{{id}}",
   },
   Chart: {
     debtVsCollateralTitle: "Portfolio Overview: Assets, Debt & Price",

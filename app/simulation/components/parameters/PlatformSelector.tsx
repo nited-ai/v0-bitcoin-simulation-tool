@@ -10,6 +10,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Fish, Zap, Info, Settings, ExternalLink, Edit, Save, X, ChevronDown, Plus, Trash2, Building2 } from "lucide-react"
 import { NumberInput } from "@/shared/ui/forms/NumberInput"
 import { useState, useEffect } from "react"
+import { useTranslation } from "react-i18next"
 import { useSimulation } from "../../context/SimulationContext"
 import type { Platform } from "../../types/simulation"
 import { getPlatformConfig, saveCustomPlatformConfig } from "../../constants/platformPresets"
@@ -51,6 +52,7 @@ interface SerializablePlatformOption {
  * specific loan rules and terms.
  */
 export function PlatformSelector() {
+  const { t } = useTranslation()
   const { params, applyPlatformConfig, updatePlatformConfig } = useSimulation()
   const [editingPlatform, setEditingPlatform] = useState<string | null>(null)
   const [editValues, setEditValues] = useState<{
@@ -129,30 +131,30 @@ export function PlatformSelector() {
   const basePlatforms: PlatformOption[] = [
     {
       id: "firefish",
-      name: "Firefish",
-      description: "Flexible lending platform with competitive rates",
+      name: t('PlatformSelector.firefish.name', 'Firefish'),
+      description: t('PlatformSelector.firefish.description', 'Flexible lending platform with competitive rates'),
       icon: <Fish className="w-5 h-5" />,
-      badge: "Non Custodial",
+      badge: t('PlatformSelector.firefish.badge', 'Non Custodial'),
       badgeClassName: "border-transparent bg-blue-500 text-white hover:bg-blue-600",
       features: [],
       url: "https://firefish.io/"
     },
     {
       id: "strike",
-      name: "Strike",
-      description: "Lightning-fast loans with instant approval",
+      name: t('PlatformSelector.strike.name', 'Strike'),
+      description: t('PlatformSelector.strike.description', 'Lightning-fast loans with instant approval'),
       icon: <Zap className="w-5 h-5" />,
-      badge: "Low Rates",
+      badge: t('PlatformSelector.strike.badge', 'Low Rates'),
       badgeClassName: "border-transparent bg-green-500 text-white hover:bg-green-600",
       features: [],
       url: "https://strike.me/lending/"
     },
     {
       id: "custom",
-      name: "Custom",
-      description: "Configure your own platform parameters",
+      name: t('PlatformSelector.custom.name', 'Custom'),
+      description: t('PlatformSelector.custom.description', 'Configure your own platform parameters'),
       icon: <Plus className="w-5 h-5" />,
-      badge: "Custom",
+      badge: t('PlatformSelector.custom.badge', 'Custom'),
       badgeClassName: "border-transparent bg-purple-500 text-white hover:bg-purple-600",
       features: [],
       disabled: false
@@ -338,7 +340,7 @@ export function PlatformSelector() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Building2 className="w-5 h-5 text-primary" />
-          Lending Platform
+          {t('PlatformSelector.title', 'Lending Platform')}
         </CardTitle>
       </CardHeader>
       
@@ -615,7 +617,7 @@ export function PlatformSelector() {
                       className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
                       title={`Visit ${platform.name} website`}
                     >
-                      <span>Visit Platform</span>
+                      <span>{t('PlatformSelector.visitPlatform', 'Visit Platform')}</span>
                       <ExternalLink className="w-3 h-3" />
                     </button>
                   </div>

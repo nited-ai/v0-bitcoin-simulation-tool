@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useTranslation } from 'react-i18next'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -49,41 +50,42 @@ interface TabConfig {
   badge?: string // Optional badge property
 }
 
-// Tab configuration with icons and labels
-const tabConfig: Record<TabValue, TabConfig> = {
-  parameters: {
-    label: 'Parameters',
-    shortLabel: 'Params',
-    icon: Settings,
-    enabled: true
-  },
-  'price-projection': {
-    label: 'Price Projection',
-    shortLabel: 'Price',
-    icon: BarChart3,
-    enabled: true
-  },
-  strategy: {
-    label: 'Strategy',
-    shortLabel: 'Strategy',
-    icon: Target,
-    enabled: false,
-    badge: 'Coming Soon'
-  },
-  results: {
-    label: 'Results',
-    shortLabel: 'Results',
-    icon: TrendingDown,
-    enabled: false,
-    badge: 'Coming Soon'
-  }
-} as const
-
 export function TabNavigation({ children }: TabNavigationProps) {
+  const { t } = useTranslation()
   const router = useRouter()
   const searchParams = useSearchParams()
   const { params, setParams } = useSimulation()
   const isMobile = useIsMobile()
+
+  // Tab configuration with icons and labels - using translation function
+  const tabConfig: Record<TabValue, TabConfig> = {
+    parameters: {
+      label: t('Navigation.parameters.label'),
+      shortLabel: t('Navigation.parameters.shortLabel'),
+      icon: Settings,
+      enabled: true
+    },
+    'price-projection': {
+      label: t('Navigation.priceProjection.label'),
+      shortLabel: t('Navigation.priceProjection.shortLabel'),
+      icon: BarChart3,
+      enabled: true
+    },
+    strategy: {
+      label: t('Navigation.strategy.label'),
+      shortLabel: t('Navigation.strategy.shortLabel'),
+      icon: Target,
+      enabled: false,
+      badge: t('Navigation.comingSoon.badge')
+    },
+    results: {
+      label: t('Navigation.results.label'),
+      shortLabel: t('Navigation.results.shortLabel'),
+      icon: TrendingDown,
+      enabled: false,
+      badge: t('Navigation.comingSoon.badge')
+    }
+  }
 
   // State for projection data from UnifiedPriceChart
   const [projection, setProjection] = useState<PriceProjectionResult | null>(null)
@@ -185,7 +187,7 @@ export function TabNavigation({ children }: TabNavigationProps) {
             </SheetTrigger>
             <SheetContent side="right" className="w-80">
               <SheetHeader>
-                <SheetTitle>Navigation</SheetTitle>
+                <SheetTitle>{t('Navigation.title', 'Navigation')}</SheetTitle>
               </SheetHeader>
               <div className="flex flex-col gap-2 mt-6">
                 {Object.entries(tabConfig).map(([key, config]) => {

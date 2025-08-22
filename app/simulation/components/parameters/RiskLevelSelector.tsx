@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -26,42 +27,43 @@ interface RiskLevelOption {
  * default presets for price projection models and investment strategies.
  */
 export function RiskLevelSelector() {
+  const { t } = useTranslation()
   const { params, applyRiskLevelPreset } = useSimulation()
 
   const riskLevels: RiskLevelOption[] = [
     {
       id: "conservative",
-      name: "Conservative",
-      description: "Low-risk approach with safety-first mindset",
+      name: t('RiskLevelSelector.conservative.name', 'Conservative'),
+      description: t('RiskLevelSelector.conservative.description', 'Low-risk approach with safety-first mindset'),
       icon: <Activity className="w-5 h-5" />,
-      badge: "Safe",
+      badge: t('RiskLevelSelector.conservative.badge', 'Safe'),
       badgeClassName: "border-transparent bg-green-500 text-white hover:bg-green-600",
       characteristics: []
     },
     {
       id: "moderate",
-      name: "Moderate",
-      description: "Balanced approach for typical investors",
+      name: t('RiskLevelSelector.moderate.name', 'Moderate'),
+      description: t('RiskLevelSelector.moderate.description', 'Balanced approach for typical investors'),
       icon: <TrendingUp className="w-5 h-5" />,
-      badge: "Balanced",
+      badge: t('RiskLevelSelector.moderate.badge', 'Balanced'),
       badgeClassName: "border-transparent bg-lime-500 text-white hover:bg-lime-600",
       characteristics: []
     },
     {
       id: "optimistic",
-      name: "Optimistic",
-      description: "Growth-focused with higher risk tolerance",
+      name: t('RiskLevelSelector.optimistic.name', 'Optimistic'),
+      description: t('RiskLevelSelector.optimistic.description', 'Growth-focused with higher risk tolerance'),
       icon: <Zap className="w-5 h-5" />,
-      badge: "Growth",
+      badge: t('RiskLevelSelector.optimistic.badge', 'Growth'),
       badgeClassName: "border-transparent bg-orange-500 text-white hover:bg-orange-600",
       characteristics: []
     },
     {
       id: "moonshots",
-      name: "Moonshots",
-      description: "Maximum risk for maximum potential returns",
+      name: t('RiskLevelSelector.moonshots.name', 'Moonshots'),
+      description: t('RiskLevelSelector.moonshots.description', 'Maximum risk for maximum potential returns'),
       icon: <Rocket className="w-5 h-5" />,
-      badge: "High Risk",
+      badge: t('RiskLevelSelector.moonshots.badge', 'High Risk'),
       badgeClassName: "border-transparent bg-red-500 text-white hover:bg-red-600",
       characteristics: []
     }
@@ -86,19 +88,14 @@ export function RiskLevelSelector() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Activity className="w-5 h-5 text-primary" />
-          Risk Level Presets
+          {t('RiskLevelSelector.title', 'Risk Level Presets')}
         </CardTitle>
       </CardHeader>
 
       <CardContent className="space-y-4">
-        <span className="text-sm text-muted-foreground">
-          
-          <p>Lending against Bitcoin is highly speculative and carries significant risk.</p> 
-          <p>This is not financial advice. Use at your own risk.</p>
-          <p>Bitcoin prices has dropped by 90% in the past. It can happen again.</p>
-          <p>&nbsp;</p>
-          <p>Don't get greedy. Don't use money you can't afford to lose.</p>
-        </span>
+        <div className="text-sm text-muted-foreground">
+          <p>{t('RiskLevelSelector.riskWarning', 'Lending against Bitcoin is highly speculative and carries significant risk. This is not financial advice. Use at your own risk. Bitcoin prices has dropped by 90% in the past. It can happen again. Don\'t get greedy. Don\'t use money you can\'t afford to lose.')}</p>
+        </div>
         {/* ATH Alert above risk level selector cards */}
         <ATHAlert currentPrice={params.initialBtcPrice} />
         

@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { AlertTriangle, CheckCircle, Info, XCircle, ChevronDown, ChevronUp } from "lucide-react"
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import { useSimulation } from "../../context/SimulationContext"
 import { useParameterValidation, type ValidationError } from "../../hooks/useParameterValidation"
 import { getComponentForField } from "./validationFieldMapping"
@@ -18,6 +19,7 @@ import { getComponentForField } from "./validationFieldMapping"
  * Shows errors, warnings, and informational messages in a collapsible format.
  */
 export function ValidationSummary() {
+  const { t } = useTranslation()
   const { params } = useSimulation()
   const validation = useParameterValidation(params)
   const [isExpanded, setIsExpanded] = useState(true) // Show details directly without requiring click
@@ -80,17 +82,17 @@ export function ValidationSummary() {
               ) : (
                 <AlertTriangle className="h-5 w-5 text-yellow-500" />
               )}
-              Parameter Validation
+              {t('ValidationSummary.title', 'Parameter Validation')}
             </CardTitle>
             <div className="flex gap-1">
               {unmappedErrors.length > 0 && (
                 <Badge variant="destructive" className="text-xs">
-                  {unmappedErrors.length} error{unmappedErrors.length !== 1 ? 's' : ''}
+                  {t('ValidationSummary.errorCount', '{{count}} error', { count: unmappedErrors.length })}
                 </Badge>
               )}
               {unmappedWarnings.length > 0 && (
                 <Badge variant="secondary" className="text-xs bg-yellow-100 text-yellow-800">
-                  {unmappedWarnings.length} warning{unmappedWarnings.length !== 1 ? 's' : ''}
+                  {t('ValidationSummary.warningCount', '{{count}} warning', { count: unmappedWarnings.length })}
                 </Badge>
               )}
               {unmappedInfos.length > 0 && (
@@ -173,7 +175,7 @@ export function ValidationSummary() {
               onClick={() => setIsExpanded(true)}
               className="text-xs"
             >
-              Show Details
+              {t('ValidationSummary.showDetails', 'Show Details')}
             </Button>
           </div>
         </CardContent>
