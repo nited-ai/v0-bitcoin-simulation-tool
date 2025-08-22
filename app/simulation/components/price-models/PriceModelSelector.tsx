@@ -122,9 +122,9 @@ export function PriceModelSelector({ className }: PriceModelSelectorProps) {
   return (
     <Card className={className}>
       <CardHeader>
-        {/* Header Section - Horizontal layout with title/description on left, dropdown on right */}
-        <div className="flex items-start justify-between gap-6">
-          {/* Left side: Title and Description */}
+        {/* Header Section - Responsive layout: stacked on mobile, horizontal on desktop */}
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 md:gap-6">
+          {/* Title and Description */}
           <div className="flex-1">
             <CardTitle className="flex items-center gap-2">
               <Settings className="w-5 h-5 text-primary" />
