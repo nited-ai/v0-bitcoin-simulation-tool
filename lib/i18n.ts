@@ -436,6 +436,36 @@ const fallbackTranslations = {
     },
     fallbackDataNotice: "Using fallback ATH data."
   },
+  RiskAssessment: {
+    title: "Risk Assessment",
+    description: "Comprehensive analysis of simulation risks",
+    overallRiskLevel: "Overall Risk Level",
+    riskMetrics: {
+      liquidationRisk: "Liquidation Risk",
+      volatilityRisk: "Volatility Risk",
+      debtExposure: "Debt Exposure",
+      concentrationRisk: "Concentration Risk",
+      strategyRisk: "Strategy Risk"
+    },
+    riskLevels: {
+      low: "Low",
+      medium: "Medium",
+      high: "High",
+      extreme: "Extreme"
+    },
+    recommendations: {
+      reduceLtv: "Consider reducing target LTV to avoid liquidations",
+      conservativeParameters: "Your maximum LTV exceeded 80% - consider more conservative parameters",
+      diversification: "High volatility detected - consider diversification or lower leverage",
+      accumulateMore: "Small BTC holdings increase concentration risk - consider accumulating more"
+    },
+    riskSummary: {
+      title: "Risk Summary",
+      liquidationEvents: "Liquidation Events",
+      maxDrawdown: "Max Drawdown",
+      riskRating: "Risk Rating"
+    }
+  },
   Errors: {
     failedToLoadHistoricalData:
       "Historical data for the price model could not be loaded. Please try again or select a different model.",

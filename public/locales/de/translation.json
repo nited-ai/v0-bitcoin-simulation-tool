@@ -256,11 +256,34 @@
   },
   "CollateralVisualization": {
     "freeCollateral": "Freie Sicherheiten",
-    "lockedCollateral": "Gesperrte Sicherheiten"
+    "lockedCollateral": "Gesperrte Sicherheiten",
+    "title": "Sicherheitenverbrauch",
+    "tooltip": {
+      "title": "Sicherheitenverwendung verstehen",
+      "description": "Dieses Kreisdiagramm zeigt, wie Ihre Bitcoin-Sicherheiten zwischen verfügbaren und gesperrten Beträgen aufgeteilt sind.",
+      "interpretation": "Grüner Bereich: Freie Sicherheiten, die für zusätzliche Kredite verwendet werden können. Roter Bereich: Gesperrte Sicherheiten, die zur Absicherung Ihres aktuellen Kredits erforderlich sind.",
+      "implications": "Ein größerer grüner Bereich bedeutet mehr Flexibilität für zusätzliche Kreditaufnahmen. Ein größerer roter Bereich zeigt eine höhere Kreditnutzung und weniger verfügbare Sicherheiten an."
+    }
   },
   "PriceDropTolerance": {
     "title": "Liquidationstoleranz",
-    "noLoanAmount": "Kein Kreditbetrag angegeben"
+    "noLoanAmount": "Kein Kreditbetrag angegeben",
+    "priceDropTolerance": "Preisrückgang-Toleranz",
+    "liquidationPrice": "Liquidationspreis",
+    "fromCurrentPrice": "Vom aktuellen Preis",
+    "fromATH": "Vom ATH",
+    "immediate": "Sofort",
+    "trueTopUp": "Echt (Aufstockung)",
+    "tooltip": {
+      "title": "Preisrückgang-Toleranz verstehen",
+      "description": "Diese Messdiagramme zeigen verschiedene Liquidationsrisiko-Szenarien basierend auf Bitcoin-Preisbewegungen.",
+      "scenarios": {
+        "immediate": "Sofort: Zeigt das Liquidationsrisiko ohne die Möglichkeit, mehr Sicherheiten hinzuzufügen. Kritisch bei schnellen Preisrückgängen.",
+        "trueTopUp": "Echt (Aufstockung): Berücksichtigt Ihre Fähigkeit, zusätzliche Sicherheiten hinzuzufügen, um eine Liquidation zu vermeiden."
+      },
+      "interpretation": "Rote Bereiche zeigen gefährliche Preisrückgänge an, die zur Liquidation führen könnten. Grüne Bereiche zeigen sichere Preisniveaus an.",
+      "athComparison": "ATH-Vergleiche zeigen das Risiko basierend auf historischen Höchstständen, während aktuelle Preisvergleiche das unmittelbare Risiko zeigen."
+    }
   },
   "ValidationSummary": {
     "title": "Parameter-Validierung",
@@ -394,6 +417,52 @@
     "securityTooltip": "1 = Sehr riskant, 5 = Sehr sicher",
     "complexityTooltip": "1 = Sehr einfach, 5 = Sehr komplex",
     "ratingOutOf5": "von 5"
+  },
+  "ATHAlert": {
+    "lowerRisk": "Geringeres Risiko",
+    "mediumRisk": "Mittleres Risiko",
+    "higherRisk": "Höheres Risiko",
+    "loadingTitle": "ATH-Daten werden geladen...",
+    "loadingDescription": "Aktuelle All-Time High Informationen werden abgerufen",
+    "currentPriceIs": "Aktueller Preis ist",
+    "belowAthOf": "unter ATH von",
+    "atNewAth": "bei neuem ATH von",
+    "riskDescriptions": {
+      "low": "Günstige Bedingungen für größere Kreditbeträge und höhere LTV-Prozentsätze",
+      "medium": "Moderate Kreditbeträge und LTV-Prozentsätze empfohlen",
+      "high": "Kleinere Kreditbeträge und niedrigere LTV-Prozentsätze empfohlen"
+    },
+    "fallbackDataNotice": "Verwende Fallback-ATH-Daten."
+  },
+  "RiskAssessment": {
+    "title": "Risikobewertung",
+    "description": "Umfassende Analyse der Simulationsrisiken",
+    "overallRiskLevel": "Gesamtrisikostufe",
+    "riskMetrics": {
+      "liquidationRisk": "Liquidationsrisiko",
+      "volatilityRisk": "Volatilitätsrisiko",
+      "debtExposure": "Schuldenexposition",
+      "concentrationRisk": "Konzentrationsrisiko",
+      "strategyRisk": "Strategierisiko"
+    },
+    "riskLevels": {
+      "low": "Niedrig",
+      "medium": "Mittel",
+      "high": "Hoch",
+      "extreme": "Extrem"
+    },
+    "recommendations": {
+      "reduceLtv": "Erwägen Sie eine Reduzierung des Ziel-LTV, um Liquidationen zu vermeiden",
+      "conservativeParameters": "Ihr maximaler LTV überschritt 80% - erwägen Sie konservativere Parameter",
+      "diversification": "Hohe Volatilität erkannt - erwägen Sie Diversifikation oder geringeren Hebel",
+      "accumulateMore": "Kleine BTC-Bestände erhöhen das Konzentrationsrisiko - erwägen Sie mehr zu akkumulieren"
+    },
+    "riskSummary": {
+      "title": "Risikozusammenfassung",
+      "liquidationEvents": "Liquidationsereignisse",
+      "maxDrawdown": "Max. Drawdown",
+      "riskRating": "Risikobewertung"
+    }
   },
   "Chart": {
     "debtVsCollateralTitle": "Portfolio-Übersicht: Vermögen, Schulden & Preis",
