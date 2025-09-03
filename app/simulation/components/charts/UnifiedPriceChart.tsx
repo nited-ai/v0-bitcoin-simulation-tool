@@ -228,16 +228,7 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
   console.log(`🎨 UnifiedPriceChart component rendered - Model: ${params.priceModel}`)
   console.log(`📊 Data state - Loaded: ${isLoaded}, Loading: ${isLoading}, Data points: ${historicalData.length}`)
 
-  // Manual data loading function for debugging
-  const loadDataManually = async () => {
-    console.log('🔄 Manual data load triggered')
-    try {
-      await refreshHistoricalData()
-      console.log('✅ Manual data load completed')
-    } catch (error) {
-      console.error('❌ Manual data load failed:', error)
-    }
-  }
+
 
   // Generate projection when model or parameters change
   useEffect(() => {
@@ -680,9 +671,9 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
                 variant="outline"
                 size="sm"
                 disabled={true}
-                className="flex items-center gap-2 text-xs flex-1 md:flex-none"
+                className="flex-1 md:flex-none"
               >
-                <Download className="h-3 w-3" />
+                <Download className="h-4 w-4" />
                 CSV
               </Button>
             </div>
@@ -728,9 +719,9 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
                 variant="outline"
                 size="sm"
                 disabled={true}
-                className="flex items-center gap-2 text-xs flex-1 md:flex-none"
+                className="flex-1 md:flex-none"
               >
-                <Download className="h-3 w-3" />
+                <Download className="h-4 w-4" />
                 CSV
               </Button>
             </div>
@@ -774,29 +765,13 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
               {isLogScale ? "Log Scale" : "Linear"}
             </Button>
             <Button
-              onClick={loadDataManually}
-              disabled={isLoading}
-              variant="outline"
-              size="sm"
-              className="flex-1 md:flex-none"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Loading...
-                </>
-              ) : (
-                'Load Data'
-              )}
-            </Button>
-            <Button
               variant="outline"
               size="sm"
               onClick={downloadCSV}
               disabled={isDownloading || chartData.length === 0}
-              className="flex items-center gap-2 text-xs bg-orange-500 hover:bg-orange-600 text-white border-orange-500 hover:border-orange-600 flex-1 md:flex-none"
+              className="flex-1 md:flex-none"
             >
-              <Download className="h-3 w-3" />
+              <Download className="h-4 w-4" />
               {isDownloading ? 'Downloading...' : 'CSV'}
             </Button>
           </div>
