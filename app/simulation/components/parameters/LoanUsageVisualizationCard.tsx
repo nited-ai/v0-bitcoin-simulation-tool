@@ -2,12 +2,14 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts"
-import { CreditCard } from "lucide-react"
+import { CreditCard, InfoIcon } from "lucide-react"
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { useSimulation } from "../../context/SimulationContext"
 import { useLoanCalculations } from "../../hooks/useCalculationsIntegration"
 import { CalculationsErrorBoundary } from "./CalculationsErrorBoundary"
+import { HybridTooltip, HybridTooltipContent, HybridTooltipTrigger } from "@/components/ui/hybrid-tooltip"
+import { getPlatformConfig } from "../../constants/platformPresets"
 
 interface LoanData {
   name: string
@@ -39,6 +41,9 @@ export function LoanUsageVisualizationCard() {
   const { t } = useTranslation()
   const { params } = useSimulation()
   const loanData = useLoanCalculations()
+
+  // Get platform configuration for proper name display
+  const platformConfig = getPlatformConfig(params.platform)
 
   // Convert centralized calculations to component format
   const metrics: LoanMetrics = useMemo(() => {
@@ -91,7 +96,20 @@ export function LoanUsageVisualizationCard() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <CreditCard className="w-5 h-5 text-primary" />
-          Loan Utilization
+          {t('LoanUsageVisualization.title', 'Loan Utilization')}
+          <HybridTooltip>
+            <HybridTooltipTrigger asChild>
+              <InfoIcon className="w-4 h-4 text-muted-foreground cursor-help" />
+            </HybridTooltipTrigger>
+            <HybridTooltipContent className="max-w-sm">
+              <div className="space-y-2">
+                <h4 className="font-semibold">{t('LoanUsageVisualization.tooltip.title', 'Understanding Loan Utilization')}</h4>
+                <p className="text-sm">{t('LoanUsageVisualization.tooltip.description', 'This donut chart shows your current loan usage relative to your maximum loan capacity based on the selected platform.')}</p>
+                <p className="text-sm">{t('LoanUsageVisualization.tooltip.interpretation', 'Blue area: Already borrowed loan amount. Gray area: Still available loan capacity within your LTV limits.')}</p>
+                <p className="text-sm text-muted-foreground">{t('LoanUsageVisualization.tooltip.implications', 'Higher utilization (more blue) means less room for additional loans. Lower utilization provides more flexibility but may represent unused borrowing opportunities.')}</p>
+              </div>
+            </HybridTooltipContent>
+          </HybridTooltip>
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -173,8 +191,8 @@ export function LoanUsageVisualizationCard() {
 
               {/* Center Text with Platform Name and Max Loan Capacity */}
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <div className="text-xs text-muted-foreground">{params.platform.charAt(0).toUpperCase() + params.platform.slice(1)}</div>
-                <div className="text-xs text-muted-foreground">Max Loan Amount</div>
+                <div className="text-xs text-muted-foreground">{platformConfig.name}</div>
+                <div className="text-xs text-muted-foreground">{t('LoanParameters.maxLoanAmount.label', 'Max Loan Amount')}</div>
                 <div className="text-sm font-medium text-center">
                   ${metrics.maxLoanCapacity.toLocaleString('en-US', {
                     minimumFractionDigits: 0,

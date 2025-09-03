@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo } from "react"
+import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
@@ -25,6 +26,7 @@ interface RiskMetric {
  * volatility assessment, stress testing, and risk recommendations.
  */
 export function RiskAssessment() {
+  const { t } = useTranslation()
   const { results, params } = useSimulation()
   const analysis = useResultsAnalysis(results, params)
 
@@ -34,17 +36,17 @@ export function RiskAssessment() {
 
     return [
       {
-        name: "Liquidation Risk",
+        name: t('RiskAssessment.riskMetrics.liquidationRisk', 'Liquidation Risk'),
         value: analysis.liquidationCount > 0 ? 100 : analysis.maxLTV > 85 ? 80 : analysis.maxLTV > 80 ? 60 : analysis.maxLTV > 70 ? 40 : 20,
         maxValue: 100,
         level: analysis.liquidationCount > 0 ? 'extreme' : analysis.maxLTV > 85 ? 'high' : analysis.maxLTV > 70 ? 'medium' : 'low',
-        description: analysis.liquidationCount > 0 
+        description: analysis.liquidationCount > 0
           ? `${analysis.liquidationCount} liquidation events occurred`
           : `Max LTV reached ${analysis.maxLTV.toFixed(1)}%`,
         icon: AlertTriangle,
       },
       {
-        name: "Volatility Risk",
+        name: t('RiskAssessment.riskMetrics.volatilityRisk', 'Volatility Risk'),
         value: Math.min(100, analysis.maxDrawdownPercent * 2),
         maxValue: 100,
         level: analysis.maxDrawdownPercent > 50 ? 'extreme' : analysis.maxDrawdownPercent > 30 ? 'high' : analysis.maxDrawdownPercent > 15 ? 'medium' : 'low',
@@ -52,7 +54,7 @@ export function RiskAssessment() {
         icon: TrendingDown,
       },
       {
-        name: "Debt Exposure",
+        name: t('RiskAssessment.riskMetrics.debtExposure', 'Debt Exposure'),
         value: Math.min(100, (analysis.maxDebt / (analysis.finalPortfolioValue || 1)) * 100),
         maxValue: 100,
         level: analysis.averageLTV > 70 ? 'high' : analysis.averageLTV > 50 ? 'medium' : 'low',
@@ -60,7 +62,7 @@ export function RiskAssessment() {
         icon: Target,
       },
       {
-        name: "Concentration Risk",
+        name: t('RiskAssessment.riskMetrics.concentrationRisk', 'Concentration Risk'),
         value: params.initialBtcAmount > 10 ? 20 : params.initialBtcAmount > 5 ? 40 : params.initialBtcAmount > 1 ? 60 : 80,
         maxValue: 100,
         level: params.initialBtcAmount > 10 ? 'low' : params.initialBtcAmount > 5 ? 'medium' : 'high',
@@ -68,7 +70,7 @@ export function RiskAssessment() {
         icon: Zap,
       },
       {
-        name: "Strategy Risk",
+        name: t('RiskAssessment.riskMetrics.strategyRisk', 'Strategy Risk'),
         value: params.investmentStrategy === 'default' ? 30 : params.investmentStrategy === 'athBased' ? 50 : 70,
         maxValue: 100,
         level: params.investmentStrategy === 'default' ? 'low' : params.investmentStrategy === 'athBased' ? 'medium' : 'high',
@@ -99,19 +101,19 @@ export function RiskAssessment() {
     const recommendations: string[] = []
 
     if (analysis.liquidationCount > 0) {
-      recommendations.push("Consider reducing target LTV to avoid liquidations")
+      recommendations.push(t('RiskAssessment.recommendations.reduceLtv', 'Consider reducing target LTV to avoid liquidations'))
     }
 
     if (analysis.maxLTV > 80) {
-      recommendations.push("Your maximum LTV exceeded 80% - consider more conservative parameters")
+      recommendations.push(t('RiskAssessment.recommendations.conservativeParameters', 'Your maximum LTV exceeded 80% - consider more conservative parameters'))
     }
 
     if (analysis.maxDrawdownPercent > 30) {
-      recommendations.push("High volatility detected - consider diversification or lower leverage")
+      recommendations.push(t('RiskAssessment.recommendations.diversification', 'High volatility detected - consider diversification or lower leverage'))
     }
 
     if (params.initialBtcAmount < 1) {
-      recommendations.push("Small BTC holdings increase concentration risk - consider accumulating more")
+      recommendations.push(t('RiskAssessment.recommendations.accumulateMore', 'Small BTC holdings increase concentration risk - consider accumulating more'))
     }
 
     if (analysis.averageLTV > 60) {
@@ -132,10 +134,10 @@ export function RiskAssessment() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5" />
-            Risk Assessment
+            {t('RiskAssessment.title', 'Risk Assessment')}
           </CardTitle>
           <CardDescription>
-            Comprehensive risk analysis and recommendations
+            {t('RiskAssessment.description', 'Comprehensive risk analysis and recommendations')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -185,18 +187,18 @@ export function RiskAssessment() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Shield className="h-5 w-5" />
-          Risk Assessment
+          {t('RiskAssessment.title', 'Risk Assessment')}
         </CardTitle>
         <CardDescription>
-          Comprehensive risk analysis for your simulation parameters
+          {t('RiskAssessment.description', 'Comprehensive risk analysis for your simulation parameters')}
         </CardDescription>
-        
+
         {/* Overall Risk Score */}
         <div className="mt-4 p-4 bg-muted/50 rounded-lg">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium">Overall Risk Score</span>
+            <span className="text-sm font-medium">{t('RiskAssessment.overallRiskLevel', 'Overall Risk Score')}</span>
             <Badge className={getRiskBadgeColor(overallRiskLevel)}>
-              {overallRiskLevel.toUpperCase()}
+              {t(`RiskAssessment.riskLevels.${overallRiskLevel}`, overallRiskLevel.toUpperCase())}
             </Badge>
           </div>
           <div className="flex items-center gap-3">
@@ -223,7 +225,7 @@ export function RiskAssessment() {
                   <span className="text-sm font-medium">{metric.name}</span>
                 </div>
                 <Badge className={getRiskBadgeColor(metric.level)}>
-                  {metric.level.toUpperCase()}
+                  {t(`RiskAssessment.riskLevels.${metric.level}`, metric.level.toUpperCase())}
                 </Badge>
               </div>
               <div className="flex items-center gap-3">
@@ -255,24 +257,24 @@ export function RiskAssessment() {
 
         {/* Risk Summary */}
         <div className="p-4 bg-muted/30 rounded-lg">
-          <h4 className="text-sm font-medium mb-2">Risk Summary</h4>
+          <h4 className="text-sm font-medium mb-2">{t('RiskAssessment.riskSummary.title', 'Risk Summary')}</h4>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <div>
-              <div className="text-muted-foreground">Liquidation Events</div>
+              <div className="text-muted-foreground">{t('RiskAssessment.riskSummary.liquidationEvents', 'Liquidation Events')}</div>
               <div className={`font-medium ${analysis.liquidationCount > 0 ? 'text-red-600' : 'text-green-600'}`}>
                 {analysis.liquidationCount}
               </div>
             </div>
             <div>
-              <div className="text-muted-foreground">Max Drawdown</div>
+              <div className="text-muted-foreground">{t('RiskAssessment.riskSummary.maxDrawdown', 'Max Drawdown')}</div>
               <div className="font-medium">
                 {analysis.maxDrawdownPercent.toFixed(1)}%
               </div>
             </div>
             <div>
-              <div className="text-muted-foreground">Risk Rating</div>
+              <div className="text-muted-foreground">{t('RiskAssessment.riskSummary.riskRating', 'Risk Rating')}</div>
               <div className={`font-medium ${getRiskColor(analysis.riskLevel)}`}>
-                {analysis.riskLevel.toUpperCase()}
+                {t(`RiskAssessment.riskLevels.${analysis.riskLevel}`, analysis.riskLevel.toUpperCase())}
               </div>
             </div>
           </div>

@@ -128,12 +128,27 @@ export function TabNavigation({ children }: TabNavigationProps) {
     }
   }
 
-  // Get initial tab from URL or default to parameters
+  // Get initial tab from URL, localStorage, or default to parameters
   const getInitialTab = (): TabValue => {
-    const tab = searchParams.get('tab') as TabValue
-    if (tab && ['parameters', 'price-projection', 'strategy', 'results'].includes(tab)) {
-      return tab
+    // First, try to get from URL parameters
+    const urlTab = searchParams.get('tab') as TabValue
+    if (urlTab && ['parameters', 'price-projection', 'strategy', 'results'].includes(urlTab)) {
+      return urlTab
     }
+
+    // If URL doesn't have a valid tab, try localStorage (for page refresh persistence)
+    if (typeof window !== 'undefined') {
+      try {
+        const savedTab = localStorage.getItem('bitcoin-sim-active-tab') as TabValue
+        if (savedTab && ['parameters', 'price-projection', 'strategy', 'results'].includes(savedTab)) {
+          return savedTab
+        }
+      } catch (error) {
+        console.warn('Failed to read saved tab from localStorage:', error)
+      }
+    }
+
+    // Default to parameters if nothing else works
     return 'parameters'
   }
 
@@ -142,14 +157,27 @@ export function TabNavigation({ children }: TabNavigationProps) {
   // Update tab when URL changes
   useEffect(() => {
     const tabParam = searchParams.get('tab') as TabValue
-    // Allow parameters and price-projection tabs
+
+    // If URL has a valid tab parameter, use it
     if (tabParam && ['parameters', 'price-projection'].includes(tabParam)) {
       setActiveTab(tabParam)
-    } else {
-      setActiveTab('parameters')
-      // Update URL to reflect the default tab
+      // Save to localStorage for persistence
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('bitcoin-sim-active-tab', tabParam)
+        } catch (error) {
+          console.warn('Failed to save tab to localStorage:', error)
+        }
+      }
+    } else if (!tabParam) {
+      // Only update URL if there's no tab parameter at all
+      // This prevents overriding valid saved states on page refresh
+      const initialTab = getInitialTab()
+      setActiveTab(initialTab)
+
+      // Update URL to reflect the determined tab
       const params = new URLSearchParams(searchParams.toString())
-      params.set('tab', 'parameters')
+      params.set('tab', initialTab)
       router.replace(`?${params.toString()}`)
     }
   }, [searchParams, router])
@@ -164,6 +192,15 @@ export function TabNavigation({ children }: TabNavigationProps) {
 
     setActiveTab(tabValue)
     setIsSheetOpen(false) // Close mobile sheet when tab changes
+
+    // Save active tab to localStorage for persistence across page refreshes
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('bitcoin-sim-active-tab', tabValue)
+      } catch (error) {
+        console.warn('Failed to save active tab to localStorage:', error)
+      }
+    }
 
     // Update URL without page reload
     const params = new URLSearchParams(searchParams.toString())

@@ -3,6 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
@@ -15,6 +16,7 @@ import { useTranslation } from "react-i18next"
 import { useSimulation } from "../../context/SimulationContext"
 import type { Platform } from "../../types/simulation"
 import { getPlatformConfig, saveCustomPlatformConfig } from "../../constants/platformPresets"
+import { useCalculationsIntegration } from "../../hooks/useCalculationsIntegration"
 
 interface PlatformOption {
   id: Platform | "custom" | string
@@ -54,7 +56,8 @@ interface SerializablePlatformOption {
  */
 export function PlatformSelector() {
   const { t } = useTranslation()
-  const { params, applyPlatformConfig, updatePlatformConfig } = useSimulation()
+  const { params, setParams, applyPlatformConfig, updatePlatformConfig, markParameterAsManual } = useSimulation()
+  const { clearCache } = useCalculationsIntegration() // FIX: Add cache clearing capability
   const [editingPlatform, setEditingPlatform] = useState<string | null>(null)
   const [editValues, setEditValues] = useState<{
     name?: string
@@ -316,10 +319,58 @@ export function PlatformSelector() {
         setCustomPlatforms(updatedCustomPlatforms)
         saveCustomPlatforms(updatedCustomPlatforms)
       }
+
+      // FIX: Directly update simulation parameters if this is the currently selected platform
+      if (params.platform === platformId) {
+        // FIX: First mark parameters as manual to ensure they're preserved
+        markParameterAsManual('originationFeePercent')
+        markParameterAsManual('originationFeeType')
+
+        // FIX: Directly update parameters with new values instead of relying on localStorage round-trip
+        // This eliminates timing issues and ensures the calculations hook receives the actual changed values
+        setParams(current => ({
+          ...current,
+          originationFeePercent: updatedConfig.originationFeePercent,
+          originationFeeType: updatedConfig.originationFeeType,
+          liquidationFeePercent: updatedConfig.liquidationFeePercent,
+          maxInitialLtv: updatedConfig.maxInitialLtv,
+          availableLoanTerms: updatedConfig.availableLoanTerms,
+          riskManagement: {
+            ...current.riskManagement,
+            liquidationLtv: updatedConfig.liquidationLtv
+          }
+        }))
+      }
     } else {
-      // For built-in platforms, use the existing update mechanism
+      // For built-in platforms, update both platform config and simulation parameters
       updatePlatformConfig(platformId as Platform, editValues)
+
+      // FIX: Mark parameters as manual to trigger recalculation for built-in platforms
+      markParameterAsManual('originationFeePercent')
+      markParameterAsManual('originationFeeType')
+
+      // FIX: Directly update simulation parameters for built-in platforms too
+      if (params.platform === platformId) {
+        const currentConfig = getPlatformConfig(platformId)
+        const updatedConfig = { ...currentConfig, ...editValues }
+
+        setParams(current => ({
+          ...current,
+          originationFeePercent: updatedConfig.originationFeePercent,
+          originationFeeType: updatedConfig.originationFeeType,
+          liquidationFeePercent: updatedConfig.liquidationFeePercent,
+          maxInitialLtv: updatedConfig.maxInitialLtv,
+          availableLoanTerms: updatedConfig.availableLoanTerms,
+          riskManagement: {
+            ...current.riskManagement,
+            liquidationLtv: updatedConfig.liquidationLtv
+          }
+        }))
+      }
     }
+
+    // FIX: Clear cache to ensure fresh calculations
+    clearCache()
 
     setEditingPlatform(null)
     setEditValues({})
@@ -539,21 +590,22 @@ export function PlatformSelector() {
                             disabled={!(platform.id === "custom" || platform.isCustom)}
                           />
                         </div>
-                        <div>
-                          <Label className="text-xs">Fee Type</Label>
-                          <Select
-                            value={editValues.originationFeeType || getPlatformConfig(platform.id as string).originationFeeType}
-                            onValueChange={(value: 'one-time' | 'annual') => setEditValues(prev => ({ ...prev, originationFeeType: value }))}
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`annual-fee-${platform.id}`}
+                            checked={(editValues.originationFeeType || getPlatformConfig(platform.id as string).originationFeeType) === 'annual'}
+                            onCheckedChange={(checked) => setEditValues(prev => ({
+                              ...prev,
+                              originationFeeType: checked ? 'annual' : 'one-time'
+                            }))}
                             disabled={!(platform.id === "custom" || platform.isCustom)}
-                          >
-                            <SelectTrigger className="h-7 text-xs">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="one-time">One-time</SelectItem>
-                              <SelectItem value="annual">Annual (p.a.)</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          />
+                          <Label htmlFor={`annual-fee-${platform.id}`} className="text-xs">
+                            {t('PlatformSelector.annualFee', 'Annual Fee')}
+                            {(editValues.originationFeeType || getPlatformConfig(platform.id as string).originationFeeType) === 'annual' &&
+                              <span className="text-muted-foreground ml-1">(p.a.)</span>
+                            }
+                          </Label>
                         </div>
                         <div>
                           <Label className="text-xs">Liquidation LTV (%)</Label>

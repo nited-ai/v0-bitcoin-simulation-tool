@@ -55,7 +55,7 @@ interface SimulationContextType {
 
   // Preset Management
   applyRiskLevelPreset: (riskLevel: RiskLevel, confirmOverride?: boolean) => void
-  applyPlatformConfig: (platform: Platform) => void
+  applyPlatformConfig: (platform: Platform, preserveManualSources?: boolean) => void
   updatePlatformConfig: (platform: Platform, config: Partial<any>) => void
   markParameterAsManual: (parameterKey: string) => void
 }
@@ -244,7 +244,7 @@ export function SimulationProvider({ children }: SimulationProviderProps) {
     })
   }, [setParams])
 
-  const applyPlatformConfig = useCallback((platform: Platform) => {
+  const applyPlatformConfig = useCallback((platform: Platform, preserveManualSources: boolean = false) => {
     setParams(currentParams => {
       const platformConfig = getPlatformConfig(platform)
 
@@ -254,7 +254,10 @@ export function SimulationProvider({ children }: SimulationProviderProps) {
         platform,
         // Platform-specific parameters only
         originationFeePercent: platformConfig.originationFeePercent,
+        originationFeeType: platformConfig.originationFeeType, // FIX: Apply fee type from platform config
         liquidationFeePercent: platformConfig.liquidationFeePercent,
+        maxInitialLtv: platformConfig.maxInitialLtv, // FIX: Apply max LTV from platform config
+        availableLoanTerms: platformConfig.availableLoanTerms, // FIX: Apply available loan terms
         riskManagement: {
           ...currentParams.riskManagement,
           liquidationLtv: platformConfig.liquidationLtv,
@@ -268,14 +271,22 @@ export function SimulationProvider({ children }: SimulationProviderProps) {
       // Users should explicitly select risk levels if they want to override their manual edits
 
       // Update parameter sources for platform-specific changes only
+      // FIX: Preserve manual parameter sources when preserveManualSources is true
+      const shouldPreserveManual = (paramKey: string) => {
+        return preserveManualSources && currentParams.parameterSources[paramKey as keyof typeof currentParams.parameterSources] === 'manual'
+      }
+
       return {
         ...updatedParams,
         parameterSources: {
           ...currentParams.parameterSources,
-          // Only mark platform-specific parameters as platform-sourced
-          originationFeePercent: 'platform',
-          liquidationLtv: 'platform',
-          liquidationFeePercent: 'platform',
+          // Only mark platform-specific parameters as platform-sourced if not preserving manual sources
+          originationFeePercent: shouldPreserveManual('originationFeePercent') ? 'manual' : 'platform',
+          originationFeeType: shouldPreserveManual('originationFeeType') ? 'manual' : 'platform',
+          liquidationLtv: shouldPreserveManual('liquidationLtv') ? 'manual' : 'platform',
+          liquidationFeePercent: shouldPreserveManual('liquidationFeePercent') ? 'manual' : 'platform',
+          maxInitialLtv: shouldPreserveManual('maxInitialLtv') ? 'manual' : 'platform',
+          availableLoanTerms: shouldPreserveManual('availableLoanTerms') ? 'manual' : 'platform',
           // PRESERVE all other parameter sources (manual/preset)
         }
       }
@@ -297,19 +308,13 @@ export function SimulationProvider({ children }: SimulationProviderProps) {
 
   const markParameterAsManual = useCallback((parameterKey: string) => {
     setParams(currentParams => {
-      // Clear selectedRiskLevel when user manually edits loan parameters
-      // This prevents platform changes from reapplying risk level presets
-      const shouldClearRiskLevel = [
-        'loanAmountPercent',
-        'riskManagement.targetLtv',
-        'annualInterestRate',
-        'loanTermMonths'
-      ].includes(parameterKey)
+      // FIX: Don't clear selectedRiskLevel when parameters are manually changed
+      // This was causing the risk level selector to jump to "optimistic" when loan term was changed
+      // Instead, preserve the user's selected risk level for UI consistency
 
       return {
         ...currentParams,
-        // Clear selectedRiskLevel if user is manually editing loan parameters
-        selectedRiskLevel: shouldClearRiskLevel ? undefined : currentParams.selectedRiskLevel,
+        // PRESERVE selectedRiskLevel to avoid UI jumping when parameters change
         parameterSources: {
           ...currentParams.parameterSources,
           [parameterKey]: 'manual'

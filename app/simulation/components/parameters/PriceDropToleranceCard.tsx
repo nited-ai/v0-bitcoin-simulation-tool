@@ -2,13 +2,14 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { BarChart, Bar, Cell, ResponsiveContainer, XAxis, YAxis, LabelList } from "recharts"
-import { Shield } from "lucide-react"
+import { Shield, InfoIcon } from "lucide-react"
 import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useSimulation } from "../../context/SimulationContext"
 import { useLiquidationCalculations } from "../../hooks/useCalculationsIntegration"
 import { useATH } from "../../hooks/useATH"
 import { CalculationsErrorBoundary } from "./CalculationsErrorBoundary"
+import { HybridTooltip, HybridTooltipContent, HybridTooltipTrigger } from "@/components/ui/hybrid-tooltip"
 
 interface PriceDropData {
   name: string
@@ -234,7 +235,7 @@ export function PriceDropToleranceCard() {
           dominantBaseline="middle"
           className="text-sm font-semibold fill-foreground"
         >
-          Immediate
+          {t('PriceDropTolerance.immediate', 'Immediate')}
         </text>
       </g>
     )
@@ -392,7 +393,7 @@ export function PriceDropToleranceCard() {
           dominantBaseline="middle"
           className="text-sm font-semibold fill-foreground"
         >
-          True (Top-up)
+          {t('PriceDropTolerance.trueTopUp', 'True (Top-up)')}
         </text>
       </g>
     )
@@ -470,7 +471,7 @@ export function PriceDropToleranceCard() {
           dominantBaseline="middle"
           className="text-sm font-semibold fill-foreground"
         >
-          True (Top-up)
+          {t('PriceDropTolerance.trueTopUp', 'True (Top-up)')}
         </text>
       </g>
     )
@@ -482,7 +483,24 @@ export function PriceDropToleranceCard() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Shield className="w-5 h-5 text-primary" />
-          {t('PriceDropTolerance.title', 'Liquidation Tolerance')}
+          {t('PriceDropTolerance.title', 'Price Drop Tolerance')}
+          <HybridTooltip>
+            <HybridTooltipTrigger asChild>
+              <InfoIcon className="w-4 h-4 text-muted-foreground cursor-help" />
+            </HybridTooltipTrigger>
+            <HybridTooltipContent className="max-w-md">
+              <div className="space-y-3">
+                <h4 className="font-semibold">{t('PriceDropTolerance.tooltip.title', 'Understanding Price Drop Tolerance')}</h4>
+                <p className="text-sm">{t('PriceDropTolerance.tooltip.description', 'These gauge charts show different liquidation risk scenarios based on Bitcoin price movements.')}</p>
+                <div className="space-y-2">
+                  <p className="text-sm"><strong>{t('PriceDropTolerance.immediate', 'Immediate')}:</strong> {t('PriceDropTolerance.tooltip.scenarios.immediate', 'Shows liquidation risk without the ability to add more collateral. Critical during rapid price drops.')}</p>
+                  <p className="text-sm"><strong>{t('PriceDropTolerance.trueTopUp', 'True (Top-up)')}:</strong> {t('PriceDropTolerance.tooltip.scenarios.trueTopUp', 'Accounts for your ability to add additional collateral to avoid liquidation.')}</p>
+                </div>
+                <p className="text-sm">{t('PriceDropTolerance.tooltip.interpretation', 'Red areas indicate high liquidation risks. Green areas show safe price levels. Percentages indicate how far Bitcoin price can drop before liquidation occurs.')}</p>
+                <p className="text-sm text-muted-foreground">{t('PriceDropTolerance.tooltip.implications', 'Use this information to adjust your loan strategy. Lower LTV ratios provide more protection against price drops.')}</p>
+              </div>
+            </HybridTooltipContent>
+          </HybridTooltip>
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -650,11 +668,11 @@ export function PriceDropToleranceCard() {
           <div className="flex justify-center gap-6 mt-4">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#ef4444" }}></div>
-              <span className="text-sm">Price Drop Tolerance</span>
+              <span className="text-sm">{t('PriceDropTolerance.priceDropTolerance', 'Price Drop Tolerance')}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#22c55e" }}></div>
-              <span className="text-sm">Liquidation Price</span>
+              <span className="text-sm">{t('PriceDropTolerance.liquidationPrice', 'Liquidation Price')}</span>
             </div>
           </div>
         )}
@@ -670,7 +688,7 @@ export function PriceDropToleranceCard() {
                       : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  From Current Price
+                  {t('PriceDropTolerance.fromCurrentPrice', 'From Current Price')}
                 </button>
                 <button
                   onClick={() => setViewMode('ath')}
@@ -680,7 +698,7 @@ export function PriceDropToleranceCard() {
                       : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
-                  From ATH
+                  {t('PriceDropTolerance.fromATH', 'From ATH')}
                 </button>
               </div>
             </div>
