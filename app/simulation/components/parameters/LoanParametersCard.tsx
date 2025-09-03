@@ -388,7 +388,7 @@ export function LoanParametersCard() {
                       currency: 'USD',
                       minimumFractionDigits: 0,
                       maximumFractionDigits: 0,
-                    }).format(loanData?.initialCurrentLoanAmount || 0)} loan
+                    }).format(loanData?.initialCurrentLoanAmount || 0)}
                   </div>
                 </div>
               </div>
