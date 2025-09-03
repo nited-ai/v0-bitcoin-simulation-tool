@@ -354,9 +354,18 @@ export function LoanParametersCard() {
                       <Info className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-help" />
                     </HybridTooltipTrigger>
                     <HybridTooltipContent>
-                      <p>One-time fee charged when the loan is originated</p>
+                      <p>
+                        {platformConfig.originationFeeType === 'one-time'
+                          ? 'One-time fee charged when the loan is originated'
+                          : 'Annual fee charged throughout the loan term'
+                        }
+                      </p>
                       <p className="text-xs text-muted-foreground">
                         Formula: Loan Amount × Platform Origination Fee %
+                        {platformConfig.originationFeeType === 'annual' && ' × Loan Term (years)'}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Fee Type: {platformConfig.originationFeeType === 'one-time' ? 'One-time' : 'Annual (p.a.)'}
                       </p>
                     </HybridTooltipContent>
                   </HybridTooltip>
@@ -371,12 +380,17 @@ export function LoanParametersCard() {
                     }).format(loanData?.initialOriginationFee || 0)}
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    {platformConfig.originationFeePercent}% of {new Intl.NumberFormat('en-US', {
+                    {platformConfig.originationFeePercent}% {platformConfig.originationFeeType === 'annual' ? 'p.a.' : ''} of {new Intl.NumberFormat('en-US', {
                       style: 'currency',
                       currency: 'USD',
                       minimumFractionDigits: 0,
                       maximumFractionDigits: 0,
                     }).format(loanData?.initialCurrentLoanAmount || 0)} loan
+                    {platformConfig.originationFeeType === 'annual' && (
+                      <span className="block mt-1">
+                        × {params.loanTermMonths === Infinity ? '1' : (params.loanTermMonths / 12).toFixed(1)} year{params.loanTermMonths !== 12 ? 's' : ''}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>

@@ -27,9 +27,9 @@ function applyRiskLevelPreset(riskLevel, platform, currentParams) {
 // Simulate platform configuration
 function applyPlatformConfig(platform, currentParams) {
   const platformConfigs = {
-    firefish: { originationFeePercent: 1.5, liquidationLtv: 95, liquidationFeePercent: 5.0 },
-    strike: { originationFeePercent: 0, liquidationLtv: 99, liquidationFeePercent: 1.0 },
-    custom: { originationFeePercent: 1.0, liquidationLtv: 97, liquidationFeePercent: 3.0 }
+    firefish: { originationFeePercent: 1.5, originationFeeType: 'annual', liquidationLtv: 95, liquidationFeePercent: 5.0 },
+    strike: { originationFeePercent: 0, originationFeeType: 'one-time', liquidationLtv: 99, liquidationFeePercent: 1.0 },
+    custom: { originationFeePercent: 1.0, originationFeeType: 'one-time', liquidationLtv: 97, liquidationFeePercent: 3.0 }
   }
   
   const config = platformConfigs[platform]

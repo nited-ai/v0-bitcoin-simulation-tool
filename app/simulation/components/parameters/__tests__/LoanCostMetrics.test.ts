@@ -72,12 +72,12 @@ describe('Loan Cost Metrics', () => {
   })
 
   describe('Origination Fee Calculation', () => {
-    it('should calculate origination fee correctly for Firefish platform', () => {
+    it('should calculate one-time origination fee correctly for Strike platform', () => {
       const params: SimulationParams = {
         initialBtcAmount: 1.5,
         initialBtcPrice: 90000,
         loanAmountPercent: 10, // $13,500 loan
-        platform: 'firefish',
+        platform: 'strike',
         riskManagement: {
           targetLtv: 45,
           maxLoanAmount: 40000,
@@ -88,13 +88,67 @@ describe('Loan Cost Metrics', () => {
       }
 
       const result = service.calculateLoanMetrics(params)
-      
+
       // Expected calculation:
       // Loan Amount: $135,000 * 10% = $13,500
-      // Origination Fee: $13,500 * 1.5% = $202.5 (Firefish has 1.5% origination fee)
+      // Origination Fee: $13,500 * 0% = $0 (Strike has no origination fee)
+
+      expect(result.initialCurrentLoanAmount).toBe(13500)
+      expect(result.initialOriginationFee).toBe(0)
+    })
+
+    it('should calculate annual origination fee correctly for Firefish platform', () => {
+      const params: SimulationParams = {
+        initialBtcAmount: 1.5,
+        initialBtcPrice: 90000,
+        loanAmountPercent: 10, // $13,500 loan
+        platform: 'firefish',
+        riskManagement: {
+          targetLtv: 45,
+          maxLoanAmount: 40000,
+          annualInterestRate: 7.0,
+          loanTermMonths: 12, // 1 year loan
+          liquidationFeePercent: 5
+        }
+      }
+
+      const result = service.calculateLoanMetrics(params)
+
+      // Expected calculation:
+      // Loan Amount: $135,000 * 10% = $13,500
+      // Annual Origination Fee: $13,500 * 1.5% = $202.5
+      // Loan Term: 12 months = 1 year
+      // Total Origination Fee: $202.5 * 1 = $202.5
 
       expect(result.initialCurrentLoanAmount).toBe(13500)
       expect(result.initialOriginationFee).toBe(202.5)
+    })
+
+    it('should calculate annual origination fee correctly for multi-year loans', () => {
+      const params: SimulationParams = {
+        initialBtcAmount: 1.0,
+        initialBtcPrice: 100000,
+        loanAmountPercent: 20, // $20,000 loan
+        platform: 'firefish',
+        riskManagement: {
+          targetLtv: 45,
+          maxLoanAmount: 40000,
+          annualInterestRate: 7.0,
+          loanTermMonths: 24, // 2 year loan
+          liquidationFeePercent: 5
+        }
+      }
+
+      const result = service.calculateLoanMetrics(params)
+
+      // Expected calculation:
+      // Loan Amount: $100,000 * 20% = $20,000
+      // Annual Origination Fee: $20,000 * 1.5% = $300
+      // Loan Term: 24 months = 2 years
+      // Total Origination Fee: $300 * 2 = $600
+
+      expect(result.initialCurrentLoanAmount).toBe(20000)
+      expect(result.initialOriginationFee).toBe(600)
     })
   })
 

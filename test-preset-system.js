@@ -71,6 +71,7 @@ const PLATFORM_CONFIGS = {
     name: 'Firefish',
     description: 'Conservative lending platform with moderate fees',
     originationFeePercent: 1.5,
+    originationFeeType: 'annual', // Firefish charges annual origination fee
     liquidationLtv: 95,
     liquidationFeePercent: 5.0,
     availableLoanTerms: [6, 12, 18, 24],
@@ -82,6 +83,7 @@ const PLATFORM_CONFIGS = {
     name: 'Strike',
     description: 'Flexible lending platform with competitive rates',
     originationFeePercent: 0,
+    originationFeeType: 'one-time', // Strike has no origination fee, but type needed for consistency
     liquidationLtv: 99,
     liquidationFeePercent: 1.0,
     availableLoanTerms: [6, 12, 18, 24, 'infinity'],
@@ -93,6 +95,7 @@ const PLATFORM_CONFIGS = {
     name: 'Custom',
     description: 'Customizable platform settings',
     originationFeePercent: 1.0,
+    originationFeeType: 'one-time', // Default to one-time for custom platforms
     liquidationLtv: 97,
     liquidationFeePercent: 3.0,
     availableLoanTerms: [3, 6, 12, 18, 24, 'infinity'],

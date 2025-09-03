@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { HybridTooltip, HybridTooltipContent, HybridTooltipTrigger } from "@/components/ui/hybrid-tooltip"
 import { Fish, Zap, Info, Settings, ExternalLink, Edit, Save, X, ChevronDown, Plus, Trash2, Building2 } from "lucide-react"
 import { NumberInput } from "@/shared/ui/forms/NumberInput"
@@ -58,6 +59,7 @@ export function PlatformSelector() {
   const [editValues, setEditValues] = useState<{
     name?: string
     originationFeePercent?: number
+    originationFeeType?: 'one-time' | 'annual'
     liquidationLtv?: number
     liquidationFeePercent?: number
     maxInitialLtv?: number
@@ -215,6 +217,7 @@ export function PlatformSelector() {
         setCustomPlatformDescription('')
         setEditValues({
           originationFeePercent: 1.0,
+          originationFeeType: 'one-time',
           liquidationLtv: 95,
           liquidationFeePercent: 3.0,
           maxInitialLtv: 70,
@@ -276,6 +279,7 @@ export function PlatformSelector() {
         name: customPlatformName,
         description: customPlatformDescription || `Custom platform: ${customPlatformName}`,
         originationFeePercent: editValues.originationFeePercent || 1.0,
+        originationFeeType: editValues.originationFeeType || 'one-time',
         liquidationLtv: editValues.liquidationLtv || 95,
         liquidationFeePercent: editValues.liquidationFeePercent || 3.0,
         availableLoanTerms: editValues.availableLoanTerms || [6, 12, 24, 'infinity'] as (number | 'infinity')[],
@@ -534,6 +538,22 @@ export function PlatformSelector() {
                             className="h-7 text-xs"
                             disabled={!(platform.id === "custom" || platform.isCustom)}
                           />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Fee Type</Label>
+                          <Select
+                            value={editValues.originationFeeType || getPlatformConfig(platform.id as string).originationFeeType}
+                            onValueChange={(value: 'one-time' | 'annual') => setEditValues(prev => ({ ...prev, originationFeeType: value }))}
+                            disabled={!(platform.id === "custom" || platform.isCustom)}
+                          >
+                            <SelectTrigger className="h-7 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="one-time">One-time</SelectItem>
+                              <SelectItem value="annual">Annual (p.a.)</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
                         <div>
                           <Label className="text-xs">Liquidation LTV (%)</Label>

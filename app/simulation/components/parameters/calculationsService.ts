@@ -528,7 +528,20 @@ export class CalculationsService {
     const platformConfig = this.getPlatformConfig(params.platform)
     const totalStackValue = params.initialBtcAmount * params.initialBtcPrice
     const currentLoanAmount = (params.loanAmountPercent / 100) * totalStackValue
-    const originationFee = currentLoanAmount * (platformConfig.originationFeePercent / 100)
+
+    // Calculate origination fee based on fee type
+    let originationFee = 0
+    if (platformConfig.originationFeeType === 'one-time') {
+      // Traditional one-time fee
+      originationFee = currentLoanAmount * (platformConfig.originationFeePercent / 100)
+    } else if (platformConfig.originationFeeType === 'annual') {
+      // Annual fee: calculate total fee over loan term
+      const annualOriginationFee = currentLoanAmount * (platformConfig.originationFeePercent / 100)
+      const loanTermYears = params.riskManagement.loanTermMonths === Infinity
+        ? 1 // For infinite loans, calculate 1 year of fees as reference
+        : params.riskManagement.loanTermMonths / 12
+      originationFee = annualOriginationFee * loanTermYears
+    }
 
     // Calculate total interest over loan term
     const monthlyInterestRate = params.riskManagement.annualInterestRate / 100 / 12

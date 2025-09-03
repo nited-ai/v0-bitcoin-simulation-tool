@@ -135,6 +135,8 @@ export async function runStrategySimulation(
     }
 
     // Calculate principal needed for basic needs
+    // Note: For now, we use the existing loanOriginationFeePercent for backward compatibility
+    // TODO: In future iterations, we could integrate platform-specific fee calculations here
     let principalForNeeds = (repaymentDue + withdrawalThisMonth) / (1 - params.loanOriginationFeePercent / 100)
     let principalForReinvestment = 0
 
@@ -149,6 +151,7 @@ export async function runStrategySimulation(
       principalForReinvestment = 0
       
       // Check if we can at least cover repayments
+      // Note: Using existing loanOriginationFeePercent for backward compatibility
       principalForNeeds = repaymentDue / (1 - params.loanOriginationFeePercent / 100)
       const projectedDebtForRepaymentOnly = debtFromOngoingLoans + principalForNeeds
       
@@ -199,6 +202,7 @@ export async function runStrategySimulation(
     // Handle reinvestment
     let reinvestmentAmount = 0
     if (principalForReinvestment > 0) {
+      // Note: Using existing loanOriginationFeePercent for backward compatibility
       const proceeds = principalForReinvestment * (1 - params.loanOriginationFeePercent / 100)
       const btcBought = proceeds / btcPrice
       totalBtcAmount += btcBought

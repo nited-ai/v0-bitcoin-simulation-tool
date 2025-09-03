@@ -10,6 +10,7 @@ export interface PlatformConfig {
   name: string
   description: string
   originationFeePercent: number
+  originationFeeType: 'one-time' | 'annual' // NEW: Specifies if fee is charged once or annually
   liquidationLtv: number
   liquidationFeePercent: number
   availableLoanTerms: (number | 'infinity')[]
@@ -23,6 +24,7 @@ export const PLATFORM_CONFIGS: Record<string, PlatformConfig> = {
     name: 'Firefish',
     description: 'Conservative lending platform with moderate fees',
     originationFeePercent: 1.5,
+    originationFeeType: 'annual', // Firefish charges annual origination fee
     liquidationLtv: 95,
     liquidationFeePercent: 5.0,
     availableLoanTerms: [3, 6, 12, 18, 24],
@@ -34,6 +36,7 @@ export const PLATFORM_CONFIGS: Record<string, PlatformConfig> = {
     name: 'Strike',
     description: 'Flexible lending platform with competitive rates',
     originationFeePercent: 0,
+    originationFeeType: 'one-time', // Strike has no origination fee, but type needed for consistency
     liquidationLtv: 85,
     liquidationFeePercent: 1.0,
     availableLoanTerms: [6, 12, 18, 24, 'infinity'],
@@ -45,6 +48,7 @@ export const PLATFORM_CONFIGS: Record<string, PlatformConfig> = {
     name: 'Custom',
     description: 'Customizable platform settings',
     originationFeePercent: 1.0,
+    originationFeeType: 'one-time', // Default to one-time for custom platforms
     liquidationLtv: 97,
     liquidationFeePercent: 3.0,
     availableLoanTerms: [3, 6, 12, 18, 24, 'infinity'],
