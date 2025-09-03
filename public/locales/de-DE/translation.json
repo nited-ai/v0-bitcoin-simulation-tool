@@ -169,6 +169,19 @@
       "implications": "Ein größerer grüner Bereich bedeutet mehr Flexibilität für zusätzliche Kreditaufnahmen. Ein größerer roter Bereich zeigt eine höhere Kreditnutzung und weniger verfügbare Sicherheiten an."
     }
   },
+  "LoanUsageVisualization": {
+    "used": "Verwendet",
+    "available": "Verfügbar",
+    "loanAvailable": "Kredit verfügbar",
+    "loanTaken": "Kredit aufgenommen",
+    "title": "Kreditnutzung",
+    "tooltip": {
+      "title": "Kreditnutzung verstehen",
+      "description": "Dieses Donut-Diagramm zeigt Ihre aktuelle Kreditnutzung im Verhältnis zu Ihrer maximalen Kreditkapazität basierend auf der ausgewählten Plattform.",
+      "interpretation": "Roter Bereich: Bereits aufgenommener Kreditbetrag. Grüner Bereich: Noch verfügbare Kreditkapazität innerhalb Ihrer LTV-Grenzen.",
+      "implications": "Höhere Nutzung (mehr rot) bedeutet weniger Spielraum für zusätzliche Kredite. Niedrigere Nutzung bietet mehr Flexibilität, kann aber ungenutzte Kreditchancen darstellen."
+    }
+  },
   "PriceDropTolerance": {
     "title": "Liquidationstoleranz",
     "noLoanAmount": "Kein Kreditbetrag angegeben",
@@ -233,6 +246,33 @@
       "liquidationEvents": "Liquidationsereignisse",
       "maxDrawdown": "Max. Drawdown",
       "riskRating": "Risikobewertung"
+    }
+  },
+  "ManualGrowthInterface": {
+    "title": "Manuelles Wachstumsratenmodell",
+    "description": "Passen Sie Bitcoin-Preisprognosen mit benutzerdefinierten jährlichen Wachstumsraten an",
+    "quickPresets": "Schnellvoreinstellungen",
+    "presets": {
+      "conservative": {
+        "name": "Konservativ",
+        "description": "Konservatives Wachstum mit niedriger Volatilität"
+      },
+      "moderate": {
+        "name": "Moderat",
+        "description": "Moderates aber abnehmendes Zyklus Wachstum mit abnehmender Volatilität"
+      },
+      "optimistic": {
+        "name": "Optimistisch",
+        "description": "Hohes Wachstumspotenzial mit erheblicher Volatilität"
+      },
+      "moonshot": {
+        "name": "Moonshot",
+        "description": "Extremes Bullenszenario"
+      },
+      "custom": {
+        "name": "Benutzerdefiniert",
+        "description": "Individuelle Wachstumsraten anpassen"
+      }
     }
   },
   "HowItWorks": {

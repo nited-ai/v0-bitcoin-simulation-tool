@@ -348,7 +348,14 @@
     "used": "Verwendet",
     "available": "Verfügbar",
     "loanAvailable": "Kredit verfügbar",
-    "loanTaken": "Kredit aufgenommen"
+    "loanTaken": "Kredit aufgenommen",
+    "title": "Kreditnutzung",
+    "tooltip": {
+      "title": "Kreditnutzung verstehen",
+      "description": "Dieses Donut-Diagramm zeigt Ihre aktuelle Kreditnutzung im Verhältnis zu Ihrer maximalen Kreditkapazität basierend auf der ausgewählten Plattform.",
+      "interpretation": "Roter Bereich: Bereits aufgenommener Kreditbetrag. Grüner Bereich: Noch verfügbare Kreditkapazität innerhalb Ihrer LTV-Grenzen.",
+      "implications": "Höhere Nutzung (mehr rot) bedeutet weniger Spielraum für zusätzliche Kredite. Niedrigere Nutzung bietet mehr Flexibilität, kann aber ungenutzte Kreditchancen darstellen."
+    }
   },
   "PriceModelSelector": {
     "title": "Modell und Simulationslänge auswählen",
@@ -372,11 +379,11 @@
     "presets": {
       "conservative": {
         "name": "Konservativ",
-        "description": "Stetiges, realistisches Wachstum mit moderater Volatilität"
+        "description": "Konservatives Wachstum mit niedriger Volatilität"
       },
       "moderate": {
         "name": "Moderat",
-        "description": "Ausgewogenes Wachstum mit typischen Bitcoin-Zyklen"
+        "description": "Moderates aber abnehmendes Zyklus Wachstum mit abnehmender Volatilität"
       },
       "optimistic": {
         "name": "Optimistisch",

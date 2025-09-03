@@ -227,13 +227,13 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
         return
       }
 
-      // Always generate projections when data is available, regardless of tab
-      // This fixes the race condition where chart loads before tab state is properly set
+      // Always generate projections when data is available and component is mounted
+      // This ensures the chart works regardless of tab state or race conditions
       const currentTab = searchParams.get('tab') || 'parameters'
 
-      // Only skip projection generation if we're definitely not on price-projection tab
-      // This allows parameter updates to work when user is on the price-projection tab
-      if (currentTab !== 'price-projection') {
+      // Generate projections when on price-projection tab or when component is first loaded
+      // This fixes the issue where model selection wasn't working properly
+      if (currentTab !== 'price-projection' && hasInitialProjection) {
         return
       }
 
