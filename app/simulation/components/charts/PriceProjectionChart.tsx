@@ -1,13 +1,14 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts"
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from "recharts"
 import { useSimulation } from "../../context/SimulationContext"
 import { priceModelRegistry } from "../../price-models/PriceModelRegistry"
 import { useHistoricalDataOnly } from "../../hooks/useCentralizedData"
+import { useLiquidationCalculations } from "../../hooks/useCalculationsIntegration"
 import type { PriceProjectionResult, PriceLineType } from "../../price-models/types"
 import type { HistoricalDataPoint } from "@/lib/services/centralized-data-service"
 
@@ -20,6 +21,7 @@ import type { HistoricalDataPoint } from "@/lib/services/centralized-data-servic
 export function PriceProjectionChart() {
   const { params } = useSimulation()
   const { historicalData, isLoaded } = useHistoricalDataOnly()
+  const liquidationData = useLiquidationCalculations()
   const [projection, setProjection] = useState<PriceProjectionResult | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -102,9 +104,9 @@ export function PriceProjectionChart() {
   
   // Prepare chart data
   const chartData = projection ? projection.projectionPoints.map(point => ({
-    date: new Date(point.timestamp).toLocaleDateString('de-DE', { 
-      year: 'numeric', 
-      month: 'short' 
+    date: new Date(point.timestamp).toLocaleDateString('de-DE', {
+      year: 'numeric',
+      month: 'short'
     }),
     volatile: Math.round(point.price),
     average: Math.round(point.price), // For now, same as volatile
@@ -112,6 +114,37 @@ export function PriceProjectionChart() {
     resistance: Math.round(point.resistance || point.price * 1.2),
     timestamp: point.timestamp
   })) : []
+
+  // Calculate liquidation prices with USD to EUR conversion and conditional rendering
+  const liquidationPrices = useMemo(() => {
+    if (!liquidationData || !chartData.length) return null
+
+    // Convert USD liquidation prices to EUR (using same 0.92 conversion as historical data)
+    const eurConversionRate = 0.92
+    const immediateLiquidationEur = liquidationData.initialImmediateLiquidationPrice * eurConversionRate
+    const trueLiquidationEur = liquidationData.initialTrueLiquidationPrice * eurConversionRate
+
+    // Only show liquidation lines if:
+    // 1. User has an active loan (liquidation prices > 0)
+    // 2. Liquidation prices are within reasonable chart bounds
+    const hasActiveLoan = liquidationData.initialImmediateLiquidationPrice > 0
+    if (!hasActiveLoan) return null
+
+    const maxChartPrice = Math.max(...chartData.map(d => d.volatile))
+    const minChartPrice = Math.min(...chartData.map(d => d.volatile))
+
+    // Show lines if they're within 3x the chart range (reasonable visibility)
+    const isWithinBounds = immediateLiquidationEur >= minChartPrice * 0.1 &&
+                          immediateLiquidationEur <= maxChartPrice * 3
+
+    if (!isWithinBounds) return null
+
+    return {
+      immediate: Math.round(immediateLiquidationEur),
+      withTopUp: Math.round(trueLiquidationEur),
+      hasFreeBtc: liquidationData.initialHasFreeCollateral
+    }
+  }, [liquidationData, chartData])
   
   return (
     <Card>
@@ -212,13 +245,26 @@ export function PriceProjectionChart() {
                   <YAxis 
                     tickFormatter={(value) => `€${(value / 1000).toFixed(0)}k`}
                   />
-                  <Tooltip 
-                    formatter={(value: number, name: string) => [
-                      `€${value.toLocaleString('de-DE')}`, 
-                      name === 'volatile' ? 'Volatile Price' :
-                      name === 'average' ? 'Average Price' :
-                      name === 'support' ? 'Support Price' : 'Resistance Price'
-                    ]}
+                  <Tooltip
+                    formatter={(value: number, name: string) => {
+                      const baseFormat = [
+                        `€${value.toLocaleString('de-DE')}`,
+                        name === 'volatile' ? 'Volatile Price' :
+                        name === 'average' ? 'Average Price' :
+                        name === 'support' ? 'Support Price' : 'Resistance Price'
+                      ]
+
+                      // Add liquidation context if price is near liquidation levels
+                      if (liquidationPrices && value <= liquidationPrices.immediate * 1.1) {
+                        if (value <= liquidationPrices.immediate) {
+                          baseFormat.push('🚨 LIQUIDATION RISK!')
+                        } else {
+                          baseFormat.push('⚠️ Near Liquidation')
+                        }
+                      }
+
+                      return baseFormat
+                    }}
                     labelFormatter={(date: string) => `Date: ${date}`}
                   />
                   <Legend />
@@ -265,6 +311,49 @@ export function PriceProjectionChart() {
                     dot={false}
                     name="Resistance Line"
                   />
+
+                  {/* Liquidation Price Reference Lines */}
+                  {liquidationPrices && (
+                    <>
+                      {/* Immediate Liquidation Price - Yellow/Amber Line (visible in both themes) */}
+                      <ReferenceLine
+                        y={liquidationPrices.immediate}
+                        stroke="#f59e0b"
+                        strokeDasharray="5 5"
+                        strokeWidth={2}
+                        label={{
+                          value: "Immediate Liquidation",
+                          position: "topRight",
+                          style: {
+                            fill: "#f59e0b",
+                            fontSize: "12px",
+                            fontWeight: "500",
+                            textShadow: "0 0 3px rgba(255,255,255,0.8)"
+                          }
+                        }}
+                      />
+
+                      {/* Liquidation with Top-up - Green Line (only show if free BTC available) */}
+                      {liquidationPrices.hasFreeBtc && liquidationPrices.withTopUp !== liquidationPrices.immediate && (
+                        <ReferenceLine
+                          y={liquidationPrices.withTopUp}
+                          stroke="#22c55e"
+                          strokeDasharray="3 3"
+                          strokeWidth={2}
+                          label={{
+                            value: "Liquidation with Top-up",
+                            position: "topLeft",
+                            style: {
+                              fill: "#22c55e",
+                              fontSize: "12px",
+                              fontWeight: "500",
+                              textShadow: "0 0 3px rgba(255,255,255,0.8)"
+                            }
+                          }}
+                        />
+                      )}
+                    </>
+                  )}
                 </LineChart>
               </ResponsiveContainer>
             </div>
