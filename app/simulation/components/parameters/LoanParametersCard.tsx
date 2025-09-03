@@ -386,11 +386,6 @@ export function LoanParametersCard() {
                       minimumFractionDigits: 0,
                       maximumFractionDigits: 0,
                     }).format(loanData?.initialCurrentLoanAmount || 0)} loan
-                    {platformConfig.originationFeeType === 'annual' && (
-                      <span className="block mt-1">
-                        × {params.loanTermMonths === Infinity ? '1' : (params.loanTermMonths / 12).toFixed(1)} year{params.loanTermMonths !== 12 ? 's' : ''}
-                      </span>
-                    )}
                   </div>
                 </div>
               </div>
