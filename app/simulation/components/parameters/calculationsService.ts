@@ -25,7 +25,15 @@ export interface SimulationParams {
   /** Loan amount as percentage of total BTC stack value */
   loanAmountPercent: number
   /** Selected lending platform */
-  platform: 'firefish' | 'strike' | 'custom'
+  platform: string // FIX: Allow custom platform IDs like 'custom-123456789'
+  /** Platform-specific origination fee percentage */
+  originationFeePercent: number
+  /** Platform-specific origination fee type */
+  originationFeeType: 'one-time' | 'annual'
+  /** Platform-specific maximum initial LTV */
+  maxInitialLtv: number
+  /** Platform-specific available loan terms */
+  availableLoanTerms: (number | 'infinity')[]
   /** Risk management parameters */
   riskManagement: {
     /** Target LTV ratio percentage */
@@ -38,6 +46,8 @@ export interface SimulationParams {
     loanTermMonths: number
     /** Liquidation fee percentage */
     liquidationFeePercent: number
+    /** Platform-specific liquidation LTV */
+    liquidationLtv: number
   }
 }
 
@@ -241,7 +251,7 @@ export class CalculationsService {
     }
 
     // Use shared basic calculation method to eliminate redundancy
-    const { platformConfig, totalStackValue, currentLoanAmount, originationFee, totalInterestPayment, totalLoanCost } = this.calculateBasicLoanValues(params)
+    const { totalStackValue, currentLoanAmount, originationFee, totalInterestPayment, totalLoanCost } = this.calculateBasicLoanValues(params)
 
     // Calculate BTC locked as collateral for current loan
     const btcLockedAsCollateral = totalLoanCost / (params.riskManagement.targetLtv / 100) / params.initialBtcPrice
@@ -259,15 +269,15 @@ export class CalculationsService {
     // Calculate liquidation metrics only if there's a loan
     if (currentLoanAmount > 0 && params.initialBtcAmount > 0 && btcLockedAsCollateral > 0) {
       // Immediate liquidation price calculation (without free collateral top-up)
-      // Uses platform-specific liquidation LTV instead of risk management liquidation LTV
-      liquidationPrice = totalLoanCost / (platformConfig.liquidationLtv / 100) / btcLockedAsCollateral
+      // Uses platform-specific liquidation LTV from simulation parameters
+      liquidationPrice = totalLoanCost / (params.riskManagement.liquidationLtv / 100) / btcLockedAsCollateral
 
       // Calculate immediate price drop percentage
       priceDropPercentage = Math.max(0, ((params.initialBtcPrice - liquidationPrice) / params.initialBtcPrice) * 100)
 
       // True liquidation price calculation (with free collateral available)
       trueLiquidationPrice = hasFreeCollateral
-        ? totalLoanCost / (platformConfig.liquidationLtv / 100) / params.initialBtcAmount
+        ? totalLoanCost / (params.riskManagement.liquidationLtv / 100) / params.initialBtcAmount
         : liquidationPrice // Same as immediate liquidation if no free collateral
 
       // Calculate true price drop percentage
@@ -356,10 +366,10 @@ export class CalculationsService {
     }
 
     // Use shared basic calculation method to eliminate redundancy
-    const { platformConfig, totalStackValue, currentLoanAmount, originationFee, totalInterestPayment, totalLoanCost } = this.calculateBasicLoanValues(params)
+    const { totalStackValue, currentLoanAmount, originationFee, totalInterestPayment, totalLoanCost } = this.calculateBasicLoanValues(params)
 
-    // Calculate maximum loan capacity based on platform's initial LTV limit (matching LoanUsageVisualizationCard)
-    const maxLoanCapacity = totalStackValue * (platformConfig.maxInitialLtv / 100)
+    // Calculate maximum loan capacity based on platform's initial LTV limit from simulation parameters
+    const maxLoanCapacity = totalStackValue * (params.maxInitialLtv / 100)
 
     // Calculate available borrowing capacity (matching LoanUsageVisualizationCard)
     const availableBorrowingCapacity = Math.max(0, maxLoanCapacity - currentLoanAmount)
@@ -395,20 +405,21 @@ export class CalculationsService {
   }
 
   /**
-   * Apply platform-specific configurations
+   * Apply platform-specific configurations from simulation parameters
    */
   applyPlatformConfig(params: SimulationParams): PlatformMetrics {
+    // Get platform name from localStorage for display purposes only
     const platformConfig = this.getPlatformConfig(params.platform)
 
     return {
-      platform: platformConfig.name,
-      maxInitialLtv: platformConfig.maxInitialLtv,
-      liquidationLtv: platformConfig.liquidationLtv,
-      originationFeePercent: platformConfig.originationFeePercent,
+      platform: platformConfig.name, // Keep name from config for display
+      maxInitialLtv: params.maxInitialLtv, // Use values from simulation parameters
+      liquidationLtv: params.riskManagement.liquidationLtv,
+      originationFeePercent: params.originationFeePercent,
       appliedConfig: {
         maxLoanAmount: params.riskManagement.maxLoanAmount,
         interestRate: params.riskManagement.annualInterestRate,
-        liquidationFee: platformConfig.liquidationFeePercent
+        liquidationFee: params.liquidationFeePercent
       }
     }
   }
@@ -525,18 +536,18 @@ export class CalculationsService {
    * This eliminates the redundant calculation code that was repeated 4 times
    */
   private calculateBasicLoanValues(params: SimulationParams) {
-    const platformConfig = this.getPlatformConfig(params.platform)
     const totalStackValue = params.initialBtcAmount * params.initialBtcPrice
     const currentLoanAmount = (params.loanAmountPercent / 100) * totalStackValue
 
-    // Calculate origination fee based on fee type
+    // Calculate origination fee based on fee type from simulation parameters
+    // FIX: Use platform config values from simulation parameters instead of localStorage
     let originationFee = 0
-    if (platformConfig.originationFeeType === 'one-time') {
+    if (params.originationFeeType === 'one-time') {
       // Traditional one-time fee
-      originationFee = currentLoanAmount * (platformConfig.originationFeePercent / 100)
-    } else if (platformConfig.originationFeeType === 'annual') {
+      originationFee = currentLoanAmount * (params.originationFeePercent / 100)
+    } else if (params.originationFeeType === 'annual') {
       // Annual fee: calculate total fee over loan term
-      const annualOriginationFee = currentLoanAmount * (platformConfig.originationFeePercent / 100)
+      const annualOriginationFee = currentLoanAmount * (params.originationFeePercent / 100)
       const loanTermYears = params.riskManagement.loanTermMonths === Infinity
         ? 1 // For infinite loans, calculate 1 year of fees as reference
         : params.riskManagement.loanTermMonths / 12
@@ -559,7 +570,6 @@ export class CalculationsService {
     const totalLoanCost = currentLoanAmount + originationFee + totalInterestPayment
 
     return {
-      platformConfig,
       totalStackValue,
       currentLoanAmount,
       originationFee,
@@ -631,34 +641,42 @@ export class CalculationsService {
    * Used by BasicParametersCard for enhanced collateral display
    */
   calculateATHDistance(currentPrice: number, athPrice: number): ATHDistanceMetrics {
-    // Calculate distance from ATH
-    const distancePercent = athPrice > 0 ? Math.max(0, ((athPrice - currentPrice) / athPrice) * 100) : 0
-    const distanceUSD = Math.max(0, athPrice - currentPrice)
+    // Calculate distance from ATH (can be negative if above ATH)
+    const distancePercent = athPrice > 0 ? ((athPrice - currentPrice) / athPrice) * 100 : 0
+    const distanceUSD = athPrice - currentPrice
 
     // Determine risk level based on distance from ATH
     let riskLevel: 'low' | 'medium' | 'high'
     let riskColor: string
     let riskDescription: string
 
-    if (distancePercent > 40) {
-      riskLevel = 'low'
-      riskColor = '#22c55e' // Green
-      riskDescription = 'Favorable conditions for larger loan amounts and higher LTV percentages'
-    } else if (distancePercent > 15) {
-      riskLevel = 'medium'
-      riskColor = '#f59e0b' // Orange
-      riskDescription = 'Moderate conditions - consider balanced loan amounts and LTV percentages'
-    } else {
+    if (distancePercent <= 0) {
+      // Price is at or above ATH - treat as high risk
       riskLevel = 'high'
       riskColor = '#ef4444' // Red
       riskDescription = 'Smaller loan amounts and lower LTV percentages recommended'
+    } else if (distancePercent <= 15) {
+      // Price is 0-15% below ATH
+      riskLevel = 'high'
+      riskColor = '#ef4444' // Red
+      riskDescription = 'Smaller loan amounts and lower LTV percentages recommended'
+    } else if (distancePercent <= 40) {
+      // Price is 15-40% below ATH
+      riskLevel = 'medium'
+      riskColor = '#f59e0b' // Orange
+      riskDescription = 'Moderate loan amounts and LTV percentages recommended'
+    } else {
+      // Price is more than 40% below ATH
+      riskLevel = 'low'
+      riskColor = '#22c55e' // Green
+      riskDescription = 'Favorable conditions for larger loan amounts and higher LTV percentages'
     }
 
     return {
       athPrice,
       currentPrice,
-      distancePercent,
-      distanceUSD,
+      distancePercent: Math.abs(distancePercent), // Always return positive for display
+      distanceUSD: Math.abs(distanceUSD), // Always return positive for display
       riskLevel,
       riskColor,
       riskDescription

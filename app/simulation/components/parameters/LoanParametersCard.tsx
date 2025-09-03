@@ -134,8 +134,8 @@ export function LoanParametersCard() {
                   <HybridTooltipContent>
                     <p>
                       {loanInputMode === 'percentage'
-                        ? 'Percentage of your total BTC stack value to use as loan amount'
-                        : 'Direct USD amount to borrow'
+                        ? t('LoanParameters.tooltips.loanAmountPercentage', 'Percentage of your total BTC stack value to use as loan amount')
+                        : t('LoanParameters.tooltips.loanAmountDirect', 'Direct USD amount to borrow')
                       }
                     </p>
                   </HybridTooltipContent>
@@ -179,8 +179,11 @@ export function LoanParametersCard() {
                     <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
                   </HybridTooltipTrigger>
                   <HybridTooltipContent>
-                    <p>Loan-to-Value ratio - percentage of collateral value that can be borrowed</p>
-                    <p>Maximum allowed by {platformConfig.name} platform: {platformConfig.maxInitialLtv}%</p>
+                    <p>{t('LoanParameters.tooltips.initialLtv', 'Loan-to-Value ratio - percentage of collateral value that can be borrowed')}</p>
+                    <p>{t('LoanParameters.tooltips.initialLtvMax', 'Maximum allowed by {{platform}} platform: {{maxLtv}}%', {
+                      platform: platformConfig.name,
+                      maxLtv: platformConfig.maxInitialLtv
+                    })}</p>
                   </HybridTooltipContent>
                 </HybridTooltip>
               </Label>
@@ -207,7 +210,7 @@ export function LoanParametersCard() {
                     <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
                   </HybridTooltipTrigger>
                   <HybridTooltipContent>
-                    <p>Yearly interest rate charged on the loan amount, compounded over the loan term</p>
+                    <p>{t('LoanParameters.tooltips.interestRate', 'Yearly interest rate charged on the loan amount, compounded over the loan term')}</p>
                   </HybridTooltipContent>
                 </HybridTooltip>
               </Label>
@@ -232,7 +235,7 @@ export function LoanParametersCard() {
                     <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
                   </HybridTooltipTrigger>
                   <HybridTooltipContent>
-                    <p>Duration of the loan repayment period. Choose 'Infinity' for interest-only loans with no fixed repayment schedule</p>
+                    <p>{t('LoanParameters.tooltips.loanTerm', "Duration of the loan repayment period. Choose 'Infinity' for interest-only loans with no fixed repayment schedule")}</p>
                   </HybridTooltipContent>
                 </HybridTooltip>
               </Label>
@@ -269,15 +272,15 @@ export function LoanParametersCard() {
               <div className="space-y-2">
                 <Label className="flex items-center gap-2 text-xs">
                   <DollarSign className="w-3 h-3 text-green-500" />
-                  Loan Amount
+                  {t('LoanParameters.loanAmountBreakdown', 'Loan Amount')}
                   <HybridTooltip>
                     <HybridTooltipTrigger asChild>
                       <Info className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-help" />
                     </HybridTooltipTrigger>
                     <HybridTooltipContent>
-                      <p>Initial loan principal amount</p>
+                      <p>{t('LoanParameters.tooltips.loanAmountBreakdown', 'Initial loan principal amount')}</p>
                       <p className="text-xs text-muted-foreground">
-                        {params.loanAmountPercent.toFixed(2)}% of {new Intl.NumberFormat('en-US', {
+                        {params.loanAmountPercent.toFixed(2)}{t('LoanParameters.percentOf', '% of')} {new Intl.NumberFormat('en-US', {
                           style: 'currency',
                           currency: 'USD',
                           minimumFractionDigits: 0,
@@ -297,7 +300,7 @@ export function LoanParametersCard() {
                     }).format(loanData?.initialCurrentLoanAmount || 0)}
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    {params.loanAmountPercent.toFixed(2)}% of {new Intl.NumberFormat('en-US', {
+                    {params.loanAmountPercent.toFixed(2)}{t('LoanParameters.percentOf', '% of')} {new Intl.NumberFormat('en-US', {
                       style: 'currency',
                       currency: 'USD',
                       minimumFractionDigits: 0,
@@ -317,9 +320,9 @@ export function LoanParametersCard() {
                       <Info className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-help" />
                     </HybridTooltipTrigger>
                     <HybridTooltipContent>
-                      <p>Total interest paid over the loan term</p>
+                      <p>{t('LoanParameters.tooltips.totalInterest', 'Total interest paid over the loan term')}</p>
                       <p className="text-xs text-muted-foreground">
-                        Formula: Loan Amount × Annual Rate × Term (months) ÷ 12
+                        {t('LoanParameters.tooltips.totalInterestFormula', 'Formula: Loan Amount × Annual Rate × Term (months) ÷ 12')}
                       </p>
                     </HybridTooltipContent>
                   </HybridTooltip>
@@ -339,7 +342,7 @@ export function LoanParametersCard() {
                       currency: 'USD',
                       minimumFractionDigits: 0,
                       maximumFractionDigits: 0,
-                    }).format(loanData?.initialMonthlyInterestPayment || 0)} for {params.loanTermMonths === Infinity ? '∞' : params.loanTermMonths} months
+                    }).format(loanData?.initialMonthlyInterestPayment || 0)} {params.loanTermMonths === Infinity ? '∞' : t('LoanParameters.forMonths', 'for {{count}} months', { count: params.loanTermMonths })}
                   </div>
                 </div>
               </div>
@@ -356,16 +359,16 @@ export function LoanParametersCard() {
                     <HybridTooltipContent>
                       <p>
                         {platformConfig.originationFeeType === 'one-time'
-                          ? 'One-time fee charged when the loan is originated'
-                          : 'Annual fee charged throughout the loan term'
+                          ? t('LoanParameters.tooltips.originationFeeOneTime', 'One-time fee charged when the loan is originated')
+                          : t('LoanParameters.tooltips.originationFeeAnnual', 'Annual fee charged throughout the loan term')
                         }
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Formula: Loan Amount × Platform Origination Fee %
-                        {platformConfig.originationFeeType === 'annual' && ' × Loan Term (years)'}
+                        {t('LoanParameters.tooltips.originationFeeFormula', 'Formula: Loan Amount × Platform Origination Fee %')}
+                        {platformConfig.originationFeeType === 'annual' && t('LoanParameters.tooltips.originationFeeFormulaAnnual', ' × Loan Term (years)')}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Fee Type: {platformConfig.originationFeeType === 'one-time' ? 'One-time' : 'Annual (p.a.)'}
+                        {t('LoanParameters.tooltips.feeType', 'Fee Type')}: {platformConfig.originationFeeType === 'one-time' ? t('LoanParameters.tooltips.oneTime', 'One-time') : t('LoanParameters.tooltips.annualPA', 'Annual (p.a.)')}
                       </p>
                     </HybridTooltipContent>
                   </HybridTooltip>
@@ -380,7 +383,7 @@ export function LoanParametersCard() {
                     }).format(loanData?.initialOriginationFee || 0)}
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    {platformConfig.originationFeePercent}% {platformConfig.originationFeeType === 'annual' ? 'p.a.' : ''} of {new Intl.NumberFormat('en-US', {
+                    {platformConfig.originationFeePercent}% {platformConfig.originationFeeType === 'annual' ? t('LoanParameters.tooltips.annualPA', 'p.a.') : ''} of {new Intl.NumberFormat('en-US', {
                       style: 'currency',
                       currency: 'USD',
                       minimumFractionDigits: 0,
@@ -400,9 +403,9 @@ export function LoanParametersCard() {
                       <Info className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-help" />
                     </HybridTooltipTrigger>
                     <HybridTooltipContent>
-                      <p>Total amount you'll pay back over the loan term</p>
+                      <p>{t('LoanParameters.tooltips.totalRepayment', "Total amount you'll pay back over the loan term")}</p>
                       <p className="text-xs text-muted-foreground">
-                        Formula: Loan Principal + Origination Fee + Total Interest
+                        {t('LoanParameters.tooltips.totalRepaymentFormula', 'Formula: Loan Principal + Origination Fee + Total Interest')}
                       </p>
                     </HybridTooltipContent>
                   </HybridTooltip>
@@ -417,12 +420,14 @@ export function LoanParametersCard() {
                     }).format(loanData?.initialTotalLoanCost || 0)}
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    Loan + {new Intl.NumberFormat('en-US', {
-                      style: 'currency',
-                      currency: 'USD',
-                      minimumFractionDigits: 0,
-                      maximumFractionDigits: 0,
-                    }).format(((loanData?.initialOriginationFee || 0) + (loanData?.initialTotalInterestPayment || 0)))} costs
+                    {t('LoanParameters.loanPlusCosts', 'Loan + {{costs}} costs', {
+                      costs: new Intl.NumberFormat('en-US', {
+                        style: 'currency',
+                        currency: 'USD',
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0,
+                      }).format(((loanData?.initialOriginationFee || 0) + (loanData?.initialTotalInterestPayment || 0)))
+                    })}
                   </div>
                 </div>
               </div>

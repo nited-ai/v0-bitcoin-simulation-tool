@@ -27,8 +27,11 @@ export interface ParameterSource {
   annualInterestRate: 'preset' | 'manual' | 'platform'
   loanTermMonths: 'preset' | 'manual' | 'platform'
   originationFeePercent: 'preset' | 'manual' | 'platform'
+  originationFeeType: 'preset' | 'manual' | 'platform' // FIX: Add fee type parameter source
   liquidationLtv: 'preset' | 'manual' | 'platform'
   liquidationFeePercent: 'preset' | 'manual' | 'platform'
+  maxInitialLtv: 'preset' | 'manual' | 'platform' // FIX: Add max LTV parameter source
+  availableLoanTerms: 'preset' | 'manual' | 'platform' // FIX: Add loan terms parameter source
 }
 
 /**
@@ -92,8 +95,11 @@ export interface SimulationParams {
   monthlyWithdrawalAmount: number
   annualInterestRate: number
   originationFeePercent: number // Renamed from loanOriginationFeePercent for consistency with PlatformConfig
+  originationFeeType: 'one-time' | 'annual' // FIX: Add fee type to simulation params
   liquidationFeePercent: number
   loanTermMonths: number
+  maxInitialLtv: number // FIX: Add max initial LTV to simulation params
+  availableLoanTerms: (number | 'infinity')[] // FIX: Add available loan terms to simulation params
   simulationMonths: number
   maxLoanAmount: number
   annualGrowthRates: number[]
@@ -161,8 +167,11 @@ export const DEFAULT_PARAMS: SimulationParams = {
   monthlyWithdrawalAmount: 150,
   annualInterestRate: 9.5,
   originationFeePercent: 1.5, // Renamed from loanOriginationFeePercent for consistency
+  originationFeeType: 'annual', // FIX: Add default fee type (Firefish default)
   liquidationFeePercent: 5.0, // Updated from 2.0 to 5.0
   loanTermMonths: 12,
+  maxInitialLtv: 50, // FIX: Add default max initial LTV
+  availableLoanTerms: [3, 6, 12, 18, 24], // FIX: Add default available loan terms
   simulationMonths: 144,
   maxLoanAmount: 15000, // Updated from 100000 to 15000
   annualGrowthRates: [180, -60, -20, 210, 250, -60, -20, 170, 200, -65, -20, 110],
@@ -200,8 +209,11 @@ export const DEFAULT_PARAMS: SimulationParams = {
     annualInterestRate: 'preset',
     loanTermMonths: 'preset',
     originationFeePercent: 'platform',
+    originationFeeType: 'platform', // FIX: Add fee type parameter source
     liquidationLtv: 'platform',
     liquidationFeePercent: 'platform',
+    maxInitialLtv: 'platform', // FIX: Add max LTV parameter source
+    availableLoanTerms: 'platform', // FIX: Add loan terms parameter source
   },
   platformConfigs: {},
   selectedRiskLevel: 'optimistic',

@@ -69,8 +69,9 @@ export function RiskLevelSelector() {
     }
   ]
 
-  // Get current risk level from params (default to optimistic)
-  const currentRiskLevel = params.selectedRiskLevel || params.riskLevel || "optimistic"
+  // Get current risk level from params - preserve user's selected risk level
+  // Don't fall back to "optimistic" automatically to avoid jumping when parameters change
+  const currentRiskLevel = params.selectedRiskLevel || params.riskLevel
 
   /**
    * Handle risk level selection

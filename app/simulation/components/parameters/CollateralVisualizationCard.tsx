@@ -2,12 +2,13 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts"
-import { PieChart as PieChartIcon } from "lucide-react"
+import { PieChart as PieChartIcon, InfoIcon } from "lucide-react"
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { useSimulation } from "../../context/SimulationContext"
 import { useCollateralCalculations } from "../../hooks/useCalculationsIntegration"
 import { CalculationsErrorBoundary } from "./CalculationsErrorBoundary"
+import { HybridTooltip, HybridTooltipContent, HybridTooltipTrigger } from "@/components/ui/hybrid-tooltip"
 
 interface CollateralData {
   name: string
@@ -94,7 +95,20 @@ export function CollateralVisualizationCard() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <PieChartIcon className="w-5 h-5 text-primary" />
-          Collateral Consumption
+          {t('CollateralVisualization.title', 'Collateral Consumption')}
+          <HybridTooltip>
+            <HybridTooltipTrigger asChild>
+              <InfoIcon className="w-4 h-4 text-muted-foreground cursor-help" />
+            </HybridTooltipTrigger>
+            <HybridTooltipContent className="max-w-sm">
+              <div className="space-y-2">
+                <h4 className="font-semibold">{t('CollateralVisualization.tooltip.title', 'Understanding Collateral Usage')}</h4>
+                <p className="text-sm">{t('CollateralVisualization.tooltip.description', 'This pie chart shows how your Bitcoin collateral is divided between available and locked amounts.')}</p>
+                <p className="text-sm">{t('CollateralVisualization.tooltip.interpretation', 'Green area: Free collateral that can be used for additional loans. Red area: Locked collateral required to secure your current loan.')}</p>
+                <p className="text-sm text-muted-foreground">{t('CollateralVisualization.tooltip.implications', 'A larger green area means more flexibility for additional borrowing. A larger red area indicates higher loan utilization and less available collateral.')}</p>
+              </div>
+            </HybridTooltipContent>
+          </HybridTooltip>
         </CardTitle>
       </CardHeader>
       <CardContent>

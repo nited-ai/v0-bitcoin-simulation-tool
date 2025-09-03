@@ -23,13 +23,19 @@ export function useCalculationsIntegration() {
       initialBtcAmount: params.initialBtcAmount,
       initialBtcPrice: params.initialBtcPrice,
       loanAmountPercent: params.loanAmountPercent,
-      platform: params.platform as "strike" | "firefish" | "custom",
+      platform: params.platform, // FIX: Remove type casting to allow custom platform IDs
+      // FIX: Add platform-specific parameters that were missing
+      originationFeePercent: params.originationFeePercent,
+      originationFeeType: params.originationFeeType,
+      maxInitialLtv: params.maxInitialLtv,
+      availableLoanTerms: params.availableLoanTerms,
       riskManagement: {
         targetLtv: params.riskManagement.targetLtv,
         maxLoanAmount: params.maxLoanAmount,
         annualInterestRate: params.annualInterestRate,
         loanTermMonths: params.loanTermMonths,
-        liquidationFeePercent: params.liquidationFeePercent
+        liquidationFeePercent: params.liquidationFeePercent,
+        liquidationLtv: params.riskManagement.liquidationLtv // FIX: Add missing liquidation LTV
       }
     }
   }, [
@@ -41,11 +47,21 @@ export function useCalculationsIntegration() {
     params.maxLoanAmount,
     params.annualInterestRate,
     params.loanTermMonths,
-    params.liquidationFeePercent
+    params.liquidationFeePercent,
+    // FIX: Add platform-specific parameters to ensure recalculation when they change
+    params.originationFeePercent,
+    params.originationFeeType,
+    params.maxInitialLtv,
+    params.availableLoanTerms,
+    params.riskManagement.liquidationLtv // FIX: Add missing liquidation LTV dependency
   ])
 
   // Get calculations using the centralized service
   const calculations = useCalculations(calculationParams)
+
+  // Extract cache management functions from calculations
+  const calculationsClearCache = calculations?.clearCache
+  const calculationsGetCacheStats = calculations?.getCacheStats
 
   // Handle calculation errors
   useEffect(() => {
@@ -154,11 +170,24 @@ export function useCalculationsIntegration() {
     }
   }), [setParams])
 
-  // Cache management - removed as not implemented in calculations service
+  // Cache management - use the cache functions from the actual calculations
   const cacheManagement = useMemo(() => ({
-    clearCache: () => {},
-    getCacheStats: () => ({ size: 0, keys: [] })
-  }), [])
+    clearCache: () => {
+      if (calculationsClearCache) {
+        calculationsClearCache()
+      } else {
+        console.warn('Cache clearing function not available')
+      }
+    },
+    getCacheStats: () => {
+      if (calculationsGetCacheStats) {
+        return calculationsGetCacheStats()
+      } else {
+        console.warn('Cache stats function not available')
+        return { size: 0, keys: [] }
+      }
+    }
+  }), [calculationsClearCache, calculationsGetCacheStats])
 
   return {
     // Core calculations

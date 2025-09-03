@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo } from "react"
+import { useTranslation } from "react-i18next"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { CheckCircle2, AlertTriangle, AlertOctagon } from "lucide-react"
 import { useATH } from "../../hooks/useATH"
@@ -19,6 +20,7 @@ interface ATHAlertProps {
  * Placed above the risk level selector cards.
  */
 export function ATHAlert({ currentPrice, className = "" }: ATHAlertProps) {
+  const { t } = useTranslation()
   const { ath: currentATH, loading: athLoading, error: athError } = useATH()
   const calculationsService = useMemo(() => new CalculationsService(), [])
 
@@ -60,13 +62,26 @@ export function ATHAlert({ currentPrice, className = "" }: ATHAlertProps) {
   const getRiskLabel = () => {
     switch (athDistanceMetrics.riskLevel) {
       case 'low':
-        return 'Lower Risk'
+        return t('ATHAlert.lowerRisk', 'Lower Risk')
       case 'medium':
-        return 'Medium Risk'
+        return t('ATHAlert.mediumRisk', 'Medium Risk')
       case 'high':
-        return 'Higher Risk'
+        return t('ATHAlert.higherRisk', 'Higher Risk')
       default:
-        return 'Medium Risk'
+        return t('ATHAlert.mediumRisk', 'Medium Risk')
+    }
+  }
+
+  // Get the appropriate relationship text (below/at new ATH)
+  const getATHRelationship = () => {
+    const actualDistancePercent = currentATH > 0 ? ((currentATH - currentPrice) / currentATH) * 100 : 0
+
+    if (actualDistancePercent <= 0) {
+      // Price is at or above ATH - this becomes the new ATH
+      return t('ATHAlert.atNewAth', 'at new ATH of')
+    } else {
+      // Price is below ATH
+      return t('ATHAlert.belowAthOf', 'below ATH of')
     }
   }
 
@@ -75,9 +90,9 @@ export function ATHAlert({ currentPrice, className = "" }: ATHAlertProps) {
     return (
       <Alert className={`bg-transparent border-border ${className}`}>
         <AlertTriangle className="h-4 w-4" />
-        <AlertTitle>Loading ATH data...</AlertTitle>
+        <AlertTitle>{t('ATHAlert.loadingTitle', 'Loading ATH data...')}</AlertTitle>
         <AlertDescription>
-          Fetching current All-Time High information
+          {t('ATHAlert.loadingDescription', 'Fetching current All-Time High information')}
         </AlertDescription>
       </Alert>
     )
@@ -91,21 +106,42 @@ export function ATHAlert({ currentPrice, className = "" }: ATHAlertProps) {
           <span style={{ color: athDistanceMetrics.riskColor, fontWeight: 'medium' }}>
             {getRiskLabel()}:
           </span>{' '}
-          Current price is{' '}
-          <span style={{ color: athDistanceMetrics.riskColor }}>
-            {formatPercentage(athDistanceMetrics.distancePercent)}
-          </span>
-          {' '}/{' '}
-          <span style={{ color: athDistanceMetrics.riskColor }}>
-            {formatCurrency(athDistanceMetrics.distanceUSD)}
-          </span>
-          {' '}below ATH of{' '}
-          <span style={{ color: athDistanceMetrics.riskColor }}>
-            {formatCurrency(124277.98)}
-          </span>
+          {t('ATHAlert.currentPriceIs', 'Current price is')}{' '}
+          {(() => {
+            const fallbackATH = 124277.98
+            const actualDistancePercent = fallbackATH > 0 ? ((fallbackATH - currentPrice) / fallbackATH) * 100 : 0
+            if (actualDistancePercent <= 0) {
+              // At or above ATH - show as new ATH
+              return (
+                <>
+                  {getATHRelationship()}{' '}
+                  <span style={{ color: athDistanceMetrics.riskColor }}>
+                    {formatCurrency(currentPrice)}
+                  </span>
+                </>
+              )
+            } else {
+              // Below ATH - show distance
+              return (
+                <>
+                  <span style={{ color: athDistanceMetrics.riskColor }}>
+                    {formatPercentage(athDistanceMetrics.distancePercent)}
+                  </span>
+                  {' '}/{' '}
+                  <span style={{ color: athDistanceMetrics.riskColor }}>
+                    {formatCurrency(athDistanceMetrics.distanceUSD)}
+                  </span>
+                  {' '}{getATHRelationship()}{' '}
+                  <span style={{ color: athDistanceMetrics.riskColor }}>
+                    {formatCurrency(fallbackATH)}
+                  </span>
+                </>
+              )
+            }
+          })()}
         </AlertTitle>
         <AlertDescription>
-          Using fallback ATH data. {athDistanceMetrics.riskDescription}
+          {t('ATHAlert.fallbackDataNotice', 'Using fallback ATH data.')} {t(`ATHAlert.riskDescriptions.${athDistanceMetrics.riskLevel}`, athDistanceMetrics.riskDescription)}
         </AlertDescription>
       </Alert>
     )
@@ -118,21 +154,41 @@ export function ATHAlert({ currentPrice, className = "" }: ATHAlertProps) {
         <span style={{ color: athDistanceMetrics.riskColor, fontWeight: 'medium' }}>
           {getRiskLabel()}:
         </span>{' '}
-        Current price is{' '}
-        <span style={{ color: athDistanceMetrics.riskColor }}>
-          {formatPercentage(athDistanceMetrics.distancePercent)}
-        </span>
-        {' '}/{' '}
-        <span style={{ color: athDistanceMetrics.riskColor }}>
-          {formatCurrency(athDistanceMetrics.distanceUSD)}
-        </span>
-        {' '}below ATH of{' '}
-        <span style={{ color: athDistanceMetrics.riskColor }}>
-          {formatCurrency(currentATH)}
-        </span>
+        {t('ATHAlert.currentPriceIs', 'Current price is')}{' '}
+        {(() => {
+          const actualDistancePercent = currentATH > 0 ? ((currentATH - currentPrice) / currentATH) * 100 : 0
+          if (actualDistancePercent <= 0) {
+            // At or above ATH - show as new ATH
+            return (
+              <>
+                {getATHRelationship()}{' '}
+                <span style={{ color: athDistanceMetrics.riskColor }}>
+                  {formatCurrency(currentPrice)}
+                </span>
+              </>
+            )
+          } else {
+            // Below ATH - show distance
+            return (
+              <>
+                <span style={{ color: athDistanceMetrics.riskColor }}>
+                  {formatPercentage(athDistanceMetrics.distancePercent)}
+                </span>
+                {' '}/{' '}
+                <span style={{ color: athDistanceMetrics.riskColor }}>
+                  {formatCurrency(athDistanceMetrics.distanceUSD)}
+                </span>
+                {' '}{getATHRelationship()}{' '}
+                <span style={{ color: athDistanceMetrics.riskColor }}>
+                  {formatCurrency(currentATH)}
+                </span>
+              </>
+            )
+          }
+        })()}
       </AlertTitle>
       <AlertDescription>
-        {athDistanceMetrics.riskDescription}
+        {t(`ATHAlert.riskDescriptions.${athDistanceMetrics.riskLevel}`, athDistanceMetrics.riskDescription)}
       </AlertDescription>
     </Alert>
   )

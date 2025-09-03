@@ -103,9 +103,103 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
   const [isDownloading, setIsDownloading] = useState(false)
   const [isGeneratingProjection, setIsGeneratingProjection] = useState(false)
   const [isLogScale, setIsLogScale] = useState(true) // Default to log scale for Bitcoin analysis
+  const [hasInitialProjection, setHasInitialProjection] = useState(false) // Track if initial projection is generated
 
   // Debug counter to track useEffect calls
   const effectCallCount = useRef(0)
+
+  // Generate initial projection when data becomes available (fixes race condition)
+  useEffect(() => {
+    const generateInitialProjection = async () => {
+      // Only generate initial projection once, when data is ready
+      if (hasInitialProjection || historicalData.length === 0 || isLoading || !isLoaded) {
+        return
+      }
+
+      console.log('🎯 Generating initial projection to prevent race condition')
+      setIsGeneratingProjection(true)
+      setError(null)
+
+      try {
+        // Use the same logic as the main projection generation
+        const modelParams: PriceModelParams = {
+          startPrice: params.initialBtcPrice,
+          projectionMonths: params.simulationMonths,
+          modelSpecificParams: {}
+        }
+
+        // Add model-specific parameters
+        if (params.priceModel === 'manual') {
+          modelParams.modelSpecificParams = {
+            annualGrowthRates: params.annualGrowthRates || [20, 15, 10, 8, 5]
+          }
+        } else if (params.priceModel === 'powerLaw') {
+          modelParams.modelSpecificParams = {
+            prognosisLine: params.powerLawSettings?.prognosisLine || 'fit'
+          }
+        } else if (params.priceModel === 'enhancedCycleRepeat') {
+          // Load diminishing returns parameters from sessionStorage
+          let diminishingReturns = null
+          try {
+            const saved = sessionStorage.getItem('bitcoin-sim-diminishing-returns-params')
+            if (saved) {
+              diminishingReturns = JSON.parse(saved)
+            }
+          } catch (error) {
+            console.warn('Failed to load diminishing returns params:', error)
+          }
+
+          // Use default moderate parameters if none are saved
+          if (!diminishingReturns) {
+            diminishingReturns = {
+              diminishingFactor: 0.25,
+              maturityThreshold: 2_000_000_000_000,
+              cycleDegradation: 0.15,
+              adoptionCurveType: 'sigmoid',
+              institutionalSaturation: 0.4,
+              regulatoryMaturity: 0.5,
+              liquidityConstraint: 0.4,
+              competitionFactor: 0.3
+            }
+          }
+
+          modelParams.modelSpecificParams = {
+            diminishingReturns
+          }
+        }
+
+        const result = await priceModelRegistry.generateProjection(
+          params.priceModel,
+          historicalData,
+          modelParams
+        )
+
+        if (result) {
+          setProjection(result)
+          setHasInitialProjection(true)
+          if (onProjectionChange) {
+            onProjectionChange(result)
+          }
+        }
+      } catch (err) {
+        console.error('Error generating initial projection:', err)
+        setError(err instanceof Error ? err.message : 'Failed to generate projection')
+      } finally {
+        setIsGeneratingProjection(false)
+      }
+    }
+
+    generateInitialProjection()
+  }, [
+    hasInitialProjection,
+    historicalData.length,
+    isLoaded,
+    isLoading,
+    params.priceModel,
+    params.initialBtcPrice,
+    params.simulationMonths,
+    onProjectionChange
+  ])
 
   // Set loading state based on centralized data service and projection generation
   const loading = isLoading || !isLoaded || isGeneratingProjection
@@ -128,14 +222,18 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
   // Generate projection when model or parameters change
   useEffect(() => {
     const generateProjection = async () => {
-      // Only generate projections when on the price-projection tab
-      const currentTab = searchParams.get('tab') || 'parameters'
-      if (currentTab !== 'price-projection') {
+      // Wait for historical data to be loaded and data loading to complete
+      if (historicalData.length === 0 || isLoading || !isLoaded) {
         return
       }
 
-      // Wait for historical data to be loaded and data loading to complete
-      if (historicalData.length === 0 || isLoading || !isLoaded) {
+      // Always generate projections when data is available, regardless of tab
+      // This fixes the race condition where chart loads before tab state is properly set
+      const currentTab = searchParams.get('tab') || 'parameters'
+
+      // Only skip projection generation if we're definitely not on price-projection tab
+      // This allows parameter updates to work when user is on the price-projection tab
+      if (currentTab !== 'price-projection') {
         return
       }
 
@@ -220,6 +318,7 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
         console.log(`📈 Projection points: ${result?.projectionPoints?.length || 0}`)
 
         setProjection(result)
+        setHasInitialProjection(true) // Mark that we have generated a projection
         onProjectionChange?.(result)
 
 

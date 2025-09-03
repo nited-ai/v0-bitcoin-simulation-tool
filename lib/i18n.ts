@@ -61,7 +61,27 @@ const fallbackTranslations = {
     loanBreakdown: "Loan Breakdown",
     totalInterest: "Total Interest",
     originationFee: "Origination Fee",
-    totalRepayment: "Total Repayment"
+    totalRepayment: "Total Repayment",
+    loanAmountBreakdown: "Loan Amount",
+    percentOf: "% of",
+    forMonths: "for {{count}} months",
+    ofLoan: "{{percent}}% of {{amount}} loan",
+    loanPlusCosts: "Loan + {{costs}} costs",
+    tooltips: {
+      loanAmountPercentage: "Percentage of your total BTC stack value to use as loan amount",
+      loanAmountDirect: "Direct USD amount to borrow",
+      initialLtv: "Loan-to-Value ratio - percentage of collateral value that can be borrowed",
+      initialLtvMax: "Maximum allowed by {{platform}} platform: {{maxLtv}}%",
+      interestRate: "Yearly interest rate charged on the loan amount, compounded over the loan term",
+      loanTerm: "Duration of the loan repayment period. Choose 'Infinity' for interest-only loans with no fixed repayment schedule",
+      loanAmountBreakdown: "Initial loan principal amount",
+      totalInterest: "Total interest paid over the loan term",
+      totalInterestFormula: "Formula: Loan Amount × Annual Rate × Term (months) ÷ 12",
+      originationFee: "One-time fee charged when the loan is originated",
+      originationFeeFormula: "Formula: Loan Amount × Platform Origination Fee %",
+      totalRepayment: "Total amount you'll pay back over the loan term",
+      totalRepaymentFormula: "Formula: Loan Principal + Origination Fee + Total Interest"
+    }
   },
   Results: {
     title: "Results",
@@ -126,11 +146,34 @@ const fallbackTranslations = {
   },
   CollateralVisualization: {
     freeCollateral: "Free Collateral",
-    lockedCollateral: "Locked Collateral"
+    lockedCollateral: "Locked Collateral",
+    title: "Collateral Consumption",
+    tooltip: {
+      title: "Understanding Collateral Usage",
+      description: "This pie chart shows how your Bitcoin collateral is divided between available and locked amounts.",
+      interpretation: "Green area: Free collateral that can be used for additional loans. Red area: Locked collateral required to secure your current loan.",
+      implications: "A larger green area means more flexibility for additional borrowing. A larger red area indicates higher loan utilization and less available collateral."
+    }
   },
   PriceDropTolerance: {
-    title: "Liquidation Tolerance",
-    noLoanAmount: "No loan amount specified"
+    title: "Price Drop Tolerance",
+    noLoanAmount: "No loan amount specified",
+    priceDropTolerance: "Price Drop Tolerance",
+    liquidationPrice: "Liquidation Price",
+    fromCurrentPrice: "From Current Price",
+    fromATH: "From ATH",
+    immediate: "Immediate",
+    trueTopUp: "True (Top-up)",
+    tooltip: {
+      title: "Understanding Price Drop Tolerance",
+      description: "These gauge charts show different liquidation risk scenarios based on Bitcoin price movements.",
+      scenarios: {
+        immediate: "Immediate: Shows liquidation risk without the ability to add more collateral. Critical during rapid price drops.",
+        trueTopUp: "True (Top-up): Accounts for your ability to add additional collateral to avoid liquidation."
+      },
+      interpretation: "Red areas indicate high liquidation risks. Green areas show safe price levels. Percentages indicate how far Bitcoin price can drop before liquidation occurs.",
+      implications: "Use this information to adjust your loan strategy. Lower LTV ratios provide more protection against price drops."
+    }
   },
   ValidationSummary: {
     title: "Parameter Validation",
@@ -190,7 +233,14 @@ const fallbackTranslations = {
     used: "Used",
     available: "Available",
     loanAvailable: "Loan Available",
-    loanTaken: "Loan Taken"
+    loanTaken: "Loan Taken",
+    title: "Loan Utilization",
+    tooltip: {
+      title: "Understanding Loan Utilization",
+      description: "This donut chart shows your current loan usage relative to your maximum loan capacity based on the selected platform.",
+      interpretation: "Blue area: Already borrowed loan amount. Gray area: Still available loan capacity within your LTV limits.",
+      implications: "Higher utilization (more blue) means less room for additional loans. Lower utilization provides more flexibility but may represent unused borrowing opportunities."
+    }
   },
   PriceModelSelector: {
     title: "Select Model and Simulation Length",
@@ -211,11 +261,11 @@ const fallbackTranslations = {
     presets: {
       conservative: {
         name: "Conservative",
-        description: "Steady, realistic growth with moderate volatility"
+        description: "Conservative growth with low volatility"
       },
       moderate: {
         name: "Moderate",
-        description: "Balanced growth with typical Bitcoin cycles"
+        description: "Moderate but diminishing cycle growth with decreasing volatility"
       },
       optimistic: {
         name: "Optimistic",
@@ -370,6 +420,22 @@ const fallbackTranslations = {
     section4Text1:
       "While interest causes costs, inflation works for you. A loan of €100,000 has only a purchasing power of about €82,000 after 10 years with 2% annual inflation. Your debts become worth less in real terms. Our simulator allows you to set an expected inflation to visualize the real value of your debts and your wealth over time. Ideally, the appreciation of your Bitcoin far exceeds the sum of interest and inflation.",
   },
+  ATHAlert: {
+    lowerRisk: "Lower Risk",
+    mediumRisk: "Medium Risk",
+    higherRisk: "Higher Risk",
+    loadingTitle: "Loading ATH data...",
+    loadingDescription: "Fetching current All-Time High information",
+    currentPriceIs: "Current price is",
+    belowAthOf: "below ATH of",
+    atNewAth: "at new ATH of",
+    riskDescriptions: {
+      low: "Favorable conditions for larger loan amounts and higher LTV percentages",
+      medium: "Moderate loan amounts and LTV percentages recommended",
+      high: "Smaller loan amounts and lower LTV percentages recommended"
+    },
+    fallbackDataNotice: "Using fallback ATH data."
+  },
   Errors: {
     failedToLoadHistoricalData:
       "Historical data for the price model could not be loaded. Please try again or select a different model.",
@@ -417,9 +483,25 @@ const resources = {
   },
 }
 
+// Get saved language preference from localStorage (client-side only)
+const getSavedLanguage = (): string => {
+  if (typeof window === 'undefined') return 'en' // Server-side default
+
+  try {
+    const savedLang = localStorage.getItem('preferred-language')
+    if (savedLang && ['en', 'de', 'es'].includes(savedLang)) {
+      return savedLang
+    }
+  } catch (error) {
+    console.warn('Failed to read language preference from localStorage:', error)
+  }
+
+  return 'en' // Default fallback
+}
+
 i18n.use(initReactI18next).init({
   resources,
-  lng: "en", // Set default language to prevent hydration issues
+  lng: getSavedLanguage(), // Use saved language preference or default to English
   fallbackLng: "en",
   debug: false,
   interpolation: {
@@ -430,9 +512,11 @@ i18n.use(initReactI18next).init({
   react: {
     useSuspense: false, // Disable suspense to prevent hydration issues
   },
-  // Disable language detection to prevent server/client mismatch
+  // Enable language detection for client-side hydration
   detection: {
-    order: [], // Disable automatic language detection
+    order: ['localStorage'], // Check localStorage for saved language
+    lookupLocalStorage: 'preferred-language',
+    caches: ['localStorage'],
   },
 })
 

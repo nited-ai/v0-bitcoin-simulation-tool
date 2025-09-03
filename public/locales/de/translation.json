@@ -121,7 +121,20 @@
     "loanBreakdown": "Kreditaufschlüsselung",
     "totalInterest": "Gesamtzinsen",
     "originationFee": "Bearbeitungsgebühr",
-    "totalRepayment": "Gesamtrückzahlung"
+    "totalRepayment": "Gesamtrückzahlung",
+    "percentOf": "% von",
+    "forMonths": "für {{count}} Monate",
+    "ofLoan": "{{percent}}% {{feeType}} von {{amount}} Kredit",
+    "loanPlusCosts": "Kredit + {{costs}} Kosten",
+    "tooltips": {
+      "originationFeeOneTime": "Einmalige Gebühr bei Kreditaufnahme",
+      "originationFeeAnnual": "Jährliche Gebühr während der Kreditlaufzeit",
+      "originationFeeFormula": "Formel: Kreditbetrag × Plattform-Bearbeitungsgebühr %",
+      "originationFeeFormulaAnnual": " × Kreditlaufzeit (Jahre)",
+      "feeType": "Gebührenart",
+      "oneTime": "Einmalig",
+      "annualPA": "p.a."
+    }
   },
   "Strategy": {
     "title": "Strategie: Sparen/Entnahme",
@@ -291,6 +304,7 @@
   "PlatformSelector": {
     "title": "Kreditplattform",
     "visitPlatform": "Plattform besuchen",
+    "annualFee": "Jährliche Gebühr",
     "firefish": {
       "name": "Firefish",
       "description": "Flexible Kreditplattform mit wettbewerbsfähigen Zinsen",
