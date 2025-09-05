@@ -9,6 +9,9 @@
     "start": "next start",
     "test": "vitest",
     "test:ui": "vitest --ui",
+    "test:modules": "vitest src/modules",
+    "test:agent-os": "vitest __tests__/agent-os",
+    "type-check": "tsc --noEmit",
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "prisma migrate reset --force && pnpm db:seed",
     "postinstall": "prisma generate"

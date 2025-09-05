@@ -1,30 +1,118 @@
-# Bitcoin simulation tool
+# Bitcoin Simulation Tool
 
-*Automatically synced with your [v0.dev](https://v0.dev) deployments*
+A comprehensive Bitcoin investment and loan simulation platform with advanced price projection models and risk analysis.
 
 [![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/v0-4342s-projects/v0-bitcoin-simulation-tool)
 [![Built with v0](https://img.shields.io/badge/Built%20with-v0.dev-black?style=for-the-badge)](https://v0.dev/chat/projects/UXPIXUIQiAL)
 
 ## Overview
 
-This repository will stay in sync with your deployed chats on [v0.dev](https://v0.dev).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.dev](https://v0.dev).
+The Bitcoin Simulation Tool is a sophisticated financial modeling application that helps users simulate Bitcoin investment strategies, analyze loan scenarios, and project portfolio performance using various mathematical models.
+
+### Key Features
+
+- **Advanced Price Projection Models**: Power Law, Cycle Repeat, Manual Growth, and Enhanced models
+- **Loan Simulation**: Bitcoin-backed loan scenarios with collateral analysis
+- **Risk Assessment**: Comprehensive risk analysis and liquidation tolerance
+- **Strategy Execution**: Multiple investment and accumulation strategies
+- **Interactive Visualizations**: Real-time charts and financial projections
+- **Modular Architecture**: Clean, maintainable codebase with microservices principles
+
+## Architecture
+
+The application follows a modular architecture with clear separation of concerns:
+
+```
+src/modules/
+├── parameters/      # Loan and simulation parameter management
+├── price-projection/# Bitcoin price forecasting models
+├── strategies/      # Investment and accumulation strategies
+├── results/         # Analysis and visualization of results
+├── price-data/      # Historical data management and APIs
+└── shared/          # Common interfaces and utilities
+```
+
+## Quick Start
+
+### Prerequisites
+- Node.js 18+
+- pnpm (recommended) or npm
+- PostgreSQL database (for data persistence)
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/nited-ai/v0-bitcoin-simulation-tool.git
+   cd v0-bitcoin-simulation-tool
+   ```
+
+2. **Install dependencies**
+   ```bash
+   pnpm install
+   ```
+
+3. **Set up environment variables**
+   ```bash
+   cp .env.example .env.local
+   # Edit .env.local with your database and API configurations
+   ```
+
+4. **Initialize the database**
+   ```bash
+   pnpm db:reset
+   ```
+
+5. **Start the development server**
+   ```bash
+   pnpm dev
+   ```
+
+The application will be available at `http://localhost:3000`
+
+## Development
+
+### Available Scripts
+
+- `pnpm dev` - Start development server
+- `pnpm build` - Build for production
+- `pnpm test` - Run all tests
+- `pnpm test:modules` - Run module-specific tests
+- `pnpm type-check` - TypeScript type checking
+- `pnpm lint` - Code linting
+
+### Module Development
+
+Each module is self-contained with its own:
+- Components (React UI components)
+- Services (Business logic)
+- Hooks (React state management)
+- Types (TypeScript definitions)
+- Tests (Unit and integration tests)
+
+See `docs/architecture/modular-development.md` for detailed development guidelines.
 
 ## Deployment
 
-Your project is live at:
+The project is deployed on Vercel and automatically syncs with the main branch.
 
-**[https://vercel.com/v0-4342s-projects/v0-bitcoin-simulation-tool](https://vercel.com/v0-4342s-projects/v0-bitcoin-simulation-tool)**
+**Live Application**: [https://vercel.com/v0-4342s-projects/v0-bitcoin-simulation-tool](https://vercel.com/v0-4342s-projects/v0-bitcoin-simulation-tool)
 
-## Build your app
+## Documentation
 
-Continue building your app on:
+- [Architecture Overview](docs/architecture/module-overview.md)
+- [Migration Guide](docs/architecture/migration-guide.md)
+- [Technical Spec Compliance](docs/architecture/technical-spec-compliance-status.md)
+- [Modular Development Guide](.agent-os/instructions/modular-development.md)
 
-**[https://v0.dev/chat/projects/UXPIXUIQiAL](https://v0.dev/chat/projects/UXPIXUIQiAL)**
+## Contributing
 
-## How It Works
+1. Follow the modular architecture principles
+2. Write tests for new features
+3. Update documentation as needed
+4. Ensure TypeScript compliance
+5. Test across all modules before submitting
 
-1. Create and modify your project using [v0.dev](https://v0.dev)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+## License
+
+This project is private and proprietary.
