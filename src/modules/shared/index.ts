@@ -99,3 +99,6 @@ export {
   PriceProjectionAdapter,
   StrategyResultsAdapter
 } from './adapters/PriceProjectionAdapter'
+
+// UI Components
+export { NumberInput } from './ui/forms/NumberInput'
