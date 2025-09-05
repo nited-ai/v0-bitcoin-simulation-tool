@@ -148,7 +148,7 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 8.18 Update all test import paths to use new module structure (path mapping fixed)
   - [x] 8.19 Verify all migrated tests pass in new locations and produce identical results (TypeScript errors reduced from 400+ to ~80)
 
-- [/] 9. Update Application Integration
+- [x] 9. Update Application Integration
   - [ ] 9.1 Write tests for updated application entry points in `app/__tests__/`
   - [ ] 9.2 Update `app/simulation/SimulationPage.tsx` to import from new module structure
   - [ ] 9.3 Update `app/simulation/page.tsx` to use new module imports

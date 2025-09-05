@@ -36,7 +36,7 @@ import { LoanParametersCard } from '../parameters/LoanParametersCard'
 import { PlatformSelector } from '../parameters/PlatformSelector'
 import { ResultsPage } from '../results/ResultsPage'
 import { useSimulation } from '../../context/SimulationContext'
-import type { PriceProjectionResult } from '../../price-models/types'
+import type { PriceProjectionResult } from '@/modules/price-projection/types'
 // import { CsvUpdatePanel } from '../admin/CsvUpdatePanel' // Disabled for production
 
 export type TabValue = 'parameters' | 'price-projection' | 'strategy' | 'results'
