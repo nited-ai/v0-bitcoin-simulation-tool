@@ -7,7 +7,7 @@
  */
 
 import { useMemo, useCallback } from 'react'
-import { athService } from '../../../../lib/services/ath-service'
+import { athService } from '@/lib/services/ath-service'
 import { getPlatformConfig as getMainPlatformConfig } from '../../constants/platformPresets'
 
 // ============================================================================
