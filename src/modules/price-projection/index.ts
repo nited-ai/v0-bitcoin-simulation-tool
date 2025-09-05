@@ -73,3 +73,8 @@ export {
   powerLawModel,
   PowerLawModel
 } from './models/PowerLawModel'
+
+// Components
+export { PriceModelSelector } from './components/PriceModelSelector'
+export { GrowthRateAnalysis } from './components/GrowthRateAnalysis'
+export { SimulationLengthControl } from './components/SimulationLengthControl'

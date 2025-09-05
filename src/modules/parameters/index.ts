@@ -14,6 +14,11 @@ export * from './constants/riskLevelPresets'
 
 // Components
 export * from './components/ATHAlert'
+export { LoanParametersCard } from './components/LoanParametersCard'
+export { PlatformSelector } from './components/PlatformSelector'
+export { CollateralVisualizationCard } from './components/CollateralVisualizationCard'
+export { PriceDropToleranceCard } from './components/PriceDropToleranceCard'
+export { LoanUsageVisualizationCard } from './components/LoanUsageVisualizationCard'
 
 // Hooks
 export * from './hooks/useParameterValidation'

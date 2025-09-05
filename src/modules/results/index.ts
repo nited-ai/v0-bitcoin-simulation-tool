@@ -31,5 +31,16 @@ export { ResultsAnalysisService, resultsAnalysisService } from './services/Resul
 // Adapters
 export { PriceProjectionResultsAdapter, priceProjectionResultsAdapter } from './adapters/PriceProjectionResultsAdapter'
 
+// Components
+export { ResultsPage } from './components/ResultsPage'
+export { ResultsSummary } from './components/ResultsSummary'
+export { ResultsTable } from './components/ResultsTable'
+export { RiskAssessment } from './components/RiskAssessment'
+export { UnifiedPriceChart } from './components/UnifiedPriceChart'
+export { PortfolioValueChart } from './components/PortfolioValueChart'
+export { DebtCollateralChart } from './components/DebtCollateralChart'
+export { LTVProgressionChart } from './components/LTVProgressionChart'
+export { CashFlowChart } from './components/CashFlowChart'
+
 // Re-export commonly used functions for backward compatibility
 export { resultsAnalysisService as analyzeResults } from './services/ResultsAnalysisService'
