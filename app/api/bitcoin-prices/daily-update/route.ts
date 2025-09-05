@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { dailyUpdateService } from '../../../../lib/services/daily-update-service'
+import { dailyUpdateService } from '@/lib/services/daily-update-service'
 
 export async function GET(request: NextRequest) {
   try {

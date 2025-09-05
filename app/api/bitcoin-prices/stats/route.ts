@@ -6,8 +6,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '../../../../lib/generated/prisma'
-import { enhancedBitcoinApiService } from '../../../../lib/services/bitcoin-api-service'
+import { PrismaClient } from '@/lib/generated/prisma'
+import { enhancedBitcoinApiService } from '@/lib/services/bitcoin-api-service'
 
 const prisma = new PrismaClient()
 

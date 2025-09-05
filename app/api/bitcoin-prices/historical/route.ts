@@ -11,7 +11,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getPrismaClient } from '../../../../lib/database/connection-manager'
+import { getPrismaClient } from '@/lib/database/connection-manager'
 
 // Use the connection manager for better error handling
 const prisma = getPrismaClient()

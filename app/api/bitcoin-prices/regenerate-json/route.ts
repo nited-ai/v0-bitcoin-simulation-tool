@@ -7,7 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { bitcoinJsonGeneratorService } from '../../../../lib/services/bitcoin-json-generator-service'
+import { bitcoinJsonGeneratorService } from '@/lib/services/bitcoin-json-generator-service'
 
 export async function POST(request: NextRequest) {
   try {

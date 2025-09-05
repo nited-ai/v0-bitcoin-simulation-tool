@@ -3,7 +3,7 @@
  * Imports historical Bitcoin price data from CSV into the database
  */
 
-import { PrismaClient } from '../lib/generated/prisma'
+import { PrismaClient } from '@/lib/generated/prisma'
 import * as fs from 'fs'
 import * as path from 'path'
 
