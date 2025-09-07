@@ -227,7 +227,7 @@ export function SimulationProvider({ children }: SimulationProviderProps) {
       }
 
       // Apply the risk level preset
-      const updatedParams = applyRiskPresetToParams(riskLevel, currentParams.platform, currentParams)
+      const updatedParams = applyRiskPresetToParams(currentParams, riskLevel)
 
       // Update parameter sources to reflect preset application
       const updatedSources = { ...currentParams.parameterSources }

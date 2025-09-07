@@ -12,7 +12,6 @@ export * from './interfaces/ResultsInterface'
 
 // Adapters
 export * from './adapters/PriceProjectionAdapter'
-export * from './adapters/StrategyResultsAdapter'
 
 // Types
 export * from './types'
@@ -22,43 +21,7 @@ export * from './utils'
 
 // Re-export commonly used types for convenience
 export type {
-  // Price Projection Types
-  PriceLineType,
-  StrategyPricePoint,
-  StrategyPriceData,
-  PriceLineOptions,
-  PriceProjectionService,
-  ProjectionRequest,
-  ProjectionResponse,
-
-  // Strategy Types
-  StrategyType,
-  RiskLevel,
-  ComplexityLevel,
-  StrategyParams,
-  StrategyMetadata,
-  ExecutionSummary,
-  StrategyExecutionResult,
-  StrategyExecutionService,
-  StrategyExecutionRequest,
-  StrategyExecutionResponse,
-
-  // Results Types
-  RiskCategory,
-  ComparisonData,
-  DeviationMetrics,
-  ProjectionAccuracyMetrics,
-  StrategyPerformanceMetrics,
-  RiskAssessmentData,
-  EnhancedResultsAnalysis,
-  ExportFormat,
-  ExportConfig,
-  ExportResult,
-  ResultsAnalysisService,
-  ResultsAnalysisRequest,
-  ResultsAnalysisResponse,
-
-  // Core Types
+  // Core Types (no duplicates)
   HistoricalDataPoint,
   ProjectionPoint,
   PriceProjectionResult,
@@ -96,8 +59,7 @@ export {
 
 // Re-export adapter classes for convenience
 export {
-  PriceProjectionAdapter,
-  StrategyResultsAdapter
+  PriceProjectionAdapter
 } from './adapters/PriceProjectionAdapter'
 
 // UI Components

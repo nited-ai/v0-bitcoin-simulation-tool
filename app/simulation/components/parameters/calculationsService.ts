@@ -419,7 +419,7 @@ export class CalculationsService {
       appliedConfig: {
         maxLoanAmount: params.riskManagement.maxLoanAmount,
         interestRate: params.riskManagement.annualInterestRate,
-        liquidationFee: params.liquidationFeePercent
+        liquidationFee: params.riskManagement.liquidationFeePercent
       }
     }
   }

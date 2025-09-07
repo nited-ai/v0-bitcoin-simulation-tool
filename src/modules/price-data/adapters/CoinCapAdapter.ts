@@ -14,7 +14,7 @@ import type {
   CoinCapAsset,
   CoinCapHistoryPoint
 } from '../types'
-import type { ValidationResult } from '@/modules/shared/types'
+import type { ValidationResult, ValidationError } from '@/modules/shared/types'
 
 /**
  * CoinCap API Adapter Implementation
@@ -147,7 +147,7 @@ export class CoinCapAdapter implements IAPIAdapter {
    * Validate API response
    */
   validateResponse(response: any): ValidationResult {
-    const errors: string[] = []
+    const errors: ValidationError[] = []
 
     if (!response) {
       errors.push('Response is null or undefined')

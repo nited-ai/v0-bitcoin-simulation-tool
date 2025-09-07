@@ -87,17 +87,17 @@ export class ResultsAnalysisService implements IResultsAnalysisService {
   /**
    * Compare results with price projection
    */
-  async compareWithProjection(
-    results: MonthlyResult[], 
+  compareWithProjection(
+    results: MonthlyResult[],
     projection: PriceProjectionResult
-  ): Promise<ProjectionComparisonResult> {
+  ): ProjectionComparisonResult {
     return priceProjectionResultsAdapter.calculateProjectionAccuracy(results, projection)
   }
 
   /**
    * Generate insights from enhanced results
    */
-  async generateInsights(results: EnhancedMonthlyResult[]): Promise<ResultsInsights> {
+  generateInsights(results: EnhancedMonthlyResult[]): ResultsInsights {
     const insights: ResultsInsights = {
       keyFindings: [],
       performanceHighlights: [],

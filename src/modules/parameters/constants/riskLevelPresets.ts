@@ -7,6 +7,9 @@
 
 import type { RiskLevel, RiskLevelPreset, SimulationParams, ValidationResult } from '../types'
 
+// Re-export types for convenience
+export type { RiskLevel, RiskLevelPreset }
+
 export const RISK_LEVEL_PRESETS: Record<RiskLevel, RiskLevelPreset> = {
   conservative: {
     id: 'conservative',

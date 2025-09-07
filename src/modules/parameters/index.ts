@@ -12,17 +12,17 @@ export * from './services/calculationsService'
 export * from './constants/platformPresets'
 export * from './constants/riskLevelPresets'
 
-// Components
-export * from './components/ATHAlert'
-export { LoanParametersCard } from './components/LoanParametersCard'
-export { PlatformSelector } from './components/PlatformSelector'
-export { CollateralVisualizationCard } from './components/CollateralVisualizationCard'
-export { PriceDropToleranceCard } from './components/PriceDropToleranceCard'
-export { LoanUsageVisualizationCard } from './components/LoanUsageVisualizationCard'
+// Components - removed broken duplicates, working components are in app/simulation/components/
+// export * from './components/ATHAlert'
+// export { LoanParametersCard } from './components/LoanParametersCard'
+// export { PlatformSelector } from './components/PlatformSelector'
+// export { CollateralVisualizationCard } from './components/CollateralVisualizationCard'
+// export { PriceDropToleranceCard } from './components/PriceDropToleranceCard'
+// export { LoanUsageVisualizationCard } from './components/LoanUsageVisualizationCard'
 
-// Hooks
-export * from './hooks/useParameterValidation'
-export * from './hooks/useCalculationsIntegration'
+// Hooks - removed broken duplicates, working hooks are in app/simulation/hooks/
+// export * from './hooks/useParameterValidation'
+// export * from './hooks/useCalculationsIntegration'
 
 // Types
 export * from './types'
@@ -62,21 +62,21 @@ export {
   CalculationsService
 } from './services/calculationsService'
 
-// Re-export constants for convenience
+// Re-export platform constants for convenience
 export {
   PLATFORM_CONFIGS,
-  RISK_LEVEL_PRESETS,
-  PLATFORM_VALIDATION_RULES
-} from './constants/platformPresets'
-
-// Re-export utility functions for convenience
-export {
+  PLATFORM_VALIDATION_RULES,
   getPlatformConfig,
   getAvailablePlatforms,
   validatePlatformConfig,
   saveCustomPlatformConfig,
   createCustomPlatformConfig,
-  deleteCustomPlatformConfig,
+  deleteCustomPlatformConfig
+} from './constants/platformPresets'
+
+// Re-export risk level constants and functions for convenience
+export {
+  RISK_LEVEL_PRESETS,
   getRiskLevelPreset,
   getAvailableRiskLevels,
   validateRiskLevelPreset,
@@ -84,4 +84,6 @@ export {
   getRiskLevelFromParams,
   getRecommendedRiskLevel,
   calculateRiskScore
-} from './constants/platformPresets'
+} from './constants/riskLevelPresets'
+
+

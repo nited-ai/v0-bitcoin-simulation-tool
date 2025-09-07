@@ -223,9 +223,9 @@ export interface ValidationResult {
 }
 
 /**
- * Validation error
+ * Validation error - can be a string or detailed error object
  */
-export interface ValidationError {
+export type ValidationError = string | {
   field: string
   message: string
   code: string
