@@ -1,0 +1,296 @@
+{
+  "metadata": {
+    "generated": "2025-08-21",
+    "task": "1.3 - Create comprehensive mapping of hardcoded text to translation keys",
+    "totalStrings": 45,
+    "componentsAudited": 6
+  },
+  "mappings": {
+    "Navigation": {
+      "parameters.label": {
+        "english": "Parameters",
+        "file": "app/simulation/components/navigation/TabNavigation.tsx",
+        "line": 55,
+        "context": "Tab label for parameters section"
+      },
+      "parameters.shortLabel": {
+        "english": "Params",
+        "file": "app/simulation/components/navigation/TabNavigation.tsx",
+        "line": 56,
+        "context": "Short tab label for mobile view"
+      },
+      "priceProjection.label": {
+        "english": "Price Projection",
+        "file": "app/simulation/components/navigation/TabNavigation.tsx",
+        "line": 61,
+        "context": "Tab label for price projection section"
+      },
+      "priceProjection.shortLabel": {
+        "english": "Price",
+        "file": "app/simulation/components/navigation/TabNavigation.tsx",
+        "line": 62,
+        "context": "Short tab label for mobile view"
+      },
+      "strategy.label": {
+        "english": "Strategy",
+        "file": "app/simulation/components/navigation/TabNavigation.tsx",
+        "line": 67,
+        "context": "Tab label for strategy section"
+      },
+      "strategy.shortLabel": {
+        "english": "Strategy",
+        "file": "app/simulation/components/navigation/TabNavigation.tsx",
+        "line": 68,
+        "context": "Short tab label for mobile view"
+      },
+      "results.label": {
+        "english": "Results",
+        "file": "app/simulation/components/navigation/TabNavigation.tsx",
+        "line": 74,
+        "context": "Tab label for results section"
+      },
+      "results.shortLabel": {
+        "english": "Results",
+        "file": "app/simulation/components/navigation/TabNavigation.tsx",
+        "line": 75,
+        "context": "Short tab label for mobile view"
+      },
+      "comingSoon.badge": {
+        "english": "Coming Soon",
+        "file": "app/simulation/components/navigation/TabNavigation.tsx",
+        "line": 71,
+        "context": "Badge text for disabled features"
+      },
+      "backToLanding.button": {
+        "english": "Back to Landing",
+        "file": "app/simulation/components/layout/SimulationHeader.tsx",
+        "line": 35,
+        "context": "Navigation button to return to landing page"
+      }
+    },
+    "BasicParameters": {
+      "title": {
+        "english": "Basic Parameters",
+        "file": "app/simulation/components/parameters/BasicParametersCard.tsx",
+        "line": 72,
+        "context": "Card title for basic parameters section"
+      },
+      "initialBtcPrice.label": {
+        "english": "Initial BTC Price",
+        "file": "app/simulation/components/parameters/BasicParametersCard.tsx",
+        "line": 86,
+        "context": "Label for Bitcoin price input field"
+      },
+      "initialBtcPrice.tooltip": {
+        "english": "Starting Bitcoin price in USD for the simulation",
+        "file": "app/simulation/components/parameters/BasicParametersCard.tsx",
+        "line": 92,
+        "context": "Tooltip explaining the initial BTC price field"
+      },
+      "initialBtcPrice.placeholder": {
+        "english": "100,000",
+        "file": "app/simulation/components/parameters/BasicParametersCard.tsx",
+        "line": 105,
+        "context": "Placeholder text for BTC price input"
+      },
+      "btcAmount.label": {
+        "english": "BTC Amount",
+        "file": "app/simulation/components/parameters/BasicParametersCard.tsx",
+        "line": 120,
+        "context": "Label for Bitcoin amount input field"
+      },
+      "btcAmount.tooltip": {
+        "english": "Amount of Bitcoin to simulate with",
+        "file": "app/simulation/components/parameters/BasicParametersCard.tsx",
+        "line": 125,
+        "context": "Tooltip explaining the BTC amount field"
+      },
+      "monthlyAmount.label": {
+        "english": "Monthly Savings/Withdrawal",
+        "file": "app/simulation/components/parameters/BasicParametersCard.tsx",
+        "line": 145,
+        "context": "Label for monthly amount input field"
+      },
+      "monthlyAmount.tooltip": {
+        "english": "Monthly amount to save or withdraw",
+        "file": "app/simulation/components/parameters/BasicParametersCard.tsx",
+        "line": 150,
+        "context": "Tooltip explaining monthly amount field"
+      }
+    },
+    "LoanParameters": {
+      "title": {
+        "english": "Loan Parameters",
+        "file": "app/simulation/components/parameters/LoanParametersCard.tsx",
+        "line": 114,
+        "context": "Card title for loan parameters section"
+      },
+      "platform.label": {
+        "english": "Platform",
+        "file": "app/simulation/components/parameters/LoanParametersCard.tsx",
+        "line": 130,
+        "context": "Label for platform selection"
+      },
+      "interestRate.label": {
+        "english": "Interest Rate",
+        "file": "app/simulation/components/parameters/LoanParametersCard.tsx",
+        "line": 145,
+        "context": "Label for interest rate input"
+      },
+      "loanTerm.label": {
+        "english": "Loan Term",
+        "file": "app/simulation/components/parameters/LoanParametersCard.tsx",
+        "line": 160,
+        "context": "Label for loan term selection"
+      },
+      "maxLoanAmount.label": {
+        "english": "Max Loan Amount",
+        "file": "app/simulation/components/parameters/LoanParametersCard.tsx",
+        "line": 175,
+        "context": "Label for maximum loan amount"
+      },
+      "initialLtv.label": {
+        "english": "Initial LTV",
+        "file": "app/simulation/components/parameters/LoanParametersCard.tsx",
+        "line": 190,
+        "context": "Label for initial loan-to-value ratio"
+      },
+      "liquidationFee.label": {
+        "english": "Liquidation Fee",
+        "file": "app/simulation/components/parameters/LoanParametersCard.tsx",
+        "line": 205,
+        "context": "Label for liquidation fee percentage"
+      }
+    },
+    "EconomicAssumptions": {
+      "title": {
+        "english": "Economic Assumptions",
+        "file": "app/simulation/components/parameters/EconomicAssumptionsCard.tsx",
+        "line": 33,
+        "context": "Card title for economic assumptions section"
+      },
+      "description": {
+        "english": "Configure price models and growth assumptions",
+        "file": "app/simulation/components/parameters/EconomicAssumptionsCard.tsx",
+        "line": 34,
+        "context": "Card description"
+      },
+      "priceModel": {
+        "english": "Price Model",
+        "file": "app/simulation/components/parameters/EconomicAssumptionsCard.tsx",
+        "line": 35,
+        "context": "Label for price model selection"
+      },
+      "powerLaw": {
+        "english": "Power Law",
+        "file": "app/simulation/components/parameters/EconomicAssumptionsCard.tsx",
+        "line": 36,
+        "context": "Power Law model option"
+      },
+      "manual": {
+        "english": "Manual Growth Rates",
+        "file": "app/simulation/components/parameters/EconomicAssumptionsCard.tsx",
+        "line": 37,
+        "context": "Manual growth rates option"
+      },
+      "cycleRepeat": {
+        "english": "Cycle Repeat",
+        "file": "app/simulation/components/parameters/EconomicAssumptionsCard.tsx",
+        "line": 38,
+        "context": "Cycle repeat model option"
+      },
+      "prognosisLine": {
+        "english": "Prognosis Line",
+        "file": "app/simulation/components/parameters/EconomicAssumptionsCard.tsx",
+        "line": 39,
+        "context": "Label for prognosis line selection"
+      },
+      "fit": {
+        "english": "Fit",
+        "file": "app/simulation/components/parameters/EconomicAssumptionsCard.tsx",
+        "line": 40,
+        "context": "Fit prognosis option"
+      },
+      "support": {
+        "english": "Support",
+        "file": "app/simulation/components/parameters/EconomicAssumptionsCard.tsx",
+        "line": 41,
+        "context": "Support prognosis option"
+      },
+      "resistance": {
+        "english": "Resistance",
+        "file": "app/simulation/components/parameters/EconomicAssumptionsCard.tsx",
+        "line": 42,
+        "context": "Resistance prognosis option"
+      }
+    },
+    "InvestmentStrategy": {
+      "title": {
+        "english": "Investment Strategy",
+        "file": "app/simulation/components/parameters/InvestmentStrategyCard.tsx",
+        "line": 27,
+        "context": "Card title for investment strategy section"
+      },
+      "description": {
+        "english": "Select your investment strategy",
+        "file": "app/simulation/components/parameters/InvestmentStrategyCard.tsx",
+        "line": 28,
+        "context": "Card description"
+      },
+      "athBased": {
+        "english": "ATH-Based Strategy",
+        "file": "app/simulation/components/parameters/InvestmentStrategyCard.tsx",
+        "line": 29,
+        "context": "ATH-based strategy option"
+      },
+      "movingAverage": {
+        "english": "Moving Average Strategy",
+        "file": "app/simulation/components/parameters/InvestmentStrategyCard.tsx",
+        "line": 30,
+        "context": "Moving average strategy option"
+      },
+      "athCollateral": {
+        "english": "ATH Collateral Strategy",
+        "file": "app/simulation/components/parameters/InvestmentStrategyCard.tsx",
+        "line": 31,
+        "context": "ATH collateral strategy option"
+      },
+      "athBasedDescription": {
+        "english": "Strategy based on all-time high analysis",
+        "file": "app/simulation/components/parameters/InvestmentStrategyCard.tsx",
+        "line": 32,
+        "context": "Description for ATH-based strategy"
+      },
+      "movingAverageDescription": {
+        "english": "Strategy based on moving averages",
+        "file": "app/simulation/components/parameters/InvestmentStrategyCard.tsx",
+        "line": 33,
+        "context": "Description for moving average strategy"
+      },
+      "athCollateralDescription": {
+        "english": "Strategy based on ATH collateral management",
+        "file": "app/simulation/components/parameters/InvestmentStrategyCard.tsx",
+        "line": 34,
+        "context": "Description for ATH collateral strategy"
+      }
+    }
+  },
+  "statistics": {
+    "byComponent": {
+      "TabNavigation.tsx": 9,
+      "BasicParametersCard.tsx": 8,
+      "LoanParametersCard.tsx": 6,
+      "EconomicAssumptionsCard.tsx": 9,
+      "InvestmentStrategyCard.tsx": 8,
+      "SimulationHeader.tsx": 1
+    },
+    "byType": {
+      "labels": 25,
+      "tooltips": 8,
+      "titles": 6,
+      "descriptions": 4,
+      "placeholders": 1,
+      "badges": 1
+    }
+  }
+}
