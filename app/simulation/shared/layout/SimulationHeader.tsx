@@ -6,6 +6,7 @@ import { LocaleSwitcher } from "@/components/locale-switcher"
 import Link from "next/link"
 import { Home } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useEffect, useState } from "react"
 
 /**
  * Simulation Header Component
@@ -14,10 +15,20 @@ import { Button } from "@/components/ui/button"
  * Extracted from the monolithic simulation.tsx to improve maintainability.
  */
 export function SimulationHeader() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const [isHydrated, setIsHydrated] = useState(false)
+
+  // Ensure component is hydrated before showing translations
+  useEffect(() => {
+    setIsHydrated(true)
+  }, [])
 
   // Fallback for missing translations
   const safeT = (key: string, fallback?: string) => {
+    if (!isHydrated) {
+      // During hydration, always use English fallback to prevent mismatch
+      return fallback || key
+    }
     try {
       return t(key) || fallback || key
     } catch {
