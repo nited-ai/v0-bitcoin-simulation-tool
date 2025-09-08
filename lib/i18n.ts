@@ -513,11 +513,9 @@ const resources = {
   },
 }
 
-// Initialize with English to prevent hydration mismatch
-// Language switching will happen after hydration
 i18n.use(initReactI18next).init({
   resources,
-  lng: 'en', // Always start with English to prevent hydration mismatch
+  lng: 'en',
   fallbackLng: "en",
   debug: false,
   interpolation: {
@@ -527,20 +525,5 @@ i18n.use(initReactI18next).init({
     useSuspense: false, // Disable suspense to prevent hydration issues
   },
 })
-
-// Apply saved language preference after hydration (client-side only)
-if (typeof window !== 'undefined') {
-  // Wait for hydration to complete before changing language
-  setTimeout(() => {
-    try {
-      const savedLang = localStorage.getItem('preferred-language')
-      if (savedLang && ['en', 'de', 'es'].includes(savedLang) && savedLang !== 'en') {
-        i18n.changeLanguage(savedLang)
-      }
-    } catch (error) {
-      console.warn('Failed to read language preference from localStorage:', error)
-    }
-  }, 100) // Small delay to ensure hydration is complete
-}
 
 export default i18n

@@ -6,7 +6,7 @@ import { LocaleSwitcher } from "@/components/locale-switcher"
 import Link from "next/link"
 import { Home } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { useEffect, useState } from "react"
+
 
 /**
  * Simulation Header Component
@@ -15,20 +15,10 @@ import { useEffect, useState } from "react"
  * Extracted from the monolithic simulation.tsx to improve maintainability.
  */
 export function SimulationHeader() {
-  const { t, i18n } = useTranslation()
-  const [isHydrated, setIsHydrated] = useState(false)
-
-  // Ensure component is hydrated before showing translations
-  useEffect(() => {
-    setIsHydrated(true)
-  }, [])
+  const { t } = useTranslation()
 
   // Fallback for missing translations
   const safeT = (key: string, fallback?: string) => {
-    if (!isHydrated) {
-      // During hydration, always use English fallback to prevent mismatch
-      return fallback || key
-    }
     try {
       return t(key) || fallback || key
     } catch {
@@ -43,17 +33,21 @@ export function SimulationHeader() {
         <Button variant="ghost" asChild className="gap-2">
           <Link href="/">
             <Home className="w-4 h-4" />
-            {safeT("Navigation.backToLanding.button", "Back to Landing")}
+            <span suppressHydrationWarning>
+              {safeT("Navigation.backToLanding.button", "Back to Landing")}
+            </span>
           </Link>
         </Button>
       </div>
 
       {/* Center: Title and Description */}
       <div className="flex-1 text-center">
-        <h1 className="text-4xl font-bold mb-2">
+        <h1 className="text-4xl font-bold mb-2" suppressHydrationWarning>
           {safeT("Page.title", "FIRE hodl Simulator")}
         </h1>
-        <p className="text-muted-foreground">{safeT("Page.description", "Simulate savings, withdrawals and loans secured by Bitcoin")}</p>
+        <p className="text-muted-foreground" suppressHydrationWarning>
+          {safeT("Page.description", "Simulate savings, withdrawals and loans secured by Bitcoin")}
+        </p>
       </div>
 
       {/* Right: Controls */}
