@@ -39,7 +39,7 @@ export function CollateralSummaryCard({
 
   return (
     <Alert className={`bg-transparent border-none ${className}`}>
-      <AlertTitle className="text-4xl font-bold text-orange-600">
+      <AlertTitle className="text-4xl font-bold text-orange-600" suppressHydrationWarning>
         {formatCurrency(totalCollateralValue)}
       </AlertTitle>
     </Alert>
