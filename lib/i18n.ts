@@ -481,19 +481,19 @@ let esTranslation = fallbackTranslations
 
 try {
   // These imports will be handled at build time
-  enTranslation = require("../../public/locales/en/translation.json")
+  enTranslation = require("../public/locales/en/translation.json")
 } catch (e) {
   console.warn("English translation file not found, using fallback")
 }
 
 try {
-  deTranslation = require("../../public/locales/de/translation.json")
+  deTranslation = require("../public/locales/de/translation.json")
 } catch (e) {
   console.warn("German translation file not found, using fallback")
 }
 
 try {
-  esTranslation = require("../../public/locales/es/translation.json")
+  esTranslation = require("../public/locales/es/translation.json")
 } catch (e) {
   console.warn("Spanish translation file not found, using fallback")
 }
