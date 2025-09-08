@@ -186,7 +186,7 @@ export function BasicParametersCard() {
                   </HybridTooltipContent>
                 </HybridTooltip>
               </Label>
-              <div className="text-4xl font-bold text-orange-600">
+              <div className="text-4xl font-bold text-orange-600" suppressHydrationWarning>
                 {new Intl.NumberFormat('en-US', {
                   style: 'currency',
                   currency: 'USD',

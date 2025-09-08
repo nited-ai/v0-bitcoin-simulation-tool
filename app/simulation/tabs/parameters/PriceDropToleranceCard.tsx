@@ -208,6 +208,7 @@ export function PriceDropToleranceCard() {
           textAnchor="middle"
           dominantBaseline="middle"
           className="text-sm font-semibold fill-foreground"
+          suppressHydrationWarning
         >
           ${metrics.liquidationPrice.toLocaleString('en-US', {
             minimumFractionDigits: 0,
@@ -286,6 +287,7 @@ export function PriceDropToleranceCard() {
           textAnchor="middle"
           dominantBaseline="middle"
           className="text-sm font-semibold fill-foreground"
+          suppressHydrationWarning
         >
           ${athMetrics.liquidationPrice.toLocaleString('en-US', {
             minimumFractionDigits: 0,
@@ -366,6 +368,7 @@ export function PriceDropToleranceCard() {
           textAnchor="middle"
           dominantBaseline="middle"
           className="text-sm font-semibold fill-foreground"
+          suppressHydrationWarning
         >
           ${metrics.trueLiquidationPrice.toLocaleString('en-US', {
             minimumFractionDigits: 0,
@@ -444,6 +447,7 @@ export function PriceDropToleranceCard() {
           textAnchor="middle"
           dominantBaseline="middle"
           className="text-sm font-semibold fill-foreground"
+          suppressHydrationWarning
         >
           ${athMetrics.trueLiquidationPrice.toLocaleString('en-US', {
             minimumFractionDigits: 0,
