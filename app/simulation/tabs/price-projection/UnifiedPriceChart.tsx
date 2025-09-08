@@ -10,7 +10,7 @@ import { useSimulation } from '../../context/SimulationContext'
 import { priceModelRegistry } from '../../price-models/PriceModelRegistry'
 import { useCentralizedData } from '../../hooks/useCentralizedData'
 import { useLiquidationCalculations } from '../../hooks/useCalculationsIntegration'
-import type { PriceProjectionResult } from '../../price-models/types'
+import type { PriceProjectionResult, PriceModelParams } from '../../price-models/types'
 import type { HistoricalDataPoint } from '@/lib/services/centralized-data-service'
 
 interface ChartDataPoint {

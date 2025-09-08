@@ -58,9 +58,9 @@ export function useCalculationsIntegration() {
   // Get calculations using the centralized service
   const calculations = useCalculations(calculationParams)
 
-  // Extract cache management functions from calculations
-  const calculationsClearCache = calculations?.clearCache
-  const calculationsGetCacheStats = calculations?.getCacheStats
+  // Extract cache management functions from calculations (if available)
+  const calculationsClearCache = (calculations as any)?.clearCache
+  const calculationsGetCacheStats = (calculations as any)?.getCacheStats
 
   // Handle calculation errors
   useEffect(() => {

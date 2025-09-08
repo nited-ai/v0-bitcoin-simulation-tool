@@ -323,7 +323,7 @@ export function PriceProjectionChart() {
                         strokeWidth={2}
                         label={{
                           value: "Immediate Liquidation",
-                          position: "topRight",
+                          position: "top",
                           style: {
                             fill: "#f59e0b",
                             fontSize: "12px",
@@ -342,7 +342,7 @@ export function PriceProjectionChart() {
                           strokeWidth={2}
                           label={{
                             value: "Liquidation with Top-up",
-                            position: "topLeft",
+                            position: "top",
                             style: {
                               fill: "#22c55e",
                               fontSize: "12px",
