@@ -11,8 +11,8 @@ import type {
 } from "../types/simulation"
 import { DEFAULT_PARAMS, PARAMS_STORAGE_KEY } from "../types/simulation"
 import type { HistoricalDataPoint, PriceChartDataPoint } from "@/lib/price-engine/types"
-import { applyRiskLevelToParams as applyRiskPresetToParams, type RiskLevel as RiskLevelType } from "@/modules/parameters/constants/riskLevelPresets"
-import { getPlatformConfig, PLATFORM_CONFIGS } from "@/modules/parameters/constants/platformPresets"
+import { applyRiskLevelPreset as applyRiskPresetToParams, type RiskLevel as RiskLevelType } from "../constants/riskLevelPresets"
+import { getPlatformConfig, PLATFORM_CONFIGS } from "../constants/platformPresets"
 
 /**
  * Simulation Context Type Definition

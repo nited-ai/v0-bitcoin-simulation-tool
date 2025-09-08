@@ -24,7 +24,7 @@ import { BasicParametersCard, ValidationSummary, RiskLevelSelector } from '../..
 import { CollateralVisualizationCard, LoanUsageVisualizationCard, PriceDropToleranceCard, LoanParametersCard, PlatformSelector } from '../../tabs/parameters'
 import { ResultsPage } from '../../tabs/results'
 import { useSimulation } from '../../context/SimulationContext'
-import type { PriceProjectionResult } from '@/modules/price-projection/types'
+import type { PriceProjectionResult } from '../../price-models/types'
 // import { CsvUpdatePanel } from '../admin/CsvUpdatePanel' // Disabled for production
 
 export type TabValue = 'parameters' | 'price-projection' | 'strategy' | 'results'

@@ -103,11 +103,43 @@ describe('Loan Cost Metrics', () => {
         initialBtcPrice: 90000,
         loanAmountPercent: 10, // $13,500 loan
         platform: 'firefish',
+        originationFeePercent: 1.5, // Firefish platform fee
+        originationFeeType: 'annual', // Firefish uses annual fees
+        maxInitialLtv: 50,
+        availableLoanTerms: [3, 6, 12, 18, 24],
+        monthlyWithdrawalAmount: 0,
+        annualInterestRate: 7.0,
+        liquidationFeePercent: 5.0,
+        loanTermMonths: 12,
+        simulationMonths: 144,
+        maxLoanAmount: 40000,
+        annualGrowthRates: [0],
+        priceModel: "manual",
+        powerLawSettings: { prognosisLine: "fit" },
+        btcAccumulation: false,
+        riskLevel: "moderate",
+        investmentStrategy: "default",
+        athBasedParams: { athThresholdPercent: 80 },
+        movingAverageParams: { movingAveragePeriod: 200, investmentMultiplier: 1.5 },
+        athCollateralParams: { maxDrawdownPercent: 80, collateralMultiplier: 2.0, athLookbackMonths: 36, emergencyCollateralBuffer: 1.2 },
+        parameterSources: {
+          loanAmountPercent: 'manual',
+          targetLtv: 'manual',
+          annualInterestRate: 'manual',
+          loanTermMonths: 'manual',
+          originationFeePercent: 'platform',
+          originationFeeType: 'platform',
+          liquidationLtv: 'platform',
+          liquidationFeePercent: 'platform',
+          maxInitialLtv: 'platform',
+          availableLoanTerms: 'platform'
+        },
         riskManagement: {
           targetLtv: 45,
-          maxLoanAmount: 40000,
+          liquidationLtv: 95,
           annualInterestRate: 7.0,
-          loanTermMonths: 12, // 1 year loan
+          loanTermMonths: 12,
+          maxLoanAmount: 40000,
           liquidationFeePercent: 5
         }
       }
@@ -130,11 +162,43 @@ describe('Loan Cost Metrics', () => {
         initialBtcPrice: 100000,
         loanAmountPercent: 20, // $20,000 loan
         platform: 'firefish',
+        originationFeePercent: 1.5, // Firefish platform fee
+        originationFeeType: 'annual', // Firefish uses annual fees
+        maxInitialLtv: 50,
+        availableLoanTerms: [3, 6, 12, 18, 24],
+        monthlyWithdrawalAmount: 0,
+        annualInterestRate: 7.0,
+        liquidationFeePercent: 5.0,
+        loanTermMonths: 24,
+        simulationMonths: 144,
+        maxLoanAmount: 40000,
+        annualGrowthRates: [0],
+        priceModel: "manual",
+        powerLawSettings: { prognosisLine: "fit" },
+        btcAccumulation: false,
+        riskLevel: "moderate",
+        investmentStrategy: "default",
+        athBasedParams: { athThresholdPercent: 80 },
+        movingAverageParams: { movingAveragePeriod: 200, investmentMultiplier: 1.5 },
+        athCollateralParams: { maxDrawdownPercent: 80, collateralMultiplier: 2.0, athLookbackMonths: 36, emergencyCollateralBuffer: 1.2 },
+        parameterSources: {
+          loanAmountPercent: 'manual',
+          targetLtv: 'manual',
+          annualInterestRate: 'manual',
+          loanTermMonths: 'manual',
+          originationFeePercent: 'platform',
+          originationFeeType: 'platform',
+          liquidationLtv: 'platform',
+          liquidationFeePercent: 'platform',
+          maxInitialLtv: 'platform',
+          availableLoanTerms: 'platform'
+        },
         riskManagement: {
           targetLtv: 45,
-          maxLoanAmount: 40000,
+          liquidationLtv: 95,
           annualInterestRate: 7.0,
-          loanTermMonths: 24, // 2 year loan
+          loanTermMonths: 24,
+          maxLoanAmount: 40000,
           liquidationFeePercent: 5
         }
       }
@@ -159,11 +223,43 @@ describe('Loan Cost Metrics', () => {
         initialBtcPrice: 100000,
         loanAmountPercent: 15, // $15,000 loan
         platform: 'firefish',
+        originationFeePercent: 1.5, // Firefish platform fee
+        originationFeeType: 'annual', // Firefish uses annual fees
+        maxInitialLtv: 50,
+        availableLoanTerms: [3, 6, 12, 18, 24],
+        monthlyWithdrawalAmount: 0,
+        annualInterestRate: 6.5,
+        liquidationFeePercent: 5.0,
+        loanTermMonths: 12,
+        simulationMonths: 144,
+        maxLoanAmount: 50000,
+        annualGrowthRates: [0],
+        priceModel: "manual",
+        powerLawSettings: { prognosisLine: "fit" },
+        btcAccumulation: false,
+        riskLevel: "moderate",
+        investmentStrategy: "default",
+        athBasedParams: { athThresholdPercent: 80 },
+        movingAverageParams: { movingAveragePeriod: 200, investmentMultiplier: 1.5 },
+        athCollateralParams: { maxDrawdownPercent: 80, collateralMultiplier: 2.0, athLookbackMonths: 36, emergencyCollateralBuffer: 1.2 },
+        parameterSources: {
+          loanAmountPercent: 'manual',
+          targetLtv: 'manual',
+          annualInterestRate: 'manual',
+          loanTermMonths: 'manual',
+          originationFeePercent: 'platform',
+          originationFeeType: 'platform',
+          liquidationLtv: 'platform',
+          liquidationFeePercent: 'platform',
+          maxInitialLtv: 'platform',
+          availableLoanTerms: 'platform'
+        },
         riskManagement: {
           targetLtv: 50,
-          maxLoanAmount: 50000,
+          liquidationLtv: 95,
           annualInterestRate: 6.5,
           loanTermMonths: 12,
+          maxLoanAmount: 50000,
           liquidationFeePercent: 5
         }
       }
@@ -239,11 +335,43 @@ describe('Loan Cost Metrics', () => {
         initialBtcPrice: 100000,
         loanAmountPercent: 10,
         platform: 'firefish',
+        originationFeePercent: 1.5, // Firefish platform fee
+        originationFeeType: 'annual', // Firefish uses annual fees
+        maxInitialLtv: 50,
+        availableLoanTerms: [3, 6, 12, 18, 24],
+        monthlyWithdrawalAmount: 0,
+        annualInterestRate: 0, // No interest
+        liquidationFeePercent: 5.0,
+        loanTermMonths: 12,
+        simulationMonths: 144,
+        maxLoanAmount: 50000,
+        annualGrowthRates: [0],
+        priceModel: "manual",
+        powerLawSettings: { prognosisLine: "fit" },
+        btcAccumulation: false,
+        riskLevel: "moderate",
+        investmentStrategy: "default",
+        athBasedParams: { athThresholdPercent: 80 },
+        movingAverageParams: { movingAveragePeriod: 200, investmentMultiplier: 1.5 },
+        athCollateralParams: { maxDrawdownPercent: 80, collateralMultiplier: 2.0, athLookbackMonths: 36, emergencyCollateralBuffer: 1.2 },
+        parameterSources: {
+          loanAmountPercent: 'manual',
+          targetLtv: 'manual',
+          annualInterestRate: 'manual',
+          loanTermMonths: 'manual',
+          originationFeePercent: 'platform',
+          originationFeeType: 'platform',
+          liquidationLtv: 'platform',
+          liquidationFeePercent: 'platform',
+          maxInitialLtv: 'platform',
+          availableLoanTerms: 'platform'
+        },
         riskManagement: {
           targetLtv: 50,
-          maxLoanAmount: 50000,
-          annualInterestRate: 0, // No interest
+          liquidationLtv: 95,
+          annualInterestRate: 0,
           loanTermMonths: 12,
+          maxLoanAmount: 50000,
           liquidationFeePercent: 5
         }
       }
