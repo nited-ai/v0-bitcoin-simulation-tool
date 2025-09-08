@@ -291,7 +291,7 @@ export function LoanParametersCard() {
                   </HybridTooltip>
                 </Label>
                 <div className="p-3 bg-green-50 dark:bg-green-950/20 rounded-md border border-green-200 dark:border-green-800">
-                  <div className="text-lg font-semibold text-green-700 dark:text-green-300">
+                  <div className="text-lg font-semibold text-green-700 dark:text-green-300" suppressHydrationWarning>
                     {new Intl.NumberFormat('en-US', {
                       style: 'currency',
                       currency: 'USD',
@@ -328,7 +328,7 @@ export function LoanParametersCard() {
                   </HybridTooltip>
                 </Label>
                 <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-md border border-blue-200 dark:border-blue-800">
-                  <div className="text-lg font-semibold text-blue-700 dark:text-blue-300">
+                  <div className="text-lg font-semibold text-blue-700 dark:text-blue-300" suppressHydrationWarning>
                     {new Intl.NumberFormat('en-US', {
                       style: 'currency',
                       currency: 'USD',
@@ -374,7 +374,7 @@ export function LoanParametersCard() {
                   </HybridTooltip>
                 </Label>
                 <div className="p-3 bg-orange-50 dark:bg-orange-950/20 rounded-md border border-orange-200 dark:border-orange-800">
-                  <div className="text-lg font-semibold text-orange-700 dark:text-orange-300">
+                  <div className="text-lg font-semibold text-orange-700 dark:text-orange-300" suppressHydrationWarning>
                     {new Intl.NumberFormat('en-US', {
                       style: 'currency',
                       currency: 'USD',
@@ -411,7 +411,7 @@ export function LoanParametersCard() {
                   </HybridTooltip>
                 </Label>
                 <div className="p-3 bg-red-50 dark:bg-red-950/20 rounded-md border border-red-200 dark:border-red-800">
-                  <div className="text-lg font-semibold text-red-700 dark:text-red-300">
+                  <div className="text-lg font-semibold text-red-700 dark:text-red-300" suppressHydrationWarning>
                     {new Intl.NumberFormat('en-US', {
                       style: 'currency',
                       currency: 'USD',
