@@ -9,7 +9,7 @@ import { HybridTooltip, HybridTooltipTrigger, HybridTooltipContent } from "@/com
 import { RefreshCw, Info, Bitcoin, DollarSign, Banknote, CreditCard } from "lucide-react"
 import { useSimulation } from "../../context/SimulationContext"
 import { centralizedDataService } from "@/lib/services/centralized-data-service"
-import { NumberInput } from "@/shared/ui/forms/NumberInput"
+import { NumberInput } from "../../../../shared/ui/forms/NumberInput"
 import { CollateralSummaryCard } from "./CollateralSummaryCard"
 import { useLoanCalculations } from "../../hooks/useCalculationsIntegration"
 import { CalculationsErrorBoundary } from "./CalculationsErrorBoundary"

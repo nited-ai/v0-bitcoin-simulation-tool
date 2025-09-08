@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { HybridTooltip, HybridTooltipContent, HybridTooltipTrigger } from "@/components/ui/hybrid-tooltip"
 import { Button } from "@/components/ui/button"
 import { CreditCard, Info, Calendar, DollarSign, Percent, Calculator, Receipt, TrendingUp } from "lucide-react"
-import { NumberInput } from "@/shared/ui/forms/NumberInput"
+import { NumberInput } from "../../../../shared/ui/forms/NumberInput"
 import { useSimulation } from "../../context/SimulationContext"
 import { useLoanCalculations, useCollateralCalculations, useLiquidationCalculations } from "../../hooks/useCalculationsIntegration"
 import { CalculationsErrorBoundary } from "./CalculationsErrorBoundary"

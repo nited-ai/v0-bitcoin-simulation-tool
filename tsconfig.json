@@ -24,8 +24,7 @@
       "@/components/*": ["./src/components/*"],
       "@/lib/*": ["./lib/*"],
       "@/hooks/*": ["./src/hooks/*"],
-      "@/modules/*": ["./src/modules/*"],
-      "@/shared/*": ["./src/modules/shared/*"],
+      "@/shared/*": ["./shared/*"],
       "@/simulation/tabs/*": ["./app/simulation/tabs/*"],
       "@/simulation/shared/*": ["./app/simulation/shared/*"]
     }

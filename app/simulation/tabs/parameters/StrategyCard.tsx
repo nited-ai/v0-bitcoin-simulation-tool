@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label"
 import { HybridTooltip, HybridTooltipTrigger, HybridTooltipContent } from "@/components/ui/hybrid-tooltip"
 import { Info } from "lucide-react"
-import { NumberInput } from "@/shared/ui/forms/NumberInput"
+import { NumberInput } from "../../../../shared/ui/forms/NumberInput"
 import { useSimulation } from "../../context/SimulationContext"
 
 /**

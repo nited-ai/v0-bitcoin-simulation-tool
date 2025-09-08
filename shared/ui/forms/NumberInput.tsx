@@ -1,0 +1,165 @@
+"use client"
+
+import * as React from "react"
+import { Input } from "@/components/ui/input"
+import { cn } from "@/lib/utils"
+
+export interface NumberInputProps {
+  value: number
+  onChange: (value: number) => void
+  min?: number
+  max?: number
+  step?: number
+  decimals?: number
+  suffix?: string
+  placeholder?: string
+  className?: string
+  disabled?: boolean
+  error?: string
+  warning?: string
+}
+
+export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
+  ({ 
+    value, 
+    onChange, 
+    min, 
+    max, 
+    step = 1, 
+    decimals = 0,
+    suffix,
+    placeholder,
+    className,
+    disabled,
+    error,
+    warning,
+    ...props 
+  }, ref) => {
+    const [displayValue, setDisplayValue] = React.useState<string>("")
+    const [isFocused, setIsFocused] = React.useState(false)
+
+    // Format number for display
+    const formatNumber = React.useCallback((num: number): string => {
+      if (isNaN(num)) return ""
+      return decimals > 0 ? num.toFixed(decimals) : num.toString()
+    }, [decimals])
+
+    // Parse string to number
+    const parseNumber = React.useCallback((str: string): number => {
+      const cleaned = str.replace(/[^\d.-]/g, '')
+      const parsed = parseFloat(cleaned)
+      return isNaN(parsed) ? 0 : parsed
+    }, [])
+
+    // Update display value when value prop changes
+    React.useEffect(() => {
+      if (!isFocused) {
+        setDisplayValue(formatNumber(value))
+      }
+    }, [value, formatNumber, isFocused])
+
+    // Initialize display value
+    React.useEffect(() => {
+      setDisplayValue(formatNumber(value))
+    }, [])
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const inputValue = e.target.value
+      setDisplayValue(inputValue)
+
+      // Parse and validate the number
+      const numericValue = parseNumber(inputValue)
+      
+      // Apply min/max constraints
+      let constrainedValue = numericValue
+      if (min !== undefined && constrainedValue < min) {
+        constrainedValue = min
+      }
+      if (max !== undefined && constrainedValue > max) {
+        constrainedValue = max
+      }
+
+      // Call onChange with the constrained value
+      onChange(constrainedValue)
+    }
+
+    const handleFocus = () => {
+      setIsFocused(true)
+    }
+
+    const handleBlur = () => {
+      setIsFocused(false)
+      // Format the display value on blur
+      setDisplayValue(formatNumber(value))
+    }
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+      // Allow: backspace, delete, tab, escape, enter
+      if ([8, 9, 27, 13, 46].indexOf(e.keyCode) !== -1 ||
+          // Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+          (e.keyCode === 65 && e.ctrlKey === true) ||
+          (e.keyCode === 67 && e.ctrlKey === true) ||
+          (e.keyCode === 86 && e.ctrlKey === true) ||
+          (e.keyCode === 88 && e.ctrlKey === true) ||
+          // Allow: home, end, left, right
+          (e.keyCode >= 35 && e.keyCode <= 39)) {
+        return
+      }
+      // Ensure that it is a number and stop the keypress
+      if ((e.shiftKey || (e.keyCode < 48 || e.keyCode > 57)) && (e.keyCode < 96 || e.keyCode > 105)) {
+        // Allow decimal point if decimals > 0
+        if (decimals > 0 && (e.keyCode === 190 || e.keyCode === 110)) {
+          // Only allow one decimal point
+          if (displayValue.includes('.')) {
+            e.preventDefault()
+          }
+          return
+        }
+        // Allow minus sign for negative numbers
+        if (e.keyCode === 189 || e.keyCode === 109) {
+          // Only allow at the beginning
+          if (displayValue.length > 0) {
+            e.preventDefault()
+          }
+          return
+        }
+        e.preventDefault()
+      }
+    }
+
+    return (
+      <div className={cn("relative", className)}>
+        <Input
+          ref={ref}
+          type="text"
+          value={displayValue}
+          onChange={handleInputChange}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          disabled={disabled}
+          className={cn(
+            suffix && "pr-12",
+            error && "border-red-500 focus-visible:ring-red-500",
+            warning && "border-yellow-500 focus-visible:ring-yellow-500"
+          )}
+          {...props}
+        />
+        {suffix && (
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+            {suffix}
+          </div>
+        )}
+        {error && (
+          <p className="text-sm text-red-500 mt-1">{error}</p>
+        )}
+        {warning && !error && (
+          <p className="text-sm text-yellow-600 mt-1">{warning}</p>
+        )}
+      </div>
+    )
+  }
+)
+
+NumberInput.displayName = "NumberInput"

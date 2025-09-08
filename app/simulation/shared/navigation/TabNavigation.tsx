@@ -17,7 +17,7 @@ import { ModeToggle } from "@/components/mode-toggle"
 import { LocaleSwitcher } from "@/components/locale-switcher"
 import { useTheme } from "next-themes"
 import Link from "next/link"
-import { NumberInput } from '@/shared/ui/forms/NumberInput'
+import { NumberInput } from '../../../../shared/ui/forms/NumberInput'
 import { PriceModelSelector, UnifiedPriceChart, SimplifiedManualGrowthInterface, GrowthRateAnalysis, CustomGrowthRateSliders, DiminishingReturnsControls, LogarithmicCurveControls } from '../../tabs/price-projection'
 import { BasicParametersCard, ValidationSummary, RiskLevelSelector } from '../../tabs/parameters'
 
