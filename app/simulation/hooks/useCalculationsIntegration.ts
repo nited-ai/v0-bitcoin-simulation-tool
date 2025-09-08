@@ -2,9 +2,8 @@
 
 import { useMemo, useCallback, useEffect, useState } from 'react'
 import { useSimulation } from '../context/SimulationContext'
-import { useCalculations } from '../components/parameters/calculationsService'
+import { useCalculations, type CalculationResults } from '../tabs/parameters/calculationsService'
 import type { SimulationParams } from '../types/simulation'
-import type { CalculationResults } from '../components/parameters/calculationsService'
 
 /**
  * Integration hook that bridges useCalculations with useSimulation context

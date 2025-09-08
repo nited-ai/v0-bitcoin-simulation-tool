@@ -1,5 +1,4 @@
-import { CalculationsService, useCalculations } from '../components/parameters/calculationsService'
-import { SimulationParams, LiquidationMetrics, CollateralMetrics, LoanMetrics, PlatformMetrics, ValidationResult } from '../components/parameters/calculationsService'
+import { CalculationsService, useCalculations, SimulationParams, LiquidationMetrics, CollateralMetrics, LoanMetrics, PlatformMetrics, ValidationResult } from '../tabs/parameters/calculationsService'
 import { renderHook, act } from '@testing-library/react'
 import { ReactNode } from 'react'
 

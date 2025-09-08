@@ -5,9 +5,7 @@
 import { render, screen } from '@testing-library/react'
 import { ReactNode } from 'react'
 import { SimulationProvider } from '../context/SimulationContext'
-import { PriceDropToleranceCard } from '../components/parameters/PriceDropToleranceCard'
-import { CollateralVisualizationCard } from '../components/parameters/CollateralVisualizationCard'
-import { LoanUsageVisualizationCard } from '../components/parameters/LoanUsageVisualizationCard'
+import { PriceDropToleranceCard, CollateralVisualizationCard, LoanUsageVisualizationCard } from '../tabs/parameters'
 import { useCalculationsIntegration } from '../hooks/useCalculationsIntegration'
 import { renderHook } from '@testing-library/react'
 
