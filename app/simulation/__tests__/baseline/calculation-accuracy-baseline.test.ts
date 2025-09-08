@@ -11,10 +11,10 @@
 import { describe, test, expect, beforeEach } from 'vitest'
 
 // Import current calculation services (these will be consolidated later)
-import { CalculationsService } from '../../../src/modules/parameters/services/calculationsService'
-import { ManualGrowthModel } from '../../../src/modules/price-projection/models/ManualGrowthModel'
-import { PowerLawModel } from '../../../src/modules/price-projection/models/PowerLawModel'
-import { CycleRepeatModel } from '../../../src/modules/price-projection/models/CycleRepeatModel'
+import { CalculationsService } from '../../tabs/parameters/calculationsService'
+import { ManualGrowthModel } from '../../price-models/models/ManualGrowthModel'
+import { PowerLawModel } from '../../price-models/models/PowerLawModel'
+import { CycleRepeatModel } from '../../price-models/models/CycleRepeatModel'
 
 describe('Baseline Calculation Accuracy Tests', () => {
   let calculationsService: CalculationsService
