@@ -24,6 +24,9 @@ export { useStrategyExecution, useStrategyRegistry } from './hooks/useStrategyEx
 // Adapters
 export { LegacyStrategyAdapter } from './adapters/LegacyStrategyAdapter'
 
+// Legacy compatibility exports
+export { runStrategySimulation, getAvailableStrategies } from './adapters/LegacyStrategyAdapter'
+
 // Initialize strategies when module is imported
 import { strategyRegistry } from './services/StrategyRegistry'
 import { 

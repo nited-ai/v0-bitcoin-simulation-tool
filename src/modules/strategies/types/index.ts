@@ -48,6 +48,11 @@ export interface StrategyExecutionParams {
 }
 
 /**
+ * Legacy compatibility type alias
+ */
+export type StrategyEngineParams = StrategyExecutionParams
+
+/**
  * ATH-based strategy parameters
  */
 export interface AthBasedStrategyParams {

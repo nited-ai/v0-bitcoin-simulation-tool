@@ -1,7 +1,7 @@
 import { useEffect } from "react"
 import { useSearchParams } from "next/navigation"
 import { priceDataService } from "@/src/modules/price-data"
-import { getPowerLawPrice } from "@/lib/price-engine/models/power-law"
+import { getPowerLawPrice } from "@/src/modules/price-data/models/powerLaw"
 import { useSimulation } from "../context/SimulationContext"
 import type { PriceEngineParams } from "@/src/modules/price-data"
 

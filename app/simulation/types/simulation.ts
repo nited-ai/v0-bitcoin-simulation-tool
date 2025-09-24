@@ -9,7 +9,7 @@ import type {
   AthBasedStrategyParams,
   MovingAverageStrategyParams,
   AthCollateralStrategyParams
-} from "@/lib/strategy-engine/types"
+} from "@/src/modules/strategies/types"
 import type { PlatformConfig } from "../constants/platformPresets"
 
 /**
@@ -191,16 +191,17 @@ export const DEFAULT_PARAMS: SimulationParams = {
   investmentStrategy: "default",
   athBasedParams: {
     athThresholdPercent: 80,
+    investmentMultiplier: 1.0,
   },
   movingAverageParams: {
-    movingAveragePeriod: 200,
+    shortPeriod: 50,
+    longPeriod: 200,
     investmentMultiplier: 1.5,
   },
   athCollateralParams: {
-    maxDrawdownPercent: 80,
-    collateralMultiplier: 2.0,
-    athLookbackMonths: 36,
-    emergencyCollateralBuffer: 1.2,
+    athDrawdownTolerance: 80,
+    collateralBuffer: 2.0,
+    emergencyReserve: 1.2,
   },
   // Preset management defaults
   parameterSources: {

@@ -185,14 +185,84 @@ export class LegacyStrategyAdapter {
    */
   static initializeLegacyCompatibility(): void {
     console.log('🔧 Initializing legacy strategy compatibility...')
-    
+
     // Register default strategies if not already registered
     const stats = strategyRegistry.getStats()
     if (stats.total === 0) {
       console.log('📝 No strategies registered, initializing defaults...')
       // This would be handled by the strategy initialization system
     }
-    
+
     console.log(`✅ Legacy compatibility initialized with ${stats.total} strategies`)
   }
+}
+
+// Legacy compatibility functions for direct import
+export async function runStrategySimulation(
+  params: any,
+  priceChartData: any[],
+  historicalPriceData: any[]
+): Promise<any[]> {
+  console.log('🔄 Running legacy strategy simulation via adapter...')
+
+  // Convert price chart data to price projection format
+  const priceProjection = {
+    projectedPrices: priceChartData.map((point, index) => ({
+      month: index,
+      date: point.date || new Date().toISOString(),
+      price: point.simulationPath || point.price || 0
+    })),
+    projectionPoints: priceChartData.map(point => ({
+      timestamp: new Date(point.date || new Date()).getTime(),
+      price: point.simulationPath || point.price || 0,
+      date: point.date || new Date().toISOString()
+    })),
+    metadata: {
+      model: 'legacy',
+      version: '1.0.0',
+      parameters: {},
+      generatedAt: new Date().toISOString(),
+      totalMonths: priceChartData.length,
+      initialPrice: priceChartData[0]?.simulationPath || priceChartData[0]?.price || 0,
+      finalPrice: priceChartData[priceChartData.length - 1]?.simulationPath || priceChartData[priceChartData.length - 1]?.price || 0
+    }
+  }
+
+  // Execute using the adapter
+  const result = await LegacyStrategyAdapter.executeLegacyStrategy(params, priceProjection)
+
+  if (!result) {
+    console.error('❌ Legacy strategy simulation failed')
+    return []
+  }
+
+  // Convert result to legacy format
+  return result.monthlyResults || []
+}
+
+export function getAvailableStrategies(): Array<{
+  id: string
+  name: string
+  description: string
+  metadata: any
+  detailedDescription: string
+  functionality: string
+  suitability: string
+}> {
+  console.log('📋 Getting available strategies via legacy adapter...')
+
+  const strategies = strategyRegistry.getStrategyNames()
+
+  return strategies.map(strategy => {
+    const metadata = LegacyStrategyAdapter.getLegacyStrategyMetadata(strategy.id)
+    return {
+      id: strategy.id,
+      name: strategy.name,
+      description: strategy.description,
+      metadata: metadata || {},
+      detailedDescription: metadata?.detailedDescription || strategy.description,
+      functionality: metadata?.functionality || 'Standard investment strategy',
+      suitability: metadata?.suitability || 'General purpose'
+    }
+  })
 }

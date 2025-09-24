@@ -6,7 +6,7 @@
  */
 
 import type { HistoricalDataPoint } from './centralized-data-service'
-import { PerformanceMonitor } from '../price-engine/performance-monitor'
+import { recordLoadTime } from '@/src/modules/price-data/services/PerformanceMonitor'
 
 export interface OptimizedBitcoinData {
   meta: {
@@ -57,7 +57,7 @@ export class BitcoinJsonDataService {
       this.cache.set(cacheKey, data)
 
       const loadTime = performance.now() - startTime
-      PerformanceMonitor.recordLoadTime(`json-${interval}`, loadTime)
+      recordLoadTime(`json-${interval}`, loadTime)
       console.log(`✅ Loaded ${interval} data: ${data.length} points in ${Math.round(loadTime)}ms`)
 
       return data

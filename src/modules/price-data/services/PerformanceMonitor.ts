@@ -308,3 +308,11 @@ export class PerformanceMonitor {
     }
   }
 }
+
+// Singleton instance for backward compatibility
+export const performanceMonitor = new PerformanceMonitor()
+
+// Static methods for backward compatibility
+export const recordLoadTime = (operation: string, timeMs: number) => {
+  performanceMonitor.recordLoadTime(operation, timeMs)
+}

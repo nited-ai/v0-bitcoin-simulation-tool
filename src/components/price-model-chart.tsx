@@ -2,8 +2,8 @@
 import { useTranslation } from "react-i18next"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Brush } from "recharts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { GENESIS_DATE } from "@/lib/price-engine/models/power-law"
-import type { PriceChartDataPoint } from "@/lib/price-engine/types"
+import { GENESIS_DATE } from "@/src/modules/price-data/models/powerLaw"
+import type { PriceChartDataPoint } from "@/src/modules/price-data/types"
 import { useMemo, memo, useCallback } from "react"
 
 interface PriceModelChartProps {

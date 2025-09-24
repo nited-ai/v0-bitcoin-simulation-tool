@@ -6,8 +6,8 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { TrendingUp } from "lucide-react"
 import { useSimulation } from "../../context/SimulationContext"
-import { getAvailableStrategies } from "@/lib/strategy-engine"
-import type { InvestmentStrategy } from "@/lib/strategy-engine/types"
+import { getAvailableStrategies } from "@/src/modules/strategies"
+import type { InvestmentStrategy } from "@/src/modules/strategies/types"
 
 /**
  * Investment Strategy Card Component
