@@ -10,26 +10,41 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // Only apply Windows-specific fixes in development
-  ...(process.env.NODE_ENV === 'development' && process.platform === 'win32' && {
-    experimental: {
-      webpackBuildWorker: false,
-    },
-    webpack: (config, { dev }) => {
-      if (dev) {
-        config.watchOptions = {
-          ...config.watchOptions,
-          ignored: [
-            '**/node_modules/**',
-            '**/.git/**',
-            '**/Anwendungsdaten/**',
-            '**/AppData/**',
-          ],
-        };
-      }
-      return config;
-    },
-  }),
+  // Aggressive Windows permission fix
+  webpack: (config, { dev, isServer }) => {
+    // Always apply Windows fixes regardless of environment
+    if (process.platform === 'win32') {
+      config.watchOptions = {
+        ...config.watchOptions,
+        ignored: [
+          '**/node_modules/**',
+          '**/.git/**',
+          '**/Anwendungsdaten/**',
+          '**/AppData/**',
+          'C:\\\\Users\\\\**\\\\Anwendungsdaten\\\\**',
+          'C:\\\\Users\\\\**\\\\AppData\\\\**',
+        ],
+        poll: false,
+        aggregateTimeout: 300,
+      };
+
+      // Disable symlinks completely
+      config.resolve = {
+        ...config.resolve,
+        symlinks: false,
+      };
+
+      // Set cache to memory only
+      config.cache = {
+        type: 'memory',
+      };
+
+      // Add custom resolver to avoid problematic paths
+      config.resolve.plugins = config.resolve.plugins || [];
+    }
+
+    return config;
+  },
   images: {
     unoptimized: true,
   },

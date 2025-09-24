@@ -1,8 +1,11 @@
 {
   "framework": "nextjs",
-  "buildCommand": "npm run build:vercel",
+  "buildCommand": "npm run build",
   "installCommand": "npm install --legacy-peer-deps",
-  "env": {
-    "SKIP_ENV_VALIDATION": "1"
+  "build": {
+    "env": {
+      "SKIP_ENV_VALIDATION": "1",
+      "SKIP_PRISMA_VALIDATION": "1"
+    }
   }
 }
