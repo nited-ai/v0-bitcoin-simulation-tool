@@ -34,8 +34,8 @@ interface UseResultsAnalysisReturn {
   enhancedAnalysis: EnhancedResultsAnalysis | null
   isAnalyzing: boolean
   error: string | null
-  analyzeResults: () => Promise<void>
-  analyzeWithProjection: () => Promise<void>
+  analyzeResults: () => Promise<ResultsAnalysis | undefined>
+  analyzeWithProjection: () => Promise<EnhancedResultsAnalysis | undefined>
 }
 
 /**

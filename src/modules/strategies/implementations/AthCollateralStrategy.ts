@@ -72,7 +72,7 @@ export class AthCollateralStrategy implements InvestmentStrategyInterface {
     
     // Check price projection data
     if (priceProjectionData && priceProjectionData.projectionPoints) {
-      priceProjectionData.projectionPoints.forEach(point => {
+      priceProjectionData.projectionPoints.forEach((point: any) => {
         if (point.price > ath) {
           ath = point.price
         }

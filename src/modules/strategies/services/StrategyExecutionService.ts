@@ -42,7 +42,7 @@ export class StrategyExecutionService {
     let loanIdCounter = 1
 
     // Convert price projection to chart data format
-    const priceChartData = priceProjection.projectionPoints.map(point => ({
+    const priceChartData = priceProjection.projectionPoints.map((point: any) => ({
       timestamp: point.timestamp,
       price: point.price,
       date: new Date(point.timestamp).toISOString().split('T')[0]

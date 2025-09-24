@@ -147,7 +147,7 @@ export interface ScenarioAnalysis {
 export interface ChartDataPoint {
   month: number
   date: string
-  [key: string]: number | string
+  [key: string]: number | string | boolean
 }
 
 /**
@@ -312,7 +312,9 @@ export function isResultsAnalysis(obj: any): obj is ResultsAnalysis {
 export function isEnhancedResultsAnalysis(obj: any): obj is EnhancedResultsAnalysis {
   return (
     isResultsAnalysis(obj) &&
-    obj.priceProjectionMetadata &&
+    'priceProjectionMetadata' in obj &&
+    'projectionAccuracy' in obj &&
+    'modelPerformance' in obj &&
     typeof obj.projectionAccuracy === 'number' &&
     typeof obj.modelPerformance === 'string'
   )
