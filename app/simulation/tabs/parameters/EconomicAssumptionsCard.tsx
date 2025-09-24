@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { PriceModelChart } from "@/components/price-model-chart"
 import { useSimulation } from "../../context/SimulationContext"
-import type { PriceModel, PowerLawLine } from "@/lib/price-engine/types"
+import type { PriceModel, PowerLawLine } from "@/src/modules/price-data"
 
 /**
  * Economic Assumptions Card Component

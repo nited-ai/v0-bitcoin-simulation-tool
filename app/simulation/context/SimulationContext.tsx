@@ -10,7 +10,7 @@ import type {
   PlatformConfigState
 } from "../types/simulation"
 import { DEFAULT_PARAMS, PARAMS_STORAGE_KEY } from "../types/simulation"
-import type { HistoricalDataPoint, PriceChartDataPoint } from "@/lib/price-engine/types"
+import type { HistoricalDataPoint, PriceChartDataPoint } from "@/src/modules/price-data"
 import { applyRiskLevelPreset as applyRiskPresetToParams, type RiskLevel as RiskLevelType } from "../constants/riskLevelPresets"
 import { getPlatformConfig, PLATFORM_CONFIGS } from "../constants/platformPresets"
 

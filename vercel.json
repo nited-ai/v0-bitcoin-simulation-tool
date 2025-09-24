@@ -1,0 +1,22 @@
+{
+  "buildCommand": "npm run build:vercel",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "functions": {
+    "app/api/**/*.ts": {
+      "runtime": "nodejs18.x"
+    }
+  },
+  "env": {
+    "NODE_ENV": "production"
+  },
+  "build": {
+    "env": {
+      "SKIP_ENV_VALIDATION": "1",
+      "SKIP_PRISMA_VALIDATION": "1"
+    }
+  },
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD ./",
+  "regions": ["fra1"]
+}

@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "next build",
+    "build": "npm run build:prisma && next build",
+    "build:prisma": "prisma generate || echo 'Prisma generation skipped'",
+    "build:vercel": "npm run build:prisma && next build",
     "dev": "next dev",
     "lint": "next lint",
     "start": "next start",
@@ -13,7 +15,8 @@
     "test:agent-os": "vitest __tests__/agent-os",
     "type-check": "tsc --noEmit",
     "db:seed": "tsx prisma/seed.ts",
-    "db:reset": "prisma migrate reset --force && pnpm db:seed"
+    "db:reset": "prisma migrate reset --force && pnpm db:seed",
+    "postinstall": "prisma generate || echo 'Prisma generation skipped'"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

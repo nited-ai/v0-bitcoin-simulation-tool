@@ -3,7 +3,7 @@ import type {
   PriceModel,
   PowerLawLine,
   PriceChartDataPoint,
-} from "@/lib/price-engine/types"
+} from "@/src/modules/price-data"
 import type {
   InvestmentStrategy,
   AthBasedStrategyParams,

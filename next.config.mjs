@@ -7,8 +7,8 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   // Fix Windows permission issues
-  webpack: (config, { isServer }) => {
-    // Exclude problematic Windows directories
+  webpack: (config, { isServer, dev }) => {
+    // Configure watch options properly
     config.watchOptions = {
       ...config.watchOptions,
       ignored: [
@@ -17,8 +17,17 @@ const nextConfig = {
         '**/Anwendungsdaten/**',
         '**/AppData/**',
         '**/Application Data/**',
+        'C:\\Users\\**\\Anwendungsdaten\\**',
+        'C:\\Users\\**\\AppData\\**',
       ],
     };
+
+    // Additional webpack configuration to avoid scanning system directories
+    config.resolve = {
+      ...config.resolve,
+      symlinks: false,
+    };
+
     return config;
   },
   images: {

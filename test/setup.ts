@@ -18,10 +18,13 @@ afterEach(() => {
 
 // Mock environment variables for tests
 // Set NODE_ENV for test environment
-Object.defineProperty(process.env, 'NODE_ENV', {
-  value: 'test',
-  writable: true
-})
+if (!process.env.NODE_ENV) {
+  Object.defineProperty(process.env, 'NODE_ENV', {
+    value: 'test',
+    writable: true,
+    configurable: true
+  })
+}
 
 // Global test utilities
 global.console = {

@@ -1,9 +1,9 @@
 import { useEffect } from "react"
 import { useSearchParams } from "next/navigation"
-import { generatePriceChartData } from "@/lib/price-engine"
+import { priceDataService } from "@/src/modules/price-data"
 import { getPowerLawPrice } from "@/lib/price-engine/models/power-law"
 import { useSimulation } from "../context/SimulationContext"
-import type { PriceEngineParams } from "@/lib/price-engine/types"
+import type { PriceEngineParams } from "@/src/modules/price-data"
 
 /**
  * Hook for generating price chart data with lazy loading
@@ -79,8 +79,8 @@ export function usePriceGeneration(enabled: boolean = false) {
           historicalChannelPositions,
         }
 
-        // Call the engine to get the complete chart data
-        const chartData = await generatePriceChartData(engineParams, historicalPriceData)
+        // Call the price data service to get the complete chart data
+        const chartData = await priceDataService.generatePriceProjection(engineParams, historicalPriceData)
         setPriceChartData(chartData)
         console.log(`✅ Chart data generated: ${chartData.length} points for model ${params.priceModel}`)
       } catch (error) {
