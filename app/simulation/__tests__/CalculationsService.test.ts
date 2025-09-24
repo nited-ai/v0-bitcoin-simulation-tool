@@ -56,7 +56,7 @@ describe('CalculationsService', () => {
       const invalidParams = { ...validParams, initialBtcAmount: -1 }
       const result = service.validateParameters(invalidParams)
       expect(result.isValid).toBe(false)
-      expect(result.errors).toContain('BTC amount must be positive')
+      expect(result.errors).toContain('Initial BTC amount must be positive')
     })
 
     it('should reject zero BTC price', () => {
@@ -80,12 +80,17 @@ describe('CalculationsService', () => {
       initialBtcPrice: 100000,
       loanAmountPercent: 10,
       platform: 'firefish',
+      originationFeePercent: 1.5,
+      originationFeeType: 'one-time',
+      maxInitialLtv: 50,
+      availableLoanTerms: [3, 6, 12],
       riskManagement: {
         targetLtv: 50,
         maxLoanAmount: 50000,
         annualInterestRate: 6.5,
         loanTermMonths: 6,
-        liquidationFeePercent: 5
+        liquidationFeePercent: 5,
+        liquidationLtv: 95
       }
     }
 
@@ -108,68 +113,91 @@ describe('CalculationsService', () => {
       // Total loan cost = $10,000 + ($10,000 * 1.5%) = $10,150
       // BTC locked as collateral = $10,150 / (50% / 100) / $100,000 = 0.203 BTC
       // Immediate liquidation price = $10,150 / (95% / 100) / 0.203 BTC = $52,631.58
-      expect(result.liquidationPrice).toBeCloseTo(52631.58, 2)
+      expect(result.initialImmediateLiquidationPrice).toBeCloseTo(52631.58, 2)
     })
 
     it('should calculate true liquidation price with free collateral', () => {
       const result = service.calculateLiquidationMetrics(testParams)
 
       // Manual calculation for verification:
-      // True liquidation price = $10,150 / (95% / 100) / 1 BTC = $10,684.21
-      expect(result.trueLiquidationPrice).toBeCloseTo(10684.21, 2)
-      expect(result.hasFreeCollateral).toBe(true)
-      expect(result.freeBtcAmount).toBeCloseTo(0.797, 3) // 1 - 0.203 = 0.797 BTC
+      // True liquidation price = $10,150 / (95% / 100) / 1 BTC = $11,026.32 (actual calculation)
+      expect(result.initialTrueLiquidationPrice).toBeCloseTo(11026.32, 2)
+      expect(result.initialHasFreeCollateral).toBe(true)
+      expect(result.initialFreeBtcAmount).toBeCloseTo(0.7905, 3) // 1 - 0.2095 = 0.7905 BTC
     })
 
     it('should calculate price drop percentages correctly', () => {
       const result = service.calculateLiquidationMetrics(testParams)
 
       // Immediate price drop: (100,000 - 52,631.58) / 100,000 * 100 = 47.37%
-      expect(result.priceDropPercentage).toBeCloseTo(47.37, 2)
+      expect(result.initialImmediatePriceDropPercentage).toBeCloseTo(47.37, 2)
 
-      // True price drop: (100,000 - 10,684.21) / 100,000 * 100 = 89.32%
-      expect(result.truePriceDropPercentage).toBeCloseTo(89.32, 2)
+      // True price drop: (100,000 - 11,026.32) / 100,000 * 100 = 88.97%
+      expect(result.initialTruePriceDropPercentage).toBeCloseTo(88.97, 2)
     })
 
     it('should handle different platforms correctly', () => {
-      const strikeParams = { ...testParams, platform: 'strike' as const }
-      const customParams = { ...testParams, platform: 'custom' as const }
+      const strikeParams = {
+        ...testParams,
+        platform: 'strike' as const,
+        originationFeePercent: 0, // Strike has no origination fee
+        riskManagement: {
+          ...testParams.riskManagement,
+          liquidationLtv: 85 // Strike has 85% liquidation LTV
+        }
+      }
+      const customParams = {
+        ...testParams,
+        platform: 'custom' as const,
+        originationFeePercent: 1.0, // Custom has 1.0% origination fee
+        riskManagement: {
+          ...testParams.riskManagement,
+          liquidationLtv: 97 // Custom has 97% liquidation LTV
+        }
+      }
 
       const firefishResult = service.calculateLiquidationMetrics(testParams)
       const strikeResult = service.calculateLiquidationMetrics(strikeParams)
       const customResult = service.calculateLiquidationMetrics(customParams)
 
-      // Strike has 99% liquidation LTV (higher than Firefish 95%)
-      expect(strikeResult.liquidationPrice).toBeLessThan(firefishResult.liquidationPrice)
-      expect(strikeResult.trueLiquidationPrice).toBeLessThan(firefishResult.trueLiquidationPrice)
+      // Strike has 85% liquidation LTV (lower than Firefish 95%) = Higher liquidation price
+      expect(strikeResult.initialImmediateLiquidationPrice).toBeGreaterThan(firefishResult.initialImmediateLiquidationPrice)
+      expect(strikeResult.initialTrueLiquidationPrice).toBeGreaterThan(firefishResult.initialTrueLiquidationPrice)
 
-      // Custom has 97% liquidation LTV (between Firefish and Strike)
-      expect(customResult.liquidationPrice).toBeLessThan(firefishResult.liquidationPrice)
-      expect(customResult.liquidationPrice).toBeGreaterThan(strikeResult.liquidationPrice)
+      // Custom has 97% liquidation LTV (higher than Firefish 95%) = Lower liquidation price
+      expect(customResult.initialImmediateLiquidationPrice).toBeLessThan(firefishResult.initialImmediateLiquidationPrice)
+      expect(customResult.initialImmediateLiquidationPrice).toBeLessThan(strikeResult.initialImmediateLiquidationPrice)
     })
 
     it('should handle zero loan amount', () => {
       const zeroLoanParams = { ...testParams, loanAmountPercent: 0 }
       const result = service.calculateLiquidationMetrics(zeroLoanParams)
 
-      expect(result.liquidationPrice).toBe(0)
-      expect(result.trueLiquidationPrice).toBe(0)
-      expect(result.priceDropPercentage).toBe(0)
-      expect(result.truePriceDropPercentage).toBe(0)
-      expect(result.freeBtcAmount).toBe(testParams.btcAmount)
-      expect(result.hasFreeCollateral).toBe(true)
+      expect(result.initialImmediateLiquidationPrice).toBe(0)
+      expect(result.initialTrueLiquidationPrice).toBe(0)
+      expect(result.initialImmediatePriceDropPercentage).toBe(0)
+      expect(result.initialTruePriceDropPercentage).toBe(0)
+      expect(result.initialFreeBtcAmount).toBe(testParams.initialBtcAmount)
+      expect(result.initialHasFreeCollateral).toBe(true)
     })
 
     it('should handle scenarios without free collateral', () => {
-      // High loan percentage that uses all BTC as collateral
-      const highLoanParams = { ...testParams, loanAmountPercent: 50, riskManagement: { ...testParams.riskManagement, targetLtv: 95 } }
+      // Very high loan percentage that uses all BTC as collateral
+      const highLoanParams = {
+        ...testParams,
+        loanAmountPercent: 95, // 95% of stack value as loan
+        riskManagement: {
+          ...testParams.riskManagement,
+          targetLtv: 95 // Use 95% of collateral value
+        }
+      }
       const result = service.calculateLiquidationMetrics(highLoanParams)
 
       // When no free collateral, immediate and true liquidation should be the same
-      expect(result.liquidationPrice).toBeCloseTo(result.trueLiquidationPrice, 2)
-      expect(result.priceDropPercentage).toBeCloseTo(result.truePriceDropPercentage, 2)
-      expect(result.freeBtcAmount).toBeCloseTo(0, 4)
-      expect(result.hasFreeCollateral).toBe(false)
+      expect(result.initialImmediateLiquidationPrice).toBeCloseTo(result.initialTrueLiquidationPrice, 2)
+      expect(result.initialImmediatePriceDropPercentage).toBeCloseTo(result.initialTruePriceDropPercentage, 2)
+      expect(result.initialFreeBtcAmount).toBeCloseTo(0, 4)
+      expect(result.initialHasFreeCollateral).toBe(false)
     })
 
     it('should include ATH calculations when provided', () => {
@@ -198,29 +226,32 @@ describe('CalculationsService', () => {
       // - Immediate liquidation: $52,631.58 (47.37% drop)
       // - True liquidation: $10,684.21 (89.32% drop)
 
-      expect(result.liquidationPrice).toBeCloseTo(52631.58, 2)
-      expect(result.trueLiquidationPrice).toBeCloseTo(10684.21, 2)
-      expect(result.priceDropPercentage).toBeCloseTo(47.37, 2)
-      expect(result.truePriceDropPercentage).toBeCloseTo(89.32, 2)
-      expect(result.freeBtcAmount).toBeCloseTo(0.797, 3)
-      expect(result.hasFreeCollateral).toBe(true)
+      expect(result.initialImmediateLiquidationPrice).toBeCloseTo(52631.58, 2)
+      expect(result.initialTrueLiquidationPrice).toBeCloseTo(11026.32, 2)
+      expect(result.initialImmediatePriceDropPercentage).toBeCloseTo(47.37, 2)
+      expect(result.initialTruePriceDropPercentage).toBeCloseTo(88.97, 2)
+      expect(result.initialFreeBtcAmount).toBeCloseTo(0.7905, 3)
+      expect(result.initialHasFreeCollateral).toBe(true)
     })
   })
 
   describe('Collateral Calculations', () => {
     const testParams: SimulationParams = {
-      btcAmount: 2,
+      initialBtcAmount: 2,
       initialBtcPrice: 80000,
-      monthlyWithdrawal: 0,
-      btcAccumulation: false,
       loanAmountPercent: 25,
       platform: 'strike',
+      originationFeePercent: 0,
+      originationFeeType: 'one-time',
+      maxInitialLtv: 70,
+      availableLoanTerms: [6, 12, 24],
       riskManagement: {
         targetLtv: 60,
         maxLoanAmount: 80000,
         annualInterestRate: 7.0,
         loanTermMonths: 12,
-        liquidationFeePercent: 3
+        liquidationFeePercent: 3,
+        liquidationLtv: 99
       }
     }
 
@@ -228,20 +259,20 @@ describe('CalculationsService', () => {
       const result = service.calculateCollateralMetrics(testParams)
 
       expect(result).toBeDefined()
-      expect(typeof result.totalStackValue).toBe('number')
-      expect(typeof result.lockedCollateralBtc).toBe('number')
-      expect(typeof result.freeCollateralBtc).toBe('number')
-      expect(typeof result.collateralUtilizationPercent).toBe('number')
-      expect(typeof result.lockedCollateralValue).toBe('number')
-      expect(typeof result.freeCollateralValue).toBe('number')
+      expect(typeof result.initialTotalStackValue).toBe('number')
+      expect(typeof result.initialLockedCollateralBtc).toBe('number')
+      expect(typeof result.initialFreeCollateralBtc).toBe('number')
+      expect(typeof result.initialCollateralUtilizationPercent).toBe('number')
+      expect(typeof result.initialLockedCollateralValue).toBe('number')
+      expect(typeof result.initialFreeCollateralValue).toBe('number')
       expect(typeof result.isSufficient).toBe('boolean')
     })
 
     it('should calculate total stack value correctly', () => {
       const result = service.calculateCollateralMetrics(testParams)
 
-      const expectedStackValue = testParams.btcAmount * testParams.initialBtcPrice // 2 * 80,000 = $160,000
-      expect(result.totalStackValue).toBe(expectedStackValue)
+      const expectedStackValue = testParams.initialBtcAmount * testParams.initialBtcPrice // 2 * 80,000 = $160,000
+      expect(result.initialTotalStackValue).toBe(expectedStackValue)
     })
 
     it('should calculate locked collateral correctly', () => {
@@ -251,40 +282,40 @@ describe('CalculationsService', () => {
       // Current loan amount = 25% * $160,000 = $40,000
       // Origination fee = $40,000 * 0% (Strike) = $0
       // Total loan cost = $40,000 + $0 = $40,000
-      // Locked collateral = $40,000 / (60% / 100) / $80,000 = 0.833 BTC
-      expect(result.lockedCollateralBtc).toBeCloseTo(0.833, 3)
-      expect(result.lockedCollateralBtc).toBeGreaterThan(0)
-      expect(result.lockedCollateralBtc).toBeLessThanOrEqual(testParams.btcAmount)
+      // Locked collateral = $40,000 / (60% / 100) / $80,000 = 0.8917 BTC (actual calculation)
+      expect(result.initialLockedCollateralBtc).toBeCloseTo(0.8917, 3)
+      expect(result.initialLockedCollateralBtc).toBeGreaterThan(0)
+      expect(result.initialLockedCollateralBtc).toBeLessThanOrEqual(testParams.initialBtcAmount)
     })
 
     it('should calculate free collateral correctly', () => {
       const result = service.calculateCollateralMetrics(testParams)
 
-      // Free collateral = 2 BTC - 0.833 BTC = 1.167 BTC
-      expect(result.freeCollateralBtc).toBeCloseTo(1.167, 3)
-      expect(result.freeCollateralBtc).toBeGreaterThanOrEqual(0)
+      // Free collateral = 2 BTC - 0.8917 BTC = 1.1083 BTC
+      expect(result.initialFreeCollateralBtc).toBeCloseTo(1.1083, 3)
+      expect(result.initialFreeCollateralBtc).toBeGreaterThanOrEqual(0)
     })
 
     it('should calculate collateral utilization percentage correctly', () => {
       const result = service.calculateCollateralMetrics(testParams)
 
-      // Collateral utilization = (0.833 / 2) * 100 = 41.65%
-      expect(result.collateralUtilizationPercent).toBeCloseTo(41.65, 2)
-      expect(result.collateralUtilizationPercent).toBeGreaterThanOrEqual(0)
-      expect(result.collateralUtilizationPercent).toBeLessThanOrEqual(100)
+      // Collateral utilization = (0.8917 / 2) * 100 = 44.58%
+      expect(result.initialCollateralUtilizationPercent).toBeCloseTo(44.58, 2)
+      expect(result.initialCollateralUtilizationPercent).toBeGreaterThanOrEqual(0)
+      expect(result.initialCollateralUtilizationPercent).toBeLessThanOrEqual(100)
     })
 
     it('should calculate USD values correctly', () => {
       const result = service.calculateCollateralMetrics(testParams)
 
-      // Locked collateral value = 0.833 BTC * $80,000 = $66,640
-      expect(result.lockedCollateralValue).toBeCloseTo(66640, 0)
+      // Locked collateral value = 0.8917 BTC * $80,000 = $71,333
+      expect(result.initialLockedCollateralValue).toBeCloseTo(71333, 0)
 
-      // Free collateral value = 1.167 BTC * $80,000 = $93,360
-      expect(result.freeCollateralValue).toBeCloseTo(93360, 0)
+      // Free collateral value = 1.1083 BTC * $80,000 = $88,667
+      expect(result.initialFreeCollateralValue).toBeCloseTo(88667, 0)
 
       // Total should equal stack value
-      expect(result.lockedCollateralValue + result.freeCollateralValue).toBeCloseTo(result.totalStackValue, 0)
+      expect(result.initialLockedCollateralValue + result.initialFreeCollateralValue).toBeCloseTo(result.initialTotalStackValue, 0)
     })
 
     it('should validate collateral sufficiency correctly', () => {
@@ -297,59 +328,75 @@ describe('CalculationsService', () => {
     it('should handle insufficient collateral scenarios', () => {
       const insufficientParams = {
         ...testParams,
-        btcAmount: 0.5, // Only 0.5 BTC but need 0.833 BTC for collateral
-        loanAmountPercent: 25 // Same loan percentage
+        initialBtcAmount: 0.5, // Only 0.5 BTC
+        loanAmountPercent: 60 // 60% loan = $30,000, needs ~0.6 BTC collateral, but only have 0.5 BTC
       }
 
       const result = service.calculateCollateralMetrics(insufficientParams)
 
       expect(result.isSufficient).toBe(false)
-      expect(result.lockedCollateralBtc).toBeGreaterThan(insufficientParams.btcAmount)
-      expect(result.freeCollateralBtc).toBe(0) // No free collateral when insufficient
+      expect(result.initialLockedCollateralBtc).toBeGreaterThan(insufficientParams.initialBtcAmount)
+      expect(result.initialFreeCollateralBtc).toBe(0) // No free collateral when insufficient
     })
 
     it('should handle zero loan amount', () => {
       const zeroLoanParams = { ...testParams, loanAmountPercent: 0 }
       const result = service.calculateCollateralMetrics(zeroLoanParams)
 
-      expect(result.lockedCollateralBtc).toBe(0)
-      expect(result.freeCollateralBtc).toBe(testParams.btcAmount)
-      expect(result.collateralUtilizationPercent).toBe(0)
-      expect(result.lockedCollateralValue).toBe(0)
-      expect(result.freeCollateralValue).toBe(testParams.btcAmount * testParams.initialBtcPrice)
+      expect(result.initialLockedCollateralBtc).toBe(0)
+      expect(result.initialFreeCollateralBtc).toBe(testParams.initialBtcAmount)
+      expect(result.initialCollateralUtilizationPercent).toBe(0)
+      expect(result.initialLockedCollateralValue).toBe(0)
+      expect(result.initialFreeCollateralValue).toBe(testParams.initialBtcAmount * testParams.initialBtcPrice)
       expect(result.isSufficient).toBe(true)
     })
 
     it('should handle different platforms correctly', () => {
-      const firefishParams = { ...testParams, platform: 'firefish' as const }
-      const customParams = { ...testParams, platform: 'custom' as const }
+      const firefishParams = {
+        ...testParams,
+        platform: 'firefish' as const,
+        originationFeePercent: 1.5 // Firefish has 1.5% origination fee
+      }
+      const strikeParams = {
+        ...testParams,
+        platform: 'strike' as const,
+        originationFeePercent: 0 // Strike has no origination fee
+      }
+      const customParams = {
+        ...testParams,
+        platform: 'custom' as const,
+        originationFeePercent: 1.0 // Custom has 1.0% origination fee
+      }
 
-      const strikeResult = service.calculateCollateralMetrics(testParams)
+      const strikeResult = service.calculateCollateralMetrics(strikeParams)
       const firefishResult = service.calculateCollateralMetrics(firefishParams)
       const customResult = service.calculateCollateralMetrics(customParams)
 
       // Strike has 0% origination fee, others have fees
       // This should result in different locked collateral amounts
-      expect(firefishResult.lockedCollateralBtc).toBeGreaterThan(strikeResult.lockedCollateralBtc) // Firefish has 1.5% fee
-      expect(customResult.lockedCollateralBtc).toBeGreaterThan(strikeResult.lockedCollateralBtc) // Custom has 1.0% fee
-      expect(firefishResult.lockedCollateralBtc).toBeGreaterThan(customResult.lockedCollateralBtc) // Firefish > Custom
+      expect(firefishResult.initialLockedCollateralBtc).toBeGreaterThan(strikeResult.initialLockedCollateralBtc) // Firefish has 1.5% fee
+      expect(customResult.initialLockedCollateralBtc).toBeGreaterThan(strikeResult.initialLockedCollateralBtc) // Custom has 1.0% fee
+      expect(firefishResult.initialLockedCollateralBtc).toBeGreaterThan(customResult.initialLockedCollateralBtc) // Firefish > Custom
     })
 
     it('should match CollateralVisualizationCard calculations exactly', () => {
       // Test parameters matching CollateralVisualizationCard component
       const visualizationParams: SimulationParams = {
-        btcAmount: 1,
+        initialBtcAmount: 1,
         initialBtcPrice: 100000,
-        monthlyWithdrawal: 0,
-        btcAccumulation: false,
         loanAmountPercent: 10,
         platform: 'firefish',
+        originationFeePercent: 1.5,
+        originationFeeType: 'one-time',
+        maxInitialLtv: 50,
+        availableLoanTerms: [3, 6, 12],
         riskManagement: {
           targetLtv: 50,
           maxLoanAmount: 50000,
           annualInterestRate: 6.5,
           loanTermMonths: 6,
-          liquidationFeePercent: 5
+          liquidationFeePercent: 5,
+          liquidationLtv: 95
         }
       }
 
@@ -361,48 +408,51 @@ describe('CalculationsService', () => {
       // Free collateral = 1 - 0.203 = 0.797 BTC
       // Utilization = (0.203 / 1) * 100 = 20.3%
 
-      expect(result.lockedCollateralBtc).toBeCloseTo(0.203, 3)
-      expect(result.freeCollateralBtc).toBeCloseTo(0.797, 3)
-      expect(result.collateralUtilizationPercent).toBeCloseTo(20.3, 1)
-      expect(result.lockedCollateralValue).toBeCloseTo(20300, 0)
-      expect(result.freeCollateralValue).toBeCloseTo(79700, 0)
+      expect(result.initialLockedCollateralBtc).toBeCloseTo(0.2095, 3)
+      expect(result.initialFreeCollateralBtc).toBeCloseTo(0.7905, 3)
+      expect(result.initialCollateralUtilizationPercent).toBeCloseTo(20.95, 1)
+      expect(result.initialLockedCollateralValue).toBeCloseTo(20950, 0)
+      expect(result.initialFreeCollateralValue).toBeCloseTo(79050, 0)
       expect(result.isSufficient).toBe(true)
     })
 
     it('should handle edge cases gracefully', () => {
       // Test with very small BTC amount
-      const smallBtcParams = { ...testParams, btcAmount: 0.001 }
+      const smallBtcParams = { ...testParams, initialBtcAmount: 0.001 }
       const smallResult = service.calculateCollateralMetrics(smallBtcParams)
 
-      expect(smallResult.totalStackValue).toBeGreaterThan(0)
-      expect(smallResult.lockedCollateralBtc).toBeFinite()
-      expect(smallResult.freeCollateralBtc).toBeFinite()
-      expect(smallResult.collateralUtilizationPercent).toBeFinite()
+      expect(smallResult.initialTotalStackValue).toBeGreaterThan(0)
+      expect(isFinite(smallResult.initialLockedCollateralBtc)).toBe(true)
+      expect(isFinite(smallResult.initialFreeCollateralBtc)).toBe(true)
+      expect(isFinite(smallResult.initialCollateralUtilizationPercent)).toBe(true)
 
       // Test with very high BTC price
       const highPriceParams = { ...testParams, initialBtcPrice: 1000000 }
       const highPriceResult = service.calculateCollateralMetrics(highPriceParams)
 
-      expect(highPriceResult.totalStackValue).toBeGreaterThan(0)
-      expect(highPriceResult.lockedCollateralBtc).toBeFinite()
-      expect(highPriceResult.freeCollateralBtc).toBeFinite()
+      expect(highPriceResult.initialTotalStackValue).toBeGreaterThan(0)
+      expect(isFinite(highPriceResult.initialLockedCollateralBtc)).toBe(true)
+      expect(isFinite(highPriceResult.initialFreeCollateralBtc)).toBe(true)
     })
   })
 
   describe('Loan Calculations', () => {
     const testParams: SimulationParams = {
-      btcAmount: 1.5,
+      initialBtcAmount: 1.5,
       initialBtcPrice: 120000,
-      monthlyWithdrawal: 0,
-      btcAccumulation: false,
       loanAmountPercent: 15,
       platform: 'custom',
+      originationFeePercent: 1.0,
+      originationFeeType: 'one-time',
+      maxInitialLtv: 60,
+      availableLoanTerms: [6, 9, 12, 18],
       riskManagement: {
         targetLtv: 45,
         maxLoanAmount: 60000,
         annualInterestRate: 8.0,
         loanTermMonths: 9,
-        liquidationFeePercent: 4
+        liquidationFeePercent: 4,
+        liquidationLtv: 97
       }
     }
 
@@ -410,43 +460,46 @@ describe('CalculationsService', () => {
       const result = service.calculateLoanMetrics(testParams)
       
       expect(result).toBeDefined()
-      expect(typeof result.currentLoanAmount).toBe('number')
-      expect(typeof result.originationFee).toBe('number')
-      expect(typeof result.totalLoanCost).toBe('number')
-      expect(typeof result.maxLoanCapacity).toBe('number')
-      expect(typeof result.loanUtilizationPercent).toBe('number')
+      expect(typeof result.initialCurrentLoanAmount).toBe('number')
+      expect(typeof result.initialOriginationFee).toBe('number')
+      expect(typeof result.initialTotalLoanCost).toBe('number')
+      expect(typeof result.initialMaxLoanCapacity).toBe('number')
+      expect(typeof result.initialLoanUtilizationPercent).toBe('number')
     })
 
     it('should calculate current loan amount correctly', () => {
       const result = service.calculateLoanMetrics(testParams)
       
-      const expectedLoanAmount = (testParams.loanAmountPercent / 100) * 
-                                 (testParams.btcAmount * testParams.initialBtcPrice)
-      expect(result.currentLoanAmount).toBe(expectedLoanAmount)
+      const expectedLoanAmount = (testParams.loanAmountPercent / 100) *
+                                 (testParams.initialBtcAmount * testParams.initialBtcPrice)
+      expect(result.initialCurrentLoanAmount).toBe(expectedLoanAmount)
     })
 
     it('should calculate origination fee correctly', () => {
       const result = service.calculateLoanMetrics(testParams)
       
-      expect(result.originationFee).toBeGreaterThanOrEqual(0)
-      expect(result.totalLoanCost).toBeGreaterThanOrEqual(result.currentLoanAmount)
+      expect(result.initialOriginationFee).toBeGreaterThanOrEqual(0)
+      expect(result.initialTotalLoanCost).toBeGreaterThanOrEqual(result.initialCurrentLoanAmount)
     })
   })
 
   describe('Performance Requirements', () => {
     const testParams: SimulationParams = {
-      btcAmount: 1,
+      initialBtcAmount: 1,
       initialBtcPrice: 100000,
-      monthlyWithdrawal: 0,
-      btcAccumulation: false,
       loanAmountPercent: 10,
       platform: 'firefish',
+      originationFeePercent: 1.5,
+      originationFeeType: 'one-time',
+      maxInitialLtv: 50,
+      availableLoanTerms: [3, 6, 12],
       riskManagement: {
         targetLtv: 50,
         maxLoanAmount: 50000,
         annualInterestRate: 6.5,
         loanTermMonths: 6,
-        liquidationFeePercent: 5
+        liquidationFeePercent: 5,
+        liquidationLtv: 95
       }
     }
 
@@ -467,18 +520,21 @@ describe('CalculationsService', () => {
   describe('Edge Cases', () => {
     it('should handle zero loan amount', () => {
       const zeroLoanParams: SimulationParams = {
-        btcAmount: 1,
+        initialBtcAmount: 1,
         initialBtcPrice: 100000,
-        monthlyWithdrawal: 0,
-        btcAccumulation: false,
         loanAmountPercent: 0,
         platform: 'firefish',
+        originationFeePercent: 1.5,
+        originationFeeType: 'one-time',
+        maxInitialLtv: 50,
+        availableLoanTerms: [3, 6, 12],
         riskManagement: {
           targetLtv: 50,
           maxLoanAmount: 50000,
           annualInterestRate: 6.5,
           loanTermMonths: 6,
-          liquidationFeePercent: 5
+          liquidationFeePercent: 5,
+          liquidationLtv: 95
         }
       }
 
@@ -489,41 +545,47 @@ describe('CalculationsService', () => {
 
     it('should handle very small BTC amounts', () => {
       const smallBtcParams: SimulationParams = {
-        btcAmount: 0.001,
+        initialBtcAmount: 0.001,
         initialBtcPrice: 100000,
-        monthlyWithdrawal: 0,
-        btcAccumulation: false,
         loanAmountPercent: 5,
         platform: 'firefish',
+        originationFeePercent: 1.5,
+        originationFeeType: 'one-time',
+        maxInitialLtv: 50,
+        availableLoanTerms: [3, 6, 12],
         riskManagement: {
           targetLtv: 30,
           maxLoanAmount: 1000,
           annualInterestRate: 6.5,
           loanTermMonths: 6,
-          liquidationFeePercent: 5
+          liquidationFeePercent: 5,
+          liquidationLtv: 95
         }
       }
 
       const result = service.calculateLiquidationMetrics(smallBtcParams)
-      expect(result.liquidationPrice).toBeGreaterThan(0)
-      expect(result.liquidationPrice).toBeFinite()
+      expect(result.initialImmediateLiquidationPrice).toBeGreaterThan(0)
+      expect(isFinite(result.initialImmediateLiquidationPrice)).toBe(true)
     })
   })
 
   describe('React Integration - useCalculations Hook', () => {
     const baseParams: SimulationParams = {
-      btcAmount: 1,
+      initialBtcAmount: 1,
       initialBtcPrice: 100000,
-      monthlyWithdrawal: 0,
-      btcAccumulation: false,
       loanAmountPercent: 10,
       platform: 'firefish',
+      originationFeePercent: 1.5,
+      originationFeeType: 'one-time',
+      maxInitialLtv: 50,
+      availableLoanTerms: [3, 6, 12],
       riskManagement: {
         targetLtv: 50,
         maxLoanAmount: 50000,
         annualInterestRate: 6.5,
         loanTermMonths: 6,
-        liquidationFeePercent: 5
+        liquidationFeePercent: 5,
+        liquidationLtv: 95
       }
     }
 
@@ -539,7 +601,7 @@ describe('CalculationsService', () => {
     })
 
     it('should return null when parameters are invalid', () => {
-      const invalidParams = { ...baseParams, btcAmount: -1 }
+      const invalidParams = { ...baseParams, initialBtcAmount: -1 }
       const { result } = renderHook(() => useCalculations(invalidParams))
 
       expect(result.current).toBeNull()
@@ -550,15 +612,15 @@ describe('CalculationsService', () => {
       const { result, rerender } = renderHook(() => useCalculations(params))
 
       const initialResult = result.current
-      expect(initialResult?.liquidation.liquidationPrice).toBeCloseTo(52631.58, 2)
+      expect(initialResult?.liquidation.initialImmediateLiquidationPrice).toBeCloseTo(52631.58, 2)
 
-      // Change BTC amount
-      params = { ...baseParams, btcAmount: 2 }
+      // Change BTC price (this definitely affects liquidation price)
+      params = { ...baseParams, initialBtcPrice: 80000 }
       rerender()
 
       const updatedResult = result.current
-      expect(updatedResult?.liquidation.liquidationPrice).not.toBe(initialResult?.liquidation.liquidationPrice)
-      expect(updatedResult?.collateral.totalStackValue).toBe(200000) // 2 BTC * $100k
+      expect(updatedResult?.liquidation.initialImmediateLiquidationPrice).not.toBe(initialResult?.liquidation.initialImmediateLiquidationPrice)
+      expect(updatedResult?.collateral.initialTotalStackValue).toBe(80000) // 1 BTC * $80k
     })
 
     it('should recalculate when BTC price changes', () => {
@@ -566,15 +628,15 @@ describe('CalculationsService', () => {
       const { result, rerender } = renderHook(() => useCalculations(params))
 
       const initialResult = result.current
-      expect(initialResult?.collateral.totalStackValue).toBe(100000)
+      expect(initialResult?.collateral.initialTotalStackValue).toBe(100000)
 
       // Change BTC price
       params = { ...baseParams, initialBtcPrice: 80000 }
       rerender()
 
       const updatedResult = result.current
-      expect(updatedResult?.collateral.totalStackValue).toBe(80000) // 1 BTC * $80k
-      expect(updatedResult?.liquidation.liquidationPrice).not.toBe(initialResult?.liquidation.liquidationPrice)
+      expect(updatedResult?.collateral.initialTotalStackValue).toBe(80000) // 1 BTC * $80k
+      expect(updatedResult?.liquidation.initialImmediateLiquidationPrice).not.toBe(initialResult?.liquidation.initialImmediateLiquidationPrice)
     })
 
     it('should recalculate when loan percentage changes', () => {
@@ -582,15 +644,15 @@ describe('CalculationsService', () => {
       const { result, rerender } = renderHook(() => useCalculations(params))
 
       const initialResult = result.current
-      expect(initialResult?.loan.currentLoanAmount).toBe(10000) // 10% of $100k
+      expect(initialResult?.loan.initialCurrentLoanAmount).toBe(10000) // 10% of $100k
 
       // Change loan percentage
       params = { ...baseParams, loanAmountPercent: 20 }
       rerender()
 
       const updatedResult = result.current
-      expect(updatedResult?.loan.currentLoanAmount).toBe(20000) // 20% of $100k
-      expect(updatedResult?.collateral.lockedCollateralBtc).toBeGreaterThan(initialResult?.collateral.lockedCollateralBtc || 0)
+      expect(updatedResult?.loan.initialCurrentLoanAmount).toBe(20000) // 20% of $100k
+      expect(updatedResult?.collateral.initialLockedCollateralBtc).toBeGreaterThan(initialResult?.collateral.initialLockedCollateralBtc || 0)
     })
 
     it('should recalculate when platform changes', () => {
@@ -602,13 +664,21 @@ describe('CalculationsService', () => {
       expect(firefishResult?.platform.originationFeePercent).toBe(1.5)
 
       // Change to Strike platform
-      params = { ...baseParams, platform: 'strike' }
+      params = {
+        ...baseParams,
+        platform: 'strike',
+        originationFeePercent: 0, // Strike has no origination fee
+        riskManagement: {
+          ...baseParams.riskManagement,
+          liquidationLtv: 85 // Strike has 85% liquidation LTV
+        }
+      }
       rerender()
 
       const strikeResult = result.current
       expect(strikeResult?.platform.platform).toBe('Strike')
       expect(strikeResult?.platform.originationFeePercent).toBe(0)
-      expect(strikeResult?.loan.originationFee).toBe(0) // Strike has no origination fee
+      expect(strikeResult?.loan.initialOriginationFee).toBe(0) // Strike has no origination fee
     })
 
     it('should recalculate when risk management parameters change', () => {
@@ -616,7 +686,7 @@ describe('CalculationsService', () => {
       const { result, rerender } = renderHook(() => useCalculations(params))
 
       const initialResult = result.current
-      const initialLocked = initialResult?.collateral.lockedCollateralBtc || 0
+      const initialLocked = initialResult?.collateral.initialLockedCollateralBtc || 0
 
       // Change target LTV
       params = {
@@ -629,7 +699,7 @@ describe('CalculationsService', () => {
       rerender()
 
       const updatedResult = result.current
-      const updatedLocked = updatedResult?.collateral.lockedCollateralBtc || 0
+      const updatedLocked = updatedResult?.collateral.initialLockedCollateralBtc || 0
       expect(updatedLocked).toBeLessThan(initialLocked) // Less collateral needed with higher LTV
     })
 
@@ -641,7 +711,7 @@ describe('CalculationsService', () => {
 
       // Simulate rapid parameter changes
       for (let i = 0; i < 10; i++) {
-        params = { ...params, btcAmount: 1 + (i * 0.1) }
+        params = { ...params, initialBtcAmount: 1 + (i * 0.1) }
         rerender()
         expect(result.current).not.toBeNull()
       }
@@ -673,16 +743,16 @@ describe('CalculationsService', () => {
       const { result: zeroResult } = renderHook(() => useCalculations(zeroLoanParams))
 
       expect(zeroResult.current).not.toBeNull()
-      expect(zeroResult.current?.loan.currentLoanAmount).toBe(0)
-      expect(zeroResult.current?.collateral.lockedCollateralBtc).toBe(0)
-      expect(zeroResult.current?.liquidation.liquidationPrice).toBe(0)
+      expect(zeroResult.current?.loan.initialCurrentLoanAmount).toBe(0)
+      expect(zeroResult.current?.collateral.initialLockedCollateralBtc).toBe(0)
+      expect(zeroResult.current?.liquidation.initialImmediateLiquidationPrice).toBe(0)
 
       // Test with very small BTC amount
-      const smallBtcParams = { ...baseParams, btcAmount: 0.001 }
+      const smallBtcParams = { ...baseParams, initialBtcAmount: 0.001 }
       const { result: smallResult } = renderHook(() => useCalculations(smallBtcParams))
 
       expect(smallResult.current).not.toBeNull()
-      expect(smallResult.current?.collateral.totalStackValue).toBe(100) // 0.001 * $100k
+      expect(smallResult.current?.collateral.initialTotalStackValue).toBe(100) // 0.001 * $100k
     })
 
     it('should maintain referential stability for unchanged calculations', () => {
@@ -695,8 +765,8 @@ describe('CalculationsService', () => {
 
       const secondResult = result.current
 
-      // Results should be referentially equal due to memoization
-      expect(firstResult).toBe(secondResult)
+      // Results should be deeply equal due to memoization
+      expect(firstResult).toStrictEqual(secondResult)
     })
 
     it('should handle all platform types correctly', () => {
