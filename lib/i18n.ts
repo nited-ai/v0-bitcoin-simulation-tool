@@ -513,40 +513,16 @@ const resources = {
   },
 }
 
-// Get saved language preference from localStorage (client-side only)
-const getSavedLanguage = (): string => {
-  if (typeof window === 'undefined') return 'en' // Server-side default
-
-  try {
-    const savedLang = localStorage.getItem('preferred-language')
-    if (savedLang && ['en', 'de', 'es'].includes(savedLang)) {
-      return savedLang
-    }
-  } catch (error) {
-    console.warn('Failed to read language preference from localStorage:', error)
-  }
-
-  return 'en' // Default fallback
-}
-
 i18n.use(initReactI18next).init({
   resources,
-  lng: getSavedLanguage(), // Use saved language preference or default to English
+  lng: 'en',
   fallbackLng: "en",
   debug: false,
   interpolation: {
     escapeValue: false, // not needed for react as it escapes by default
   },
-  // Remove backend since we're loading translations directly
-  // This prevents hydration mismatches
   react: {
     useSuspense: false, // Disable suspense to prevent hydration issues
-  },
-  // Enable language detection for client-side hydration
-  detection: {
-    order: ['localStorage'], // Check localStorage for saved language
-    lookupLocalStorage: 'preferred-language',
-    caches: ['localStorage'],
   },
 })
 

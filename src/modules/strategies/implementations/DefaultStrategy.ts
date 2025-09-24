@@ -1,0 +1,144 @@
+/**
+ * Default Strategy Implementation
+ * 
+ * Standard investment approach with no additional restrictions.
+ * Maintains the original behavior of the simulation system.
+ */
+
+import type {
+  InvestmentStrategyInterface,
+  StrategyContext,
+  StrategyDecision,
+  StrategyMetadata
+} from "../types"
+
+/**
+ * Default investment strategy - maintains the original behavior of the simulation.
+ * This strategy allows full investment up to the target LTV without any additional restrictions.
+ */
+export class DefaultStrategy implements InvestmentStrategyInterface {
+  getName(): string {
+    return "Default Strategy"
+  }
+
+  getDescription(): string {
+    return "Standard investment approach with no additional restrictions. Invests up to target LTV."
+  }
+
+  getMetadata(): StrategyMetadata {
+    return {
+      securityRating: 3, // Moderate security - depends on target LTV setting
+      complexityRating: 1, // Very simple - no additional parameters
+      suitableFor: ["beginners", "conservative", "moderate"],
+      criteria: ["target_ltv", "debt_capacity", "basic_needs"]
+    }
+  }
+
+  getDetailedDescription(): string {
+    return "The Default Strategy is the simplest investment approach that maintains the original behavior of the simulation. It focuses purely on maintaining your target debt ratio (LTV) without any market timing considerations."
+  }
+
+  getFunctionality(): string {
+    return "This strategy invests the maximum available amount up to your target LTV whenever debt capacity is available after covering basic needs (loan repayments and withdrawals). It does not consider market conditions, price trends, or timing factors."
+  }
+
+  getSuitability(): string {
+    return "Ideal for beginners who want a straightforward approach without complex market analysis. Suitable for conservative investors who prefer consistent, predictable behavior regardless of market conditions. Good for those who want to focus on risk management through LTV control rather than market timing."
+  }
+
+  makeDecision(context: StrategyContext): StrategyDecision {
+    const { 
+      btcPrice, 
+      totalBtcAmount, 
+      activeLoans, 
+      params 
+    } = context
+
+    // Calculate current debt situation
+    const collateralValue = totalBtcAmount * btcPrice
+    const debtCapacity = collateralValue * (params.riskManagement.targetLtv / 100)
+    
+    // Get maturing loans for this month
+    const maturingLoans = activeLoans.filter((l) => l.maturityMonth === context.month)
+    const repaymentDue = maturingLoans.reduce((sum, l) => sum + l.repaymentAmount, 0)
+    
+    // Calculate debt from ongoing loans (not maturing this month)
+    const debtFromOngoingLoans = activeLoans
+      .filter((l) => l.maturityMonth !== context.month)
+      .reduce((sum, l) => sum + l.repaymentAmount, 0)
+
+    // Calculate principal needed for basic needs (repayments + withdrawal/savings)
+    // Positive monthlyWithdrawalAmount = savings (reduces loan needs)
+    // Negative monthlyWithdrawalAmount = withdrawal (increases loan needs)
+    const netWithdrawalNeed = Math.max(0, -params.monthlyWithdrawalAmount) // Only count withdrawals
+    const principalForNeeds =
+      (repaymentDue + netWithdrawalNeed) /
+      (1 - params.loanOriginationFeePercent / 100)
+
+    const projectedDebtAfterNeeds = debtFromOngoingLoans + principalForNeeds
+
+    // Enhanced default strategy with BTC accumulation logic
+    const btcAccumulation = params.btcAccumulation ?? true
+
+    if (projectedDebtAfterNeeds <= debtCapacity) {
+      // We have capacity for both needs and potential investment
+
+      // Determine investment behavior based on BTC accumulation setting
+      let allowInvestment = false
+      let investmentMultiplier = 0
+      let reasoning = ""
+
+      if (btcAccumulation) {
+        // BTC Accumulation enabled: use remaining debt capacity for BTC purchases
+        allowInvestment = true
+        investmentMultiplier = 1.0 // Use full available capacity
+        reasoning = "BTC Accumulation enabled: using remaining debt capacity to buy more BTC"
+      } else {
+        // BTC Accumulation disabled: only take loans for basic needs (withdrawals)
+        if (params.monthlyWithdrawalAmount < 0) {
+          // Only invest if we need to cover withdrawals
+          allowInvestment = false
+          investmentMultiplier = 0
+          reasoning = "BTC Accumulation disabled: only covering withdrawal needs, no additional investment"
+        } else {
+          // No withdrawals and no accumulation: minimal activity
+          allowInvestment = false
+          investmentMultiplier = 0
+          reasoning = "BTC Accumulation disabled: no withdrawals needed, no additional investment"
+        }
+      }
+
+      return {
+        allowInvestment,
+        investmentMultiplier,
+        allowWithdrawal: params.monthlyWithdrawalAmount < 0, // Only allow withdrawal if negative
+        withdrawalAmount: Math.abs(Math.min(0, params.monthlyWithdrawalAmount)), // Absolute value of negative amounts
+        reasoning
+      }
+    } else {
+      // We need to check if we can at least cover repayments
+      const principalForRepaymentOnly = repaymentDue / (1 - params.loanOriginationFeePercent / 100)
+      const projectedDebtForRepaymentOnly = debtFromOngoingLoans + principalForRepaymentOnly
+
+      if (projectedDebtForRepaymentOnly <= debtCapacity) {
+        // We can cover repayments but not withdrawal
+        return {
+          allowInvestment: false,
+          investmentMultiplier: 0.0,
+          allowWithdrawal: false,
+          withdrawalAmount: 0,
+          reasoning: "Can cover loan repayments but not withdrawal - skipping withdrawal"
+        }
+      } else {
+        // We need to deleverage to stay within target LTV
+        return {
+          allowInvestment: false,
+          investmentMultiplier: 0.0,
+          allowWithdrawal: false,
+          withdrawalAmount: 0,
+          reasoning: "Need to deleverage to stay within target LTV"
+        }
+      }
+    }
+  }
+}

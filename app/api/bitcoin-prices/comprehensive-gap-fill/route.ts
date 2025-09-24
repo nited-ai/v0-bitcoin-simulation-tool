@@ -5,9 +5,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { comprehensiveGapFiller } from '../../../../lib/services/comprehensive-gap-filler'
-import { comprehensiveGapAnalyzer } from '../../../../lib/services/comprehensive-gap-analyzer'
-import { multiApiBitcoinService } from '../../../../lib/services/multi-api-bitcoin-service'
+import { comprehensiveGapFiller } from '@/lib/services/comprehensive-gap-filler'
+import { comprehensiveGapAnalyzer } from '@/lib/services/comprehensive-gap-analyzer'
+import { multiApiBitcoinService } from '@/lib/services/multi-api-bitcoin-service'
 
 export async function GET(request: NextRequest) {
   try {

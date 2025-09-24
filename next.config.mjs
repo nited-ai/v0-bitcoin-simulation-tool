@@ -6,19 +6,43 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  // Fix Windows permission issues
-  webpack: (config, { isServer }) => {
-    // Exclude problematic Windows directories
-    config.watchOptions = {
-      ...config.watchOptions,
-      ignored: [
-        '**/node_modules/**',
-        '**/.git/**',
-        '**/Anwendungsdaten/**',
-        '**/AppData/**',
-        '**/Application Data/**',
-      ],
-    };
+  // Production-ready configuration
+  images: {
+    unoptimized: true,
+  },
+  // Aggressive Windows permission fix
+  webpack: (config, { dev, isServer }) => {
+    // Always apply Windows fixes regardless of environment
+    if (process.platform === 'win32') {
+      config.watchOptions = {
+        ...config.watchOptions,
+        ignored: [
+          '**/node_modules/**',
+          '**/.git/**',
+          '**/Anwendungsdaten/**',
+          '**/AppData/**',
+          'C:\\\\Users\\\\**\\\\Anwendungsdaten\\\\**',
+          'C:\\\\Users\\\\**\\\\AppData\\\\**',
+        ],
+        poll: false,
+        aggregateTimeout: 300,
+      };
+
+      // Disable symlinks completely
+      config.resolve = {
+        ...config.resolve,
+        symlinks: false,
+      };
+
+      // Set cache to memory only
+      config.cache = {
+        type: 'memory',
+      };
+
+      // Add custom resolver to avoid problematic paths
+      config.resolve.plugins = config.resolve.plugins || [];
+    }
+
     return config;
   },
   images: {

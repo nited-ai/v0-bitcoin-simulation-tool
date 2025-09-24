@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react'
-import { athService } from '../../../lib/services/ath-service'
+import { athService } from '@/lib/services/ath-service'
 
 export interface UseATHReturn {
   ath: number

@@ -1,0 +1,11 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "installCommand": "npm install --legacy-peer-deps",
+  "build": {
+    "env": {
+      "SKIP_ENV_VALIDATION": "1",
+      "SKIP_PRISMA_VALIDATION": "1"
+    }
+  }
+}

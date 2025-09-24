@@ -1,8 +1,8 @@
 "use client"
 
 import { useCallback } from "react"
-import { runStrategySimulation } from "@/lib/strategy-engine"
-import type { StrategyEngineParams, MonthlyResult as StrategyMonthlyResult } from "@/lib/strategy-engine"
+import { runStrategySimulation } from "@/src/modules/strategies"
+import type { StrategyEngineParams, MonthlyResult as StrategyMonthlyResult } from "@/src/modules/strategies/types"
 import type { MonthlyResult } from "../types/simulation"
 import { useSimulation } from "../context/SimulationContext"
 import { usePriceGeneration } from "./usePriceGeneration"
@@ -58,7 +58,13 @@ export function useSimulationRunner() {
         maxLoanAmount: calculatedLoanAmount, // Use calculated amount instead of params.maxLoanAmount
         expectedAnnualInflation: 3.0, // Default 3% annual inflation
         btcAccumulation: (params as any).btcAccumulation ?? true, // Default to true if not set
-        riskManagement: params.riskManagement,
+        riskManagement: {
+          targetLtv: params.riskManagement.targetLtv,
+          liquidationLtv: params.riskManagement.liquidationLtv,
+          maxLoanAmount: calculatedLoanAmount,
+          liquidationFeePercent: params.liquidationFeePercent || 5,
+          annualInterestRate: params.annualInterestRate,
+        },
         investmentStrategy: params.investmentStrategy,
         athBasedParams: params.athBasedParams,
         movingAverageParams: params.movingAverageParams,

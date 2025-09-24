@@ -2,8 +2,7 @@
 
 
 import { SimulationProvider } from "./context/SimulationContext"
-import { SimulationHeader } from "./components/layout/SimulationHeader"
-import { TabNavigation } from "./components/navigation/TabNavigation"
+import { SimulationHeader, TabNavigation } from "./shared"
 
 /**
  * Internal component that uses business logic hooks

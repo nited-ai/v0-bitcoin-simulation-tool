@@ -1,8 +1,7 @@
 "use client"
 
-import { forwardRef, useState, useCallback } from "react"
+import * as React from "react"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 
 export interface NumberInputProps {
@@ -12,184 +11,152 @@ export interface NumberInputProps {
   max?: number
   step?: number
   decimals?: number
-  label?: string
+  suffix?: string
   placeholder?: string
+  className?: string
+  disabled?: boolean
   error?: string
   warning?: string
-  disabled?: boolean
-  className?: string
-  suffix?: string
-  prefix?: string
-  id?: string
 }
 
-/**
- * Reusable Number Input Component
- * 
- * A controlled number input with validation, formatting, and error handling.
- * Supports min/max validation, decimal precision, and custom formatting.
- */
-export const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
-  (
-    {
-      value,
-      onChange,
-      min,
-      max,
-      step = 1,
-      decimals = 2,
-      label,
-      placeholder,
-      error,
-      warning,
-      disabled = false,
-      className,
-      suffix,
-      prefix,
-      id,
-      ...props
-    },
-    ref
-  ) => {
-    const [displayValue, setDisplayValue] = useState(value.toString())
-    const [isFocused, setIsFocused] = useState(false)
+export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
+  ({ 
+    value, 
+    onChange, 
+    min, 
+    max, 
+    step = 1, 
+    decimals = 0,
+    suffix,
+    placeholder,
+    className,
+    disabled,
+    error,
+    warning,
+    ...props 
+  }, ref) => {
+    const [displayValue, setDisplayValue] = React.useState<string>("")
+    const [isFocused, setIsFocused] = React.useState(false)
 
-    /**
-     * Format number for display
-     */
-    const formatNumber = useCallback((num: number): string => {
+    // Format number for display
+    const formatNumber = React.useCallback((num: number): string => {
       if (isNaN(num)) return ""
-      return num.toFixed(decimals)
+      return decimals > 0 ? num.toFixed(decimals) : num.toString()
     }, [decimals])
 
-    /**
-     * Parse string to number
-     */
-    const parseNumber = useCallback((str: string): number => {
-      const cleaned = str.replace(/[^\d.-]/g, "")
+    // Parse string to number
+    const parseNumber = React.useCallback((str: string): number => {
+      const cleaned = str.replace(/[^\d.-]/g, '')
       const parsed = parseFloat(cleaned)
       return isNaN(parsed) ? 0 : parsed
     }, [])
 
-    /**
-     * Validate number against constraints
-     */
-    const validateNumber = useCallback((num: number): string | null => {
-      if (min !== undefined && num < min) {
-        return `Value must be at least ${min}`
+    // Update display value when value prop changes
+    React.useEffect(() => {
+      if (!isFocused) {
+        setDisplayValue(formatNumber(value))
       }
-      if (max !== undefined && num > max) {
-        return `Value must be at most ${max}`
-      }
-      return null
-    }, [min, max])
+    }, [value, formatNumber, isFocused])
 
-    /**
-     * Handle input change
-     */
-    const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    // Initialize display value
+    React.useEffect(() => {
+      setDisplayValue(formatNumber(value))
+    }, [])
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const inputValue = e.target.value
       setDisplayValue(inputValue)
 
-      // Parse and validate
-      const numValue = parseNumber(inputValue)
-      const validationError = validateNumber(numValue)
-
-      if (!validationError) {
-        onChange(numValue)
+      // Parse and validate the number
+      const numericValue = parseNumber(inputValue)
+      
+      // Apply min/max constraints
+      let constrainedValue = numericValue
+      if (min !== undefined && constrainedValue < min) {
+        constrainedValue = min
       }
-    }, [parseNumber, validateNumber, onChange])
+      if (max !== undefined && constrainedValue > max) {
+        constrainedValue = max
+      }
 
-    /**
-     * Handle focus
-     */
-    const handleFocus = useCallback(() => {
+      // Call onChange with the constrained value
+      onChange(constrainedValue)
+    }
+
+    const handleFocus = () => {
       setIsFocused(true)
-      setDisplayValue(value.toString())
-    }, [value])
+    }
 
-    /**
-     * Handle blur
-     */
-    const handleBlur = useCallback(() => {
+    const handleBlur = () => {
       setIsFocused(false)
-      const numValue = parseNumber(displayValue)
-      const validationError = validateNumber(numValue)
-
-      if (!validationError) {
-        // Apply constraints
-        let constrainedValue = numValue
-        if (min !== undefined) constrainedValue = Math.max(constrainedValue, min)
-        if (max !== undefined) constrainedValue = Math.min(constrainedValue, max)
-
-        onChange(constrainedValue)
-        setDisplayValue(formatNumber(constrainedValue))
-      } else {
-        // Reset to last valid value
-        setDisplayValue(formatNumber(value))
-      }
-    }, [displayValue, parseNumber, validateNumber, onChange, min, max, formatNumber, value])
-
-    // Update display value when external value changes (but not when focused)
-    if (!isFocused && displayValue !== formatNumber(value)) {
+      // Format the display value on blur
       setDisplayValue(formatNumber(value))
     }
 
-    const hasError = !!error
-    const hasWarning = !!warning && !hasError
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+      // Allow: backspace, delete, tab, escape, enter
+      if ([8, 9, 27, 13, 46].indexOf(e.keyCode) !== -1 ||
+          // Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+          (e.keyCode === 65 && e.ctrlKey === true) ||
+          (e.keyCode === 67 && e.ctrlKey === true) ||
+          (e.keyCode === 86 && e.ctrlKey === true) ||
+          (e.keyCode === 88 && e.ctrlKey === true) ||
+          // Allow: home, end, left, right
+          (e.keyCode >= 35 && e.keyCode <= 39)) {
+        return
+      }
+      // Ensure that it is a number and stop the keypress
+      if ((e.shiftKey || (e.keyCode < 48 || e.keyCode > 57)) && (e.keyCode < 96 || e.keyCode > 105)) {
+        // Allow decimal point if decimals > 0
+        if (decimals > 0 && (e.keyCode === 190 || e.keyCode === 110)) {
+          // Only allow one decimal point
+          if (displayValue.includes('.')) {
+            e.preventDefault()
+          }
+          return
+        }
+        // Allow minus sign for negative numbers
+        if (e.keyCode === 189 || e.keyCode === 109) {
+          // Only allow at the beginning
+          if (displayValue.length > 0) {
+            e.preventDefault()
+          }
+          return
+        }
+        e.preventDefault()
+      }
+    }
 
     return (
-      <div className={cn("space-y-2", className)}>
-        {label && (
-          <Label htmlFor={id} className={cn(hasError && "text-destructive")}>
-            {label}
-          </Label>
-        )}
-        
-        <div className="relative flex items-center">
-          {prefix && (
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground z-10">
-              {prefix}
-            </div>
+      <div className={cn("relative", className)}>
+        <Input
+          ref={ref}
+          type="text"
+          value={displayValue}
+          onChange={handleInputChange}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          disabled={disabled}
+          className={cn(
+            suffix && "pr-12",
+            error && "border-red-500 focus-visible:ring-red-500",
+            warning && "border-yellow-500 focus-visible:ring-yellow-500"
           )}
-
-          <Input
-            ref={ref}
-            id={id}
-            type="text"
-            inputMode="decimal"
-            value={displayValue}
-            onChange={handleChange}
-            onFocus={handleFocus}
-            onBlur={handleBlur}
-            placeholder={placeholder}
-            disabled={disabled}
-            className={cn(
-              "relative",
-              hasError && "border-destructive focus-visible:ring-destructive",
-              hasWarning && "border-yellow-500 focus-visible:ring-yellow-500",
-              prefix && "pl-8",
-              suffix && "pr-8"
-            )}
-            {...props}
-          />
-
-          {suffix && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground z-10 pointer-events-none">
-              {suffix}
-            </div>
-          )}
-        </div>
-
-        {/* Error/Warning Messages */}
-        {hasError && (
-          <p className="text-sm text-destructive">{error}</p>
+          {...props}
+        />
+        {suffix && (
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+            {suffix}
+          </div>
         )}
-        {hasWarning && (
-          <p className="text-sm text-yellow-600">{warning}</p>
+        {error && (
+          <p className="text-sm text-red-500 mt-1">{error}</p>
         )}
-
-        {/* Range indicators removed as per user request */}
+        {warning && !error && (
+          <p className="text-sm text-yellow-600 mt-1">{warning}</p>
+        )}
       </div>
     )
   }
