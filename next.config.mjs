@@ -6,30 +6,30 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  // Fix Windows permission issues
-  webpack: (config, { isServer, dev }) => {
-    // Configure watch options properly
-    config.watchOptions = {
-      ...config.watchOptions,
-      ignored: [
-        '**/node_modules/**',
-        '**/.git/**',
-        '**/Anwendungsdaten/**',
-        '**/AppData/**',
-        '**/Application Data/**',
-        'C:\\Users\\**\\Anwendungsdaten\\**',
-        'C:\\Users\\**\\AppData\\**',
-      ],
-    };
-
-    // Additional webpack configuration to avoid scanning system directories
-    config.resolve = {
-      ...config.resolve,
-      symlinks: false,
-    };
-
-    return config;
+  // Production-ready configuration
+  images: {
+    unoptimized: true,
   },
+  // Only apply Windows-specific fixes in development
+  ...(process.env.NODE_ENV === 'development' && process.platform === 'win32' && {
+    experimental: {
+      webpackBuildWorker: false,
+    },
+    webpack: (config, { dev }) => {
+      if (dev) {
+        config.watchOptions = {
+          ...config.watchOptions,
+          ignored: [
+            '**/node_modules/**',
+            '**/.git/**',
+            '**/Anwendungsdaten/**',
+            '**/AppData/**',
+          ],
+        };
+      }
+      return config;
+    },
+  }),
   images: {
     unoptimized: true,
   },

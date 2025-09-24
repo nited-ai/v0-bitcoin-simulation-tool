@@ -5,6 +5,7 @@
   "scripts": {
     "build": "npm run build:prisma && next build",
     "build:prisma": "prisma generate || echo 'Prisma generation skipped'",
+    "build:with-prisma": "npm run build:prisma && next build",
     "dev": "next dev",
     "lint": "next lint",
     "start": "next start",
