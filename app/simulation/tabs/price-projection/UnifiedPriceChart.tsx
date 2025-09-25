@@ -120,8 +120,7 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
   const [showSupportLine, setShowSupportLine] = useState(() => params.priceModel === 'powerLaw')
   const [showResistanceLine, setShowResistanceLine] = useState(() => params.priceModel === 'powerLaw')
 
-  // Debug counter to track useEffect calls
-  const effectCallCount = useRef(0)
+
 
   // Update support/resistance line visibility when model changes
   useEffect(() => {
@@ -158,7 +157,7 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
         return
       }
 
-      console.log('🎯 Generating initial projection to prevent race condition')
+
       setIsGeneratingProjection(true)
       setError(null)
 
@@ -246,11 +245,6 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
   // Set loading state based on centralized data service and projection generation
   const loading = isLoading || !isLoaded || isGeneratingProjection
 
-  // Debug logging
-  console.log(`🎨 UnifiedPriceChart component rendered - Model: ${params.priceModel}`)
-  console.log(`📊 Data state - Loaded: ${isLoaded}, Loading: ${isLoading}, Data points: ${historicalData.length}`)
-
-
 
   // Generate projection when model or parameters change
   useEffect(() => {
@@ -270,7 +264,7 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
         return
       }
 
-      // Removed excessive debug logging for performance
+
 
       try {
         setIsGeneratingProjection(true)
@@ -328,7 +322,7 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
               liquidityConstraint: 0.4,
               competitionFactor: 0.3
             }
-            console.log('🔧 Using default moderate diminishing returns parameters')
+
           }
 
           modelParams.modelSpecificParams = {
@@ -336,19 +330,11 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
           }
         }
 
-        
-        console.log(`🎯 Generating projection with model: ${params.priceModel}`)
-        console.log(`📊 Model parameters:`, modelParams)
-
-
         const result = await priceModelRegistry.generateProjection(
           params.priceModel,
           historicalData,
           modelParams
         )
-
-        console.log(`✅ Projection generated successfully:`, result)
-        console.log(`📈 Projection points: ${result?.projectionPoints?.length || 0}`)
 
         setProjection(result)
         setHasInitialProjection(true) // Mark that we have generated a projection
@@ -381,13 +367,7 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
 
   // Calculate liquidation prices first (needed for chart data)
   const liquidationPrices = useMemo(() => {
-    console.log('🔍 LIQUIDATION PRICES CALCULATION:', {
-      hasLiquidationData: !!liquidationData,
-      liquidationData: liquidationData
-    })
-
     if (!liquidationData) {
-      console.log('⚠️ No liquidation data available')
       return null
     }
 
@@ -395,15 +375,7 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
     const trueLiquidationUsd = liquidationData.initialTrueLiquidationPrice
     const hasActiveLoan = immediateLiquidationUsd > 0
 
-    console.log('💰 Calculated liquidation prices:', {
-      immediate: immediateLiquidationUsd,
-      withTopUp: trueLiquidationUsd,
-      hasFreeBtc: liquidationData.initialHasFreeCollateral,
-      hasActiveLoan
-    })
-
     if (!hasActiveLoan) {
-      console.log('⚠️ No active loan detected')
       return null
     }
 
@@ -413,7 +385,6 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
       hasFreeBtc: liquidationData.initialHasFreeCollateral
     }
 
-    console.log('✅ Returning liquidation prices:', result)
     return result
   }, [liquidationData])
 
@@ -491,42 +462,14 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
     // Sort by timestamp to ensure continuous timeline
     const sortedData = data.sort((a, b) => a.timestamp - b.timestamp)
 
-    // Debug logging for chart data
-    if (sortedData.length > 0) {
-      console.log(`📊 Chart data prepared: ${sortedData.length} points`)
-      console.log('📊 First data point:', sortedData[0])
-      console.log('📊 Last data point:', sortedData[sortedData.length - 1])
-      console.log('📊 Sample price values:', sortedData.slice(0, 5).map(d => d.price))
 
-      // Debug liquidation data in chart
-      const sampleWithLiquidation = sortedData.find(d => d.immediateLiquidation !== undefined)
-      console.log('🔍 CHART DATA LIQUIDATION DEBUG:', {
-        hasLiquidationPrices: !!liquidationPrices,
-        liquidationPrices: liquidationPrices,
-        samplePointWithLiquidation: sampleWithLiquidation,
-        immediateLiquidationValue: sampleWithLiquidation?.immediateLiquidation,
-        liquidationWithTopUpValue: sampleWithLiquidation?.liquidationWithTopUp,
-        totalPointsWithLiquidation: sortedData.filter(d => d.immediateLiquidation !== null).length,
-        totalPointsWithImmediateLiquidation: sortedData.filter(d => d.immediateLiquidation !== undefined).length,
-        totalPointsWithTopUpLiquidation: sortedData.filter(d => d.liquidationWithTopUp !== undefined).length
-      })
-    } else {
-      console.log('📊 No chart data available')
-    }
 
     return sortedData
   }, [historicalData, projection, liquidationPrices])
 
   // Calculate liquidation prices for reference lines (after chartData is available)
   const liquidationPricesForChart = useMemo(() => {
-    console.log('🔍 LIQUIDATION PRICES FOR CHART CALCULATION:', {
-      hasLiquidationData: !!liquidationData,
-      chartDataLength: chartData.length,
-      liquidationData: liquidationData
-    })
-
     if (!liquidationData || !chartData.length) {
-      console.log('📊 No liquidation data or chart data available for reference lines')
       return null
     }
 
@@ -534,40 +477,20 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
     const immediateLiquidationUsd = liquidationData.initialImmediateLiquidationPrice
     const trueLiquidationUsd = liquidationData.initialTrueLiquidationPrice
 
-    console.log('💰 Liquidation prices for chart:', {
-      immediate: immediateLiquidationUsd,
-      withTopUp: trueLiquidationUsd,
-      hasFreeBtc: liquidationData.initialHasFreeCollateral
-    })
-
     // Only show liquidation lines if user has an active loan (liquidation prices > 0)
     const hasActiveLoan = immediateLiquidationUsd > 0
     if (!hasActiveLoan) {
-      console.log('⚠️ No active loan detected for chart lines')
       return null
     }
 
     const maxChartPrice = Math.max(...chartData.map(d => d.price))
     const minChartPrice = Math.min(...chartData.map(d => d.price))
 
-    console.log('📊 Chart price range for liquidation bounds check:', {
-      min: minChartPrice,
-      max: maxChartPrice,
-      immediateLiquidation: immediateLiquidationUsd,
-      withinBoundsCheck: {
-        minBound: minChartPrice * 0.1,
-        maxBound: maxChartPrice * 3,
-        isAboveMin: immediateLiquidationUsd >= minChartPrice * 0.1,
-        isBelowMax: immediateLiquidationUsd <= maxChartPrice * 3
-      }
-    })
-
     // Show lines if they're within 3x the chart range (reasonable visibility)
     const isWithinBounds = immediateLiquidationUsd >= minChartPrice * 0.1 &&
                           immediateLiquidationUsd <= maxChartPrice * 3
 
     if (!isWithinBounds) {
-      console.log('📏 Liquidation prices outside chart bounds, hiding lines')
       return null
     }
 
@@ -577,7 +500,7 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
       hasFreeBtc: liquidationData.initialHasFreeCollateral
     }
 
-    console.log('✅ Showing liquidation lines for chart:', result)
+
     return result
   }, [liquidationData, chartData])
 
