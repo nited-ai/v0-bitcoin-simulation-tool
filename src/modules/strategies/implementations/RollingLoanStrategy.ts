@@ -13,6 +13,7 @@ import type {
   Loan
 } from "../types"
 import { LoanRolloverCalculationService } from '../services/LoanRolloverCalculationService'
+import { PlatformFeeIntegrationService } from '../services/PlatformFeeIntegrationService'
 import type { LoanRolloverParams, PlatformFeeConfig } from '../services/types'
 
 /**
@@ -29,9 +30,11 @@ import type { LoanRolloverParams, PlatformFeeConfig } from '../services/types'
  */
 export class RollingLoanStrategy implements InvestmentStrategyInterface {
   private loanCalculationService: LoanRolloverCalculationService
+  private platformFeeService: PlatformFeeIntegrationService
 
   constructor() {
     this.loanCalculationService = new LoanRolloverCalculationService()
+    this.platformFeeService = new PlatformFeeIntegrationService()
   }
   getName(): string {
     return "Rolling Loan Strategy"
@@ -165,8 +168,10 @@ The strategy automatically handles loan rollovers at maturity, calculates minimu
     const totalPrincipal = maturingLoans.reduce((sum, loan) => sum + loan.principal, 0)
     const accruedInterest = totalRepaymentDue - totalPrincipal
 
-    // Create platform fee configuration
-    const platformFeeConfig: PlatformFeeConfig = this.getPlatformFeeConfig(params)
+    // Create platform fee configuration using integration service
+    // For now, use custom platform as default since platform info isn't in StrategyExecutionParams
+    // TODO: Add platform information to StrategyContext or StrategyExecutionParams
+    const platformFeeConfig: PlatformFeeConfig = this.getPlatformFeeConfigFromParams(params)
 
     // Prepare loan rollover parameters
     const rolloverParams: LoanRolloverParams = {
@@ -224,21 +229,21 @@ The strategy automatically handles loan rollovers at maturity, calculates minimu
   }
 
   /**
-   * Get platform fee configuration from simulation parameters
+   * Get platform fee configuration from strategy execution parameters
+   * Since platform information isn't directly available in StrategyExecutionParams,
+   * we infer it from the fee structure
    */
-  private getPlatformFeeConfig(params: any): PlatformFeeConfig {
-    // Map platform-specific fee configurations
-    if (params.platform === 'firefish') {
-      return { type: 'annual', percent: 1.5 }
-    } else if (params.platform === 'strike') {
-      return { type: 'none', percent: 0 }
+  private getPlatformFeeConfigFromParams(params: any): PlatformFeeConfig {
+    // Infer platform from fee characteristics
+    if (params.loanOriginationFeePercent === 0) {
+      // Strike platform has 0% fees
+      return this.platformFeeService.getPlatformFeeConfig('strike')
+    } else if (params.loanOriginationFeePercent === 1.5) {
+      // Firefish platform has 1.5% annual fees
+      return this.platformFeeService.getPlatformFeeConfig('firefish')
     } else {
-      // Custom platform - use origination fee type from params
-      const feeType = params.originationFeeType || 'one-time'
-      return {
-        type: feeType === 'annual' ? 'annual' : 'one-time',
-        percent: params.originationFeePercent || 1.0
-      }
+      // Custom platform with configurable fees
+      return this.platformFeeService.getPlatformFeeConfig('custom')
     }
   }
 }
