@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
@@ -68,15 +68,13 @@ export function TabNavigation({ children }: TabNavigationProps) {
       label: t('Navigation.strategy.label'),
       shortLabel: t('Navigation.strategy.shortLabel'),
       icon: Target,
-      enabled: false,
-      badge: t('Navigation.comingSoon.badge')
+      enabled: true
     },
     results: {
       label: t('Navigation.results.label'),
       shortLabel: t('Navigation.results.shortLabel'),
       icon: TrendingDown,
-      enabled: false,
-      badge: t('Navigation.comingSoon.badge')
+      enabled: true
     }
   }
 
@@ -147,7 +145,7 @@ export function TabNavigation({ children }: TabNavigationProps) {
     const tabParam = searchParams.get('tab') as TabValue
 
     // If URL has a valid tab parameter, use it
-    if (tabParam && ['parameters', 'price-projection'].includes(tabParam)) {
+    if (tabParam && ['parameters', 'price-projection', 'strategy', 'results'].includes(tabParam)) {
       setActiveTab(tabParam)
       // Save to localStorage for persistence
       if (typeof window !== 'undefined') {
@@ -173,8 +171,8 @@ export function TabNavigation({ children }: TabNavigationProps) {
   const handleTabChange = (value: string) => {
     const tabValue = value as TabValue
 
-    // Allow navigation to parameters and price-projection tabs
-    if (!['parameters', 'price-projection'].includes(tabValue)) {
+    // Allow navigation to all enabled tabs
+    if (!['parameters', 'price-projection', 'strategy', 'results'].includes(tabValue)) {
       return
     }
 

@@ -1,3 +1,4 @@
+import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import UnifiedPriceChart from './UnifiedPriceChart'
@@ -24,12 +25,22 @@ const mockProjection = {
   metadata: { model: 'manual', confidence: 0.75 }
 }
 
-const mockRegistry = {
-  generateProjection: vi.fn(() => Promise.resolve(mockProjection)),
+vi.mock('../../price-models/PriceModelRegistry', () => ({
+  priceModelRegistry: {
+    generateProjection: vi.fn(() => Promise.resolve(mockProjection)),
+  },
+}))
+
+// Mock centralized data service
+const mockCentralizedData = {
+  loadHistoricalData: vi.fn(() => Promise.resolve(mockHistoricalData)),
+  getCurrentPrice: vi.fn(() => Promise.resolve(50000)),
 }
 
-vi.mock('../../price-models/PriceModelRegistry', () => ({
-  priceModelRegistry: mockRegistry,
+vi.mock('../../../lib/services/centralized-data-service', () => ({
+  CentralizedDataService: {
+    getInstance: () => mockCentralizedData,
+  },
 }))
 
 // Mock simulation context
@@ -39,7 +50,27 @@ const mockSimulationContext = {
     initialBtcPrice: 50000,
     simulationMonths: 144,
     annualGrowthRates: [20, 15, 10, 8, 5, 3, 2, 1, 0, -1, -2, -3],
+    btcAmount: 1.0,
+    loanAmountPercent: 50,
+    platform: 'firefish',
+    riskManagement: {
+      targetLtv: 50,
+      maxLoanAmount: 50000,
+      annualInterestRate: 6.5,
+      loanTermMonths: 6,
+      liquidationLtv: 80,
+      liquidationFeePercent: 5
+    }
   },
+  setIsLoading: vi.fn(),
+  setErrors: vi.fn(),
+  setHistoricalPriceData: vi.fn(),
+  setParams: vi.fn(),
+  setInitialDataLoaded: vi.fn(),
+  isLoading: false,
+  errors: [],
+  historicalPriceData: [],
+  initialDataLoaded: false,
 }
 
 vi.mock('../../context/SimulationContext', () => ({
@@ -107,12 +138,12 @@ describe('UnifiedPriceChart', () => {
   })
 
   it('handles error state gracefully', async () => {
-    // Mock error in data loading
-    vi.mocked(require('../../data/historicalDataLoader').loadHistoricalData)
-      .mockRejectedValueOnce(new Error('Failed to load data'))
-    
+    // Mock error in data loading by making the centralized data service fail
+    const mockError = new Error('Failed to load data')
+    vi.mocked(mockCentralizedData.loadHistoricalData).mockRejectedValueOnce(mockError)
+
     render(<UnifiedPriceChart />)
-    
+
     await waitFor(() => {
       expect(screen.getByText(/Error loading chart data/)).toBeInTheDocument()
     })

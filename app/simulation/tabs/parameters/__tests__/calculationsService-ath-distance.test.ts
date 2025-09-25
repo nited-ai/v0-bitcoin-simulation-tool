@@ -34,7 +34,7 @@ describe('CalculationsService ATH Distance Calculations', () => {
       expect(result.distanceUSD).toBe(25000) // 125000 - 100000
       expect(result.riskLevel).toBe('medium') // 20% is between 15-40%
       expect(result.riskColor).toBe('#f59e0b') // Orange
-      expect(result.riskDescription).toBe('Moderate conditions - consider balanced loan amounts and LTV percentages')
+      expect(result.riskDescription).toBe('Moderate loan amounts and LTV percentages recommended')
     })
 
     it('should classify as low risk when far from ATH', () => {

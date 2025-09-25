@@ -29,13 +29,6 @@ describe('Daily Update Service ATH Integration', () => {
 
   describe('ATH checking during daily updates', () => {
     it('should check for new ATH when current price is updated', async () => {
-      // Mock successful current price update
-      const mockCurrentPriceResult = {
-        success: true,
-        highPrice: 130000,
-        date: '2025-08-18'
-      }
-
       // Mock ATH service to return true for new ATH
       mockAthService.checkAndUpdateATH = vi.fn().mockResolvedValue(true)
 
@@ -45,11 +38,7 @@ describe('Daily Update Service ATH Integration', () => {
       }
       vi.doMock('fs/promises', () => mockFs)
 
-      // Mock the private method by accessing it through the service
-      const checkAndUpdateATHSpy = vi.spyOn(dailyUpdateService as any, 'checkAndUpdateATH')
-      checkAndUpdateATHSpy.mockResolvedValue({ updated: true })
-
-      // Test the ATH checking logic
+      // Test the ATH checking logic directly
       const result = await (dailyUpdateService as any).checkAndUpdateATH(130000, '2025-08-18')
 
       expect(result.updated).toBe(true)

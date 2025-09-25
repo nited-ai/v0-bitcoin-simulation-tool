@@ -15,12 +15,10 @@ describe('Agent OS Configuration Validation', () => {
   describe('Directory Structure', () => {
     it('should have the correct modular directory structure', () => {
       const expectedDirs = [
-        'src/modules/parameters',
-        'src/modules/price-projection', 
+        'src/modules/price-projection',
         'src/modules/strategies',
         'src/modules/results',
-        'src/modules/price-data',
-        'src/modules/shared'
+        'src/modules/price-data'
       ]
       
       expectedDirs.forEach(dir => {
@@ -29,7 +27,7 @@ describe('Agent OS Configuration Validation', () => {
     })
     
     it('should have proper module index files', () => {
-      const modules = ['parameters', 'price-projection', 'strategies', 'results', 'price-data', 'shared']
+      const modules = ['price-projection', 'strategies', 'results', 'price-data']
       
       modules.forEach(module => {
         const indexPath = path.join(rootDir, `src/modules/${module}/index.ts`)
@@ -46,16 +44,16 @@ describe('Agent OS Configuration Validation', () => {
       const tsconfig = JSON.parse(fs.readFileSync(tsconfigPath, 'utf8'))
       const paths = tsconfig.compilerOptions.paths
       
-      expect(paths['@/modules/*']).toEqual(['./src/modules/*'])
-      expect(paths['@/shared/*']).toEqual(['./src/modules/shared/*'])
+      expect(paths['@/src/modules/*']).toEqual(['./src/modules/*'])
+      expect(paths['@/shared/*']).toEqual(['./shared/*'])
       expect(paths['@/components/*']).toEqual(['./src/components/*'])
-      expect(paths['@/lib/*']).toEqual(['./src/lib/*'])
+      expect(paths['@/lib/*']).toEqual(['./lib/*'])
     })
   })
   
   describe('Module Exports', () => {
     it('should have proper barrel exports for each module', async () => {
-      const modules = ['parameters', 'price-projection', 'strategies', 'results', 'price-data', 'shared']
+      const modules = ['price-projection', 'strategies', 'results', 'price-data']
       
       for (const module of modules) {
         const indexPath = path.join(rootDir, `src/modules/${module}/index.ts`)

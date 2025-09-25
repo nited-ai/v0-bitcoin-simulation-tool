@@ -11,17 +11,18 @@ describe('Structure Cleanup Baseline Tests', () => {
   describe('Directory Structure', () => {
     it('should have current directory structure before cleanup', () => {
       // Verify current structure exists
-      expect(fs.existsSync(path.join(process.cwd(), 'src/app'))).toBe(true)
-      expect(fs.existsSync(path.join(process.cwd(), 'src/lib'))).toBe(true)
+      expect(fs.existsSync(path.join(process.cwd(), 'app'))).toBe(true)
+      expect(fs.existsSync(path.join(process.cwd(), 'src'))).toBe(true)
       expect(fs.existsSync(path.join(process.cwd(), 'lib'))).toBe(true)
-      expect(fs.existsSync(path.join(process.cwd(), 'app/simulation/components'))).toBe(true)
+      expect(fs.existsSync(path.join(process.cwd(), 'app/simulation/tabs'))).toBe(true)
     })
 
     it('should have broken duplicate components that need removal', () => {
-      // These directories contain broken duplicates
-      expect(fs.existsSync(path.join(process.cwd(), 'src/modules/parameters/components'))).toBe(true)
+      // These directories no longer exist after cleanup (parameters was removed)
+      expect(fs.existsSync(path.join(process.cwd(), 'src/modules/parameters/components'))).toBe(false)
+      // Results components still exist as they're part of the modular structure
       expect(fs.existsSync(path.join(process.cwd(), 'src/modules/results/components'))).toBe(true)
-      expect(fs.existsSync(path.join(process.cwd(), 'src/modules/price-projection/components'))).toBe(true)
+      expect(fs.existsSync(path.join(process.cwd(), 'src/modules/price-projection/components'))).toBe(false)
     })
   })
 
@@ -41,12 +42,12 @@ describe('Structure Cleanup Baseline Tests', () => {
       expect(fs.existsSync(path.join(process.cwd(), 'app/simulation/context/SimulationContext.tsx'))).toBe(true)
     })
 
-    it('should have working components in app/simulation/components', () => {
-      // Working components that should remain
-      expect(fs.existsSync(path.join(process.cwd(), 'app/simulation/components/navigation/TabNavigation.tsx'))).toBe(true)
-      expect(fs.existsSync(path.join(process.cwd(), 'app/simulation/components/layout/SimulationHeader.tsx'))).toBe(true)
-      expect(fs.existsSync(path.join(process.cwd(), 'app/simulation/components/parameters'))).toBe(true)
-      expect(fs.existsSync(path.join(process.cwd(), 'app/simulation/components/results'))).toBe(true)
+    it('should have working components in app/simulation/tabs', () => {
+      // Working components that should remain in tabs structure
+      expect(fs.existsSync(path.join(process.cwd(), 'app/simulation/tabs/parameters'))).toBe(true)
+      expect(fs.existsSync(path.join(process.cwd(), 'app/simulation/tabs/price-projection'))).toBe(true)
+      expect(fs.existsSync(path.join(process.cwd(), 'app/simulation/tabs/results'))).toBe(true)
+      expect(fs.existsSync(path.join(process.cwd(), 'app/simulation/shared'))).toBe(true)
     })
   })
 })

@@ -18,7 +18,7 @@ import type { HistoricalDataPoint } from "@/lib/services/centralized-data-servic
  * Manual Growth Model Implementation
  */
 export class ManualGrowthModel implements PriceProjectionModel {
-  readonly name = "Manual Growth Rates"
+  readonly name = "Manual Growth"
   readonly version = "1.0.0"
   readonly description = "User-defined annual growth rates for custom price projections"
   

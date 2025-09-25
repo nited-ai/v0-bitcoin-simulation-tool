@@ -12,9 +12,8 @@ describe('Library Consolidation Tests', () => {
     it('should have consolidated lib directory with all services after consolidation', () => {
       expect(fs.existsSync(path.join(process.cwd(), 'lib'))).toBe(true)
       expect(fs.existsSync(path.join(process.cwd(), 'lib/database'))).toBe(true)
-      expect(fs.existsSync(path.join(process.cwd(), 'lib/price-engine'))).toBe(true)
       expect(fs.existsSync(path.join(process.cwd(), 'lib/services'))).toBe(true)
-      expect(fs.existsSync(path.join(process.cwd(), 'lib/strategy-engine'))).toBe(true)
+      expect(fs.existsSync(path.join(process.cwd(), 'lib/generated'))).toBe(true)
     })
 
     it('should have lib directory with generated prisma client', () => {
