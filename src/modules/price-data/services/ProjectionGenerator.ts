@@ -204,11 +204,11 @@ export class ProjectionGenerator {
    * Based on Giovanni Santostasi's Power Law Theory: Price = constant × (days since Genesis Block)^5.8
    */
   private calculatePowerLawPrice(daysSinceGenesis: number, lineType: string): number {
-    // BitBo chart calibrated Power Law parameters for maximum accuracy
-    const exponent = 5.8
-    const bitboCalibrated = 2.1171391317e-17 // BitBo chart calibrated constant
+    // Exact straight line fit between $0.53 (2011-01-01) and $4,785,285.25 (2040-01-01)
+    const exponent = 5.836656989322271 // Exact slope from straight line fit
+    const exactConstant = 1.0447124016e-17 // Exact constant from straight line fit
 
-    // Line-specific adjustments using log-space differences (more mathematically accurate)
+    // Line-specific adjustments using log-space differences
     let lineMultiplier = 1
     switch (lineType) {
       case 'support':
@@ -223,6 +223,6 @@ export class ProjectionGenerator {
         break
     }
 
-    return bitboCalibrated * Math.pow(daysSinceGenesis, exponent) * lineMultiplier
+    return exactConstant * Math.pow(daysSinceGenesis, exponent) * lineMultiplier
   }
 }
