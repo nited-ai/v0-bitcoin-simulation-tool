@@ -27,14 +27,15 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 2.7 Verify all tests pass
   ✅ COMPLETED: RollingLoanStrategy implemented with comprehensive test coverage
 
-- [ ] 3. Loan Rollover Calculation Engine
-  - [ ] 3.1 Write tests for loan rollover calculation logic
-  - [ ] 3.2 Implement minimum loan amount calculation (principal + interest + platform fees)
-  - [ ] 3.3 Implement maximum loan amount calculation (target percentage of BTC stack)
-  - [ ] 3.4 Implement excess loan proceeds calculation formula
-  - [ ] 3.5 Handle conflict resolution when minimum exceeds target percentage
-  - [ ] 3.6 Implement insufficient collateral detection and liquidation trigger
-  - [ ] 3.7 Verify all tests pass
+- [x] 3. Loan Rollover Calculation Engine
+  - [x] 3.1 Write tests for loan rollover calculation logic
+  - [x] 3.2 Implement minimum loan amount calculation (principal + interest + platform fees)
+  - [x] 3.3 Implement maximum loan amount calculation (target percentage of BTC stack)
+  - [x] 3.4 Implement excess loan proceeds calculation formula
+  - [x] 3.5 Handle conflict resolution when minimum exceeds target percentage
+  - [x] 3.6 Implement insufficient collateral detection and liquidation trigger
+  - [x] 3.7 Verify all tests pass
+  ✅ COMPLETED: LoanRolloverCalculationService with comprehensive platform fee integration
 
 - [ ] 4. Platform Fee Integration
   - [ ] 4.1 Write tests for platform-specific fee calculations

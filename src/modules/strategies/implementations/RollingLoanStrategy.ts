@@ -12,6 +12,8 @@ import type {
   StrategyMetadata,
   Loan
 } from "../types"
+import { LoanRolloverCalculationService } from '../services/LoanRolloverCalculationService'
+import type { LoanRolloverParams, PlatformFeeConfig } from '../services/types'
 
 /**
  * Rolling Loan Strategy - Automated loan rollover for continuous leverage
@@ -26,6 +28,11 @@ import type {
  * 5. Risk management with liquidation protection
  */
 export class RollingLoanStrategy implements InvestmentStrategyInterface {
+  private loanCalculationService: LoanRolloverCalculationService
+
+  constructor() {
+    this.loanCalculationService = new LoanRolloverCalculationService()
+  }
   getName(): string {
     return "Rolling Loan Strategy"
   }
@@ -103,7 +110,7 @@ The strategy automatically handles loan rollovers at maturity, calculates minimu
     }
 
     if (isRollover) {
-      return this.handleLoanRollover(context, collateralValue, maxLoanAmount, minimumLoanNeeded, totalRepaymentDue)
+      return this.handleLoanRollover(context, collateralValue, maturingLoans)
     }
 
     // No action needed this month
@@ -149,42 +156,49 @@ The strategy automatically handles loan rollovers at maturity, calculates minimu
   private handleLoanRollover(
     context: StrategyContext,
     collateralValue: number,
-    maxLoanAmount: number,
-    minimumLoanNeeded: number,
-    totalRepaymentDue: number
+    maturingLoans: Loan[]
   ): StrategyDecision {
     const { params } = context
 
-    // Check if we have sufficient collateral for minimum loan
-    const liquidationLtv = params.riskManagement.liquidationLtv
-    const maxPossibleLoan = collateralValue * (liquidationLtv / 100)
+    // Calculate total repayment due from maturing loans
+    const totalRepaymentDue = maturingLoans.reduce((sum, loan) => sum + loan.repaymentAmount, 0)
+    const totalPrincipal = maturingLoans.reduce((sum, loan) => sum + loan.principal, 0)
+    const accruedInterest = totalRepaymentDue - totalPrincipal
 
-    if (minimumLoanNeeded > maxPossibleLoan) {
-      // Insufficient collateral - liquidation scenario
+    // Create platform fee configuration
+    const platformFeeConfig: PlatformFeeConfig = this.getPlatformFeeConfig(params)
+
+    // Prepare loan rollover parameters
+    const rolloverParams: LoanRolloverParams = {
+      previousLoanPrincipal: totalPrincipal,
+      accruedInterest,
+      platformFeeConfig,
+      loanOriginationFeePercent: params.loanOriginationFeePercent,
+      loanTermMonths: params.loanTermMonths,
+      btcStackValue: collateralValue,
+      targetLtvPercent: params.riskManagement.targetLtv,
+      liquidationLtvPercent: params.riskManagement.liquidationLtv
+    }
+
+    // Use calculation service for comprehensive rollover calculation
+    const rolloverResult = this.loanCalculationService.calculateLoanRollover(rolloverParams)
+
+    if (!rolloverResult.success) {
+      // Liquidation scenario
       return {
         allowInvestment: false,
         investmentMultiplier: 0,
         allowWithdrawal: false,
         withdrawalAmount: 0,
-        reasoning: `Insufficient collateral for minimum loan of $${Math.round(minimumLoanNeeded)}. Liquidation imminent.`
+        reasoning: rolloverResult.reasoning
       }
     }
 
-    // Determine actual loan amount
-    let actualLoanAmount: number
-    let targetLtvOverride: number | undefined
-
-    if (minimumLoanNeeded > maxLoanAmount) {
-      // Forced to exceed target LTV to pay off loans
-      actualLoanAmount = minimumLoanNeeded
-      targetLtvOverride = (actualLoanAmount / collateralValue) * 100
-    } else {
-      // Can stay within target LTV
-      actualLoanAmount = maxLoanAmount
-    }
-
-    const investmentMultiplier = actualLoanAmount / collateralValue
-    const excessProceeds = actualLoanAmount - totalRepaymentDue
+    // Calculate investment multiplier and target LTV override
+    const investmentMultiplier = rolloverResult.actualLoanAmount / collateralValue
+    const targetLtvOverride = rolloverResult.conflictResolution === 'forced_exceedance'
+      ? (rolloverResult.actualLoanAmount / collateralValue) * 100
+      : undefined
 
     if (params.btcAccumulation) {
       // BTC Accumulation Mode: Reinvest excess proceeds
@@ -194,7 +208,7 @@ The strategy automatically handles loan rollovers at maturity, calculates minimu
         allowWithdrawal: false,
         withdrawalAmount: 0,
         targetLtvOverride,
-        reasoning: `Rolling over loan: $${Math.round(actualLoanAmount)} (repay $${Math.round(totalRepaymentDue)}, reinvest excess $${Math.round(excessProceeds)})`
+        reasoning: rolloverResult.reasoning + ` (reinvest excess $${Math.round(rolloverResult.excessProceeds)})`
       }
     } else {
       // Cash Generation Mode: Take excess proceeds as cash
@@ -202,9 +216,28 @@ The strategy automatically handles loan rollovers at maturity, calculates minimu
         allowInvestment: true,
         investmentMultiplier,
         allowWithdrawal: true,
-        withdrawalAmount: Math.max(0, excessProceeds * 0.9), // Take 90% of excess as cash
+        withdrawalAmount: Math.max(0, rolloverResult.excessProceeds * 0.9), // Take 90% of excess as cash
         targetLtvOverride,
-        reasoning: `Rolling over loan: $${Math.round(actualLoanAmount)} (repay $${Math.round(totalRepaymentDue)}, cash generation $${Math.round(excessProceeds)})`
+        reasoning: rolloverResult.reasoning + ` (cash generation $${Math.round(rolloverResult.excessProceeds)})`
+      }
+    }
+  }
+
+  /**
+   * Get platform fee configuration from simulation parameters
+   */
+  private getPlatformFeeConfig(params: any): PlatformFeeConfig {
+    // Map platform-specific fee configurations
+    if (params.platform === 'firefish') {
+      return { type: 'annual', percent: 1.5 }
+    } else if (params.platform === 'strike') {
+      return { type: 'none', percent: 0 }
+    } else {
+      // Custom platform - use origination fee type from params
+      const feeType = params.originationFeeType || 'one-time'
+      return {
+        type: feeType === 'annual' ? 'annual' : 'one-time',
+        percent: params.originationFeePercent || 1.0
       }
     }
   }

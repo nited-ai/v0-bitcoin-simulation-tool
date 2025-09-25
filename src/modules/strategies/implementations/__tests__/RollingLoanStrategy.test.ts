@@ -123,7 +123,7 @@ describe('RollingLoanStrategy', () => {
       
       expect(decision.allowInvestment).toBe(true)
       expect(decision.investmentMultiplier).toBeGreaterThan(0)
-      expect(decision.reasoning).toContain('Rolling over')
+      expect(decision.reasoning).toContain('rollover')
     })
 
     test('handles price increase - larger loan possible', () => {
@@ -166,7 +166,7 @@ describe('RollingLoanStrategy', () => {
       // Should still allow investment to pay off loan, even if exceeding target LTV
       expect(decision.allowInvestment).toBe(true)
       expect(decision.targetLtvOverride).toBeGreaterThan(mockContext.params.riskManagement.targetLtv)
-      expect(decision.reasoning).toContain('Rolling over')
+      expect(decision.reasoning).toContain('exceedance')
     })
   })
 
@@ -291,7 +291,7 @@ describe('RollingLoanStrategy', () => {
 
       // Should only consider maturing loans for rollover
       expect(decision.allowInvestment).toBe(true)
-      expect(decision.reasoning).toContain('Rolling over')
+      expect(decision.reasoning).toContain('rollover')
     })
   })
 })
