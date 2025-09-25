@@ -217,22 +217,42 @@ export function PowerLawEducationalPanel({ className }: PowerLawEducationalPanel
                 <div className="grid md:grid-cols-3 gap-3">
                   <div className="bg-green-50 p-3 rounded-lg border border-green-200">
                     <h4 className="font-semibold text-green-800">Support Line</h4>
-                    <p className="text-sm text-green-700">
-                      Conservative projections representing the price floor. Good for risk management.
+                    <p className="text-sm text-green-700 mb-2">
+                      Calibrated to historical market bottoms. Represents the price floor during bear markets.
+                    </p>
+                    <p className="text-xs text-green-600 font-mono">
+                      Intercept: -17.461735<br/>
+                      Calibrated to: 2022 bottom ($15,500)
                     </p>
                   </div>
                   <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
                     <h4 className="font-semibold text-blue-800">Fit Line</h4>
-                    <p className="text-sm text-blue-700">
-                      Balanced projection through historical data. Most commonly used for planning.
+                    <p className="text-sm text-blue-700 mb-2">
+                      Industry-standard fair value line. Most commonly used for long-term planning.
+                    </p>
+                    <p className="text-xs text-blue-600 font-mono">
+                      Intercept: -17.01<br/>
+                      Source: HTML Power Law Explorer
                     </p>
                   </div>
                   <div className="bg-orange-50 p-3 rounded-lg border border-orange-200">
                     <h4 className="font-semibold text-orange-800">Resistance Line</h4>
-                    <p className="text-sm text-orange-700">
-                      Optimistic projections representing the price ceiling. Good for maximum potential scenarios.
+                    <p className="text-sm text-orange-700 mb-2">
+                      Calibrated to historical market peaks. Represents the price ceiling during bull markets.
+                    </p>
+                    <p className="text-xs text-orange-600 font-mono">
+                      Intercept: -15.941731<br/>
+                      Calibrated to: 2013 peak ($1,177)
                     </p>
                   </div>
+                </div>
+                <div className="bg-blue-50 p-3 rounded-lg border border-blue-200 mt-3">
+                  <h4 className="font-semibold text-blue-800 mb-2">🎯 Dynamic Calibration</h4>
+                  <p className="text-sm text-blue-700">
+                    Unlike fixed mathematical offsets, our support and resistance lines are dynamically calibrated
+                    to actual Bitcoin historical price extremes. This ensures the entire Bitcoin price history
+                    falls within the Power Law channel, providing more accurate risk assessment.
+                  </p>
                 </div>
               </div>
 

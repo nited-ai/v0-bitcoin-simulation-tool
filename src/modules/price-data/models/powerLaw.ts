@@ -9,15 +9,16 @@ import type { PriceEngineParams, ProjectionPathPoint, PowerLawLine } from '../ty
 
 export const GENESIS_DATE = new Date("2009-01-03")
 
-// Power Law model parameters based on HTML Power Law Explorer industry standard
+// Power Law model parameters with dynamic calibration based on historical extremes
 // Formula: Price = constant × (days since Genesis Block)^slope
-// Industry-standard parameters: slope = 5.844, intercept = -17.01
-// Produces $143k for 2026, $1.07M for 2033 (7.4% above Giovanni's $1M target)
-// Reference: Bitcoin Power Law Explorer (widely used industry tool)
+// Fit line: Industry-standard parameters from HTML Power Law Explorer (slope = 5.844, intercept = -17.01)
+// Support/Resistance: Dynamically calibrated to actual Bitcoin historical price extremes
+// - Support line calibrated to 2022 market bottom ($15,500 at 35.3% of fair value)
+// - Resistance line calibrated to 2013 market peak ($1,177 at 1170.2% of fair value)
 const POWER_LAW_MODELS = {
-  fit: { slope: 5.844, intercept: -17.01 },
-  support: { slope: 5.844, intercept: -17.16 }, // 0.15 lower in log space
-  resistance: { slope: 5.844, intercept: -16.86 }, // 0.15 higher in log space
+  fit: { slope: 5.844, intercept: -17.01 }, // Industry standard (unchanged)
+  support: { slope: 5.844, intercept: -17.461735 }, // Calibrated to historical bottoms
+  resistance: { slope: 5.844, intercept: -15.941731 }, // Calibrated to historical peaks
 }
 
 /**

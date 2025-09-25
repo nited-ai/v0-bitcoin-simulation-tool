@@ -204,25 +204,26 @@ export class ProjectionGenerator {
    * Based on Giovanni Santostasi's Power Law Theory: Price = constant × (days since Genesis Block)^5.8
    */
   private calculatePowerLawPrice(daysSinceGenesis: number, lineType: string): number {
-    // Industry-standard parameters from HTML Power Law Explorer
-    const exponent = 5.844 // Industry-standard slope
-    const industryConstant = 9.7723722096e-18 // Industry-standard constant (10^-17.01)
+    // Power Law parameters with dynamic calibration based on historical extremes
+    const slope = 5.844 // Industry-standard slope (same for all lines)
 
-    // Line-specific adjustments using log-space differences
-    let lineMultiplier = 1
+    // Dynamically calibrated intercepts based on actual Bitcoin historical price extremes
+    let intercept: number
     switch (lineType) {
       case 'support':
-        lineMultiplier = Math.pow(10, -0.15) // 0.15 lower in log space
+        intercept = -17.461735 // Calibrated to 2022 market bottom ($15,500)
         break
       case 'resistance':
-        lineMultiplier = Math.pow(10, 0.15) // 0.15 higher in log space
+        intercept = -15.941731 // Calibrated to 2013 market peak ($1,177)
         break
       case 'fit':
       default:
-        lineMultiplier = 1
+        intercept = -17.01 // Industry standard from HTML Power Law Explorer
         break
     }
 
-    return industryConstant * Math.pow(daysSinceGenesis, exponent) * lineMultiplier
+    // Calculate price using log-linear formula: log10(Price) = slope * log10(days) + intercept
+    const logPrice = slope * Math.log10(daysSinceGenesis) + intercept
+    return Math.pow(10, logPrice)
   }
 }
