@@ -447,11 +447,14 @@ export function TabNavigation({ children }: TabNavigationProps) {
         
         <TabsContent value="strategy" className={`${isMobile ? 'mt-0 px-4' : 'mt-6'}`}>
           <div className="space-y-6">
-            {/* Strategy Selection */}
-            <StrategySelectionCard />
+            {/* Top Row: 50/50 Split */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Left Half: Investment Strategy */}
+              <StrategySelectionCard />
 
-            {/* BTC Accumulation Configuration */}
-            <BtcAccumulationCard />
+              {/* Right Half: BTC Accumulation Strategy */}
+              <BtcAccumulationCard />
+            </div>
 
             {/* Rolling Loan Strategy Configuration (conditional) */}
             <RollingLoanConfigCard />

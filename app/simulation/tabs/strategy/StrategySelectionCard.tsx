@@ -89,6 +89,32 @@ export function StrategySelectionCard() {
     }
   }
 
+  const getSecurityExplanation = (rating: number): string => {
+    switch (rating) {
+      case 1: return "High risk - requires careful monitoring and risk management"
+      case 2: return "Moderate risk - some volatility and liquidation risk"
+      case 3: return "Balanced risk - standard Bitcoin lending risks apply"
+      case 4: return "Lower risk - conservative approach with safety margins"
+      case 5: return "Lowest risk - maximum safety with minimal exposure"
+      default: return "Risk level varies based on market conditions"
+    }
+  }
+
+  const getComplexityExplanation = (rating: number): string => {
+    switch (rating) {
+      case 1: return "Very simple - minimal setup and monitoring required"
+      case 2: return "Simple - basic understanding of Bitcoin lending needed"
+      case 3: return "Moderate - requires understanding of loan mechanics"
+      case 4: return "Complex - advanced knowledge of DeFi and risk management"
+      case 5: return "Very complex - expert-level strategy requiring active management"
+      default: return "Complexity varies based on configuration"
+    }
+  }
+
+  const getSuitabilityExplanation = (suitableFor: string[]): string => {
+    return suitableFor.join(", ") + " who understand the associated risks and have appropriate risk tolerance"
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -101,132 +127,140 @@ export function StrategySelectionCard() {
         </CardDescription>
       </CardHeader>
       
-      <CardContent className="space-y-6">
-        {/* Two-Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column (1/3 width) - Strategy Selection and Criteria */}
-          <div className="space-y-4">
-            {/* Strategy Selection */}
+      <CardContent className="space-y-4">
+        {/* Single Column Layout */}
+        <div className="space-y-4">
+          {/* 1. Strategy Selection Dropdown */}
+          <div className="space-y-2">
+            <Select value={params.investmentStrategy} onValueChange={handleStrategyChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select an investment strategy" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableStrategies.map((strategy) => (
+                  <SelectItem
+                    key={strategy.id}
+                    value={strategy.id}
+                    disabled={!strategy.enabled}
+                    className={!strategy.enabled ? 'opacity-50 cursor-not-allowed' : ''}
+                  >
+                    <div className="flex items-center gap-2">
+                      {getStrategyIcon(strategy.id)}
+                      <span>{strategy.name}</span>
+                      {getStrategyBadge(strategy)}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* 2. Strategy Description with Enhanced Info */}
+          <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+            <div className="flex items-start gap-2">
+              <Info className="w-4 h-4 text-blue-500 mt-0.5" />
+              <div className="text-sm space-y-2">
+                <p className="font-medium text-blue-900 dark:text-blue-100">
+                  {availableStrategies.find(s => s.id === params.investmentStrategy)?.name}
+                </p>
+                <p className="text-blue-700 dark:text-blue-300">
+                  {availableStrategies.find(s => s.id === params.investmentStrategy)?.description}
+                </p>
+
+                {/* Enhanced explanations */}
+                {selectedStrategyMetadata && (
+                  <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-700 space-y-2">
+                    <p className="text-blue-700 dark:text-blue-300 text-xs">
+                      <strong>Security Rating ({selectedStrategyMetadata.securityRating}/5):</strong> {getSecurityExplanation(selectedStrategyMetadata.securityRating)}
+                    </p>
+                    <p className="text-blue-700 dark:text-blue-300 text-xs">
+                      <strong>Complexity Rating ({selectedStrategyMetadata.complexityRating}/5):</strong> {getComplexityExplanation(selectedStrategyMetadata.complexityRating)}
+                    </p>
+                    <p className="text-blue-700 dark:text-blue-300 text-xs">
+                      <strong>Suitable For:</strong> {getSuitabilityExplanation(selectedStrategyMetadata.suitableFor)}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* 3. Security/Complexity/Suitable For Rating Indicators */}
+          {selectedStrategyMetadata && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Security Rating */}
+              <div className="flex items-center gap-2">
+                <Shield className="w-4 h-4 text-green-500" />
+                <div>
+                  <div className="text-sm font-medium">Security</div>
+                  <div className="flex gap-1">
+                    {Array.from({ length: 5 }, (_, i) => (
+                      <div
+                        key={i}
+                        className={`w-2 h-2 rounded-full ${
+                          i < selectedStrategyMetadata.securityRating
+                            ? 'bg-green-500'
+                            : 'bg-gray-200'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Complexity Rating */}
+              <div className="flex items-center gap-2">
+                <Brain className="w-4 h-4 text-blue-500" />
+                <div>
+                  <div className="text-sm font-medium">Complexity</div>
+                  <div className="flex gap-1">
+                    {Array.from({ length: 5 }, (_, i) => (
+                      <div
+                        key={i}
+                        className={`w-2 h-2 rounded-full ${
+                          i < selectedStrategyMetadata.complexityRating
+                            ? 'bg-blue-500'
+                            : 'bg-gray-200'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Suitable For */}
+              <div className="flex items-center gap-2">
+                <Target className="w-4 h-4 text-purple-500" />
+                <div>
+                  <div className="text-sm font-medium">Suitable For</div>
+                  <div className="flex flex-wrap gap-1">
+                    {selectedStrategyMetadata.suitableFor.slice(0, 2).map((tag) => (
+                      <Badge key={tag} variant="outline" className="text-xs">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 4. Strategy Criteria (clarified) */}
+          {selectedStrategyMetadata && (
             <div className="space-y-2">
-              <Label htmlFor="strategy-select">Strategy Type</Label>
-              <Select value={params.investmentStrategy} onValueChange={handleStrategyChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select an investment strategy" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableStrategies.map((strategy) => (
-                    <SelectItem
-                      key={strategy.id}
-                      value={strategy.id}
-                      disabled={!strategy.enabled}
-                      className={!strategy.enabled ? 'opacity-50 cursor-not-allowed' : ''}
-                    >
-                      <div className="flex items-center gap-2">
-                        {getStrategyIcon(strategy.id)}
-                        <span>{strategy.name}</span>
-                        {getStrategyBadge(strategy)}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Strategy Criteria */}
-            {selectedStrategyMetadata && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Info className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">Strategy Criteria</span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {selectedStrategyMetadata.criteria.map((criterion) => (
-                    <Badge key={criterion} variant="secondary" className="text-xs">
-                      {criterion.replace('_', ' ')}
-                    </Badge>
-                  ))}
-                </div>
+              <div className="flex items-center gap-2">
+                <Info className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Strategy Features</span>
               </div>
-            )}
-          </div>
-
-          {/* Right Column (2/3 width) - Strategy Description and Metadata */}
-          <div className="lg:col-span-2 space-y-4">
-            {/* Strategy Description */}
-            <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-              <div className="flex items-start gap-2">
-                <Info className="w-4 h-4 text-blue-500 mt-0.5" />
-                <div className="text-sm">
-                  <p className="font-medium text-blue-900 dark:text-blue-100 mb-1">
-                    {availableStrategies.find(s => s.id === params.investmentStrategy)?.name}
-                  </p>
-                  <p className="text-blue-700 dark:text-blue-300">
-                    {availableStrategies.find(s => s.id === params.investmentStrategy)?.description}
-                  </p>
-                </div>
+              <div className="flex flex-wrap gap-2">
+                {selectedStrategyMetadata.criteria.map((criterion) => (
+                  <Badge key={criterion} variant="secondary" className="text-xs">
+                    {criterion.replace('_', ' ')}
+                  </Badge>
+                ))}
               </div>
             </div>
-
-            {/* Strategy Metadata */}
-            {selectedStrategyMetadata && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Security Rating */}
-                <div className="flex items-center gap-2">
-                  <Shield className="w-4 h-4 text-green-500" />
-                  <div>
-                    <div className="text-sm font-medium">Security</div>
-                    <div className="flex gap-1">
-                      {Array.from({ length: 5 }, (_, i) => (
-                        <div
-                          key={i}
-                          className={`w-2 h-2 rounded-full ${
-                            i < selectedStrategyMetadata.securityRating
-                              ? 'bg-green-500'
-                              : 'bg-gray-200'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Complexity Rating */}
-                <div className="flex items-center gap-2">
-                  <Brain className="w-4 h-4 text-blue-500" />
-                  <div>
-                    <div className="text-sm font-medium">Complexity</div>
-                    <div className="flex gap-1">
-                      {Array.from({ length: 5 }, (_, i) => (
-                        <div
-                          key={i}
-                          className={`w-2 h-2 rounded-full ${
-                            i < selectedStrategyMetadata.complexityRating
-                              ? 'bg-blue-500'
-                              : 'bg-gray-200'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Suitable For */}
-                <div className="flex items-center gap-2">
-                  <Target className="w-4 h-4 text-purple-500" />
-                  <div>
-                    <div className="text-sm font-medium">Suitable For</div>
-                    <div className="flex flex-wrap gap-1">
-                      {selectedStrategyMetadata.suitableFor.slice(0, 2).map((tag) => (
-                        <Badge key={tag} variant="outline" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+          )}
         </div>
       </CardContent>
     </Card>

@@ -2,11 +2,8 @@
 
 import { useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
-import { HybridTooltip, HybridTooltipContent, HybridTooltipTrigger } from "@/components/ui/hybrid-tooltip"
-import { Zap, Info, TrendingUp, DollarSign, Clock, Shield, AlertTriangle } from "lucide-react"
+import { Zap, Info, Clock, Shield, AlertTriangle, DollarSign } from "lucide-react"
 import { useSimulation } from "../../context/SimulationContext"
 
 /**
@@ -23,13 +20,7 @@ export function RollingLoanConfigCard() {
     return null
   }
 
-  // Handle BTC accumulation toggle
-  const handleBtcAccumulationChange = (checked: boolean) => {
-    setParams((prev) => ({ 
-      ...prev, 
-      btcAccumulation: checked 
-    }))
-  }
+
 
   // Calculate real-time preview values
   const previewCalculations = useMemo(() => {
@@ -57,69 +48,12 @@ export function RollingLoanConfigCard() {
           Rolling Loan Configuration
         </CardTitle>
         <CardDescription>
-          Configure your automated loan rollover strategy and accumulation mode
+          Configure your automated loan rollover strategy settings
         </CardDescription>
       </CardHeader>
       
       <CardContent className="space-y-6">
-        {/* BTC Accumulation Mode Toggle */}
-        <div className="space-y-4">
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="btcAccumulation"
-              checked={params.btcAccumulation}
-              onCheckedChange={handleBtcAccumulationChange}
-            />
-            <Label
-              htmlFor="btcAccumulation"
-              className="flex items-center gap-2 cursor-pointer"
-            >
-              <TrendingUp className="w-4 h-4 text-green-500" />
-              BTC Accumulation Mode
-              <HybridTooltip>
-                <HybridTooltipTrigger asChild>
-                  <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                </HybridTooltipTrigger>
-                <HybridTooltipContent className="max-w-xs">
-                  <p>
-                    <strong>Enabled:</strong> Loan proceeds are reinvested to accumulate more Bitcoin.<br/>
-                    <strong>Disabled:</strong> Excess loan proceeds are taken as cash for income generation.
-                  </p>
-                </HybridTooltipContent>
-              </HybridTooltip>
-            </Label>
-          </div>
 
-          {/* Mode Description */}
-          <div className={`p-4 rounded-lg border-2 ${
-            params.btcAccumulation 
-              ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800' 
-              : 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800'
-          }`}>
-            <div className="flex items-start gap-3">
-              {params.btcAccumulation ? (
-                <TrendingUp className="w-5 h-5 text-green-600 mt-0.5" />
-              ) : (
-                <DollarSign className="w-5 h-5 text-blue-600 mt-0.5" />
-              )}
-              <div>
-                <h4 className={`font-medium ${
-                  params.btcAccumulation ? 'text-green-900 dark:text-green-100' : 'text-blue-900 dark:text-blue-100'
-                }`}>
-                  {params.btcAccumulation ? 'BTC Accumulation Mode' : 'Cash Generation Mode'}
-                </h4>
-                <p className={`text-sm mt-1 ${
-                  params.btcAccumulation ? 'text-green-700 dark:text-green-300' : 'text-blue-700 dark:text-blue-300'
-                }`}>
-                  {params.btcAccumulation 
-                    ? 'Loan proceeds will be reinvested to accumulate more Bitcoin. This maximizes your Bitcoin holdings over time but provides no immediate cash flow.'
-                    : 'Excess loan proceeds will be taken as cash for living expenses or other investments. This generates income while maintaining your target loan percentage.'
-                  }
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
 
         {/* Strategy Mechanics Preview */}
         <div className="space-y-4">

@@ -34,10 +34,10 @@ export function StrategyPreviewCard() {
     // Calculate loan rollover details
     const rolloverParams = {
       previousLoanPrincipal: initialLoanAmount,
-      accruedInterest: (initialLoanAmount * params.riskManagement.annualInterestRate / 100) / 12,
+      accruedInterest: (initialLoanAmount * params.annualInterestRate / 100) / 12,
       platformFeeConfig,
-      loanOriginationFeePercent: params.riskManagement.liquidationFeePercent || 1.5,
-      loanTermMonths: params.riskManagement.loanTermMonths,
+      loanOriginationFeePercent: params.liquidationFeePercent || 1.5,
+      loanTermMonths: params.loanTermMonths,
       btcStackValue,
       targetLtvPercent: params.riskManagement.targetLtv,
       liquidationLtvPercent: params.riskManagement.liquidationLtv
@@ -56,7 +56,7 @@ export function StrategyPreviewCard() {
       liquidationBuffer,
       riskLevel,
       platformFeeConfig,
-      monthlyInterest: (initialLoanAmount * params.riskManagement.annualInterestRate / 100) / 12,
+      monthlyInterest: (initialLoanAmount * params.annualInterestRate / 100) / 12,
       annualCost: rolloverResult.totalRepaymentDue + rolloverResult.platformFees
     }
   }, [params, loanCalculationService, platformFeeService])
@@ -103,7 +103,7 @@ export function StrategyPreviewCard() {
               <span className="text-xs font-medium">Initial Loan</span>
             </div>
             <div className="text-lg font-bold text-green-600">
-              ${previewData.initialLoanAmount.toLocaleString()}
+              ${Math.round(previewData.initialLoanAmount).toLocaleString()}
             </div>
             <div className="text-xs text-muted-foreground">
               {params.loanAmountPercent}% of stack
@@ -117,10 +117,10 @@ export function StrategyPreviewCard() {
               <span className="text-xs font-medium">Monthly Interest</span>
             </div>
             <div className="text-lg font-bold text-orange-600">
-              ${previewData.monthlyInterest.toLocaleString()}
+              ${Math.round(previewData.monthlyInterest).toLocaleString()}
             </div>
             <div className="text-xs text-muted-foreground">
-              {params.riskManagement.annualInterestRate}% annual
+              {params.annualInterestRate}% annual
             </div>
           </div>
 
@@ -131,7 +131,7 @@ export function StrategyPreviewCard() {
               <span className="text-xs font-medium">Annual Cost</span>
             </div>
             <div className="text-lg font-bold text-red-600">
-              ${previewData.annualCost.toLocaleString()}
+              ${Math.round(previewData.annualCost).toLocaleString()}
             </div>
             <div className="text-xs text-muted-foreground">
               Interest + fees
@@ -168,19 +168,19 @@ export function StrategyPreviewCard() {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span>Principal Repayment:</span>
-                    <span className="font-medium">${previewData.rolloverResult.totalRepaymentDue.toLocaleString()}</span>
+                    <span className="font-medium">${Math.round(previewData.rolloverResult.totalRepaymentDue).toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Interest Cost:</span>
-                    <span className="font-medium">${(previewData.rolloverResult.totalRepaymentDue * 0.8).toLocaleString()}</span>
+                    <span className="font-medium">${Math.round(previewData.rolloverResult.totalRepaymentDue * 0.8).toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Platform Fees:</span>
-                    <span className="font-medium">${previewData.rolloverResult.platformFees.toLocaleString()}</span>
+                    <span className="font-medium">${Math.round(previewData.rolloverResult.platformFees).toLocaleString()}</span>
                   </div>
                   <div className="border-t pt-2 flex justify-between font-bold">
                     <span>Total Minimum:</span>
-                    <span>${previewData.rolloverResult.minimumLoanNeeded.toLocaleString()}</span>
+                    <span>${Math.round(previewData.rolloverResult.minimumLoanNeeded).toLocaleString()}</span>
                   </div>
                 </div>
               </div>
@@ -191,15 +191,15 @@ export function StrategyPreviewCard() {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span>Target Loan Amount:</span>
-                    <span className="font-medium">${previewData.rolloverResult.actualLoanAmount.toLocaleString()}</span>
+                    <span className="font-medium">${Math.round(previewData.rolloverResult.actualLoanAmount).toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Minimum Required:</span>
-                    <span className="font-medium">${previewData.rolloverResult.minimumLoanNeeded.toLocaleString()}</span>
+                    <span className="font-medium">${Math.round(previewData.rolloverResult.minimumLoanNeeded).toLocaleString()}</span>
                   </div>
                   <div className="border-t pt-2 flex justify-between font-bold">
                     <span>Excess Available:</span>
-                    <span className="text-green-600">${previewData.rolloverResult.excessProceeds.toLocaleString()}</span>
+                    <span className="text-green-600">${Math.round(previewData.rolloverResult.excessProceeds).toLocaleString()}</span>
                   </div>
                   <div className="text-xs text-muted-foreground mt-2">
                     {params.btcAccumulation ? 'Reinvested in BTC' : 'Taken as cash'}

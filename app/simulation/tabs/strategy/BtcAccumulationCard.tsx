@@ -37,7 +37,7 @@ export function BtcAccumulationCard() {
         </CardDescription>
       </CardHeader>
       
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4">
         {/* BTC Accumulation Toggle */}
         <div className="flex items-center space-x-3">
           <Checkbox
@@ -66,26 +66,20 @@ export function BtcAccumulationCard() {
           </Label>
         </div>
 
-        {/* Mode Comparison */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* BTC Accumulation Mode */}
-          <div className={`p-4 rounded-lg border-2 transition-all ${
-            params.btcAccumulation 
-              ? 'bg-green-50 dark:bg-green-950/20 border-green-300 dark:border-green-700' 
-              : 'bg-muted/30 border-muted-foreground/20'
-          }`}>
+        {/* Active Mode Display */}
+        {params.btcAccumulation ? (
+          /* BTC Accumulation Mode */
+          <div className="p-4 rounded-lg border-2 bg-green-50 dark:bg-green-950/20 border-green-300 dark:border-green-700">
             <div className="flex items-center gap-2 mb-3">
-              <Coins className={`w-5 h-5 ${params.btcAccumulation ? 'text-green-600' : 'text-muted-foreground'}`} />
-              <h4 className={`font-medium ${params.btcAccumulation ? 'text-green-900 dark:text-green-100' : 'text-muted-foreground'}`}>
+              <Coins className="w-5 h-5 text-green-600" />
+              <h4 className="font-medium text-green-900 dark:text-green-100">
                 BTC Accumulation Mode
               </h4>
-              {params.btcAccumulation && (
-                <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">
-                  ACTIVE
-                </Badge>
-              )}
+              <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">
+                ACTIVE
+              </Badge>
             </div>
-            
+
             <div className="space-y-2 text-sm">
               <div className="flex items-center gap-2">
                 <ArrowRight className="w-3 h-3 text-green-500" />
@@ -105,33 +99,23 @@ export function BtcAccumulationCard() {
               </div>
             </div>
 
-            <div className={`mt-3 p-2 rounded text-xs ${
-              params.btcAccumulation 
-                ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200' 
-                : 'bg-muted text-muted-foreground'
-            }`}>
+            <div className="mt-3 p-2 rounded text-xs bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200">
               <strong>Best for:</strong> Long-term Bitcoin maximalists who don't need immediate income
             </div>
           </div>
-
-          {/* Cash Generation Mode */}
-          <div className={`p-4 rounded-lg border-2 transition-all ${
-            !params.btcAccumulation 
-              ? 'bg-blue-50 dark:bg-blue-950/20 border-blue-300 dark:border-blue-700' 
-              : 'bg-muted/30 border-muted-foreground/20'
-          }`}>
+        ) : (
+          /* Cash Generation Mode */
+          <div className="p-4 rounded-lg border-2 bg-blue-50 dark:bg-blue-950/20 border-blue-300 dark:border-blue-700">
             <div className="flex items-center gap-2 mb-3">
-              <Banknote className={`w-5 h-5 ${!params.btcAccumulation ? 'text-blue-600' : 'text-muted-foreground'}`} />
-              <h4 className={`font-medium ${!params.btcAccumulation ? 'text-blue-900 dark:text-blue-100' : 'text-muted-foreground'}`}>
+              <Banknote className="w-5 h-5 text-blue-600" />
+              <h4 className="font-medium text-blue-900 dark:text-blue-100">
                 Cash Generation Mode
               </h4>
-              {!params.btcAccumulation && (
-                <Badge variant="secondary" className="bg-blue-100 text-blue-800 text-xs">
-                  ACTIVE
-                </Badge>
-              )}
+              <Badge variant="secondary" className="bg-blue-100 text-blue-800 text-xs">
+                ACTIVE
+              </Badge>
             </div>
-            
+
             <div className="space-y-2 text-sm">
               <div className="flex items-center gap-2">
                 <ArrowRight className="w-3 h-3 text-blue-500" />
@@ -151,45 +135,11 @@ export function BtcAccumulationCard() {
               </div>
             </div>
 
-            <div className={`mt-3 p-2 rounded text-xs ${
-              !params.btcAccumulation 
-                ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200' 
-                : 'bg-muted text-muted-foreground'
-            }`}>
+            <div className="mt-3 p-2 rounded text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200">
               <strong>Best for:</strong> Income-focused investors who need cash flow from their Bitcoin
             </div>
           </div>
-        </div>
-
-        {/* Current Mode Summary */}
-        <div className={`p-4 rounded-lg border ${
-          params.btcAccumulation 
-            ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800' 
-            : 'bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800'
-        }`}>
-          <div className="flex items-start gap-3">
-            {params.btcAccumulation ? (
-              <Coins className="w-5 h-5 text-green-600 mt-0.5" />
-            ) : (
-              <Banknote className="w-5 h-5 text-blue-600 mt-0.5" />
-            )}
-            <div>
-              <h4 className={`font-medium ${
-                params.btcAccumulation ? 'text-green-900 dark:text-green-100' : 'text-blue-900 dark:text-blue-100'
-              }`}>
-                Current Strategy: {params.btcAccumulation ? 'BTC Accumulation' : 'Cash Generation'}
-              </h4>
-              <p className={`text-sm mt-1 ${
-                params.btcAccumulation ? 'text-green-700 dark:text-green-300' : 'text-blue-700 dark:text-blue-300'
-              }`}>
-                {params.btcAccumulation 
-                  ? 'Your loan proceeds will be automatically reinvested to purchase additional Bitcoin, maximizing your holdings over time. This strategy compounds your Bitcoin accumulation but provides no immediate cash flow.'
-                  : 'Excess loan proceeds will be taken as cash income while maintaining your target loan percentage. This provides regular cash flow while preserving your Bitcoin stack size.'
-                }
-              </p>
-            </div>
-          </div>
-        </div>
+        )}
 
         {/* Strategy Impact */}
         <div className="space-y-3">
@@ -197,7 +147,7 @@ export function BtcAccumulationCard() {
             <Info className="w-4 h-4 text-muted-foreground" />
             Strategy Impact
           </h4>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
             <div className="flex items-center gap-2">
               <div className={`w-2 h-2 rounded-full ${params.btcAccumulation ? 'bg-green-500' : 'bg-blue-500'}`}></div>
