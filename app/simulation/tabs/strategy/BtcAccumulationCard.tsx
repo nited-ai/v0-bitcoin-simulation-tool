@@ -1,7 +1,6 @@
 "use client"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { TrendingUp, DollarSign, Info, ArrowRight, Coins, Banknote } from "lucide-react"
 import { useSimulation } from "../../context/SimulationContext"
 
@@ -52,11 +51,6 @@ export function BtcAccumulationCard() {
               <h4 className={`font-medium ${params.btcAccumulation ? 'text-green-900 dark:text-green-100' : 'text-muted-foreground'}`}>
                 BTC Accumulation Mode
               </h4>
-              {params.btcAccumulation && (
-                <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">
-                  ACTIVE
-                </Badge>
-              )}
             </div>
 
             <div className="space-y-2 text-sm">
@@ -101,11 +95,6 @@ export function BtcAccumulationCard() {
               <h4 className={`font-medium ${!params.btcAccumulation ? 'text-blue-900 dark:text-blue-100' : 'text-muted-foreground'}`}>
                 Cash Generation Mode
               </h4>
-              {!params.btcAccumulation && (
-                <Badge variant="secondary" className="bg-blue-100 text-blue-800 text-xs">
-                  ACTIVE
-                </Badge>
-              )}
             </div>
 
             <div className="space-y-2 text-sm">

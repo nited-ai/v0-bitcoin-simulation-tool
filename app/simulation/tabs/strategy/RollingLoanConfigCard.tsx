@@ -53,97 +53,101 @@ export function RollingLoanConfigCard() {
       </CardHeader>
       
       <CardContent className="space-y-6">
+        {/* 50/50 Split Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left Column: Rolling Loan Configuration */}
+          <div className="space-y-4">
+            {/* How Rolling Loans Work */}
+            <div className="space-y-3">
+              <h4 className="font-medium flex items-center gap-2">
+                <Zap className="w-4 h-4 text-orange-500" />
+                How Rolling Loans Work
+              </h4>
 
-
-        {/* Strategy Mechanics Preview */}
-        <div className="space-y-4">
-          <h4 className="font-medium flex items-center gap-2">
-            <Info className="w-4 h-4 text-muted-foreground" />
-            Strategy Preview
-          </h4>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Initial Loan Calculation */}
-            <div className="p-3 bg-muted/50 rounded-lg">
-              <div className="flex items-center gap-2 mb-2">
-                <DollarSign className="w-4 h-4 text-green-500" />
-                <span className="text-sm font-medium">Initial Loan Amount</span>
-              </div>
-              <div className="text-lg font-bold text-green-600">
-                ${Math.round(previewCalculations.initialLoanAmount).toLocaleString()}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {params.loanAmountPercent}% of ${previewCalculations.btcStackValue.toLocaleString()} BTC stack
-              </div>
-            </div>
-
-            {/* Target LTV */}
-            <div className="p-3 bg-muted/50 rounded-lg">
-              <div className="flex items-center gap-2 mb-2">
-                <Shield className="w-4 h-4 text-blue-500" />
-                <span className="text-sm font-medium">Target LTV</span>
-              </div>
-              <div className="text-lg font-bold text-blue-600">
-                {previewCalculations.targetLtv}%
-              </div>
-              <div className="text-xs text-muted-foreground">
-                Loan-to-value ratio maintained
-              </div>
-            </div>
-
-            {/* Loan Term */}
-            <div className="p-3 bg-muted/50 rounded-lg">
-              <div className="flex items-center gap-2 mb-2">
-                <Clock className="w-4 h-4 text-purple-500" />
-                <span className="text-sm font-medium">Loan Term</span>
-              </div>
-              <div className="text-lg font-bold text-purple-600">
-                {previewCalculations.loanTerm} months
-              </div>
-              <div className="text-xs text-muted-foreground">
-                Consistent rollover period
-              </div>
-            </div>
-
-            {/* Monthly Interest */}
-            <div className="p-3 bg-muted/50 rounded-lg">
-              <div className="flex items-center gap-2 mb-2">
-                <AlertTriangle className="w-4 h-4 text-orange-500" />
-                <span className="text-sm font-medium">Monthly Interest</span>
-              </div>
-              <div className="text-lg font-bold text-orange-600">
-                ${Math.round(previewCalculations.monthlyInterest).toLocaleString()}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {previewCalculations.interestRate}% annual rate
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <div className="flex items-start gap-2">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
+                  <p><strong>Initial Loan:</strong> Take a loan for {params.loanAmountPercent.toFixed(2)}% of your BTC stack value</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
+                  <p><strong>Automatic Rollover:</strong> At maturity, take a new loan to pay off the previous one</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
+                  <p><strong>Dynamic Sizing:</strong> Loan amounts adjust based on Bitcoin price changes</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
+                  <p><strong>Risk Management:</strong> Liquidation protection and collateral monitoring</p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* How Rolling Loans Work */}
-        <div className="space-y-3">
-          <h4 className="font-medium flex items-center gap-2">
-            <Zap className="w-4 h-4 text-orange-500" />
-            How Rolling Loans Work
-          </h4>
-          
-          <div className="space-y-2 text-sm text-muted-foreground">
-            <div className="flex items-start gap-2">
-              <div className="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
-              <p><strong>Initial Loan:</strong> Take a loan for {params.loanAmountPercent}% of your BTC stack value</p>
-            </div>
-            <div className="flex items-start gap-2">
-              <div className="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
-              <p><strong>Automatic Rollover:</strong> At maturity, take a new loan to pay off the previous one</p>
-            </div>
-            <div className="flex items-start gap-2">
-              <div className="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
-              <p><strong>Dynamic Sizing:</strong> Loan amounts adjust based on Bitcoin price changes</p>
-            </div>
-            <div className="flex items-start gap-2">
-              <div className="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
-              <p><strong>Risk Management:</strong> Liquidation protection and collateral monitoring</p>
+          {/* Right Column: Strategy Mechanics Preview */}
+          <div className="space-y-4">
+            <h4 className="font-medium flex items-center gap-2">
+              <Info className="w-4 h-4 text-muted-foreground" />
+              Strategy Preview
+            </h4>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Initial Loan Calculation */}
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <DollarSign className="w-4 h-4 text-green-500" />
+                  <span className="text-sm font-medium">Initial Loan Amount</span>
+                </div>
+                <div className="text-lg font-bold text-green-600">
+                  ${Math.round(previewCalculations.initialLoanAmount).toLocaleString()}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {params.loanAmountPercent.toFixed(2)}% of ${previewCalculations.btcStackValue.toLocaleString()} BTC stack
+                </div>
+              </div>
+
+              {/* Target LTV */}
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <Shield className="w-4 h-4 text-blue-500" />
+                  <span className="text-sm font-medium">Target LTV</span>
+                </div>
+                <div className="text-lg font-bold text-blue-600">
+                  {previewCalculations.targetLtv}%
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Loan-to-value ratio maintained
+                </div>
+              </div>
+
+              {/* Loan Term */}
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <Clock className="w-4 h-4 text-purple-500" />
+                  <span className="text-sm font-medium">Loan Term</span>
+                </div>
+                <div className="text-lg font-bold text-purple-600">
+                  {previewCalculations.loanTerm} months
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Consistent rollover period
+                </div>
+              </div>
+
+              {/* Monthly Interest */}
+              <div className="p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertTriangle className="w-4 h-4 text-orange-500" />
+                  <span className="text-sm font-medium">Monthly Interest</span>
+                </div>
+                <div className="text-lg font-bold text-orange-600">
+                  ${Math.round(previewCalculations.monthlyInterest).toLocaleString()}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {previewCalculations.interestRate}% annual rate
+                </div>
+              </div>
             </div>
           </div>
         </div>
