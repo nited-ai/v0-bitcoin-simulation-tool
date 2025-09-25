@@ -56,6 +56,7 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 5.6 Add educational section explaining rolling loan mechanics
   - [x] 5.7 Verify all tests pass
   ✅ COMPLETED: Comprehensive Strategy tab UI with rolling loan configuration and real-time previews
+  📝 Updated: UI/UX improvements with two-column layout, limited strategy selection, and coming soon states
 
 - [ ] 6. Validation and Error Handling
   - [ ] 6.1 Write tests for all validation rules and error scenarios

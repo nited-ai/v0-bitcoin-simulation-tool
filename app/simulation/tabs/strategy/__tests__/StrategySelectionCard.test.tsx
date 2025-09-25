@@ -34,7 +34,8 @@ vi.mock('@/src/modules/strategies', () => ({
   getAvailableStrategies: () => [
     { id: 'default', name: 'Default Strategy', description: 'Basic investment strategy' },
     { id: 'rollingLoan', name: 'Rolling Loan Strategy', description: 'Automated loan rollover strategy' },
-    { id: 'athBased', name: 'ATH-Based Strategy', description: 'All-time high based strategy' }
+    { id: 'athBased', name: 'ATH-Based Strategy', description: 'All-time high based strategy' },
+    { id: 'movingAverage', name: 'Moving Average Strategy', description: 'Moving average based strategy' }
   ]
 }))
 
@@ -51,15 +52,16 @@ describe('StrategySelectionCard', () => {
       expect(screen.getByText('Choose your Bitcoin lending strategy')).toBeInTheDocument()
     })
 
-    it('should display available strategies in dropdown', () => {
+    it('should display available strategies in dropdown with coming soon badges', () => {
       render(<StrategySelectionCard />)
-      
+
       const select = screen.getByRole('combobox')
       fireEvent.click(select)
-      
+
       expect(screen.getByText('Default Strategy')).toBeInTheDocument()
       expect(screen.getByText('Rolling Loan Strategy')).toBeInTheDocument()
-      expect(screen.getByText('ATH-Based Strategy')).toBeInTheDocument()
+      expect(screen.getByText('Custom Strategy')).toBeInTheDocument()
+      expect(screen.getAllByText('Coming Soon')).toHaveLength(3) // Custom, ATH-Based, Moving Average
     })
 
     it('should show current selected strategy', () => {
@@ -159,8 +161,22 @@ describe('StrategySelectionCard', () => {
 
     it('should handle empty strategy list gracefully', () => {
       vi.mocked(require('@/src/modules/strategies').getAvailableStrategies).mockReturnValue([])
-      
+
       expect(() => render(<StrategySelectionCard />)).not.toThrow()
+    })
+
+    it('should prevent selection of disabled strategies', () => {
+      render(<StrategySelectionCard />)
+
+      const select = screen.getByRole('combobox')
+      fireEvent.click(select)
+
+      // Try to select a disabled strategy (Custom Strategy)
+      const customOption = screen.getByText('Custom Strategy')
+      fireEvent.click(customOption)
+
+      // Should not change the selected strategy
+      expect(mockSetParams).not.toHaveBeenCalled()
     })
   })
 })

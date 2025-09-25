@@ -447,11 +447,6 @@ export function TabNavigation({ children }: TabNavigationProps) {
         
         <TabsContent value="strategy" className={`${isMobile ? 'mt-0 px-4' : 'mt-6'}`}>
           <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold">Strategy</h2>
-              <p className="text-muted-foreground">Choose and configure your Bitcoin lending strategy.</p>
-            </div>
-
             {/* Strategy Selection */}
             <StrategySelectionCard />
 
