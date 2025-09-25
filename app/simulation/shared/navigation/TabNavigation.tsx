@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { HybridTooltip, HybridTooltipTrigger, HybridTooltipContent } from '@/components/ui/hybrid-tooltip'
@@ -22,6 +22,7 @@ import { PriceModelSelector, UnifiedPriceChart, SimplifiedManualGrowthInterface,
 import { BasicParametersCard, ValidationSummary, RiskLevelSelector } from '../../tabs/parameters'
 
 import { CollateralVisualizationCard, LoanUsageVisualizationCard, PriceDropToleranceCard, LoanParametersCard, PlatformSelector } from '../../tabs/parameters'
+import { StrategySelectionCard, RollingLoanConfigCard, BtcAccumulationCard, StrategyPreviewCard } from '../../tabs/strategy'
 import { ResultsPage } from '../../tabs/results'
 import { useSimulation } from '../../context/SimulationContext'
 import type { PriceProjectionResult } from '../../price-models/types'
@@ -450,64 +451,53 @@ export function TabNavigation({ children }: TabNavigationProps) {
               <h2 className="text-2xl font-bold">Strategy</h2>
               <p className="text-muted-foreground">Choose and configure your Bitcoin lending strategy.</p>
             </div>
+
+            {/* Strategy Selection */}
+            <StrategySelectionCard />
+
+            {/* BTC Accumulation Configuration */}
+            <BtcAccumulationCard />
+
+            {/* Rolling Loan Strategy Configuration (conditional) */}
+            <RollingLoanConfigCard />
+
+            {/* Strategy Mechanics Preview */}
+            <StrategyPreviewCard />
+
+            {/* Monthly Savings/Withdrawal - Legacy Component */}
             <Card>
               <CardHeader>
-                <CardTitle>Investment Strategy</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <DollarSign className="w-5 h-5 text-blue-500" />
+                  Monthly Cash Flow
+                </CardTitle>
+                <CardDescription>
+                  Configure additional monthly savings or withdrawals
+                </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Monthly Savings/Withdrawal */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
-                      <DollarSign className="w-4 h-4 text-blue-500" />
-                      Monthly Savings/Withdrawal
-                      <HybridTooltip>
-                        <HybridTooltipTrigger asChild>
-                          <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                        </HybridTooltipTrigger>
-                        <HybridTooltipContent>
-                          <p>Positive values: Monthly savings added to BTC stack. Negative values: Monthly withdrawals from BTC stack for living expenses.</p>
-                        </HybridTooltipContent>
-                      </HybridTooltip>
-                    </Label>
-                    <NumberInput
-                      value={params.monthlyWithdrawalAmount}
-                      onChange={(value) => setParams((p) => ({ ...p, monthlyWithdrawalAmount: value }))}
-                      min={-50000}
-                      max={50000}
-                      step={100}
-                      decimals={0}
-                      suffix="$"
-                      placeholder="150"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    {/* Empty label space to align with Monthly Savings/Withdrawal label */}
-                    <div className="h-6"></div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="btcAccumulation"
-                        checked={btcAccumulation}
-                        onCheckedChange={handleBtcAccumulationChange}
-                      />
-                      <Label
-                        htmlFor="btcAccumulation"
-                        className="flex items-center gap-2 cursor-pointer"
-                      >
-                        <TrendingUp className="w-4 h-4 text-green-500" />
-                        BTC Accumulation
-                        <HybridTooltip>
-                          <HybridTooltipTrigger asChild>
-                            <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                          </HybridTooltipTrigger>
-                          <HybridTooltipContent className="max-w-xs">
-                            <p>Decide whether you want to accumulate more BTC or live off your stack</p>
-                          </HybridTooltipContent>
-                        </HybridTooltip>
-                      </Label>
-                    </div>
-                  </div>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    Monthly Savings/Withdrawal
+                    <HybridTooltip>
+                      <HybridTooltipTrigger asChild>
+                        <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
+                      </HybridTooltipTrigger>
+                      <HybridTooltipContent>
+                        <p>Positive values: Monthly savings added to BTC stack. Negative values: Monthly withdrawals from BTC stack for living expenses.</p>
+                      </HybridTooltipContent>
+                    </HybridTooltip>
+                  </Label>
+                  <NumberInput
+                    value={params.monthlyWithdrawalAmount}
+                    onChange={(value) => setParams((p) => ({ ...p, monthlyWithdrawalAmount: value }))}
+                    min={-50000}
+                    max={50000}
+                    step={100}
+                    decimals={0}
+                    suffix="$"
+                    placeholder="150"
+                  />
                 </div>
 
                 {/* Investment Mode Description */}

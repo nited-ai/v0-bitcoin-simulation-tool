@@ -180,7 +180,7 @@ export class PlatformFeeIntegrationService {
     platformId: string
     platformName: string
     feeConfig: PlatformFeeConfig
-    summary: ReturnType<typeof this.getPlatformFeeSummary>
+    summary: PlatformFeeResult
   }> {
     const platforms = ['firefish', 'strike', 'custom']
     
