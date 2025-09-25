@@ -130,6 +130,26 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
     setShowResistanceLine(isPowerLawModel)
   }, [params.priceModel])
 
+  // Legend click handler for interactive controls
+  const handleLegendClick = useCallback((data: any) => {
+    const { dataKey } = data
+
+    // Handle liquidation line toggles
+    if (dataKey === 'immediateLiquidation') {
+      setShowImmediateLiquidation(prev => !prev)
+    } else if (dataKey === 'liquidationWithTopUp') {
+      setShowLiquidationWithTopUp(prev => !prev)
+    }
+    // Handle support/resistance line toggles
+    else if (dataKey === 'support') {
+      setShowSupportLine(prev => !prev)
+    } else if (dataKey === 'resistance') {
+      setShowResistanceLine(prev => !prev)
+    }
+
+    // Note: Price line should always be visible as it's the core chart element
+  }, [])
+
   // Generate initial projection when data becomes available (fixes race condition)
   useEffect(() => {
     const generateInitialProjection = async () => {
@@ -499,7 +519,14 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
 
   // Calculate liquidation prices for reference lines (after chartData is available)
   const liquidationPricesForChart = useMemo(() => {
+    console.log('🔍 LIQUIDATION PRICES FOR CHART CALCULATION:', {
+      hasLiquidationData: !!liquidationData,
+      chartDataLength: chartData.length,
+      liquidationData: liquidationData
+    })
+
     if (!liquidationData || !chartData.length) {
+      console.log('📊 No liquidation data or chart data available for reference lines')
       return null
     }
 
@@ -507,28 +534,51 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
     const immediateLiquidationUsd = liquidationData.initialImmediateLiquidationPrice
     const trueLiquidationUsd = liquidationData.initialTrueLiquidationPrice
 
+    console.log('💰 Liquidation prices for chart:', {
+      immediate: immediateLiquidationUsd,
+      withTopUp: trueLiquidationUsd,
+      hasFreeBtc: liquidationData.initialHasFreeCollateral
+    })
+
     // Only show liquidation lines if user has an active loan (liquidation prices > 0)
     const hasActiveLoan = immediateLiquidationUsd > 0
     if (!hasActiveLoan) {
+      console.log('⚠️ No active loan detected for chart lines')
       return null
     }
 
     const maxChartPrice = Math.max(...chartData.map(d => d.price))
     const minChartPrice = Math.min(...chartData.map(d => d.price))
 
+    console.log('📊 Chart price range for liquidation bounds check:', {
+      min: minChartPrice,
+      max: maxChartPrice,
+      immediateLiquidation: immediateLiquidationUsd,
+      withinBoundsCheck: {
+        minBound: minChartPrice * 0.1,
+        maxBound: maxChartPrice * 3,
+        isAboveMin: immediateLiquidationUsd >= minChartPrice * 0.1,
+        isBelowMax: immediateLiquidationUsd <= maxChartPrice * 3
+      }
+    })
+
     // Show lines if they're within 3x the chart range (reasonable visibility)
     const isWithinBounds = immediateLiquidationUsd >= minChartPrice * 0.1 &&
                           immediateLiquidationUsd <= maxChartPrice * 3
 
     if (!isWithinBounds) {
+      console.log('📏 Liquidation prices outside chart bounds, hiding lines')
       return null
     }
 
-    return {
+    const result = {
       immediate: Math.round(immediateLiquidationUsd),
       withTopUp: Math.round(trueLiquidationUsd),
       hasFreeBtc: liquidationData.initialHasFreeCollateral
     }
+
+    console.log('✅ Showing liquidation lines for chart:', result)
+    return result
   }, [liquidationData, chartData])
 
   // Find current date for separator
@@ -536,26 +586,6 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
     const currentTime = Date.now()
     return chartData.findIndex(point => point.timestamp > currentTime)
   }, [chartData])
-
-  // Legend click handler for interactive controls
-  const handleLegendClick = useCallback((data: any) => {
-    const { dataKey } = data
-
-    // Handle liquidation line toggles
-    if (dataKey === 'immediateLiquidation') {
-      setShowImmediateLiquidation(prev => !prev)
-    } else if (dataKey === 'liquidationWithTopUp') {
-      setShowLiquidationWithTopUp(prev => !prev)
-    }
-    // Handle support/resistance line toggles
-    else if (dataKey === 'support') {
-      setShowSupportLine(prev => !prev)
-    } else if (dataKey === 'resistance') {
-      setShowResistanceLine(prev => !prev)
-    }
-
-    // Note: Price line should always be visible as it's the core chart element
-  }, [])
 
   // No currency conversion needed - data is already in USD
   const getUsdRate = async (): Promise<number> => {
@@ -799,110 +829,7 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
       </CardHeader>
       
       <CardContent>
-        <div className="h-96 w-full relative">
-          {/* Custom SVG overlay for liquidation lines */}
-          {liquidationPrices && (showImmediateLiquidation || showLiquidationWithTopUp) && chartData.length > 0 && (() => {
-            // Calculate actual chart data range for accurate positioning
-            const minPrice = Math.min(...chartData.map(d => d.price));
-            const maxPrice = Math.max(...chartData.map(d => d.price));
-
-            // Use Y-axis domain calculation similar to the chart (with margins for log scale)
-            const yAxisMin = isLogScale ? minPrice * 0.5 : minPrice * 0.9;
-            const yAxisMax = isLogScale ? maxPrice * 2 : maxPrice * 1.1;
-
-            // Calculate Y position for liquidation lines using actual chart range
-            const calculateYPosition = (price) => {
-              if (isLogScale) {
-                // Logarithmic scale positioning
-                const logPrice = Math.log10(price);
-                const logMin = Math.log10(yAxisMin);
-                const logMax = Math.log10(yAxisMax);
-                const normalizedPosition = (logPrice - logMin) / (logMax - logMin);
-                return 20 + (100 - normalizedPosition * 80); // 20% top margin, 80% chart area
-              } else {
-                // Linear scale positioning
-                const normalizedPosition = (price - yAxisMin) / (yAxisMax - yAxisMin);
-                return 20 + (100 - normalizedPosition * 80); // 20% top margin, 80% chart area
-              }
-            };
-
-            return (
-              <div className="absolute inset-0 pointer-events-none z-10">
-                <svg width="100%" height="100%" className="absolute inset-0">
-                  {/* Immediate Liquidation Line */}
-                  {showImmediateLiquidation && (() => {
-                    const yPos = calculateYPosition(liquidationPrices.immediate);
-                    console.log('🟡 RENDERING CORRECTED IMMEDIATE LIQUIDATION LINE:', {
-                      y: liquidationPrices.immediate,
-                      chartRange: `$${Math.round(minPrice)} - $${Math.round(maxPrice)}`,
-                      yAxisRange: `$${Math.round(yAxisMin)} - $${Math.round(yAxisMax)}`,
-                      yPosition: `${yPos}%`,
-                      isLogScale
-                    });
-                    return (
-                      <>
-                        <line
-                          x1="5%"
-                          x2="95%"
-                          y1={`${yPos}%`}
-                          y2={`${yPos}%`}
-                          stroke="#f59e0b"
-                          strokeWidth="2"
-                          strokeDasharray="4 4"
-                          opacity="0.9"
-                        />
-                        <text
-                          x="6%"
-                          y={`${yPos - 2}%`}
-                          fill="#f59e0b"
-                          fontSize="11"
-                          fontWeight="500"
-                        >
-                          Immediate Liquidation (${liquidationPrices.immediate.toLocaleString()})
-                        </text>
-                      </>
-                    );
-                  })()}
-
-                  {/* Liquidation with Top-up Line */}
-                  {showLiquidationWithTopUp && liquidationPrices.hasFreeBtc && liquidationPrices.withTopUp !== liquidationPrices.immediate && (() => {
-                    const yPos = calculateYPosition(liquidationPrices.withTopUp);
-                    console.log('🟢 RENDERING CORRECTED LIQUIDATION WITH TOP-UP LINE:', {
-                      y: liquidationPrices.withTopUp,
-                      chartRange: `$${Math.round(minPrice)} - $${Math.round(maxPrice)}`,
-                      yAxisRange: `$${Math.round(yAxisMin)} - $${Math.round(yAxisMax)}`,
-                      yPosition: `${yPos}%`,
-                      isLogScale
-                    });
-                    return (
-                      <>
-                        <line
-                          x1="5%"
-                          x2="95%"
-                          y1={`${yPos}%`}
-                          y2={`${yPos}%`}
-                          stroke="#22c55e"
-                          strokeWidth="2"
-                          strokeDasharray="4 4"
-                          opacity="0.9"
-                        />
-                        <text
-                          x="6%"
-                          y={`${yPos - 2}%`}
-                          fill="#22c55e"
-                          fontSize="11"
-                          fontWeight="500"
-                        >
-                          Liquidation with Top-up (${liquidationPrices.withTopUp.toLocaleString()})
-                        </text>
-                      </>
-                    );
-                  })()}
-                </svg>
-              </div>
-            );
-          })()}
-
+        <div className="h-96 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
@@ -1045,9 +972,60 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
                 hide={!showResistanceLine}
               />
 
-              {/* Liquidation lines are now rendered as custom SVG overlay above the chart */}
+              {/* Invisible Line components for liquidation legend entries */}
+              {liquidationPricesForChart && (
+                <>
+                  {/* Immediate Liquidation Legend Entry */}
+                  <Line
+                    type="monotone"
+                    dataKey="immediateLiquidation"
+                    stroke={showImmediateLiquidation ? "#eab308" : "#9ca3af"}
+                    strokeWidth={1}
+                    strokeDasharray="2 2"
+                    dot={false}
+                    name="Immediate Liquidation"
+                    connectNulls={false}
+                    strokeOpacity={showImmediateLiquidation ? 1 : 0.3}
+                    hide={!showImmediateLiquidation}
+                  />
 
-              {/* Note: ReferenceLine components removed - using Line components instead for better compatibility */}
+                  {/* Liquidation with Top-up Legend Entry */}
+                  {liquidationPricesForChart.hasFreeBtc && liquidationPricesForChart.withTopUp !== liquidationPricesForChart.immediate && (
+                    <Line
+                      type="monotone"
+                      dataKey="liquidationWithTopUp"
+                      stroke={showLiquidationWithTopUp ? "#22c55e" : "#9ca3af"}
+                      strokeWidth={1}
+                      strokeDasharray="2 2"
+                      dot={false}
+                      name="Liquidation with Top-up"
+                      connectNulls={false}
+                      strokeOpacity={showLiquidationWithTopUp ? 1 : 0.3}
+                      hide={!showLiquidationWithTopUp}
+                    />
+                  )}
+                </>
+              )}
+
+              {/* Liquidation Price Reference Lines */}
+              {liquidationPricesForChart && showImmediateLiquidation && (
+                <ReferenceLine
+                  key="liquidation-immediate"
+                  y={liquidationPricesForChart.immediate}
+                  stroke="#eab308"
+                  strokeDasharray="2 2"
+                  strokeWidth={1}
+                />
+              )}
+              {liquidationPricesForChart && showLiquidationWithTopUp && liquidationPricesForChart.hasFreeBtc && liquidationPricesForChart.withTopUp !== liquidationPricesForChart.immediate && (
+                <ReferenceLine
+                  key="liquidation-topup"
+                  y={liquidationPricesForChart.withTopUp}
+                  stroke="#22c55e"
+                  strokeDasharray="2 2"
+                  strokeWidth={1}
+                />
+              )}
             </LineChart>
           </ResponsiveContainer>
         </div>
