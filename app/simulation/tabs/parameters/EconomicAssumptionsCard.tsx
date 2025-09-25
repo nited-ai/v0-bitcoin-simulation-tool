@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { PriceModelChart } from "@/components/price-model-chart"
+import { PowerLawEducationalPanel } from "../../components/PowerLawEducationalPanel"
 import { useSimulation } from "../../context/SimulationContext"
 import type { PriceModel, PowerLawLine } from "@/src/modules/price-data"
 
@@ -99,7 +100,12 @@ export function EconomicAssumptionsCard() {
               </div>
             )}
           </div>
-          
+
+          {/* Power Law Educational Panel (conditional) */}
+          {params.priceModel === "powerLaw" && (
+            <PowerLawEducationalPanel className="mt-4" />
+          )}
+
           {/* Price Model Chart - Temporarily disabled to avoid infinite loops */}
           <div className="mt-4 p-4 border rounded-lg bg-muted/50">
             <h4 className="font-medium mb-2">📈 Price Chart</h4>
