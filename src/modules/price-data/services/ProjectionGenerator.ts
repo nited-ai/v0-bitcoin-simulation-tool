@@ -204,9 +204,9 @@ export class ProjectionGenerator {
    * Based on Giovanni Santostasi's Power Law Theory: Price = constant × (days since Genesis Block)^5.8
    */
   private calculatePowerLawPrice(daysSinceGenesis: number, lineType: string): number {
-    // Exact straight line fit between $0.53 (2011-01-01) and $4,785,285.25 (2040-01-01)
-    const exponent = 5.836656989322271 // Exact slope from straight line fit
-    const exactConstant = 1.0447124016e-17 // Exact constant from straight line fit
+    // Industry-standard parameters from HTML Power Law Explorer
+    const exponent = 5.844 // Industry-standard slope
+    const industryConstant = 9.7723722096e-18 // Industry-standard constant (10^-17.01)
 
     // Line-specific adjustments using log-space differences
     let lineMultiplier = 1
@@ -223,6 +223,6 @@ export class ProjectionGenerator {
         break
     }
 
-    return exactConstant * Math.pow(daysSinceGenesis, exponent) * lineMultiplier
+    return industryConstant * Math.pow(daysSinceGenesis, exponent) * lineMultiplier
   }
 }

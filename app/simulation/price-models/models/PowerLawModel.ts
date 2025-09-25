@@ -26,14 +26,14 @@ export class PowerLawModel implements PriceProjectionModel {
   private readonly GENESIS_DATE = new Date("2009-01-03")
   
   // Power Law model parameters (slope and intercept for log-log regression)
-  // Exact straight line fit between $0.53 (2011-01-01) and $4,785,285.25 (2040-01-01)
-  // Slope: 5.836657 (0.63% from Giovanni's theoretical 5.8)
-  // Constant: 1.0447124016e-17
+  // Industry-standard parameters from HTML Power Law Explorer
+  // Slope: 5.844, Intercept: -17.01
+  // Constant: 9.7723722096e-18
   // Produces $143k for 2026, $1.07M for 2033 (7.4% above Giovanni's $1M target)
   private readonly POWER_LAW_MODELS = {
-    fit: { slope: 5.836656989322271, intercept: -16.981003249825243 },
-    support: { slope: 5.836656989322271, intercept: -17.131003249825243 }, // 0.15 lower in log space
-    resistance: { slope: 5.836656989322271, intercept: -16.831003249825243 }, // 0.15 higher in log space
+    fit: { slope: 5.844, intercept: -17.01 },
+    support: { slope: 5.844, intercept: -17.16 }, // 0.15 lower in log space
+    resistance: { slope: 5.844, intercept: -16.86 }, // 0.15 higher in log space
   }
   
   // No conversion needed - keeping prices in USD
