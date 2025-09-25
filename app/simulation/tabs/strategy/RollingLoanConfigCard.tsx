@@ -27,8 +27,8 @@ export function RollingLoanConfigCard() {
     const btcStackValue = params.initialBtcAmount * params.initialBtcPrice
     const initialLoanAmount = btcStackValue * (params.loanAmountPercent / 100)
     const targetLtv = params.riskManagement.targetLtv
-    const loanTerm = params.riskManagement.loanTermMonths
-    const interestRate = params.riskManagement.annualInterestRate
+    const loanTerm = params.loanTermMonths
+    const interestRate = params.annualInterestRate
 
     return {
       btcStackValue,
@@ -70,7 +70,7 @@ export function RollingLoanConfigCard() {
                 <span className="text-sm font-medium">Initial Loan Amount</span>
               </div>
               <div className="text-lg font-bold text-green-600">
-                ${previewCalculations.initialLoanAmount.toLocaleString()}
+                ${Math.round(previewCalculations.initialLoanAmount).toLocaleString()}
               </div>
               <div className="text-xs text-muted-foreground">
                 {params.loanAmountPercent}% of ${previewCalculations.btcStackValue.toLocaleString()} BTC stack
@@ -112,7 +112,7 @@ export function RollingLoanConfigCard() {
                 <span className="text-sm font-medium">Monthly Interest</span>
               </div>
               <div className="text-lg font-bold text-orange-600">
-                ${previewCalculations.monthlyInterest.toLocaleString()}
+                ${Math.round(previewCalculations.monthlyInterest).toLocaleString()}
               </div>
               <div className="text-xs text-muted-foreground">
                 {previewCalculations.interestRate}% annual rate
