@@ -103,6 +103,8 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
   const liquidationData = useLiquidationCalculations()
   const searchParams = useSearchParams()
 
+
+
   const [projection, setProjection] = useState<PriceProjectionResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isDownloading, setIsDownloading] = useState(false)
@@ -359,7 +361,13 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
 
   // Calculate liquidation prices first (needed for chart data)
   const liquidationPrices = useMemo(() => {
+    console.log('🔍 LIQUIDATION PRICES CALCULATION:', {
+      hasLiquidationData: !!liquidationData,
+      liquidationData: liquidationData
+    })
+
     if (!liquidationData) {
+      console.log('⚠️ No liquidation data available')
       return null
     }
 
@@ -367,15 +375,26 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
     const trueLiquidationUsd = liquidationData.initialTrueLiquidationPrice
     const hasActiveLoan = immediateLiquidationUsd > 0
 
+    console.log('💰 Calculated liquidation prices:', {
+      immediate: immediateLiquidationUsd,
+      withTopUp: trueLiquidationUsd,
+      hasFreeBtc: liquidationData.initialHasFreeCollateral,
+      hasActiveLoan
+    })
+
     if (!hasActiveLoan) {
+      console.log('⚠️ No active loan detected')
       return null
     }
 
-    return {
+    const result = {
       immediate: Math.round(immediateLiquidationUsd),
       withTopUp: Math.round(trueLiquidationUsd),
       hasFreeBtc: liquidationData.initialHasFreeCollateral
     }
+
+    console.log('✅ Returning liquidation prices:', result)
+    return result
   }, [liquidationData])
 
   // Merge historical and projection data into continuous timeline
@@ -399,9 +418,9 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
         high: point.high,
         low: point.low,
         close: point.close,
-        // Add liquidation prices if available
-        immediateLiquidation: liquidationPrices?.immediate,
-        liquidationWithTopUp: liquidationPrices?.hasFreeBtc ? liquidationPrices.withTopUp : undefined,
+        // Add liquidation prices if available (constant horizontal lines)
+        immediateLiquidation: liquidationPrices?.immediate || null,
+        liquidationWithTopUp: liquidationPrices?.hasFreeBtc ? liquidationPrices.withTopUp : null,
         isHistorical: true,
         confidence: 1.0 // Historical data has full confidence
       })
@@ -440,9 +459,9 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
           close: point.price,
           support: point.support ? Math.round(point.support) : undefined,
           resistance: point.resistance ? Math.round(point.resistance) : undefined,
-          // Add liquidation prices if available
-          immediateLiquidation: liquidationPrices?.immediate,
-          liquidationWithTopUp: liquidationPrices?.hasFreeBtc ? liquidationPrices.withTopUp : undefined,
+          // Add liquidation prices if available (constant horizontal lines)
+          immediateLiquidation: liquidationPrices?.immediate || null,
+          liquidationWithTopUp: liquidationPrices?.hasFreeBtc ? liquidationPrices.withTopUp : null,
           isHistorical: false,
           confidence: point.confidence
         })
@@ -458,6 +477,19 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
       console.log('📊 First data point:', sortedData[0])
       console.log('📊 Last data point:', sortedData[sortedData.length - 1])
       console.log('📊 Sample price values:', sortedData.slice(0, 5).map(d => d.price))
+
+      // Debug liquidation data in chart
+      const sampleWithLiquidation = sortedData.find(d => d.immediateLiquidation !== undefined)
+      console.log('🔍 CHART DATA LIQUIDATION DEBUG:', {
+        hasLiquidationPrices: !!liquidationPrices,
+        liquidationPrices: liquidationPrices,
+        samplePointWithLiquidation: sampleWithLiquidation,
+        immediateLiquidationValue: sampleWithLiquidation?.immediateLiquidation,
+        liquidationWithTopUpValue: sampleWithLiquidation?.liquidationWithTopUp,
+        totalPointsWithLiquidation: sortedData.filter(d => d.immediateLiquidation !== null).length,
+        totalPointsWithImmediateLiquidation: sortedData.filter(d => d.immediateLiquidation !== undefined).length,
+        totalPointsWithTopUpLiquidation: sortedData.filter(d => d.liquidationWithTopUp !== undefined).length
+      })
     } else {
       console.log('📊 No chart data available')
     }
@@ -767,7 +799,74 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
       </CardHeader>
       
       <CardContent>
-        <div className="h-96 w-full">
+        <div className="h-96 w-full relative">
+          {/* Custom SVG overlay for liquidation lines */}
+          {liquidationPrices && (showImmediateLiquidation || showLiquidationWithTopUp) && (
+            <div className="absolute inset-0 pointer-events-none z-10">
+              <svg width="100%" height="100%" className="absolute inset-0">
+                {/* Immediate Liquidation Line */}
+                {showImmediateLiquidation && (
+                  <>
+                    {console.log('🟡 RENDERING CUSTOM SVG IMMEDIATE LIQUIDATION LINE:', {
+                      y: liquidationPrices.immediate,
+                      chartHeight: 384, // h-96 = 384px
+                      yPosition: `${100 - ((Math.log10(liquidationPrices.immediate) - Math.log10(200)) / (Math.log10(2000000) - Math.log10(200))) * 80}%`
+                    })}
+                    <line
+                      x1="5%"
+                      x2="95%"
+                      y1={`${20 + (100 - ((Math.log10(liquidationPrices.immediate) - Math.log10(200)) / (Math.log10(2000000) - Math.log10(200))) * 80)}%`}
+                      y2={`${20 + (100 - ((Math.log10(liquidationPrices.immediate) - Math.log10(200)) / (Math.log10(2000000) - Math.log10(200))) * 80)}%`}
+                      stroke="#f59e0b"
+                      strokeWidth="2"
+                      strokeDasharray="4 4"
+                      opacity="0.9"
+                    />
+                    <text
+                      x="6%"
+                      y={`${18 + (100 - ((Math.log10(liquidationPrices.immediate) - Math.log10(200)) / (Math.log10(2000000) - Math.log10(200))) * 80)}%`}
+                      fill="#f59e0b"
+                      fontSize="11"
+                      fontWeight="500"
+                    >
+                      Immediate Liquidation (${liquidationPrices.immediate.toLocaleString()})
+                    </text>
+                  </>
+                )}
+
+                {/* Liquidation with Top-up Line */}
+                {showLiquidationWithTopUp && liquidationPrices.hasFreeBtc && liquidationPrices.withTopUp !== liquidationPrices.immediate && (
+                  <>
+                    {console.log('🟢 RENDERING CUSTOM SVG LIQUIDATION WITH TOP-UP LINE:', {
+                      y: liquidationPrices.withTopUp,
+                      chartHeight: 384, // h-96 = 384px
+                      yPosition: `${100 - ((Math.log10(liquidationPrices.withTopUp) - Math.log10(200)) / (Math.log10(2000000) - Math.log10(200))) * 80}%`
+                    })}
+                    <line
+                      x1="5%"
+                      x2="95%"
+                      y1={`${20 + (100 - ((Math.log10(liquidationPrices.withTopUp) - Math.log10(200)) / (Math.log10(2000000) - Math.log10(200))) * 80)}%`}
+                      y2={`${20 + (100 - ((Math.log10(liquidationPrices.withTopUp) - Math.log10(200)) / (Math.log10(2000000) - Math.log10(200))) * 80)}%`}
+                      stroke="#22c55e"
+                      strokeWidth="2"
+                      strokeDasharray="4 4"
+                      opacity="0.9"
+                    />
+                    <text
+                      x="6%"
+                      y={`${18 + (100 - ((Math.log10(liquidationPrices.withTopUp) - Math.log10(200)) / (Math.log10(2000000) - Math.log10(200))) * 80)}%`}
+                      fill="#22c55e"
+                      fontSize="11"
+                      fontWeight="500"
+                    >
+                      Liquidation with Top-up (${liquidationPrices.withTopUp.toLocaleString()})
+                    </text>
+                  </>
+                )}
+              </svg>
+            </div>
+          )}
+
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
@@ -793,7 +892,23 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
               <YAxis
                 scale={isLogScale ? "log" : "linear"}
                 type="number"
-                domain={isLogScale ? ['dataMin * 0.5', 'dataMax * 2'] : ['dataMin * 0.9', 'dataMax * 1.1']}
+                domain={(() => {
+                  // Calculate domain including liquidation prices
+                  if (liquidationPrices) {
+                    const minLiquidation = Math.min(liquidationPrices.immediate, liquidationPrices.withTopUp || Infinity)
+
+                    if (isLogScale) {
+                      // For log scale, ensure liquidation prices are visible by extending the lower bound
+                      return [(dataMin, dataMax) => Math.min(dataMin * 0.5, minLiquidation * 0.5), 'dataMax * 2']
+                    } else {
+                      // For linear scale, ensure liquidation prices are visible by extending the lower bound
+                      return [(dataMin, dataMax) => Math.min(dataMin * 0.9, minLiquidation * 0.8), 'dataMax * 1.1']
+                    }
+                  }
+
+                  // Default domain if no liquidation prices
+                  return isLogScale ? ['dataMin * 0.5', 'dataMax * 2'] : ['dataMin * 0.9', 'dataMax * 1.1']
+                })()}
                 tickFormatter={(value) => {
                   if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`
                   if (value >= 1000) return `$${(value / 1000).toFixed(0)}k`
@@ -894,83 +1009,9 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
                 hide={!showResistanceLine}
               />
 
-              {/* Invisible Line components for liquidation legend entries */}
-              {liquidationPricesForChart && (
-                <>
-                  {/* Immediate Liquidation Legend Entry */}
-                  <Line
-                    type="monotone"
-                    dataKey="immediateLiquidation"
-                    stroke={showImmediateLiquidation ? "#eab308" : "#9ca3af"}
-                    strokeWidth={1}
-                    strokeDasharray="2 2"
-                    dot={false}
-                    name="Immediate Liquidation"
-                    connectNulls={false}
-                    strokeOpacity={showImmediateLiquidation ? 1 : 0.3}
-                    hide={!showImmediateLiquidation}
-                  />
+              {/* Liquidation lines are now rendered as custom SVG overlay above the chart */}
 
-                  {/* Liquidation with Top-up Legend Entry */}
-                  {liquidationPricesForChart.hasFreeBtc && liquidationPricesForChart.withTopUp !== liquidationPricesForChart.immediate && (
-                    <Line
-                      type="monotone"
-                      dataKey="liquidationWithTopUp"
-                      stroke={showLiquidationWithTopUp ? "#22c55e" : "#9ca3af"}
-                      strokeWidth={1}
-                      strokeDasharray="2 2"
-                      dot={false}
-                      name="Liquidation with Top-up"
-                      connectNulls={false}
-                      strokeOpacity={showLiquidationWithTopUp ? 1 : 0.3}
-                      hide={!showLiquidationWithTopUp}
-                    />
-                  )}
-                </>
-              )}
-
-              {/* Liquidation Price Reference Lines */}
-              {liquidationPricesForChart && (
-                <>
-                  {/* Immediate Liquidation Price - Amber Line (visible in both themes) */}
-                  {showImmediateLiquidation && (
-                    <ReferenceLine
-                      y={liquidationPricesForChart.immediate}
-                      stroke="#f59e0b"
-                      strokeDasharray="2 2"
-                      strokeWidth={2}
-                      label={{
-                        value: "Immediate Liquidation",
-                        position: "topLeft",
-                        style: {
-                          fill: "#f59e0b",
-                          fontSize: "12px",
-                          fontWeight: "500"
-                        }
-                      }}
-                    />
-                  )}
-
-                  {/* Liquidation with Top-up - Green Line (only show if free BTC available) */}
-                  {showLiquidationWithTopUp && liquidationPricesForChart.hasFreeBtc && liquidationPricesForChart.withTopUp !== liquidationPricesForChart.immediate && (
-                    <ReferenceLine
-                      y={liquidationPricesForChart.withTopUp}
-                      stroke="#22c55e"
-                      strokeDasharray="2 2"
-                      strokeWidth={2}
-                      label={{
-                        value: "Liquidation with Top-up",
-                        position: "topLeft",
-                        style: {
-                          fill: "#22c55e",
-                          fontSize: "12px",
-                          fontWeight: "500"
-                        }
-                      }}
-                    />
-                  )}
-                </>
-              )}
+              {/* Note: ReferenceLine components removed - using Line components instead for better compatibility */}
             </LineChart>
           </ResponsiveContainer>
         </div>
