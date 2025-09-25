@@ -58,14 +58,15 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   ✅ COMPLETED: Comprehensive Strategy tab UI with rolling loan configuration and real-time previews
   📝 Updated: UI/UX improvements with two-column layout, limited strategy selection, and coming soon states
 
-- [ ] 6. Validation and Error Handling
-  - [ ] 6.1 Write tests for all validation rules and error scenarios
-  - [ ] 6.2 Implement parameter validation (loan amount $100-90% of stack, term 1-36 months, interest 0.1%-50%)
-  - [ ] 6.3 Implement error message handling for calculation failures
-  - [ ] 6.4 Implement error handling for price data unavailability
-  - [ ] 6.5 Implement liquidation event handling and display
-  - [ ] 6.6 Add user feedback for target percentage exceedances
-  - [ ] 6.7 Verify all tests pass
+- [x] 6. Validation and Error Handling
+  - [x] 6.1 Write tests for all validation rules and error scenarios
+  - [x] 6.2 Implement parameter validation (loan amount $100-90% of stack, term 1-36 months, interest 0.1%-50%)
+  - [x] 6.3 Implement error message handling for calculation failures
+  - [x] 6.4 Implement error handling for price data unavailability
+  - [x] 6.5 Implement liquidation event handling and display
+  - [x] 6.6 Add user feedback for target percentage exceedances
+  - [x] 6.7 Verify all tests pass
+  ✅ COMPLETED: Comprehensive validation and error handling with StrategyValidationService and StrategyErrorHandlingService
 
 - [ ] 7. Results Tab Enhancement - Core Charts
   - [ ] 7.1 Write tests for new results visualization components
