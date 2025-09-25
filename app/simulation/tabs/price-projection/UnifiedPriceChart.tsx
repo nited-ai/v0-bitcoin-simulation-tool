@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { useSimulation } from '../../context/SimulationContext'
 import { priceModelRegistry } from '../../price-models/PriceModelRegistry'
 import { useCentralizedData } from '../../hooks/useCentralizedData'
+import { getPowerLawPrice, getDaysSinceGenesis } from '@/src/modules/price-data/models/powerLaw'
 import { useLiquidationCalculations } from '../../hooks/useCalculationsIntegration'
 import type { PriceProjectionResult, PriceModelParams } from '../../price-models/types'
 import type { HistoricalDataPoint } from '@/lib/services/centralized-data-service'
@@ -108,6 +109,7 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
   const [isDownloading, setIsDownloading] = useState(false)
   const [isGeneratingProjection, setIsGeneratingProjection] = useState(false)
   const [isLogScale, setIsLogScale] = useState(true) // Default to log scale for Bitcoin analysis
+  const [isLogLogScale, setIsLogLogScale] = useState(false) // Log-log scale for Power Law visualization
   const [hasInitialProjection, setHasInitialProjection] = useState(false) // Track if initial projection is generated
 
   // Legend visibility state for interactive controls
@@ -465,6 +467,30 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
     return sortedData
   }, [historicalData, projection, liquidationPrices])
 
+  // Generate Power Law lines data for overlay
+  const powerLawLinesData = useMemo(() => {
+    if (chartData.length === 0) return []
+
+    console.log('📈 Generating Power Law lines for chart overlay...')
+
+    // Generate Power Law lines for the entire chart timeframe
+    return chartData.map(point => {
+      const date = new Date(point.timestamp)
+
+      // Calculate Power Law prices for this date
+      const supportPrice = getPowerLawPrice(date, 'support')
+      const fitPrice = getPowerLawPrice(date, 'fit')
+      const resistancePrice = getPowerLawPrice(date, 'resistance')
+
+      return {
+        ...point,
+        powerLawSupport: Math.round(supportPrice),
+        powerLawFit: Math.round(fitPrice),
+        powerLawResistance: Math.round(resistancePrice)
+      }
+    })
+  }, [chartData])
+
   // Calculate liquidation prices for reference lines (after chartData is available)
   const liquidationPricesForChart = useMemo(() => {
     if (!liquidationData || !chartData.length) {
@@ -659,13 +685,40 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
             {/* Button group - full width on mobile, auto width on desktop */}
             <div className="flex gap-2 w-full md:w-auto">
               <Button
-                variant={isLogScale ? "default" : "outline"}
+                variant={!isLogScale && !isLogLogScale ? "default" : "outline"}
                 size="sm"
-                onClick={() => setIsLogScale(!isLogScale)}
-                title={isLogScale ? "Switch to Linear Scale" : "Switch to Logarithmic Scale"}
+                onClick={() => {
+                  setIsLogScale(false)
+                  setIsLogLogScale(false)
+                }}
+                title="Linear scale for both axes"
                 className="flex-1 md:flex-none"
               >
-                {isLogScale ? "Log Scale" : "Linear"}
+                Linear
+              </Button>
+              <Button
+                variant={isLogScale && !isLogLogScale ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  setIsLogScale(true)
+                  setIsLogLogScale(false)
+                }}
+                title="Logarithmic Y-axis, linear time axis"
+                className="flex-1 md:flex-none"
+              >
+                Log
+              </Button>
+              <Button
+                variant={isLogLogScale ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  setIsLogScale(true)
+                  setIsLogLogScale(true)
+                }}
+                title="Logarithmic scale for both axes - Power Law lines appear straight"
+                className="flex-1 md:flex-none"
+              >
+                Log-Log
               </Button>
               <Button
                 variant="outline"
@@ -707,13 +760,40 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
             {/* Button group - full width on mobile, auto width on desktop */}
             <div className="flex gap-2 w-full md:w-auto">
               <Button
-                variant={isLogScale ? "default" : "outline"}
+                variant={!isLogScale && !isLogLogScale ? "default" : "outline"}
                 size="sm"
-                onClick={() => setIsLogScale(!isLogScale)}
-                title={isLogScale ? "Switch to Linear Scale" : "Switch to Logarithmic Scale"}
+                onClick={() => {
+                  setIsLogScale(false)
+                  setIsLogLogScale(false)
+                }}
+                title="Linear scale for both axes"
                 className="flex-1 md:flex-none"
               >
-                {isLogScale ? "Log Scale" : "Linear"}
+                Linear
+              </Button>
+              <Button
+                variant={isLogScale && !isLogLogScale ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  setIsLogScale(true)
+                  setIsLogLogScale(false)
+                }}
+                title="Logarithmic Y-axis, linear time axis"
+                className="flex-1 md:flex-none"
+              >
+                Log
+              </Button>
+              <Button
+                variant={isLogLogScale ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  setIsLogScale(true)
+                  setIsLogLogScale(true)
+                }}
+                title="Logarithmic scale for both axes - Power Law lines appear straight"
+                className="flex-1 md:flex-none"
+              >
+                Log-Log
               </Button>
               <Button
                 variant="outline"
@@ -756,19 +836,46 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
           {/* Button group - full width on mobile, auto width on desktop */}
           <div className="flex gap-2 w-full md:w-auto">
             <Button
-              variant={isLogScale ? "default" : "outline"}
+              variant={!isLogScale && !isLogLogScale ? "default" : "outline"}
               size="sm"
-              onClick={() => setIsLogScale(!isLogScale)}
-              title={isLogScale ? "Switch to Linear Scale" : "Switch to Logarithmic Scale"}
+              onClick={() => {
+                setIsLogScale(false)
+                setIsLogLogScale(false)
+              }}
+              title="Linear scale for both axes"
               className="flex-1 md:flex-none"
             >
-              {isLogScale ? "Log Scale" : "Linear"}
+              Linear
+            </Button>
+            <Button
+              variant={isLogScale && !isLogLogScale ? "default" : "outline"}
+              size="sm"
+              onClick={() => {
+                setIsLogScale(true)
+                setIsLogLogScale(false)
+              }}
+              title="Logarithmic Y-axis, linear time axis"
+              className="flex-1 md:flex-none"
+            >
+              Log
+            </Button>
+            <Button
+              variant={isLogLogScale ? "default" : "outline"}
+              size="sm"
+              onClick={() => {
+                setIsLogScale(true)
+                setIsLogLogScale(true)
+              }}
+              title="Logarithmic scale for both axes - Power Law lines appear straight"
+              className="flex-1 md:flex-none"
+            >
+              Log-Log
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={downloadCSV}
-              disabled={isDownloading || chartData.length === 0}
+              disabled={isDownloading || powerLawLinesData.length === 0}
               className="flex-1 md:flex-none"
             >
               <Download className="h-4 w-4" />
@@ -781,16 +888,20 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
       <CardContent>
         <div className="h-96 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData}>
+            <LineChart data={powerLawLinesData}>
               <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
-              
+
               <XAxis
                 dataKey="timestamp"
                 type="number"
-                scale="time"
+                scale={isLogLogScale ? "log" : "time"}
                 domain={['dataMin', 'dataMax']}
                 tickFormatter={(timestamp) => {
                   const date = new Date(timestamp)
+                  if (isLogLogScale) {
+                    // For log-log scale, show years more prominently
+                    return date.getFullYear().toString()
+                  }
                   return date.toLocaleDateString('de-DE', {
                     year: 'numeric',
                     month: 'short'
@@ -803,9 +914,9 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
               />
 
               <YAxis
-                scale={isLogScale ? "log" : "linear"}
+                scale={isLogScale || isLogLogScale ? "log" : "linear"}
                 type="number"
-                domain={isLogScale ? ['dataMin * 0.5', 'dataMax * 2'] : ['dataMin * 0.9', 'dataMax * 1.1']}
+                domain={isLogScale || isLogLogScale ? ['dataMin * 0.5', 'dataMax * 2'] : ['dataMin * 0.9', 'dataMax * 1.1']}
                 tickFormatter={(value) => {
                   if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`
                   if (value >= 1000) return `$${(value / 1000).toFixed(0)}k`
@@ -819,11 +930,25 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
                   const baseFormat = [
                     `$${value.toLocaleString('en-US')}`,
                     name === 'price' ? 'Bitcoin Price' :
+                    name === 'powerLawSupport' ? 'Power Law Support' :
+                    name === 'powerLawFit' ? 'Power Law Fit' :
+                    name === 'powerLawResistance' ? 'Power Law Resistance' :
                     name === 'support' ? 'Support Line' :
                     name === 'resistance' ? 'Resistance Line' :
                     name === 'immediateLiquidation' ? 'Immediate Liquidation' :
                     name === 'liquidationWithTopUp' ? 'Liquidation with Top-up' : name
                   ]
+
+                  // Add Power Law context
+                  if (name.startsWith('powerLaw')) {
+                    if (name === 'powerLawSupport') {
+                      baseFormat.push('📉 Calibrated to 2022 bottom')
+                    } else if (name === 'powerLawFit') {
+                      baseFormat.push('📊 Industry standard fair value')
+                    } else if (name === 'powerLawResistance') {
+                      baseFormat.push('📈 Calibrated to 2013 peak')
+                    }
+                  }
 
                   // Add liquidation context if price is near liquidation levels
                   if (liquidationPricesForChart && name === 'price') {
@@ -877,7 +1002,43 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
                 name="Bitcoin Price"
                 connectNulls={false}
               />
-              
+
+              {/* Power Law Support Line */}
+              <Line
+                type="monotone"
+                dataKey="powerLawSupport"
+                stroke="#10b981"
+                strokeWidth={2}
+                dot={false}
+                name="Power Law Support"
+                connectNulls={false}
+                strokeDasharray="5 5"
+              />
+
+              {/* Power Law Fit Line */}
+              <Line
+                type="monotone"
+                dataKey="powerLawFit"
+                stroke="#3b82f6"
+                strokeWidth={2}
+                dot={false}
+                name="Power Law Fit"
+                connectNulls={false}
+                strokeDasharray="3 3"
+              />
+
+              {/* Power Law Resistance Line */}
+              <Line
+                type="monotone"
+                dataKey="powerLawResistance"
+                stroke="#ef4444"
+                strokeWidth={2}
+                dot={false}
+                name="Power Law Resistance"
+                connectNulls={false}
+                strokeDasharray="5 5"
+              />
+
               {/* Support line */}
               <Line
                 type="monotone"
