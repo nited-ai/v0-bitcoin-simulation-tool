@@ -468,7 +468,6 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
   // Calculate liquidation prices for reference lines (after chartData is available)
   const liquidationPricesForChart = useMemo(() => {
     if (!liquidationData || !chartData.length) {
-      console.log('🔍 No liquidation data or chart data available')
       return null
     }
 
@@ -476,34 +475,23 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
     const immediateLiquidationUsd = liquidationData.initialImmediateLiquidationPrice
     const trueLiquidationUsd = liquidationData.initialTrueLiquidationPrice
 
-    console.log('💰 Liquidation prices:', {
-      immediate: immediateLiquidationUsd,
-      withTopUp: trueLiquidationUsd,
-      hasFreeBtc: liquidationData.initialHasFreeCollateral
-    })
-
     // Only show liquidation lines if user has an active loan (liquidation prices > 0)
     const hasActiveLoan = immediateLiquidationUsd > 0
     if (!hasActiveLoan) {
-      console.log('⚠️ No active loan, hiding liquidation lines')
       return null
     }
 
     const maxChartPrice = Math.max(...chartData.map(d => d.price))
     const minChartPrice = Math.min(...chartData.map(d => d.price))
 
-    console.log('📊 Chart price range:', { min: minChartPrice, max: maxChartPrice })
-
     // Show lines if they're within 3x the chart range (reasonable visibility)
     const isWithinBounds = immediateLiquidationUsd >= minChartPrice * 0.1 &&
                           immediateLiquidationUsd <= maxChartPrice * 3
 
     if (!isWithinBounds) {
-      console.log('📏 Liquidation prices outside chart bounds, hiding lines')
       return null
     }
 
-    console.log('✅ Showing liquidation lines')
     return {
       immediate: Math.round(immediateLiquidationUsd),
       withTopUp: Math.round(trueLiquidationUsd),
@@ -948,9 +936,18 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
                   {showImmediateLiquidation && (
                     <ReferenceLine
                       y={liquidationPricesForChart.immediate}
-                      stroke="#eab308"
+                      stroke="#f59e0b"
                       strokeDasharray="2 2"
-                      strokeWidth={1}
+                      strokeWidth={2}
+                      label={{
+                        value: "Immediate Liquidation",
+                        position: "topLeft",
+                        style: {
+                          fill: "#f59e0b",
+                          fontSize: "12px",
+                          fontWeight: "500"
+                        }
+                      }}
                     />
                   )}
 
@@ -960,7 +957,16 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
                       y={liquidationPricesForChart.withTopUp}
                       stroke="#22c55e"
                       strokeDasharray="2 2"
-                      strokeWidth={1}
+                      strokeWidth={2}
+                      label={{
+                        value: "Liquidation with Top-up",
+                        position: "topLeft",
+                        style: {
+                          fill: "#22c55e",
+                          fontSize: "12px",
+                          fontWeight: "500"
+                        }
+                      }}
                     />
                   )}
                 </>
