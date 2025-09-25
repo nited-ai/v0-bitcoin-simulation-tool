@@ -201,29 +201,28 @@ export class ProjectionGenerator {
 
   /**
    * Calculate Power Law price for a given date and line type.
-   * Placeholder - will be replaced with actual Power Law implementation.
+   * Based on Giovanni Santostasi's Power Law Theory: Price = constant × (days since Genesis Block)^5.8
    */
   private calculatePowerLawPrice(daysSinceGenesis: number, lineType: string): number {
-    // Placeholder Power Law calculation
-    // This will be replaced with the actual implementation from lib/price-engine/models/power-law.ts
-    const basePrice = 0.01
+    // Corrected Power Law parameters using weighted average for balanced predictions
     const exponent = 5.8
-    const coefficient = 10 ** -17
+    const weightedAverageConstant = 1.8062193359e-17 // Weighted average constant
 
-    let multiplier = 1
+    // Line-specific adjustments
+    let lineMultiplier = 1
     switch (lineType) {
       case 'support':
-        multiplier = 0.5
+        lineMultiplier = 0.7 // ~30% lower than fit line
         break
       case 'resistance':
-        multiplier = 2
+        lineMultiplier = 1.8 // ~80% higher than fit line
         break
       case 'fit':
       default:
-        multiplier = 1
+        lineMultiplier = 1
         break
     }
 
-    return coefficient * Math.pow(daysSinceGenesis, exponent) * multiplier
+    return weightedAverageConstant * Math.pow(daysSinceGenesis, exponent) * lineMultiplier
   }
 }

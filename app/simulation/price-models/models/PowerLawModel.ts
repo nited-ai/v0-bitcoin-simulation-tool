@@ -26,10 +26,13 @@ export class PowerLawModel implements PriceProjectionModel {
   private readonly GENESIS_DATE = new Date("2009-01-03")
   
   // Power Law model parameters (slope and intercept for log-log regression)
+  // Based on Giovanni Santostasi's Power Law Theory: Price = constant × (days since Genesis Block)^5.8
+  // Corrected parameters using weighted average to balance 2026 (~$210k) and 2033 (~$1M) targets
+  // Weighted average constant: 1.8062193359e-17, intercept: -16.743
   private readonly POWER_LAW_MODELS = {
-    fit: { slope: 5.68, intercept: -16.493 },
-    support: { slope: 5.85, intercept: -17.55 },
-    resistance: { slope: 5.57, intercept: -15.75 },
+    fit: { slope: 5.8, intercept: -16.743 },
+    support: { slope: 5.8, intercept: -16.898 }, // ~30% lower for support line
+    resistance: { slope: 5.8, intercept: -16.588 }, // ~80% higher for resistance line
   }
   
   // No conversion needed - keeping prices in USD
