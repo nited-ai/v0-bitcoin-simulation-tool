@@ -11,12 +11,13 @@ export const GENESIS_DATE = new Date("2009-01-03")
 
 // Power Law model parameters based on Giovanni Santostasi's Power Law Theory
 // Formula: Price = constant × (days since Genesis Block)^5.8
-// Corrected parameters using weighted average to balance 2026 (~$210k) and 2033 (~$1M) targets
-// Weighted average constant: 1.8062193359e-17, intercept: -16.743
+// Calibrated using BitBo chart reference points for maximum accuracy
+// Weighted average constant: 2.1171391317e-17, intercept: -16.674251
+// This calibration produces ~$211k for 2026 (0.5% error vs Giovanni's target)
 const POWER_LAW_MODELS = {
-  fit: { slope: 5.8, intercept: -16.743 },
-  support: { slope: 5.8, intercept: -16.898 }, // ~30% lower for support line
-  resistance: { slope: 5.8, intercept: -16.588 }, // ~80% higher for resistance line
+  fit: { slope: 5.8, intercept: -16.674251 },
+  support: { slope: 5.8, intercept: -16.824251 }, // 0.15 lower for support line
+  resistance: { slope: 5.8, intercept: -16.524251 }, // 0.15 higher for resistance line
 }
 
 /**
