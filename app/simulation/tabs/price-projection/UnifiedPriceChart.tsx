@@ -801,71 +801,107 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
       <CardContent>
         <div className="h-96 w-full relative">
           {/* Custom SVG overlay for liquidation lines */}
-          {liquidationPrices && (showImmediateLiquidation || showLiquidationWithTopUp) && (
-            <div className="absolute inset-0 pointer-events-none z-10">
-              <svg width="100%" height="100%" className="absolute inset-0">
-                {/* Immediate Liquidation Line */}
-                {showImmediateLiquidation && (
-                  <>
-                    {console.log('🟡 RENDERING CUSTOM SVG IMMEDIATE LIQUIDATION LINE:', {
-                      y: liquidationPrices.immediate,
-                      chartHeight: 384, // h-96 = 384px
-                      yPosition: `${100 - ((Math.log10(liquidationPrices.immediate) - Math.log10(200)) / (Math.log10(2000000) - Math.log10(200))) * 80}%`
-                    })}
-                    <line
-                      x1="5%"
-                      x2="95%"
-                      y1={`${20 + (100 - ((Math.log10(liquidationPrices.immediate) - Math.log10(200)) / (Math.log10(2000000) - Math.log10(200))) * 80)}%`}
-                      y2={`${20 + (100 - ((Math.log10(liquidationPrices.immediate) - Math.log10(200)) / (Math.log10(2000000) - Math.log10(200))) * 80)}%`}
-                      stroke="#f59e0b"
-                      strokeWidth="2"
-                      strokeDasharray="4 4"
-                      opacity="0.9"
-                    />
-                    <text
-                      x="6%"
-                      y={`${18 + (100 - ((Math.log10(liquidationPrices.immediate) - Math.log10(200)) / (Math.log10(2000000) - Math.log10(200))) * 80)}%`}
-                      fill="#f59e0b"
-                      fontSize="11"
-                      fontWeight="500"
-                    >
-                      Immediate Liquidation (${liquidationPrices.immediate.toLocaleString()})
-                    </text>
-                  </>
-                )}
+          {liquidationPrices && (showImmediateLiquidation || showLiquidationWithTopUp) && chartData.length > 0 && (() => {
+            // Calculate actual chart data range for accurate positioning
+            const minPrice = Math.min(...chartData.map(d => d.price));
+            const maxPrice = Math.max(...chartData.map(d => d.price));
 
-                {/* Liquidation with Top-up Line */}
-                {showLiquidationWithTopUp && liquidationPrices.hasFreeBtc && liquidationPrices.withTopUp !== liquidationPrices.immediate && (
-                  <>
-                    {console.log('🟢 RENDERING CUSTOM SVG LIQUIDATION WITH TOP-UP LINE:', {
+            // Use Y-axis domain calculation similar to the chart (with margins for log scale)
+            const yAxisMin = isLogScale ? minPrice * 0.5 : minPrice * 0.9;
+            const yAxisMax = isLogScale ? maxPrice * 2 : maxPrice * 1.1;
+
+            // Calculate Y position for liquidation lines using actual chart range
+            const calculateYPosition = (price) => {
+              if (isLogScale) {
+                // Logarithmic scale positioning
+                const logPrice = Math.log10(price);
+                const logMin = Math.log10(yAxisMin);
+                const logMax = Math.log10(yAxisMax);
+                const normalizedPosition = (logPrice - logMin) / (logMax - logMin);
+                return 20 + (100 - normalizedPosition * 80); // 20% top margin, 80% chart area
+              } else {
+                // Linear scale positioning
+                const normalizedPosition = (price - yAxisMin) / (yAxisMax - yAxisMin);
+                return 20 + (100 - normalizedPosition * 80); // 20% top margin, 80% chart area
+              }
+            };
+
+            return (
+              <div className="absolute inset-0 pointer-events-none z-10">
+                <svg width="100%" height="100%" className="absolute inset-0">
+                  {/* Immediate Liquidation Line */}
+                  {showImmediateLiquidation && (() => {
+                    const yPos = calculateYPosition(liquidationPrices.immediate);
+                    console.log('🟡 RENDERING CORRECTED IMMEDIATE LIQUIDATION LINE:', {
+                      y: liquidationPrices.immediate,
+                      chartRange: `$${Math.round(minPrice)} - $${Math.round(maxPrice)}`,
+                      yAxisRange: `$${Math.round(yAxisMin)} - $${Math.round(yAxisMax)}`,
+                      yPosition: `${yPos}%`,
+                      isLogScale
+                    });
+                    return (
+                      <>
+                        <line
+                          x1="5%"
+                          x2="95%"
+                          y1={`${yPos}%`}
+                          y2={`${yPos}%`}
+                          stroke="#f59e0b"
+                          strokeWidth="2"
+                          strokeDasharray="4 4"
+                          opacity="0.9"
+                        />
+                        <text
+                          x="6%"
+                          y={`${yPos - 2}%`}
+                          fill="#f59e0b"
+                          fontSize="11"
+                          fontWeight="500"
+                        >
+                          Immediate Liquidation (${liquidationPrices.immediate.toLocaleString()})
+                        </text>
+                      </>
+                    );
+                  })()}
+
+                  {/* Liquidation with Top-up Line */}
+                  {showLiquidationWithTopUp && liquidationPrices.hasFreeBtc && liquidationPrices.withTopUp !== liquidationPrices.immediate && (() => {
+                    const yPos = calculateYPosition(liquidationPrices.withTopUp);
+                    console.log('🟢 RENDERING CORRECTED LIQUIDATION WITH TOP-UP LINE:', {
                       y: liquidationPrices.withTopUp,
-                      chartHeight: 384, // h-96 = 384px
-                      yPosition: `${100 - ((Math.log10(liquidationPrices.withTopUp) - Math.log10(200)) / (Math.log10(2000000) - Math.log10(200))) * 80}%`
-                    })}
-                    <line
-                      x1="5%"
-                      x2="95%"
-                      y1={`${20 + (100 - ((Math.log10(liquidationPrices.withTopUp) - Math.log10(200)) / (Math.log10(2000000) - Math.log10(200))) * 80)}%`}
-                      y2={`${20 + (100 - ((Math.log10(liquidationPrices.withTopUp) - Math.log10(200)) / (Math.log10(2000000) - Math.log10(200))) * 80)}%`}
-                      stroke="#22c55e"
-                      strokeWidth="2"
-                      strokeDasharray="4 4"
-                      opacity="0.9"
-                    />
-                    <text
-                      x="6%"
-                      y={`${18 + (100 - ((Math.log10(liquidationPrices.withTopUp) - Math.log10(200)) / (Math.log10(2000000) - Math.log10(200))) * 80)}%`}
-                      fill="#22c55e"
-                      fontSize="11"
-                      fontWeight="500"
-                    >
-                      Liquidation with Top-up (${liquidationPrices.withTopUp.toLocaleString()})
-                    </text>
-                  </>
-                )}
-              </svg>
-            </div>
-          )}
+                      chartRange: `$${Math.round(minPrice)} - $${Math.round(maxPrice)}`,
+                      yAxisRange: `$${Math.round(yAxisMin)} - $${Math.round(yAxisMax)}`,
+                      yPosition: `${yPos}%`,
+                      isLogScale
+                    });
+                    return (
+                      <>
+                        <line
+                          x1="5%"
+                          x2="95%"
+                          y1={`${yPos}%`}
+                          y2={`${yPos}%`}
+                          stroke="#22c55e"
+                          strokeWidth="2"
+                          strokeDasharray="4 4"
+                          opacity="0.9"
+                        />
+                        <text
+                          x="6%"
+                          y={`${yPos - 2}%`}
+                          fill="#22c55e"
+                          fontSize="11"
+                          fontWeight="500"
+                        >
+                          Liquidation with Top-up (${liquidationPrices.withTopUp.toLocaleString()})
+                        </text>
+                      </>
+                    );
+                  })()}
+                </svg>
+              </div>
+            );
+          })()}
 
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
