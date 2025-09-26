@@ -17,8 +17,8 @@ export const GENESIS_DATE = new Date("2009-01-03")
 // - Resistance line calibrated to 2013 market peak ($1,177 at 1170.2% of fair value)
 const POWER_LAW_MODELS = {
   fit: { slope: 5.844, intercept: -17.01 }, // Industry standard (unchanged)
-  support: { slope: 5.844, intercept: -17.461735 }, // Calibrated to historical bottoms
-  resistance: { slope: 5.844, intercept: -15.941731 }, // Calibrated to historical peaks
+  support: { slope: 5.844, intercept: -17.46 }, // Calibrated to historical bottoms
+  resistance: { slope: 5.06, intercept: -13.5 }, // Calibrated to historical peaks
 }
 
 /**
@@ -31,12 +31,56 @@ export const getDaysSinceGenesis = (date: Date): number => {
 
 /**
  * Calculate Power Law price for a given date and line type.
+ * Supports both default parameters and custom parameters from simulation settings.
  */
-export const getPowerLawPrice = (date: Date, line: PowerLawLine): number => {
+export const getPowerLawPrice = (
+  date: Date,
+  line: PowerLawLine,
+  customParams?: {
+    controlMode?: 'unified' | 'individual'
+    unifiedSlope?: number
+    unifiedIntercept?: number
+    individualParams?: {
+      fit: { slope: number; intercept: number }
+      support: { slope: number; intercept: number }
+      resistance: { slope: number; intercept: number }
+    }
+  }
+): number => {
   const days = getDaysSinceGenesis(date)
   if (days <= 0) return 0
 
-  const model = POWER_LAW_MODELS[line]
+  let model: { slope: number; intercept: number }
+
+  if (customParams) {
+    if (customParams.controlMode === 'unified' && customParams.unifiedSlope && customParams.unifiedIntercept) {
+      // Unified mode: use unified parameters with relative offsets
+      const baseSlope = customParams.unifiedSlope
+      const baseIntercept = customParams.unifiedIntercept
+
+      // Calculate relative offsets from default parameters
+      const defaultFit = POWER_LAW_MODELS.fit
+      const slopeOffset = baseSlope - defaultFit.slope
+      const interceptOffset = baseIntercept - defaultFit.intercept
+
+      // Apply offsets to maintain relative relationships
+      const defaultModel = POWER_LAW_MODELS[line]
+      model = {
+        slope: defaultModel.slope + slopeOffset,
+        intercept: defaultModel.intercept + interceptOffset
+      }
+    } else if (customParams.controlMode === 'individual' && customParams.individualParams) {
+      // Individual mode: use specific parameters for each line
+      model = customParams.individualParams[line]
+    } else {
+      // Fallback to default parameters
+      model = POWER_LAW_MODELS[line]
+    }
+  } else {
+    // Use default parameters
+    model = POWER_LAW_MODELS[line]
+  }
+
   const logPrice = model.slope * Math.log10(days) + model.intercept
   const priceUsd = Math.pow(10, logPrice)
   return priceUsd // Return USD price directly

@@ -51,6 +51,15 @@ export interface PriceEngineParams {
   annualGrowthRates: number[]
   powerLawSettings: {
     prognosisLine: PowerLawLine
+    // Interactive slope and intercept controls
+    controlMode?: 'unified' | 'individual'
+    unifiedSlope?: number
+    unifiedIntercept?: number
+    individualParams?: {
+      fit: { slope: number; intercept: number }
+      support: { slope: number; intercept: number }
+      resistance: { slope: number; intercept: number }
+    }
   }
   projectionStartDate?: Date
   // Optional pre-calculated historical patterns for specific models

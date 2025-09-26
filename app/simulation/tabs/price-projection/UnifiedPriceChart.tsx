@@ -116,19 +116,15 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
   const [showImmediateLiquidation, setShowImmediateLiquidation] = useState(true)
   const [showLiquidationWithTopUp, setShowLiquidationWithTopUp] = useState(true)
 
-  // Support/Resistance line visibility with model-based defaults
-  const [showSupportLine, setShowSupportLine] = useState(() => params.priceModel === 'powerLaw')
-  const [showResistanceLine, setShowResistanceLine] = useState(() => params.priceModel === 'powerLaw')
+  // Power Law line visibility controls (only for Power Law model)
+  const [showPLSupport, setShowPLSupport] = useState(true)
+  const [showPLFit, setShowPLFit] = useState(true)
+  const [showPLResistance, setShowPLResistance] = useState(true)
 
   // Debug counter to track useEffect calls
   const effectCallCount = useRef(0)
 
-  // Update support/resistance line visibility when model changes
-  useEffect(() => {
-    const isPowerLawModel = params.priceModel === 'powerLaw'
-    setShowSupportLine(isPowerLawModel)
-    setShowResistanceLine(isPowerLawModel)
-  }, [params.priceModel])
+
 
   // Generate initial projection when data becomes available (fixes race condition)
   useEffect(() => {
@@ -353,6 +349,10 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
     params.simulationMonths,
     JSON.stringify(params.annualGrowthRates || []), // Stable string representation
     params.powerLawSettings?.prognosisLine, // Only the specific property that affects projections
+    JSON.stringify(params.powerLawSettings?.controlMode), // Power Law control mode changes
+    JSON.stringify(params.powerLawSettings?.unifiedSlope), // Unified slope changes
+    JSON.stringify(params.powerLawSettings?.unifiedIntercept), // Unified intercept changes
+    JSON.stringify(params.powerLawSettings?.individualParams), // Individual parameter changes
     params.diminishingReturnsUpdated, // Trigger recalculation when diminishing returns params change
     // params.logarithmicCurveUpdated, // Trigger recalculation when logarithmic curve params change
     params.lastUpdated, // General trigger for any parameter updates
@@ -467,29 +467,72 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
     return sortedData
   }, [historicalData, projection, liquidationPrices])
 
-  // Generate Power Law lines data for overlay
-  const powerLawLinesData = useMemo(() => {
+  // Generate model-specific overlay data (optimized for performance)
+  const chartDataWithOverlays = useMemo(() => {
     if (chartData.length === 0) return []
 
-    console.log('📈 Generating Power Law lines for chart overlay...')
+    let processedData = chartData
 
-    // Generate Power Law lines for the entire chart timeframe
-    return chartData.map(point => {
-      const date = new Date(point.timestamp)
+    // Only add Power Law lines if Power Law model is selected
+    if (params.priceModel === 'powerLaw') {
+      console.log('📈 Generating Power Law lines for chart overlay...')
 
-      // Calculate Power Law prices for this date
-      const supportPrice = getPowerLawPrice(date, 'support')
-      const fitPrice = getPowerLawPrice(date, 'fit')
-      const resistancePrice = getPowerLawPrice(date, 'resistance')
+      // Performance optimization: Sample data points to avoid blocking the main thread
+      // For charts with many data points, we only calculate Power Law lines for a subset
+      const maxPoints = 500 // Limit to 500 points for smooth performance
+      const sampleInterval = Math.max(1, Math.floor(chartData.length / maxPoints))
 
-      return {
-        ...point,
-        powerLawSupport: Math.round(supportPrice),
-        powerLawFit: Math.round(fitPrice),
-        powerLawResistance: Math.round(resistancePrice)
-      }
-    })
-  }, [chartData])
+      console.log(`   📊 Sampling ${chartData.length} points with interval ${sampleInterval} (max ${maxPoints} points)`)
+
+      // Generate Power Law lines for sampled points only
+      const sampledData = chartData.filter((_, index) => index % sampleInterval === 0)
+
+      processedData = sampledData.map(point => {
+        const date = new Date(point.timestamp)
+
+        // Calculate Power Law prices for this date using custom parameters if available
+        const powerLawParams = params.powerLawSettings ? {
+          controlMode: params.powerLawSettings.controlMode,
+          unifiedSlope: params.powerLawSettings.unifiedSlope,
+          unifiedIntercept: params.powerLawSettings.unifiedIntercept,
+          individualParams: params.powerLawSettings.individualParams
+        } : undefined
+
+        const supportPrice = getPowerLawPrice(date, 'support', powerLawParams)
+        const fitPrice = getPowerLawPrice(date, 'fit', powerLawParams)
+        const resistancePrice = getPowerLawPrice(date, 'resistance', powerLawParams)
+
+        return {
+          ...point,
+          plSupport: Math.round(supportPrice),
+          plFit: Math.round(fitPrice),
+          plResistance: Math.round(resistancePrice)
+        }
+      })
+    }
+
+    // Apply log-log time transformation if enabled (BitBo-style compression)
+    if (isLogLogScale) {
+      const genesisDate = new Date('2009-01-03').getTime() // Bitcoin genesis block
+
+      return processedData.map(point => {
+        // Calculate days since genesis
+        const daysSinceGenesis = Math.max(1, (point.timestamp - genesisDate) / (1000 * 60 * 60 * 24))
+
+        // Use log transformation for time compression (like BitBo)
+        const logTime = Math.log10(daysSinceGenesis)
+
+        return {
+          ...point,
+          // Store both original timestamp and log-transformed time
+          originalTimestamp: point.timestamp,
+          timestamp: logTime * 1000000 // Scale up to avoid precision issues
+        }
+      })
+    }
+
+    return processedData
+  }, [chartData, params.priceModel, isLogLogScale])
 
   // Calculate liquidation prices for reference lines (after chartData is available)
   const liquidationPricesForChart = useMemo(() => {
@@ -553,11 +596,15 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
     } else if (dataKey === 'liquidationWithTopUp') {
       setShowLiquidationWithTopUp(prev => !prev)
     }
-    // Handle support/resistance line toggles
-    else if (dataKey === 'support') {
-      setShowSupportLine(prev => !prev)
-    } else if (dataKey === 'resistance') {
-      setShowResistanceLine(prev => !prev)
+    // Handle Power Law line toggles (only for Power Law model)
+    else if (params.priceModel === 'powerLaw') {
+      if (dataKey === 'plSupport') {
+        setShowPLSupport(prev => !prev)
+      } else if (dataKey === 'plFit') {
+        setShowPLFit(prev => !prev)
+      } else if (dataKey === 'plResistance') {
+        setShowPLResistance(prev => !prev)
+      }
     }
 
     // Note: Price line should always be visible as it's the core chart element
@@ -875,7 +922,7 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
               variant="outline"
               size="sm"
               onClick={downloadCSV}
-              disabled={isDownloading || powerLawLinesData.length === 0}
+              disabled={isDownloading || chartDataWithOverlays.length === 0}
               className="flex-1 md:flex-none"
             >
               <Download className="h-4 w-4" />
@@ -884,24 +931,77 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
           </div>
         </div>
       </CardHeader>
-      
+
+      {/* Power Law Line Controls - Only shown when Power Law model is selected */}
+      {params.priceModel === 'powerLaw' && (
+        <div className="px-6 pb-4 border-b">
+          <div className="flex flex-wrap gap-4">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={showPLSupport}
+                onChange={(e) => setShowPLSupport(e.target.checked)}
+                className="rounded"
+              />
+              <span className="flex items-center gap-1">
+                <div className="w-3 h-0.5 bg-green-500" style={{ borderStyle: 'dashed', borderWidth: '1px 0' }}></div>
+                PL Support
+              </span>
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={showPLFit}
+                onChange={(e) => setShowPLFit(e.target.checked)}
+                className="rounded"
+              />
+              <span className="flex items-center gap-1">
+                <div className="w-3 h-0.5 bg-blue-500" style={{ borderStyle: 'dashed', borderWidth: '1px 0' }}></div>
+                PL Fit
+              </span>
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={showPLResistance}
+                onChange={(e) => setShowPLResistance(e.target.checked)}
+                className="rounded"
+              />
+              <span className="flex items-center gap-1">
+                <div className="w-3 h-0.5 bg-red-500" style={{ borderStyle: 'dashed', borderWidth: '1px 0' }}></div>
+                PL Resistance
+              </span>
+            </label>
+          </div>
+        </div>
+      )}
+
       <CardContent>
         <div className="h-96 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={powerLawLinesData}>
+            <LineChart data={chartDataWithOverlays}>
               <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
 
               <XAxis
                 dataKey="timestamp"
                 type="number"
-                scale={isLogLogScale ? "log" : "time"}
+                scale={isLogLogScale ? "linear" : "time"}
                 domain={['dataMin', 'dataMax']}
                 tickFormatter={(timestamp) => {
-                  const date = new Date(timestamp)
                   if (isLogLogScale) {
-                    // For log-log scale, show years more prominently
-                    return date.getFullYear().toString()
+                    // Convert back from log-transformed time to days since genesis
+                    const logDays = timestamp / 1000000
+                    const daysSinceGenesis = Math.pow(10, logDays)
+
+                    // Convert days back to actual date
+                    const genesisDate = new Date('2009-01-03').getTime()
+                    const actualDate = new Date(genesisDate + daysSinceGenesis * 24 * 60 * 60 * 1000)
+
+                    // Show years for log-log scale (BitBo style)
+                    return actualDate.getFullYear().toString()
                   }
+
+                  const date = new Date(timestamp)
                   return date.toLocaleDateString('de-DE', {
                     year: 'numeric',
                     month: 'short'
@@ -940,12 +1040,12 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
                   ]
 
                   // Add Power Law context
-                  if (name.startsWith('powerLaw')) {
-                    if (name === 'powerLawSupport') {
+                  if (name.startsWith('pl')) {
+                    if (name === 'plSupport') {
                       baseFormat.push('📉 Calibrated to 2022 bottom')
-                    } else if (name === 'powerLawFit') {
+                    } else if (name === 'plFit') {
                       baseFormat.push('📊 Industry standard fair value')
-                    } else if (name === 'powerLawResistance') {
+                    } else if (name === 'plResistance') {
                       baseFormat.push('📈 Calibrated to 2013 peak')
                     }
                   }
@@ -962,7 +1062,18 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
                   return baseFormat
                 }}
                 labelFormatter={(timestamp: number) => {
-                  const date = new Date(timestamp)
+                  let date: Date
+
+                  if (isLogLogScale) {
+                    // Convert back from log-transformed time to actual date
+                    const logDays = timestamp / 1000000
+                    const daysSinceGenesis = Math.pow(10, logDays)
+                    const genesisDate = new Date('2009-01-03').getTime()
+                    date = new Date(genesisDate + daysSinceGenesis * 24 * 60 * 60 * 1000)
+                  } else {
+                    date = new Date(timestamp)
+                  }
+
                   return `Date: ${date.toLocaleDateString('en-US', {
                     year: 'numeric',
                     month: 'long',
@@ -1003,69 +1114,49 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
                 connectNulls={false}
               />
 
-              {/* Power Law Support Line */}
-              <Line
-                type="monotone"
-                dataKey="powerLawSupport"
-                stroke="#10b981"
-                strokeWidth={2}
-                dot={false}
-                name="Power Law Support"
-                connectNulls={false}
-                strokeDasharray="5 5"
-              />
+              {/* Power Law Lines - Only shown when Power Law model is selected */}
+              {params.priceModel === 'powerLaw' && (
+                <>
+                  <Line
+                    type="monotone"
+                    dataKey="plSupport"
+                    stroke={showPLSupport ? "#10b981" : "#9ca3af"}
+                    strokeWidth={2}
+                    dot={false}
+                    name="PL Support"
+                    connectNulls={false}
+                    strokeDasharray="5 5"
+                    strokeOpacity={showPLSupport ? 1 : 0.3}
+                    hide={!showPLSupport}
+                  />
 
-              {/* Power Law Fit Line */}
-              <Line
-                type="monotone"
-                dataKey="powerLawFit"
-                stroke="#3b82f6"
-                strokeWidth={2}
-                dot={false}
-                name="Power Law Fit"
-                connectNulls={false}
-                strokeDasharray="3 3"
-              />
+                  <Line
+                    type="monotone"
+                    dataKey="plFit"
+                    stroke={showPLFit ? "#3b82f6" : "#9ca3af"}
+                    strokeWidth={2}
+                    dot={false}
+                    name="PL Fit"
+                    connectNulls={false}
+                    strokeDasharray="3 3"
+                    strokeOpacity={showPLFit ? 1 : 0.3}
+                    hide={!showPLFit}
+                  />
 
-              {/* Power Law Resistance Line */}
-              <Line
-                type="monotone"
-                dataKey="powerLawResistance"
-                stroke="#ef4444"
-                strokeWidth={2}
-                dot={false}
-                name="Power Law Resistance"
-                connectNulls={false}
-                strokeDasharray="5 5"
-              />
-
-              {/* Support line */}
-              <Line
-                type="monotone"
-                dataKey="support"
-                stroke={showSupportLine ? "#10b981" : "#9ca3af"}
-                strokeWidth={1}
-                strokeDasharray="3 3"
-                dot={false}
-                name="Support Line"
-                connectNulls={false}
-                strokeOpacity={showSupportLine ? 1 : 0.3}
-                hide={!showSupportLine}
-              />
-
-              {/* Resistance line */}
-              <Line
-                type="monotone"
-                dataKey="resistance"
-                stroke={showResistanceLine ? "#ef4444" : "#9ca3af"}
-                strokeWidth={1}
-                strokeDasharray="3 3"
-                dot={false}
-                name="Resistance Line"
-                connectNulls={false}
-                strokeOpacity={showResistanceLine ? 1 : 0.3}
-                hide={!showResistanceLine}
-              />
+                  <Line
+                    type="monotone"
+                    dataKey="plResistance"
+                    stroke={showPLResistance ? "#ef4444" : "#9ca3af"}
+                    strokeWidth={2}
+                    dot={false}
+                    name="PL Resistance"
+                    connectNulls={false}
+                    strokeDasharray="5 5"
+                    strokeOpacity={showPLResistance ? 1 : 0.3}
+                    hide={!showPLResistance}
+                  />
+                </>
+              )}
 
               {/* Invisible Line components for liquidation legend entries */}
               {liquidationPricesForChart && (

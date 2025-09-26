@@ -33,8 +33,8 @@ export class PowerLawModel implements PriceProjectionModel {
   // Produces $143k for 2026, $1.07M for 2033 (7.4% above Giovanni's $1M target)
   private readonly POWER_LAW_MODELS = {
     fit: { slope: 5.844, intercept: -17.01 }, // Industry standard (unchanged)
-    support: { slope: 5.844, intercept: -17.461735 }, // Calibrated to historical bottoms
-    resistance: { slope: 5.844, intercept: -15.941731 }, // Calibrated to historical peaks
+    support: { slope: 5.844, intercept: -17.46 }, // Calibrated to historical bottoms
+    resistance: { slope: 5.06, intercept: -13.5 }, // Calibrated to historical peaks
   }
   
   // No conversion needed - keeping prices in USD
