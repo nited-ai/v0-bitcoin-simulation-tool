@@ -122,104 +122,28 @@ export function RollingLoanConfigCard() {
         </div>
 
         {/* How Rolling Loans Work */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           <h4 className="font-medium flex items-center gap-2">
             <Zap className="w-4 h-4 text-orange-500" />
             How Rolling Loans Work
           </h4>
-
-          <div className="space-y-3 text-sm text-muted-foreground">
+          
+          <div className="space-y-2 text-sm text-muted-foreground">
             <div className="flex items-start gap-2">
               <div className="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
               <p><strong>Initial Loan:</strong> Take a loan for {params.loanAmountPercent.toFixed(2)}% of your BTC stack value</p>
             </div>
             <div className="flex items-start gap-2">
               <div className="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
-              <p><strong>Automatic Rollover:</strong> At maturity, take a new loan to pay off the previous one plus accumulated interest</p>
+              <p><strong>Automatic Rollover:</strong> At maturity, take a new loan to pay off the previous one</p>
             </div>
             <div className="flex items-start gap-2">
               <div className="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
-              <p><strong>Dynamic Sizing:</strong> Each new loan amount adjusts based on current Bitcoin price, maintaining consistent LTV ratios</p>
+              <p><strong>Dynamic Sizing:</strong> Loan amounts adjust based on Bitcoin price changes</p>
             </div>
             <div className="flex items-start gap-2">
               <div className="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
-              <p><strong>Continuous Leverage:</strong> Maintains exposure to Bitcoin price appreciation while accessing liquidity</p>
-            </div>
-          </div>
-
-          <div className="space-y-3 text-sm text-muted-foreground">
-            <h5 className="font-medium text-foreground">Key Benefits & Advantages:</h5>
-            <div className="flex items-start gap-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
-              <p><strong>Capital Efficiency:</strong> Access cash without selling Bitcoin, preserving long-term position</p>
-            </div>
-            <div className="flex items-start gap-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
-              <p><strong>Tax Optimization:</strong> Loans are not taxable events, unlike selling Bitcoin</p>
-            </div>
-            <div className="flex items-start gap-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
-              <p><strong>Flexible Timing:</strong> No forced liquidation timing - rollover when convenient</p>
-            </div>
-            <div className="flex items-start gap-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
-              <p><strong>Compound Growth:</strong> Bitcoin appreciation can outpace interest costs over time</p>
-            </div>
-          </div>
-
-          <div className="space-y-3 text-sm text-muted-foreground">
-            <h5 className="font-medium text-foreground">Practical Rollover Process:</h5>
-            <div className="flex items-start gap-2">
-              <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-              <p><strong>Step 1:</strong> Monitor loan maturity date (typically 30-90 days before expiration)</p>
-            </div>
-            <div className="flex items-start gap-2">
-              <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-              <p><strong>Step 2:</strong> Calculate new loan amount based on current Bitcoin price and desired LTV</p>
-            </div>
-            <div className="flex items-start gap-2">
-              <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-              <p><strong>Step 3:</strong> Secure new loan terms and execute rollover transaction</p>
-            </div>
-            <div className="flex items-start gap-2">
-              <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-              <p><strong>Step 4:</strong> Use new loan proceeds to pay off previous loan plus interest</p>
-            </div>
-          </div>
-
-          <div className="space-y-3 text-sm text-muted-foreground">
-            <h5 className="font-medium text-foreground">Key Considerations & Edge Cases:</h5>
-            <div className="flex items-start gap-2">
-              <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2"></div>
-              <p><strong>Market Volatility:</strong> Bitcoin price drops may require additional collateral or loan reduction</p>
-            </div>
-            <div className="flex items-start gap-2">
-              <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2"></div>
-              <p><strong>Interest Rate Changes:</strong> Lending rates may fluctuate between rollover periods</p>
-            </div>
-            <div className="flex items-start gap-2">
-              <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2"></div>
-              <p><strong>Platform Risk:</strong> Lending platform availability and terms may change</p>
-            </div>
-            <div className="flex items-start gap-2">
-              <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2"></div>
-              <p><strong>Liquidity Constraints:</strong> Ensure sufficient funds for rollover execution and potential margin calls</p>
-            </div>
-          </div>
-
-          <div className="space-y-3 text-sm text-muted-foreground">
-            <h5 className="font-medium text-foreground">Vs. Traditional Loan Strategies:</h5>
-            <div className="flex items-start gap-2">
-              <div className="w-2 h-2 bg-purple-500 rounded-full mt-2"></div>
-              <p><strong>Fixed-Term Loans:</strong> Rolling loans provide flexibility vs. rigid repayment schedules</p>
-            </div>
-            <div className="flex items-start gap-2">
-              <div className="w-2 h-2 bg-purple-500 rounded-full mt-2"></div>
-              <p><strong>Sell-and-Rebuy:</strong> Avoids market timing risk and transaction costs of selling/rebuying</p>
-            </div>
-            <div className="flex items-start gap-2">
-              <div className="w-2 h-2 bg-purple-500 rounded-full mt-2"></div>
-              <p><strong>DeFi Protocols:</strong> Centralized lending may offer better rates but with counterparty risk</p>
+              <p><strong>Risk Management:</strong> Liquidation protection and collateral monitoring</p>
             </div>
           </div>
         </div>
