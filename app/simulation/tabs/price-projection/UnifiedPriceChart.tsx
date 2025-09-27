@@ -643,6 +643,12 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
         plFit: p.plFit,
         plResistance: p.plResistance
       })))
+      console.log(`   👁️ Power Law visibility state:`, {
+        showPLSupport,
+        showPLFit,
+        showPLResistance,
+        priceModel: params.priceModel
+      })
     }
 
     return processedData
@@ -676,6 +682,13 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
     const minChartPrice = Math.min(...chartData.map(d => d.price))
 
     console.log('📊 Chart price range:', { min: minChartPrice, max: maxChartPrice })
+    console.log('💰 Liquidation price analysis:', {
+      immediate: immediateLiquidationUsd,
+      withTopUp: trueLiquidationUsd,
+      hasFreeBtc: liquidationData.initialHasFreeCollateral,
+      minBound: minChartPrice * 0.1,
+      maxBound: maxChartPrice * 3
+    })
 
     // Show lines if they're within 3x the chart range (reasonable visibility)
     const isWithinBounds = immediateLiquidationUsd >= minChartPrice * 0.1 &&
@@ -1088,7 +1101,7 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
               <YAxis
                 scale={isLogScale || isLogLogScale ? "log" : "linear"}
                 type="number"
-                domain={isLogScale || isLogLogScale ? ['dataMin * 0.5', 'dataMax * 2'] : ['dataMin * 0.9', 'dataMax * 1.1']}
+                domain={isLogScale || isLogLogScale ? ['dataMin * 0.5', 'dataMax * 2'] : ['dataMin * 0.5', 'dataMax * 2']}
                 tickFormatter={(value) => {
                   if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`
                   if (value >= 1000) return `$${(value / 1000).toFixed(0)}k`
@@ -1196,7 +1209,7 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
                     strokeWidth={2}
                     dot={false}
                     name="PL Support"
-                    connectNulls={false}
+                    connectNulls={true}
                     strokeDasharray="5 5"
                     strokeOpacity={showPLSupport ? 1 : 0.3}
                     hide={!showPLSupport}
@@ -1209,7 +1222,7 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
                     strokeWidth={2}
                     dot={false}
                     name="PL Fit"
-                    connectNulls={false}
+                    connectNulls={true}
                     strokeDasharray="3 3"
                     strokeOpacity={showPLFit ? 1 : 0.3}
                     hide={!showPLFit}
@@ -1222,7 +1235,7 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
                     strokeWidth={2}
                     dot={false}
                     name="PL Resistance"
-                    connectNulls={false}
+                    connectNulls={true}
                     strokeDasharray="5 5"
                     strokeOpacity={showPLResistance ? 1 : 0.3}
                     hide={!showPLResistance}
