@@ -27,6 +27,10 @@ interface ChartDataPoint {
   // Model-generated support/resistance lines
   support?: number
   resistance?: number
+  // Power Law lines (for Power Law model)
+  plSupport?: number | null
+  plFit?: number | null
+  plResistance?: number | null
   // Liquidation price lines for legend integration
   immediateLiquidation?: number
   liquidationWithTopUp?: number
@@ -99,7 +103,7 @@ function calculateSupportLine(historicalData: HistoricalDataPoint[]): { timestam
 }
 
 function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartProps) {
-  const { params } = useSimulation()
+  const { params, setParams } = useSimulation()
   const { historicalData, isHistoricalDataLoaded: isLoaded, isLoadingHistoricalData: isLoading, refreshHistoricalData } = useCentralizedData(true) // Enable loading with weekly data
   const liquidationData = useLiquidationCalculations()
   const searchParams = useSearchParams()
