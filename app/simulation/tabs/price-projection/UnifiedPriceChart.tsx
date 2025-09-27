@@ -124,6 +124,27 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
   // Debug counter to track useEffect calls
   const effectCallCount = useRef(0)
 
+  // Ensure Power Law settings are initialized when Power Law model is selected
+  useEffect(() => {
+    if (params.priceModel === 'powerLaw' && !params.powerLawSettings) {
+      console.log('🔧 Initializing missing Power Law settings...')
+      setParams(prev => ({
+        ...prev,
+        powerLawSettings: {
+          prognosisLine: 'fit',
+          controlMode: 'unified',
+          unifiedSlope: 5.844,
+          unifiedIntercept: -17.01,
+          individualParams: {
+            fit: { slope: 5.844, intercept: -17.01 },
+            support: { slope: 5.844, intercept: -17.46 },
+            resistance: { slope: 5.06, intercept: -13.5 }
+          }
+        }
+      }))
+    }
+  }, [params.priceModel, params.powerLawSettings, setParams])
+
 
 
   // Generate initial projection when data becomes available (fixes race condition)
@@ -475,40 +496,96 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
 
     // Only add Power Law lines if Power Law model is selected
     if (params.priceModel === 'powerLaw') {
-      console.log('📈 Generating Power Law lines for chart overlay...')
+      try {
+        console.log('📈 Generating Power Law lines for chart overlay...')
+        console.log('   🔧 Power Law settings:', params.powerLawSettings)
 
-      // Performance optimization: Sample data points to avoid blocking the main thread
-      // For charts with many data points, we only calculate Power Law lines for a subset
-      const maxPoints = 500 // Limit to 500 points for smooth performance
-      const sampleInterval = Math.max(1, Math.floor(chartData.length / maxPoints))
+        // Performance optimization: Sample data points to avoid blocking the main thread
+        // For charts with many data points, we only calculate Power Law lines for a subset
+        const maxPoints = 500 // Limit to 500 points for smooth performance
+        const sampleInterval = Math.max(1, Math.floor(chartData.length / maxPoints))
 
-      console.log(`   📊 Sampling ${chartData.length} points with interval ${sampleInterval} (max ${maxPoints} points)`)
+        console.log(`   📊 Sampling ${chartData.length} points with interval ${sampleInterval} (max ${maxPoints} points)`)
 
-      // Generate Power Law lines for sampled points only
-      const sampledData = chartData.filter((_, index) => index % sampleInterval === 0)
+        // Generate Power Law lines for sampled points only
+        const sampledData = chartData.filter((_, index) => index % sampleInterval === 0)
 
-      processedData = sampledData.map(point => {
-        const date = new Date(point.timestamp)
+        processedData = sampledData.map((point, index) => {
+          try {
+            const date = new Date(point.timestamp)
 
-        // Calculate Power Law prices for this date using custom parameters if available
-        const powerLawParams = params.powerLawSettings ? {
-          controlMode: params.powerLawSettings.controlMode,
-          unifiedSlope: params.powerLawSettings.unifiedSlope,
-          unifiedIntercept: params.powerLawSettings.unifiedIntercept,
-          individualParams: params.powerLawSettings.individualParams
-        } : undefined
+            // Validate date
+            if (isNaN(date.getTime())) {
+              console.warn(`⚠️ Invalid date for point ${index}:`, point.timestamp)
+              return {
+                ...point,
+                plSupport: null,
+                plFit: null,
+                plResistance: null
+              }
+            }
 
-        const supportPrice = getPowerLawPrice(date, 'support', powerLawParams)
-        const fitPrice = getPowerLawPrice(date, 'fit', powerLawParams)
-        const resistancePrice = getPowerLawPrice(date, 'resistance', powerLawParams)
+            // Calculate Power Law prices for this date using custom parameters if available
+            const powerLawParams = params.powerLawSettings ? {
+              controlMode: params.powerLawSettings.controlMode,
+              unifiedSlope: params.powerLawSettings.unifiedSlope,
+              unifiedIntercept: params.powerLawSettings.unifiedIntercept,
+              individualParams: params.powerLawSettings.individualParams
+            } : undefined
 
-        return {
-          ...point,
-          plSupport: Math.round(supportPrice),
-          plFit: Math.round(fitPrice),
-          plResistance: Math.round(resistancePrice)
+            const supportPrice = getPowerLawPrice(date, 'support', powerLawParams)
+            const fitPrice = getPowerLawPrice(date, 'fit', powerLawParams)
+            const resistancePrice = getPowerLawPrice(date, 'resistance', powerLawParams)
+
+            // Validate calculated prices
+            if (isNaN(supportPrice) || isNaN(fitPrice) || isNaN(resistancePrice)) {
+              console.warn(`⚠️ Invalid Power Law prices for ${date.toISOString()}:`, { supportPrice, fitPrice, resistancePrice })
+              return {
+                ...point,
+                plSupport: null,
+                plFit: null,
+                plResistance: null
+              }
+            }
+
+            return {
+              ...point,
+              plSupport: Math.round(supportPrice),
+              plFit: Math.round(fitPrice),
+              plResistance: Math.round(resistancePrice)
+            }
+          } catch (error) {
+            console.error(`❌ Error calculating Power Law for point ${index}:`, error)
+            return {
+              ...point,
+              plSupport: null,
+              plFit: null,
+              plResistance: null
+            }
+          }
+        })
+
+        // Log sample of generated Power Law data for verification
+        if (processedData.length > 0) {
+          const firstPoint = processedData[0]
+          const lastPoint = processedData[processedData.length - 1]
+          console.log('   ✅ Power Law lines generated successfully')
+          console.log(`   📊 First point PL prices:`, {
+            support: firstPoint.plSupport,
+            fit: firstPoint.plFit,
+            resistance: firstPoint.plResistance
+          })
+          console.log(`   📊 Last point PL prices:`, {
+            support: lastPoint.plSupport,
+            fit: lastPoint.plFit,
+            resistance: lastPoint.plResistance
+          })
         }
-      })
+      } catch (error) {
+        console.error('❌ Critical error generating Power Law lines:', error)
+        // Fallback: return original data without Power Law lines
+        processedData = chartData
+      }
     }
 
     // Apply log-log time transformation if enabled (BitBo-style compression)
@@ -932,49 +1009,7 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
         </div>
       </CardHeader>
 
-      {/* Power Law Line Controls - Only shown when Power Law model is selected */}
-      {params.priceModel === 'powerLaw' && (
-        <div className="px-6 pb-4 border-b">
-          <div className="flex flex-wrap gap-4">
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={showPLSupport}
-                onChange={(e) => setShowPLSupport(e.target.checked)}
-                className="rounded"
-              />
-              <span className="flex items-center gap-1">
-                <div className="w-3 h-0.5 bg-green-500" style={{ borderStyle: 'dashed', borderWidth: '1px 0' }}></div>
-                PL Support
-              </span>
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={showPLFit}
-                onChange={(e) => setShowPLFit(e.target.checked)}
-                className="rounded"
-              />
-              <span className="flex items-center gap-1">
-                <div className="w-3 h-0.5 bg-blue-500" style={{ borderStyle: 'dashed', borderWidth: '1px 0' }}></div>
-                PL Fit
-              </span>
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={showPLResistance}
-                onChange={(e) => setShowPLResistance(e.target.checked)}
-                className="rounded"
-              />
-              <span className="flex items-center gap-1">
-                <div className="w-3 h-0.5 bg-red-500" style={{ borderStyle: 'dashed', borderWidth: '1px 0' }}></div>
-                PL Resistance
-              </span>
-            </label>
-          </div>
-        </div>
-      )}
+
 
       <CardContent>
         <div className="h-96 w-full">
