@@ -9,10 +9,16 @@ import type { PriceEngineParams, ProjectionPathPoint, PowerLawLine } from '../ty
 
 export const GENESIS_DATE = new Date("2009-01-03")
 
+// Power Law model parameters with dynamic calibration based on historical extremes
+// Formula: Price = constant × (days since Genesis Block)^slope
+// Fit line: Industry-standard parameters from HTML Power Law Explorer (slope = 5.844, intercept = -17.01)
+// Support/Resistance: Dynamically calibrated to actual Bitcoin historical price extremes
+// - Support line calibrated to 2022 market bottom ($15,500 at 35.3% of fair value)
+// - Resistance line calibrated to 2013 market peak ($1,177 at 1170.2% of fair value)
 const POWER_LAW_MODELS = {
-  fit: { slope: 5.68, intercept: -16.493 },
-  support: { slope: 5.85, intercept: -17.55 },
-  resistance: { slope: 5.57, intercept: -15.75 },
+  fit: { slope: 5.844, intercept: -17.01 }, // Industry standard (unchanged)
+  support: { slope: 5.844, intercept: -17.46 }, // Calibrated to historical bottoms
+  resistance: { slope: 5.06, intercept: -13.5 }, // Calibrated to historical peaks
 }
 
 /**
@@ -25,12 +31,56 @@ export const getDaysSinceGenesis = (date: Date): number => {
 
 /**
  * Calculate Power Law price for a given date and line type.
+ * Supports both default parameters and custom parameters from simulation settings.
  */
-export const getPowerLawPrice = (date: Date, line: PowerLawLine): number => {
+export const getPowerLawPrice = (
+  date: Date,
+  line: PowerLawLine,
+  customParams?: {
+    controlMode?: 'unified' | 'individual'
+    unifiedSlope?: number
+    unifiedIntercept?: number
+    individualParams?: {
+      fit: { slope: number; intercept: number }
+      support: { slope: number; intercept: number }
+      resistance: { slope: number; intercept: number }
+    }
+  }
+): number => {
   const days = getDaysSinceGenesis(date)
   if (days <= 0) return 0
 
-  const model = POWER_LAW_MODELS[line]
+  let model: { slope: number; intercept: number }
+
+  if (customParams) {
+    if (customParams.controlMode === 'unified' && customParams.unifiedSlope && customParams.unifiedIntercept) {
+      // Unified mode: use unified parameters with relative offsets
+      const baseSlope = customParams.unifiedSlope
+      const baseIntercept = customParams.unifiedIntercept
+
+      // Calculate relative offsets from default parameters
+      const defaultFit = POWER_LAW_MODELS.fit
+      const slopeOffset = baseSlope - defaultFit.slope
+      const interceptOffset = baseIntercept - defaultFit.intercept
+
+      // Apply offsets to maintain relative relationships
+      const defaultModel = POWER_LAW_MODELS[line]
+      model = {
+        slope: defaultModel.slope + slopeOffset,
+        intercept: defaultModel.intercept + interceptOffset
+      }
+    } else if (customParams.controlMode === 'individual' && customParams.individualParams) {
+      // Individual mode: use specific parameters for each line
+      model = customParams.individualParams[line]
+    } else {
+      // Fallback to default parameters
+      model = POWER_LAW_MODELS[line]
+    }
+  } else {
+    // Use default parameters
+    model = POWER_LAW_MODELS[line]
+  }
+
   const logPrice = model.slope * Math.log10(days) + model.intercept
   const priceUsd = Math.pow(10, logPrice)
   return priceUsd // Return USD price directly

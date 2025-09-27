@@ -18,7 +18,7 @@ import { LocaleSwitcher } from "@/components/locale-switcher"
 import { useTheme } from "next-themes"
 import Link from "next/link"
 import { NumberInput } from '../../../../shared/ui/forms/NumberInput'
-import { PriceModelSelector, UnifiedPriceChart, SimplifiedManualGrowthInterface, GrowthRateAnalysis, CustomGrowthRateSliders, DiminishingReturnsControls, LogarithmicCurveControls } from '../../tabs/price-projection'
+import { PriceModelSelector, UnifiedPriceChart, SimplifiedManualGrowthInterface, GrowthRateAnalysis, CustomGrowthRateSliders, DiminishingReturnsControls, LogarithmicCurveControls, PowerLawControls } from '../../tabs/price-projection'
 import { BasicParametersCard, ValidationSummary, RiskLevelSelector } from '../../tabs/parameters'
 
 import { CollateralVisualizationCard, LoanUsageVisualizationCard, PriceDropToleranceCard, LoanParametersCard, PlatformSelector } from '../../tabs/parameters'
@@ -414,6 +414,11 @@ export function TabNavigation({ children }: TabNavigationProps) {
             {/* Custom Growth Rate Sliders (when manual model and custom preset are selected) */}
             {params.priceModel === 'manual' && (
               <CustomGrowthRateSliders />
+            )}
+
+            {/* Power Law Controls (when Power Law model is selected) */}
+            {params.priceModel === 'powerLaw' && (
+              <PowerLawControls />
             )}
 
             {/* Diminishing Returns Controls (when enhanced cycle repeat model is selected) */}

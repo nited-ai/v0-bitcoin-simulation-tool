@@ -106,6 +106,17 @@ export interface SimulationParams {
   priceModel: PriceModel
   powerLawSettings: {
     prognosisLine: PowerLawLine
+    // Interactive slope and intercept controls
+    controlMode: 'unified' | 'individual'
+    // Unified controls (apply to all lines with relative offsets)
+    unifiedSlope: number
+    unifiedIntercept: number
+    // Individual controls (separate parameters for each line)
+    individualParams: {
+      fit: { slope: number; intercept: number }
+      support: { slope: number; intercept: number }
+      resistance: { slope: number; intercept: number }
+    }
   }
   riskManagement: {
     targetLtv: number
@@ -182,6 +193,15 @@ export const DEFAULT_PARAMS: SimulationParams = {
   priceModel: "manual",
   powerLawSettings: {
     prognosisLine: "fit",
+    // Interactive slope and intercept controls
+    controlMode: 'unified',
+    unifiedSlope: 5.844,
+    unifiedIntercept: -17.01,
+    individualParams: {
+      fit: { slope: 5.844, intercept: -17.01 },
+      support: { slope: 5.844, intercept: -17.461735 },
+      resistance: { slope: 5.844, intercept: -15.941731 }
+    }
   },
   riskManagement: {
     targetLtv: 40, // Updated to match "optimistic" risk level preset (40%)

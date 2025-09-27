@@ -22,3 +22,6 @@ export { DiminishingReturnsControls } from './cycle-repeat/DiminishingReturnsCon
 
 // Logarithmic curve model components
 export { LogarithmicCurveControls } from './logarithmic-curve/LogarithmicCurveControls'
+
+// Power Law model components
+export { PowerLawControls } from './power-law/PowerLawControls'
