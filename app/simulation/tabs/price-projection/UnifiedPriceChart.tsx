@@ -511,10 +511,21 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
 
         console.log(`   📊 Sampling ${chartData.length} points with interval ${sampleInterval} (max ${maxPoints} points)`)
 
-        // Generate Power Law lines for sampled points only
-        const sampledData = chartData.filter((_, index) => index % sampleInterval === 0)
+        // Generate Power Law lines for all points, but calculate only for sampled points for performance
+        processedData = chartData.map((point, index) => {
+          // Only calculate Power Law for sampled points to optimize performance
+          const shouldCalculatePowerLaw = index % sampleInterval === 0
 
-        processedData = sampledData.map((point, index) => {
+          if (!shouldCalculatePowerLaw) {
+            // For non-sampled points, just add null Power Law values
+            return {
+              ...point,
+              plSupport: null,
+              plFit: null,
+              plResistance: null
+            }
+          }
+
           try {
             const date = new Date(point.timestamp)
 
@@ -571,19 +582,27 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
 
         // Log sample of generated Power Law data for verification
         if (processedData.length > 0) {
-          const firstPoint = processedData[0]
-          const lastPoint = processedData[processedData.length - 1]
+          const sampledPoints = processedData.filter(p => p.plSupport !== null)
+          const totalPoints = processedData.length
+          const calculatedPoints = sampledPoints.length
+
           console.log('   ✅ Power Law lines generated successfully')
-          console.log(`   📊 First point PL prices:`, {
-            support: firstPoint.plSupport,
-            fit: firstPoint.plFit,
-            resistance: firstPoint.plResistance
-          })
-          console.log(`   📊 Last point PL prices:`, {
-            support: lastPoint.plSupport,
-            fit: lastPoint.plFit,
-            resistance: lastPoint.plResistance
-          })
+          console.log(`   📊 Total data points: ${totalPoints}, Power Law calculated for: ${calculatedPoints}`)
+
+          if (sampledPoints.length > 0) {
+            const firstSampledPoint = sampledPoints[0]
+            const lastSampledPoint = sampledPoints[sampledPoints.length - 1]
+            console.log(`   📊 First sampled point PL prices:`, {
+              support: firstSampledPoint.plSupport,
+              fit: firstSampledPoint.plFit,
+              resistance: firstSampledPoint.plResistance
+            })
+            console.log(`   📊 Last sampled point PL prices:`, {
+              support: lastSampledPoint.plSupport,
+              fit: lastSampledPoint.plFit,
+              resistance: lastSampledPoint.plResistance
+            })
+          }
         }
       } catch (error) {
         console.error('❌ Critical error generating Power Law lines:', error)
@@ -612,8 +631,22 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
       })
     }
 
+    // Debug logging for deployment troubleshooting
+    if (processedData.length > 0 && params.priceModel === 'powerLaw') {
+      const powerLawPoints = processedData.filter(p => p.plSupport !== null || p.plFit !== null || p.plResistance !== null)
+      console.log('🔍 Chart data ready for rendering:')
+      console.log(`   📊 Total points: ${processedData.length}`)
+      console.log(`   📈 Points with Power Law data: ${powerLawPoints.length}`)
+      console.log(`   🎯 Sample Power Law values:`, powerLawPoints.slice(0, 3).map(p => ({
+        date: new Date(p.timestamp).toISOString().split('T')[0],
+        plSupport: p.plSupport,
+        plFit: p.plFit,
+        plResistance: p.plResistance
+      })))
+    }
+
     return processedData
-  }, [chartData, params.priceModel, isLogLogScale])
+  }, [chartData, params.priceModel, params.powerLawSettings, isLogLogScale])
 
   // Calculate liquidation prices for reference lines (after chartData is available)
   const liquidationPricesForChart = useMemo(() => {
