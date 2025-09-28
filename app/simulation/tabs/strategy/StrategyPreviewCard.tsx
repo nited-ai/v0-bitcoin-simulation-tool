@@ -27,11 +27,24 @@ export function StrategyPreviewCard() {
   const previewData = useMemo(() => {
     const btcStackValue = params.initialBtcAmount * params.initialBtcPrice
     const initialLoanAmount = btcStackValue * (params.loanAmountPercent / 100)
-    
+
     // Get platform fee configuration
     const platformFeeConfig = platformFeeService.getPlatformFeeConfig(params.platform || 'firefish')
-    
-    // Calculate loan rollover details
+
+    // Calculate annual interest cost
+    const annualInterest = initialLoanAmount * (params.annualInterestRate / 100)
+
+    // Calculate platform fees for the loan amount and term
+    const platformFeeResult = platformFeeService.calculatePlatformFees(
+      initialLoanAmount,
+      params.platform || 'firefish',
+      params.loanTermMonths
+    )
+
+    // Calculate total annual cost (interest + platform fees)
+    const annualCost = annualInterest + platformFeeResult.amount
+
+    // Calculate loan rollover details for rollover analysis
     const rolloverParams = {
       previousLoanPrincipal: initialLoanAmount,
       accruedInterest: (initialLoanAmount * params.annualInterestRate / 100) / 12,
@@ -44,11 +57,11 @@ export function StrategyPreviewCard() {
     }
 
     const rolloverResult = loanCalculationService.calculateLoanRollover(rolloverParams)
-    
+
     // Calculate liquidation risk
     const liquidationBuffer = params.riskManagement.liquidationLtv - params.riskManagement.targetLtv
     const riskLevel = liquidationBuffer < 20 ? 'high' : liquidationBuffer < 40 ? 'medium' : 'low'
-    
+
     return {
       btcStackValue,
       initialLoanAmount,
@@ -57,7 +70,9 @@ export function StrategyPreviewCard() {
       riskLevel,
       platformFeeConfig,
       monthlyInterest: (initialLoanAmount * params.annualInterestRate / 100) / 12,
-      annualCost: rolloverResult.totalRepaymentDue + rolloverResult.platformFees
+      annualInterest,
+      platformFees: platformFeeResult.amount,
+      annualCost
     }
   }, [params, loanCalculationService, platformFeeService])
 
