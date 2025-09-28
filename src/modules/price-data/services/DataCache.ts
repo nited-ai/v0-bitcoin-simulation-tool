@@ -108,8 +108,8 @@ export class DataCache {
    */
   public delete(key: string): boolean {
     const deleted = this.memoryCache.delete(key)
-    
-    if (this.config.persistToLocalStorage) {
+
+    if (this.config.persistToLocalStorage && typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
       try {
         localStorage.removeItem(`price-cache-${key}`)
       } catch (error) {
@@ -125,8 +125,8 @@ export class DataCache {
    */
   public clear(): void {
     this.memoryCache.clear()
-    
-    if (this.config.persistToLocalStorage) {
+
+    if (this.config.persistToLocalStorage && typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
       try {
         // Remove all price cache entries from localStorage
         const keys = Object.keys(localStorage)
@@ -230,6 +230,10 @@ export class DataCache {
    * Save cache entry to localStorage.
    */
   private saveToLocalStorage<T>(key: string, entry: CacheEntry<T>): void {
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      return
+    }
+
     try {
       const serialized = JSON.stringify(entry)
       localStorage.setItem(`price-cache-${key}`, serialized)
@@ -243,6 +247,10 @@ export class DataCache {
    */
   private loadFromLocalStorage(key?: string): CacheEntry<any> | null {
     if (!key) return null
+
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      return null
+    }
 
     try {
       const serialized = localStorage.getItem(`price-cache-${key}`)
@@ -261,6 +269,11 @@ export class DataCache {
   private initializeFromLocalStorage(): void {
     if (!this.config.persistToLocalStorage) return
 
+    // Check if we're in a browser environment
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      return
+    }
+
     try {
       const keys = Object.keys(localStorage)
       keys.forEach(storageKey => {
@@ -270,7 +283,7 @@ export class DataCache {
 
           if (entry && Date.now() <= entry.expiresAt) {
             this.memoryCache.set(cacheKey, entry)
-          } else if (entry) {
+          } else if (entry && typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
             // Remove expired entry
             localStorage.removeItem(storageKey)
           }
