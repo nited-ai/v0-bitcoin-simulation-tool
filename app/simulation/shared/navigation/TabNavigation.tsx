@@ -69,13 +69,15 @@ export function TabNavigation({ children }: TabNavigationProps) {
       label: t('Navigation.strategy.label'),
       shortLabel: t('Navigation.strategy.shortLabel'),
       icon: Target,
-      enabled: true
+      enabled: false,
+      badge: 'Coming Soon'
     },
     results: {
       label: t('Navigation.results.label'),
       shortLabel: t('Navigation.results.shortLabel'),
       icon: TrendingDown,
-      enabled: true
+      enabled: false,
+      badge: 'Coming Soon'
     }
   }
 
@@ -172,8 +174,15 @@ export function TabNavigation({ children }: TabNavigationProps) {
   const handleTabChange = (value: string) => {
     const tabValue = value as TabValue
 
-    // Allow navigation to all enabled tabs
+    // Validate tab value
     if (!['parameters', 'price-projection', 'strategy', 'results'].includes(tabValue)) {
+      return
+    }
+
+    // Check if tab is enabled for click navigation
+    const tabConfigItem = tabConfig[tabValue]
+    if (!tabConfigItem?.enabled) {
+      // Don't allow click navigation to disabled tabs
       return
     }
 
@@ -345,8 +354,14 @@ export function TabNavigation({ children }: TabNavigationProps) {
                     flex flex-col gap-1 h-16 px-3
                     data-[state=active]:bg-background
                     data-[state=active]:shadow-sm
-                    ${!isEnabled ? 'opacity-50' : ''}
+                    ${!isEnabled ? 'opacity-50 cursor-not-allowed' : ''}
                   `}
+                  onClick={(e) => {
+                    if (!isEnabled) {
+                      e.preventDefault()
+                      e.stopPropagation()
+                    }
+                  }}
                 >
                   <Icon className="h-4 w-4" />
                   <span className="text-xs font-medium hidden sm:block">
