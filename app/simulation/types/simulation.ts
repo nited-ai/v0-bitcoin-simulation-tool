@@ -121,6 +121,10 @@ export interface SimulationParams {
   riskManagement: {
     targetLtv: number
     liquidationLtv: number
+    maxLoanAmount: number
+    annualInterestRate: number
+    loanTermMonths: number | 'infinity'
+    liquidationFeePercent: number
   }
   // Additional parameters
   btcAccumulation: boolean
@@ -202,6 +206,10 @@ export const DEFAULT_PARAMS: SimulationParams = {
   riskManagement: {
     targetLtv: 40, // Updated to match "optimistic" risk level preset (40%)
     liquidationLtv: 95, // Updated from 80 to 95
+    maxLoanAmount: 15000,
+    annualInterestRate: 6.5,
+    loanTermMonths: 12,
+    liquidationFeePercent: 5.0,
   },
   // Add BTC accumulation default
   btcAccumulation: true,

@@ -213,6 +213,30 @@ export class EnhancedCycleRepeatModel implements PriceProjectionModel {
     const startDate = new Date()
     let currentPrice = startPrice
 
+    // Add initial point at start price
+    const volatilityBand = 0.15 // 15% bands
+    allProjectionPoints.push({
+      timestamp: startDate.getTime(),
+      price: Math.round(startPrice),
+      support: Math.round(startPrice * (1 - volatilityBand)),
+      resistance: Math.round(startPrice * (1 + volatilityBand)),
+      confidence: 1.0,
+      metadata: {
+        weekIndex: 0,
+        movementIndex: 0,
+        cycleNumber: 1,
+        originalMovement: 1.0,
+        adjustedMovement: 1.0,
+        approach: "cycle-repeat-percentage-movements",
+        diminishingReturnsApplied: true,
+        diminishingParams: {
+          diminishingFactor: params.diminishingFactor,
+          cycleDegradation: params.cycleDegradation,
+          adoptionCurve: params.adoptionCurve
+        }
+      }
+    })
+
     // Process week by week, applying historical movements sequentially
     for (let weekIndex = 0; weekIndex < totalWeeksNeeded; weekIndex++) {
       // Cycle through historical movements using modulo
@@ -262,7 +286,13 @@ export class EnhancedCycleRepeatModel implements PriceProjectionModel {
             cycleNumber,
             originalMovement: movement,
             adjustedMovement,
-            approach: "cycle-repeat-percentage-movements"
+            approach: "cycle-repeat-percentage-movements",
+            diminishingReturnsApplied: true,
+            diminishingParams: {
+              diminishingFactor: params.diminishingFactor,
+              cycleDegradation: params.cycleDegradation,
+              adoptionCurve: params.adoptionCurve
+            }
           }
         })
       }

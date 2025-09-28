@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { Alert, AlertTitle } from "@/components/ui/alert"
 
 interface CollateralSummaryCardProps {

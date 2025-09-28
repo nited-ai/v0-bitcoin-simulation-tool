@@ -25,7 +25,7 @@ const POWER_LAW_MODELS = {
  * Calculate days since Bitcoin genesis block.
  */
 export const getDaysSinceGenesis = (date: Date): number => {
-  const diffTime = Math.abs(date.getTime() - GENESIS_DATE.getTime())
+  const diffTime = date.getTime() - GENESIS_DATE.getTime()
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 }
 

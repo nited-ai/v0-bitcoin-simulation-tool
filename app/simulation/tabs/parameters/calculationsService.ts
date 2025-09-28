@@ -641,16 +641,19 @@ export class CalculationsService {
    * Used by BasicParametersCard for enhanced collateral display
    */
   calculateATHDistance(currentPrice: number, athPrice: number): ATHDistanceMetrics {
-    // Calculate distance from ATH (can be negative if above ATH)
-    const distancePercent = athPrice > 0 ? ((athPrice - currentPrice) / athPrice) * 100 : 0
-    const distanceUSD = athPrice - currentPrice
+    // Calculate distance from ATH (clamp to 0 if above ATH)
+    const rawDistancePercent = athPrice > 0 ? ((athPrice - currentPrice) / athPrice) * 100 : 0
+    const rawDistanceUSD = athPrice - currentPrice
+
+    const distancePercent = Math.max(0, rawDistancePercent)
+    const distanceUSD = Math.max(0, rawDistanceUSD)
 
     // Determine risk level based on distance from ATH
     let riskLevel: 'low' | 'medium' | 'high'
     let riskColor: string
     let riskDescription: string
 
-    if (distancePercent <= 0) {
+    if (rawDistancePercent <= 0) {
       // Price is at or above ATH - treat as high risk
       riskLevel = 'high'
       riskColor = '#ef4444' // Red

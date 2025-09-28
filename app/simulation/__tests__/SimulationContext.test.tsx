@@ -2,10 +2,12 @@
  * @jest-environment jsdom
  */
 
+import React from 'react'
 import { renderHook, act } from '@testing-library/react'
 import { ReactNode } from 'react'
 import { SimulationProvider, useSimulation } from '../context/SimulationContext'
 import { DEFAULT_PARAMS } from '../types/simulation'
+import { vi } from 'vitest'
 
 // Mock wrapper component
 const wrapper = ({ children }: { children: ReactNode }) => (
@@ -105,7 +107,7 @@ describe('SimulationContext', () => {
 describe('SimulationContext Error Handling', () => {
   it('should throw error when used outside provider', () => {
     // Suppress console.error for this test
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
     expect(() => {
       renderHook(() => useSimulation())

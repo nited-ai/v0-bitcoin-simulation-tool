@@ -44,6 +44,10 @@ export function ParameterPresets() {
         riskManagement: {
           targetLtv: 40,
           liquidationLtv: 80,
+          maxLoanAmount: 50000,
+          annualInterestRate: 6.5,
+          loanTermMonths: 6,
+          liquidationFeePercent: 5.0,
         },
       },
     },
@@ -64,6 +68,10 @@ export function ParameterPresets() {
         riskManagement: {
           targetLtv: 50,
           liquidationLtv: 85,
+          maxLoanAmount: 100000,
+          annualInterestRate: 6.5,
+          loanTermMonths: 6,
+          liquidationFeePercent: 5.0,
         },
       },
     },
@@ -84,6 +92,10 @@ export function ParameterPresets() {
         riskManagement: {
           targetLtv: 60,
           liquidationLtv: 90,
+          maxLoanAmount: 200000,
+          annualInterestRate: 7.5,
+          loanTermMonths: 12,
+          liquidationFeePercent: 5.0,
         },
       },
     },
@@ -104,6 +116,10 @@ export function ParameterPresets() {
         riskManagement: {
           targetLtv: 45,
           liquidationLtv: 80,
+          maxLoanAmount: 1000000,
+          annualInterestRate: 6.0,
+          loanTermMonths: 6,
+          liquidationFeePercent: 5.0,
         },
       },
     },

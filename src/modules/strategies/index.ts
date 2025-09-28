@@ -29,11 +29,12 @@ export { runStrategySimulation, getAvailableStrategies } from './adapters/Legacy
 
 // Initialize strategies when module is imported
 import { strategyRegistry } from './services/StrategyRegistry'
-import { 
-  DefaultStrategy, 
-  AthBasedStrategy, 
-  MovingAverageStrategy, 
-  AthCollateralStrategy 
+import {
+  DefaultStrategy,
+  AthBasedStrategy,
+  MovingAverageStrategy,
+  AthCollateralStrategy,
+  RollingLoanStrategy
 } from './implementations'
 
 /**
@@ -44,6 +45,7 @@ function initializeStrategies() {
   
   // Register all default strategies
   strategyRegistry.registerStrategy('default', new DefaultStrategy(), true, 100)
+  strategyRegistry.registerStrategy('rollingLoan', new RollingLoanStrategy(), true, 95) // High priority - automated strategy
   strategyRegistry.registerStrategy('athBased', new AthBasedStrategy(), true, 90)
   strategyRegistry.registerStrategy('movingAverage', new MovingAverageStrategy(), true, 80)
   strategyRegistry.registerStrategy('athCollateral', new AthCollateralStrategy(), true, 70)

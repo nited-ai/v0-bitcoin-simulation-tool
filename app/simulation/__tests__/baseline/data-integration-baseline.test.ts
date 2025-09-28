@@ -13,16 +13,14 @@ import fs from 'fs/promises'
 import path from 'path'
 
 // Import current data services (these will be consolidated later)
-import { BitcoinJsonDataService } from '../../../lib/services/bitcoin-json-data-service'
-import { CentralizedDataService } from '../../../lib/services/centralized-data-service'
+import { BitcoinJsonDataService } from '@/lib/services/bitcoin-json-data-service'
+import { centralizedDataService } from '@/lib/services/centralized-data-service'
 
 describe('Baseline Data Integration Tests', () => {
   let bitcoinDataService: BitcoinJsonDataService
-  let centralizedDataService: CentralizedDataService
-  
+
   beforeEach(() => {
     bitcoinDataService = new BitcoinJsonDataService()
-    centralizedDataService = new CentralizedDataService()
     
     // Mock fetch for API calls
     global.fetch = vi.fn()

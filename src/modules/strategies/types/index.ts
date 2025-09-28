@@ -11,7 +11,7 @@ import type { PriceProjectionResult } from "../../price-projection/types"
 /**
  * Available investment strategy types
  */
-export type InvestmentStrategy = "default" | "athBased" | "movingAverage" | "athCollateral"
+export type InvestmentStrategy = "default" | "athBased" | "movingAverage" | "athCollateral" | "rollingLoan"
 
 /**
  * Strategy execution parameters

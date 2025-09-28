@@ -5,8 +5,17 @@
  * from the ATH service instead of hard-coded values.
  */
 
+import React from 'react'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import { TooltipProvider } from '@/components/ui/tooltip'
+
+// Mock ResizeObserver for Recharts
+global.ResizeObserver = vi.fn().mockImplementation(() => ({
+  observe: vi.fn(),
+  unobserve: vi.fn(),
+  disconnect: vi.fn(),
+}))
 import { PriceDropToleranceCard } from '../PriceDropToleranceCard'
 import { useATH } from '../../../hooks/useATH'
 import { useSimulation } from '../../../context/SimulationContext'
@@ -54,7 +63,11 @@ describe('PriceDropToleranceCard', () => {
         refetch: vi.fn()
       })
 
-      render(<PriceDropToleranceCard />)
+      render(
+        <TooltipProvider>
+          <PriceDropToleranceCard />
+        </TooltipProvider>
+      )
 
       // The component should render without errors and use the dynamic ATH
       expect(screen.getByText(/Price Drop Tolerance/)).toBeInTheDocument()
@@ -69,7 +82,11 @@ describe('PriceDropToleranceCard', () => {
         refetch: vi.fn()
       })
 
-      render(<PriceDropToleranceCard />)
+      render(
+        <TooltipProvider>
+          <PriceDropToleranceCard />
+        </TooltipProvider>
+      )
 
       // Component should still render with fallback value during loading
       expect(screen.getByText(/Price Drop Tolerance/)).toBeInTheDocument()
@@ -84,14 +101,22 @@ describe('PriceDropToleranceCard', () => {
         refetch: vi.fn()
       })
 
-      render(<PriceDropToleranceCard />)
+      render(
+        <TooltipProvider>
+          <PriceDropToleranceCard />
+        </TooltipProvider>
+      )
 
       // Component should still render with fallback value on error
       expect(screen.getByText(/Price Drop Tolerance/)).toBeInTheDocument()
     })
 
     it('should update when ATH value changes', () => {
-      const { rerender } = render(<PriceDropToleranceCard />)
+      const { rerender } = render(
+        <TooltipProvider>
+          <PriceDropToleranceCard />
+        </TooltipProvider>
+      )
 
       // Initial ATH
       mockUseATH.mockReturnValue({
@@ -102,7 +127,11 @@ describe('PriceDropToleranceCard', () => {
         refetch: vi.fn()
       })
 
-      rerender(<PriceDropToleranceCard />)
+      rerender(
+        <TooltipProvider>
+          <PriceDropToleranceCard />
+        </TooltipProvider>
+      )
 
       // Updated ATH
       mockUseATH.mockReturnValue({
@@ -113,7 +142,11 @@ describe('PriceDropToleranceCard', () => {
         refetch: vi.fn()
       })
 
-      rerender(<PriceDropToleranceCard />)
+      rerender(
+        <TooltipProvider>
+          <PriceDropToleranceCard />
+        </TooltipProvider>
+      )
 
       // Component should re-render with new ATH value
       expect(screen.getByText(/Price Drop Tolerance/)).toBeInTheDocument()
@@ -133,7 +166,11 @@ describe('PriceDropToleranceCard', () => {
       // Mock no liquidation data
       mockUseLiquidationCalculations.mockReturnValue(null)
 
-      render(<PriceDropToleranceCard />)
+      render(
+        <TooltipProvider>
+          <PriceDropToleranceCard />
+        </TooltipProvider>
+      )
 
       // Component should render with fallback calculations using dynamic ATH
       expect(screen.getByText(/Price Drop Tolerance/)).toBeInTheDocument()
@@ -150,7 +187,11 @@ describe('PriceDropToleranceCard', () => {
 
       mockUseLiquidationCalculations.mockReturnValue(null)
 
-      render(<PriceDropToleranceCard />)
+      render(
+        <TooltipProvider>
+          <PriceDropToleranceCard />
+        </TooltipProvider>
+      )
 
       // Component should render with loading fallback (125000)
       expect(screen.getByText(/Price Drop Tolerance/)).toBeInTheDocument()
@@ -167,7 +208,11 @@ describe('PriceDropToleranceCard', () => {
         refetch: vi.fn()
       })
 
-      render(<PriceDropToleranceCard />)
+      render(
+        <TooltipProvider>
+          <PriceDropToleranceCard />
+        </TooltipProvider>
+      )
 
       expect(screen.getByText(/Price Drop Tolerance/)).toBeInTheDocument()
     })
@@ -181,7 +226,11 @@ describe('PriceDropToleranceCard', () => {
         refetch: vi.fn()
       })
 
-      render(<PriceDropToleranceCard />)
+      render(
+        <TooltipProvider>
+          <PriceDropToleranceCard />
+        </TooltipProvider>
+      )
 
       // Should display price drop tolerance information
       expect(screen.getByText(/Price Drop Tolerance/)).toBeInTheDocument()
