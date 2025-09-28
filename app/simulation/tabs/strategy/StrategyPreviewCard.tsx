@@ -47,9 +47,11 @@ export function StrategyPreviewCard() {
     // Calculate loan rollover details for rollover analysis
     const rolloverParams = {
       previousLoanPrincipal: initialLoanAmount,
-      accruedInterest: (initialLoanAmount * params.annualInterestRate / 100) / 12,
+      // FIXED: Calculate interest for full loan term, not just 1 month
+      accruedInterest: (initialLoanAmount * params.annualInterestRate / 100) * (params.loanTermMonths / 12),
       platformFeeConfig,
-      loanOriginationFeePercent: params.liquidationFeePercent || 1.5,
+      // FIXED: Use actual platform origination fee, not liquidation fee
+      loanOriginationFeePercent: platformFeeConfig.percent,
       loanTermMonths: params.loanTermMonths,
       btcStackValue,
       targetLtvPercent: params.riskManagement.targetLtv,
@@ -183,11 +185,11 @@ export function StrategyPreviewCard() {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span>Principal Repayment:</span>
-                    <span className="font-medium">${Math.round(previewData.rolloverResult.totalRepaymentDue).toLocaleString()}</span>
+                    <span className="font-medium">${Math.round(previewData.initialLoanAmount).toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Interest Cost:</span>
-                    <span className="font-medium">${Math.round(previewData.rolloverResult.totalRepaymentDue * 0.8).toLocaleString()}</span>
+                    <span className="font-medium">${Math.round((previewData.initialLoanAmount * params.annualInterestRate / 100) * (params.loanTermMonths / 12)).toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Platform Fees:</span>
