@@ -8,6 +8,7 @@ import { Slider } from '@/components/ui/slider'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Sheet, SheetContent } from '@/components/ui/sheet'
 import {
   TrendingUp,
   TrendingDown,
@@ -38,6 +39,7 @@ export function SimplifiedManualGrowthInterface({ className }: SimplifiedManualG
   const [customRates, setCustomRates] = useState<number[]>([])
   const [tempCustomRates, setTempCustomRates] = useState<number[]>([]) // Temporary state for sliders
   const [showCustomControls, setShowCustomControls] = useState(false)
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Convert months to years for display
@@ -88,9 +90,24 @@ export function SimplifiedManualGrowthInterface({ className }: SimplifiedManualG
         setCustomRates(rates)
         setTempCustomRates(rates)
         setShowCustomControls(true)
+        // Don't auto-open drawer on mount, let user click to open
       }
     }
   }, [])
+
+  // Initialize tempCustomRates when custom rates change or simulation years change
+  useEffect(() => {
+    if (selectedPreset === 'custom' && customRates.length > 0) {
+      const adjustedRates = [...customRates]
+      while (adjustedRates.length < simulationYears) {
+        adjustedRates.push(50) // Default 50% growth for new years
+      }
+      if (adjustedRates.length > simulationYears) {
+        adjustedRates.splice(simulationYears)
+      }
+      setTempCustomRates(adjustedRates)
+    }
+  }, [customRates, simulationYears, selectedPreset])
 
   // Get current growth rates
   const getCurrentGrowthRates = () => {
@@ -123,11 +140,38 @@ export function SimplifiedManualGrowthInterface({ className }: SimplifiedManualG
     setCustomRates(tempCustomRates)
     sessionStorage.setItem(STORAGE_KEYS.customRates, JSON.stringify(tempCustomRates))
     setParams(prev => ({ ...prev, annualGrowthRates: tempCustomRates }))
+    // Keep drawer open after applying changes
+  }
+
+  // Get dynamic year labels based on current date
+  const getYearLabel = (index: number) => {
+    const currentYear = new Date().getFullYear()
+    return (currentYear + 1 + index).toString() // Start from next year
+  }
+
+  // Get color styling for growth rate values
+  const getValueColor = (rate: number) => {
+    if (rate > 100) {
+      return 'text-green-800 dark:text-green-200 bg-green-100 dark:bg-green-950/30 border-green-300 dark:border-green-700'
+    } else if (rate > 0) {
+      return 'text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800'
+    } else if (rate > -20) {
+      return 'text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-800'
+    } else {
+      return 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800'
+    }
   }
 
   const handlePresetSelect = (presetKey: string) => {
     if (presetKey === 'custom') {
-      // Initialize custom rates with current active preset rates
+      // Check if we should toggle the drawer closed
+      if (selectedPreset === 'custom' && showCustomControls && isDrawerOpen) {
+        // Simply close the drawer - don't change any other states
+        setIsDrawerOpen(false)
+        return // Exit early to prevent any other state changes
+      }
+
+      // Initialize or reopen custom drawer
       const currentActivePreset = selectedPreset !== 'custom' ? selectedPreset : 'optimistic'
       const baseRates = PRESETS[currentActivePreset as keyof typeof PRESETS].rates
 
@@ -139,19 +183,30 @@ export function SimplifiedManualGrowthInterface({ className }: SimplifiedManualG
         adjustedRates.splice(simulationYears)
       }
 
+      // Update all states in the correct order
+      setSelectedPreset('custom')
       setCustomRates(adjustedRates)
       setTempCustomRates(adjustedRates)
       setShowCustomControls(true)
-      setSelectedPreset('custom')
 
       // Save to sessionStorage
       sessionStorage.setItem(STORAGE_KEYS.selectedPreset, 'custom')
       sessionStorage.setItem(STORAGE_KEYS.customRates, JSON.stringify(adjustedRates))
 
       setParams(prev => ({ ...prev, annualGrowthRates: adjustedRates }))
+
+      // Open drawer after state updates
+      setTimeout(() => {
+        setIsDrawerOpen(true)
+      }, 10) // Slightly longer delay to ensure state is settled
     } else {
       const preset = PRESETS[presetKey as keyof typeof PRESETS]
       if (preset) {
+        // Close drawer first if it's open
+        if (isDrawerOpen) {
+          setIsDrawerOpen(false)
+        }
+
         // Adjust preset rates to match simulation years
         const adjustedRates = [...preset.rates]
         while (adjustedRates.length < simulationYears) {
@@ -258,6 +313,159 @@ export function SimplifiedManualGrowthInterface({ className }: SimplifiedManualG
 
         </CardContent>
       </Card>
+
+      {/* Custom Growth Rates Drawer */}
+      <Sheet modal={false} open={isDrawerOpen} onOpenChange={(open) => {
+        // Only update state if it's actually changing to prevent animation conflicts
+        if (open !== isDrawerOpen) {
+          setIsDrawerOpen(open)
+        }
+      }}>
+        <SheetContent side="bottom" className="h-auto pt-[10px] bg-background/80 backdrop-blur-sm border-t">
+          <div className="flex flex-col">
+            {/* Header with title aligned to close button */}
+            <div className="flex items-center justify-between pt-[10px] pb-[10px] pl-[50px] pr-[50px]">
+              <div className="flex items-center gap-2">
+                <Settings className="w-5 h-5 text-primary" />
+                <span className="text-lg font-semibold">Custom Growth Rates ({simulationYears} Years)</span>
+              </div>
+            </div>
+
+            {/* Centered sliders container with top padding */}
+            <div className="flex justify-center pt-[10px]">
+              <div className="flex items-end gap-3 overflow-hidden">
+                {/* Vertical sliders */}
+              {tempCustomRates.map((rate, index) => (
+                <div key={index} className="flex flex-col items-center space-y-2 min-w-[50px] flex-shrink-0">
+                  {/* Value display with dynamic coloring */}
+                  <div className={`text-sm font-semibold text-center min-h-[20px] px-2 py-1 rounded-md border ${getValueColor(rate)}`}>
+                    {rate > 0 ? '+' : ''}{rate}%
+                  </div>
+
+                  {/* Simplified vertical slider - taller for bottom drawer */}
+                  <div className="h-48 flex items-center relative">
+                    {/* Custom track background */}
+                    <div className="absolute left-1/2 transform -translate-x-1/2 w-2 h-full bg-secondary rounded-full">
+                      {/* Dynamic orange fill based on slider value */}
+                      <div
+                        className="absolute bottom-0 w-full bg-primary rounded-full transition-all duration-150 ease-out"
+                        style={{
+                          height: `${Math.max(0, ((rate - (-100)) / (300 - (-100))) * 100)}%`
+                        }}
+                      />
+                    </div>
+
+                    <Slider
+                      value={[rate]}
+                      onValueChange={(values) => handleTempCustomRateChange(index, values[0])}
+                      min={-100}
+                      max={300}
+                      step={5}
+                      orientation="vertical"
+                      className="h-full slider-orange"
+                    />
+
+                    {/* Zero line indicator */}
+                    <div
+                      className="absolute w-4 h-0.5 bg-orange-500 pointer-events-none z-10"
+                      style={{
+                        bottom: '26.5%',
+                        left: '50%',
+                        transform: 'translateX(-50%) translateY(-50%)'
+                      }}
+                    />
+                  </div>
+
+                  {/* Dynamic year label */}
+                  <Label className="text-xs text-center font-medium text-muted-foreground">
+                    {getYearLabel(index)}
+                  </Label>
+                </div>
+              ))}
+              </div>
+            </div>
+
+            {/* Apply Changes Button - centered with minimal spacing */}
+            <div className="p-[10px] flex justify-center">
+              <Button
+                onClick={applyCustomRates}
+                className="bg-primary hover:bg-primary/90"
+                size="lg"
+              >
+                Apply Changes
+              </Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Custom CSS for orange sliders - Custom Track with Dynamic Fill */}
+      <style jsx global>{`
+        /* Hide original slider track - make it transparent */
+        .slider-orange [data-orientation="vertical"]:not([role="slider"]) {
+          background-color: transparent !important;
+          width: 8px !important;
+          height: 100% !important;
+        }
+
+        /* Hide original slider fill */
+        .slider-orange [data-orientation="vertical"] > span {
+          background-color: transparent !important;
+        }
+
+        .slider-orange .relative > span[data-orientation="vertical"] {
+          background-color: transparent !important;
+        }
+
+        .slider-orange .relative > span[data-orientation="vertical"] > span {
+          background-color: transparent !important;
+        }
+
+        /* Slider thumb - centered horizontally with margin adjustment */
+        .slider-orange [role="slider"] {
+          height: 20px !important;
+          width: 20px !important;
+          border-radius: 50% !important;
+          border: 2px solid hsl(var(--primary)) !important;
+          background-color: hsl(var(--background)) !important;
+          box-shadow: none !important;
+          transition: all 0.2s ease !important;
+          margin-left: -6px !important; /* Center 20px thumb over 8px track */
+          position: relative !important;
+          z-index: 20 !important; /* Above custom track */
+        }
+
+        .slider-orange [role="slider"]:hover {
+          border-color: hsl(var(--primary)) !important;
+          background-color: hsl(var(--background)) !important;
+          transform: scale(1.05) !important;
+        }
+
+        .slider-orange [role="slider"]:focus {
+          outline: none !important;
+          box-shadow: 0 0 0 2px hsl(var(--ring)) !important;
+          border-color: hsl(var(--primary)) !important;
+        }
+
+        /* Force orange primary color for consistency */
+        .slider-orange {
+          --primary: 24.6 95% 53.1%; /* Orange color */
+        }
+
+        /* Additional specificity for thumb centering */
+        .slider-orange span[role="slider"] {
+          margin-left: -6px !important;
+        }
+
+        /* Ensure slider container allows overflow for thumb */
+        .slider-orange {
+          overflow: visible !important;
+        }
+
+        .slider-orange .relative {
+          overflow: visible !important;
+        }
+      `}</style>
     </div>
   )
 }

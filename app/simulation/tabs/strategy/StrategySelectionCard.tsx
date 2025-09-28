@@ -1,15 +1,16 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { HybridTooltip, HybridTooltipContent, HybridTooltipTrigger } from "@/components/ui/hybrid-tooltip"
-import { TrendingUp, Info, Zap, Brain, Shield, Target } from "lucide-react"
+import { TrendingUp, Info, Shield, Zap, Target, Brain } from "lucide-react"
 import { useSimulation } from "../../context/SimulationContext"
 import { getAvailableStrategies } from "@/src/modules/strategies"
-import type { InvestmentStrategy } from "@/src/modules/strategies/types"
+import { strategyRegistry } from "@/src/modules/strategies/services/StrategyRegistry"
+import type { InvestmentStrategy, StrategyMetadata } from "@/src/modules/strategies/types"
 
 /**
  * Strategy Selection Card Component
@@ -19,6 +20,7 @@ import type { InvestmentStrategy } from "@/src/modules/strategies/types"
  */
 export function StrategySelectionCard() {
   const { params, setParams } = useSimulation()
+  const [selectedStrategyMetadata, setSelectedStrategyMetadata] = useState<StrategyMetadata | null>(null)
 
   // Get available strategies from registry with limited selection
   const allStrategies = getAvailableStrategies()
@@ -29,7 +31,11 @@ export function StrategySelectionCard() {
     ...allStrategies.filter(s => !['default', 'rollingLoan', 'custom'].includes(s.id)).map(s => ({ ...s, enabled: false }))
   ]
 
-
+  // Load metadata for currently selected strategy
+  useEffect(() => {
+    const metadata = strategyRegistry.getStrategyMetadata(params.investmentStrategy)
+    setSelectedStrategyMetadata(metadata)
+  }, [params.investmentStrategy])
 
   // Handle strategy selection
   const handleStrategyChange = (strategyId: InvestmentStrategy) => {
@@ -43,6 +49,10 @@ export function StrategySelectionCard() {
       ...prev,
       investmentStrategy: strategyId
     }))
+
+    // Load metadata for the selected strategy
+    const metadata = strategyRegistry.getStrategyMetadata(strategyId)
+    setSelectedStrategyMetadata(metadata)
   }
 
   // Get strategy icon based on strategy type
@@ -79,7 +89,31 @@ export function StrategySelectionCard() {
     }
   }
 
+  const getSecurityExplanation = (rating: number): string => {
+    switch (rating) {
+      case 1: return "High risk - requires careful monitoring and risk management"
+      case 2: return "Moderate risk - some volatility and liquidation risk"
+      case 3: return "Balanced risk - standard Bitcoin lending risks apply"
+      case 4: return "Lower risk - conservative approach with safety margins"
+      case 5: return "Lowest risk - maximum safety with minimal exposure"
+      default: return "Risk level varies based on market conditions"
+    }
+  }
 
+  const getComplexityExplanation = (rating: number): string => {
+    switch (rating) {
+      case 1: return "Very simple - minimal setup and monitoring required"
+      case 2: return "Simple - basic understanding of Bitcoin lending needed"
+      case 3: return "Moderate - requires understanding of loan mechanics"
+      case 4: return "Complex - advanced knowledge of DeFi and risk management"
+      case 5: return "Very complex - expert-level strategy requiring active management"
+      default: return "Complexity varies based on configuration"
+    }
+  }
+
+  const getSuitabilityExplanation = (suitableFor: string[]): string => {
+    return suitableFor.join(", ") + " who understand the associated risks and have appropriate risk tolerance"
+  }
 
   return (
     <Card>
@@ -133,36 +167,100 @@ export function StrategySelectionCard() {
                   {availableStrategies.find(s => s.id === params.investmentStrategy)?.description}
                 </p>
 
-                {/* Enhanced strategy explanations */}
-                {params.investmentStrategy === 'rollingLoan' && (
-                  <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-700 space-y-3">
-                    <div className="text-blue-700 dark:text-blue-300 text-xs space-y-2">
-                      <p><strong>How Rolling Loans Work:</strong> This strategy automatically refinances your Bitcoin-backed loan at maturity by taking a new loan to pay off the previous one, creating a continuous cycle that preserves your Bitcoin holdings while accessing liquidity.</p>
-
-                      <p><strong>Key Benefits:</strong> Maintain Bitcoin exposure during bull markets, generate consistent cash flow, avoid forced selling during market downturns, and benefit from potential Bitcoin appreciation while accessing immediate liquidity.</p>
-
-                      <p><strong>Rollover Process:</strong> Before each loan expires, the system calculates your current collateral value, determines the optimal new loan amount based on your target LTV, and automatically initiates a new loan to pay off the maturing one.</p>
-
-                      <p><strong>Timing Considerations:</strong> Rollovers typically occur 1-3 days before maturity to ensure smooth transitions. Market volatility may require collateral top-ups or partial repayments to maintain target LTV ratios.</p>
-
-                      <p><strong>Edge Cases:</strong> If Bitcoin price drops significantly, you may need to add collateral or accept a smaller loan amount. During extreme market stress, manual intervention may be required to prevent liquidation.</p>
-                    </div>
-                  </div>
-                )}
-                {params.investmentStrategy === 'default' && (
+                {/* Enhanced explanations */}
+                {selectedStrategyMetadata && (
                   <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-700 space-y-2">
-                    <div className="text-blue-700 dark:text-blue-300 text-xs">
-                      <p><strong>Standard Approach:</strong> This strategy follows a traditional investment approach, investing up to your target LTV without additional complexity or automated features. Suitable for users who prefer manual control over their investment decisions.</p>
-                    </div>
+                    <p className="text-blue-700 dark:text-blue-300 text-xs">
+                      <strong>Security Rating ({selectedStrategyMetadata.securityRating}/5):</strong> {getSecurityExplanation(selectedStrategyMetadata.securityRating)}
+                    </p>
+                    <p className="text-blue-700 dark:text-blue-300 text-xs">
+                      <strong>Complexity Rating ({selectedStrategyMetadata.complexityRating}/5):</strong> {getComplexityExplanation(selectedStrategyMetadata.complexityRating)}
+                    </p>
+                    <p className="text-blue-700 dark:text-blue-300 text-xs">
+                      <strong>Suitable For:</strong> {getSuitabilityExplanation(selectedStrategyMetadata.suitableFor)}
+                    </p>
                   </div>
                 )}
               </div>
             </div>
           </div>
 
+          {/* 3. Security/Complexity/Suitable For Rating Indicators */}
+          {selectedStrategyMetadata && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Security Rating */}
+              <div className="flex items-center gap-2">
+                <Shield className="w-4 h-4 text-green-500" />
+                <div>
+                  <div className="text-sm font-medium">Security</div>
+                  <div className="flex gap-1">
+                    {Array.from({ length: 5 }, (_, i) => (
+                      <div
+                        key={i}
+                        className={`w-2 h-2 rounded-full ${
+                          i < selectedStrategyMetadata.securityRating
+                            ? 'bg-green-500'
+                            : 'bg-gray-200'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
 
+              {/* Complexity Rating */}
+              <div className="flex items-center gap-2">
+                <Brain className="w-4 h-4 text-blue-500" />
+                <div>
+                  <div className="text-sm font-medium">Complexity</div>
+                  <div className="flex gap-1">
+                    {Array.from({ length: 5 }, (_, i) => (
+                      <div
+                        key={i}
+                        className={`w-2 h-2 rounded-full ${
+                          i < selectedStrategyMetadata.complexityRating
+                            ? 'bg-blue-500'
+                            : 'bg-gray-200'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
 
+              {/* Suitable For */}
+              <div className="flex items-center gap-2">
+                <Target className="w-4 h-4 text-purple-500" />
+                <div>
+                  <div className="text-sm font-medium">Suitable For</div>
+                  <div className="flex flex-wrap gap-1">
+                    {selectedStrategyMetadata.suitableFor.slice(0, 2).map((tag) => (
+                      <Badge key={tag} variant="outline" className="text-xs">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
+          {/* 4. Strategy Criteria (clarified) */}
+          {selectedStrategyMetadata && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Info className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Strategy Features</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {selectedStrategyMetadata.criteria.map((criterion) => (
+                  <Badge key={criterion} variant="secondary" className="text-xs">
+                    {criterion.replace('_', ' ')}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
