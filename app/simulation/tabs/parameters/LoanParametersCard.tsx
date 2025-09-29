@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useCallback, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
@@ -38,9 +38,9 @@ export function LoanParametersCard() {
   const [loanInputMode, setLoanInputMode] = useState<'percentage' | 'usd'>('percentage')
 
   /**
-   * Handle parameter updates
+   * Handle parameter updates (memoized to prevent re-renders)
    */
-  const updateParam = (key: string, value: number) => {
+  const updateParam = useCallback((key: string, value: number) => {
     if (key.includes('.')) {
       // Handle nested parameter updates (e.g., "riskManagement.targetLtv")
       const [parentKey, childKey] = key.split('.')
@@ -59,19 +59,22 @@ export function LoanParametersCard() {
     }
     // Mark parameter as manually edited
     markParameterAsManual(key)
-  }
+  }, [setParams, markParameterAsManual])
 
-  // Calculate total BTC stack value for conversions
-  const totalStackValue = params.initialBtcAmount * params.initialBtcPrice
+  // Calculate total BTC stack value for conversions (memoized)
+  const totalStackValue = useMemo(() =>
+    params.initialBtcAmount * params.initialBtcPrice,
+    [params.initialBtcAmount, params.initialBtcPrice]
+  )
 
-  // Convert between percentage and USD values
-  const convertPercentageToUsd = (percentage: number) => {
+  // Convert between percentage and USD values (memoized)
+  const convertPercentageToUsd = useCallback((percentage: number) => {
     return (percentage / 100) * totalStackValue
-  }
+  }, [totalStackValue])
 
-  const convertUsdToPercentage = (usdAmount: number) => {
+  const convertUsdToPercentage = useCallback((usdAmount: number) => {
     return totalStackValue > 0 ? (usdAmount / totalStackValue) * 100 : 0
-  }
+  }, [totalStackValue])
 
   // Get current display value based on input mode
   const getCurrentDisplayValue = () => {
@@ -148,6 +151,7 @@ export function LoanParametersCard() {
                   min={loanInputMode === 'percentage' ? 1 : 100}
                   max={loanInputMode === 'percentage' ? 100 : totalStackValue}
                   step={loanInputMode === 'percentage' ? 1 : 100}
+                  decimals={loanInputMode === 'percentage' ? 1 : 2}
                   placeholder={loanInputMode === 'percentage' ? "15" : "15,000"}
                   suffix={loanInputMode === 'percentage' ? t('LoanParameters.percentOfBtcStack', '% of BTC stack') : "$"}
                   className="flex-1"
@@ -193,6 +197,7 @@ export function LoanParametersCard() {
                 min={1}
                 max={platformConfig.maxInitialLtv}
                 step={1}
+                decimals={1}
                 placeholder="50"
                 suffix="%"
               />
@@ -219,6 +224,7 @@ export function LoanParametersCard() {
                 onChange={(value) => updateParam("annualInterestRate", value)}
                 min={0}
                 max={50}
+                decimals={2}
                 step={0.1}
                 placeholder="6.5"
                 suffix="%"

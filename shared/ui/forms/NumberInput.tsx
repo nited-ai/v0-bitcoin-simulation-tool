@@ -17,31 +17,43 @@ export interface NumberInputProps {
   disabled?: boolean
   error?: string
   warning?: string
+  debounceMs?: number // Add debouncing option
+  id?: string // Add id for accessibility
+  name?: string // Add name for accessibility
 }
 
 export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
-  ({ 
-    value, 
-    onChange, 
-    min, 
-    max, 
-    step = 1, 
-    decimals = 0,
+  ({
+    value,
+    onChange,
+    min,
+    max,
+    step = 1,
+    decimals = 2, // Default to 2 decimal places to allow decimal input
     suffix,
     placeholder,
     className,
     disabled,
     error,
     warning,
-    ...props 
+    debounceMs = 300, // Default 300ms debounce
+    id,
+    name,
+    ...props
   }, ref) => {
     const [displayValue, setDisplayValue] = React.useState<string>("")
     const [isFocused, setIsFocused] = React.useState(false)
+    const debounceTimeoutRef = React.useRef<NodeJS.Timeout | null>(null)
 
     // Format number for display
     const formatNumber = React.useCallback((num: number): string => {
       if (isNaN(num)) return ""
-      return decimals > 0 ? num.toFixed(decimals) : num.toString()
+      // For display formatting, only apply fixed decimals if explicitly set and not during input
+      if (decimals > 0) {
+        // Remove trailing zeros for cleaner display
+        return parseFloat(num.toFixed(decimals)).toString()
+      }
+      return num.toString()
     }, [decimals])
 
     // Parse string to number
@@ -63,13 +75,33 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
       setDisplayValue(formatNumber(value))
     }, [])
 
+    // Debounced onChange to prevent excessive updates
+    const debouncedOnChange = React.useCallback((constrainedValue: number) => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current)
+      }
+
+      debounceTimeoutRef.current = setTimeout(() => {
+        onChange(constrainedValue)
+      }, debounceMs)
+    }, [onChange, debounceMs])
+
+    // Cleanup timeout on unmount
+    React.useEffect(() => {
+      return () => {
+        if (debounceTimeoutRef.current) {
+          clearTimeout(debounceTimeoutRef.current)
+        }
+      }
+    }, [])
+
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const inputValue = e.target.value
       setDisplayValue(inputValue)
 
       // Parse and validate the number
       const numericValue = parseNumber(inputValue)
-      
+
       // Apply min/max constraints
       let constrainedValue = numericValue
       if (min !== undefined && constrainedValue < min) {
@@ -79,8 +111,8 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
         constrainedValue = max
       }
 
-      // Call onChange with the constrained value
-      onChange(constrainedValue)
+      // Call debounced onChange to prevent excessive updates
+      debouncedOnChange(constrainedValue)
     }
 
     const handleFocus = () => {
@@ -96,35 +128,42 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
       // Allow: backspace, delete, tab, escape, enter
       if ([8, 9, 27, 13, 46].indexOf(e.keyCode) !== -1 ||
-          // Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+          // Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X, Ctrl+Z
           (e.keyCode === 65 && e.ctrlKey === true) ||
           (e.keyCode === 67 && e.ctrlKey === true) ||
           (e.keyCode === 86 && e.ctrlKey === true) ||
           (e.keyCode === 88 && e.ctrlKey === true) ||
-          // Allow: home, end, left, right
-          (e.keyCode >= 35 && e.keyCode <= 39)) {
+          (e.keyCode === 90 && e.ctrlKey === true) ||
+          // Allow: home, end, left, right, up, down
+          (e.keyCode >= 35 && e.keyCode <= 40)) {
         return
       }
-      // Ensure that it is a number and stop the keypress
-      if ((e.shiftKey || (e.keyCode < 48 || e.keyCode > 57)) && (e.keyCode < 96 || e.keyCode > 105)) {
-        // Allow decimal point if decimals > 0
-        if (decimals > 0 && (e.keyCode === 190 || e.keyCode === 110)) {
-          // Only allow one decimal point
-          if (displayValue.includes('.')) {
-            e.preventDefault()
-          }
-          return
+
+      // Allow decimal point (period and numpad decimal)
+      if (e.keyCode === 190 || e.keyCode === 110) {
+        // Only allow one decimal point
+        if (displayValue.includes('.')) {
+          e.preventDefault()
         }
-        // Allow minus sign for negative numbers
-        if (e.keyCode === 189 || e.keyCode === 109) {
-          // Only allow at the beginning
-          if (displayValue.length > 0) {
-            e.preventDefault()
-          }
-          return
-        }
-        e.preventDefault()
+        return
       }
+
+      // Allow minus sign for negative numbers (only at beginning)
+      if (e.keyCode === 189 || e.keyCode === 109) {
+        // Only allow at the beginning and if min allows negative values
+        if (displayValue.length > 0 || (min !== undefined && min >= 0)) {
+          e.preventDefault()
+        }
+        return
+      }
+
+      // Allow numbers (0-9 from main keyboard and numpad)
+      if ((e.keyCode >= 48 && e.keyCode <= 57) || (e.keyCode >= 96 && e.keyCode <= 105)) {
+        return
+      }
+
+      // Block all other keys
+      e.preventDefault()
     }
 
     return (
@@ -132,6 +171,8 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
         <Input
           ref={ref}
           type="text"
+          id={id}
+          name={name}
           value={displayValue}
           onChange={handleInputChange}
           onFocus={handleFocus}
