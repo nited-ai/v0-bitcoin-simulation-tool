@@ -1,11 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { HybridTooltip, HybridTooltipContent, HybridTooltipTrigger } from "@/components/ui/hybrid-tooltip"
 import { TrendingUp, Info, Shield, Zap, Target, Brain } from "lucide-react"
 import { useSimulation } from "../../context/SimulationContext"
 import { getAvailableStrategies } from "@/src/modules/strategies"
@@ -22,14 +20,17 @@ export function StrategySelectionCard() {
   const { params, setParams } = useSimulation()
   const [selectedStrategyMetadata, setSelectedStrategyMetadata] = useState<StrategyMetadata | null>(null)
 
-  // Get available strategies from registry with limited selection
-  const allStrategies = getAvailableStrategies()
-  const availableStrategies = [
-    { id: 'default', name: 'Default Strategy', description: 'Standard investment approach with no additional restrictions. Invests up to target LTV.', enabled: true },
-    { id: 'rollingLoan', name: 'Rolling Loan Strategy', description: 'Automated loan rollover strategy with dual accumulation and income modes.', enabled: true },
-    { id: 'custom', name: 'Custom Strategy', description: 'User-defined strategy with custom parameters and logic.', enabled: false },
-    ...allStrategies.filter(s => !['default', 'rollingLoan', 'custom'].includes(s.id)).map(s => ({ ...s, enabled: false }))
-  ]
+  // Memoize available strategies to prevent excessive API calls
+  const availableStrategies = useMemo(() => {
+    // Only call getAvailableStrategies once and memoize the result
+    const allStrategies = getAvailableStrategies()
+    return [
+      { id: 'default', name: 'Default Strategy', description: 'Standard investment approach with no additional restrictions. Invests up to target LTV.', enabled: true },
+      { id: 'rollingLoan', name: 'Rolling Loan Strategy', description: 'Automated loan rollover strategy with dual accumulation and income modes.', enabled: true },
+      { id: 'custom', name: 'Custom Strategy', description: 'User-defined strategy with custom parameters and logic.', enabled: false },
+      ...allStrategies.filter(s => !['default', 'rollingLoan', 'custom'].includes(s.id)).map(s => ({ ...s, enabled: false }))
+    ]
+  }, []) // Empty dependency array - only compute once on mount
 
   // Load metadata for currently selected strategy
   useEffect(() => {
@@ -37,8 +38,8 @@ export function StrategySelectionCard() {
     setSelectedStrategyMetadata(metadata)
   }, [params.investmentStrategy])
 
-  // Handle strategy selection
-  const handleStrategyChange = (strategyId: InvestmentStrategy) => {
+  // Memoize strategy selection handler to prevent unnecessary re-renders
+  const handleStrategyChange = useCallback((strategyId: InvestmentStrategy) => {
     // Only allow selection of enabled strategies
     const strategy = availableStrategies.find(s => s.id === strategyId)
     if (!strategy?.enabled) {
@@ -53,7 +54,7 @@ export function StrategySelectionCard() {
     // Load metadata for the selected strategy
     const metadata = strategyRegistry.getStrategyMetadata(strategyId)
     setSelectedStrategyMetadata(metadata)
-  }
+  }, [availableStrategies, setParams])
 
   // Get strategy icon based on strategy type
   const getStrategyIcon = (strategyId: string) => {

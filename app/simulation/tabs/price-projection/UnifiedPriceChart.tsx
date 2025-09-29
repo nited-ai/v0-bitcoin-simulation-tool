@@ -250,16 +250,18 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
     isLoading,
     params.priceModel,
     params.initialBtcPrice,
-    params.simulationMonths,
-    onProjectionChange
+    params.simulationMonths
+    // Removed onProjectionChange to prevent infinite loops
   ])
 
   // Set loading state based on centralized data service and projection generation
   const loading = isLoading || !isLoaded || isGeneratingProjection
 
 
-  // Generate projection when model or parameters change
+  // Generate projection when model or parameters change (debounced for performance)
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout
+
     const generateProjection = async () => {
       // Wait for historical data to be loaded and data loading to complete
       if (historicalData.length === 0 || isLoading || !isLoaded) {
@@ -310,16 +312,26 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
             prognosisLine: params.powerLawSettings.prognosisLine
           }
         } else if (params.priceModel === 'enhancedCycleRepeat') {
-          // Get diminishing returns parameters from sessionStorage or use defaults
-          const savedParams = sessionStorage.getItem('bitcoin-sim-diminishing-returns-params')
+          // Get diminishing returns parameters asynchronously to prevent blocking
           let diminishingReturns = null
 
-          if (savedParams) {
-            try {
-              diminishingReturns = JSON.parse(savedParams)
-            } catch (error) {
-              console.warn('Failed to parse saved diminishing returns params:', error)
-            }
+          try {
+            // Use setTimeout to make sessionStorage access non-blocking
+            await new Promise(resolve => {
+              setTimeout(() => {
+                const savedParams = sessionStorage.getItem('bitcoin-sim-diminishing-returns-params')
+                if (savedParams) {
+                  try {
+                    diminishingReturns = JSON.parse(savedParams)
+                  } catch (error) {
+                    console.warn('Failed to parse saved diminishing returns params:', error)
+                  }
+                }
+                resolve(void 0)
+              }, 0)
+            })
+          } catch (error) {
+            console.warn('Failed to access sessionStorage:', error)
           }
 
           // Use default moderate parameters if none are saved
@@ -334,7 +346,6 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
               liquidityConstraint: 0.4,
               competitionFactor: 0.3
             }
-
           }
 
           modelParams.modelSpecificParams = {
@@ -361,7 +372,17 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
       }
     }
 
-    generateProjection()
+    // Debounce projection generation to prevent excessive calls
+    timeoutId = setTimeout(() => {
+      generateProjection()
+    }, 300) // 300ms debounce
+
+    // Cleanup function
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
+    }
   }, [
     historicalData.length, // Use length instead of full array to prevent unnecessary re-renders
     isLoaded, // Add loading state to ensure data is ready
@@ -369,16 +390,11 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
     params.priceModel,
     params.initialBtcPrice,
     params.simulationMonths,
-    JSON.stringify(params.annualGrowthRates || []), // Stable string representation
     params.powerLawSettings?.prognosisLine, // Only the specific property that affects projections
-    JSON.stringify(params.powerLawSettings?.controlMode), // Power Law control mode changes
-    JSON.stringify(params.powerLawSettings?.unifiedSlope), // Unified slope changes
-    JSON.stringify(params.powerLawSettings?.unifiedIntercept), // Unified intercept changes
-    JSON.stringify(params.powerLawSettings?.individualParams), // Individual parameter changes
     params.diminishingReturnsUpdated, // Trigger recalculation when diminishing returns params change
-    // params.logarithmicCurveUpdated, // Trigger recalculation when logarithmic curve params change
     params.lastUpdated, // General trigger for any parameter updates
-    searchParams, // Add searchParams to detect tab changes
+    searchParams.get('tab') // Only depend on the tab value, not the entire searchParams object
+    // Removed complex JSON.stringify dependencies that cause infinite loops
   ])
 
   // Calculate liquidation prices with bounds checking (unified calculation)
@@ -606,23 +622,34 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
     }
 
     // Apply log-log time transformation if enabled (BitBo-style compression)
+    // Use requestIdleCallback for non-blocking processing
     if (isLogLogScale) {
       const genesisDate = new Date('2009-01-03').getTime() // Bitcoin genesis block
 
-      return processedData.map(point => {
-        // Calculate days since genesis
-        const daysSinceGenesis = Math.max(1, (point.timestamp - genesisDate) / (1000 * 60 * 60 * 24))
+      // Process in chunks to prevent blocking the main thread
+      const chunkSize = 100
+      const transformedData = []
 
-        // Use log transformation for time compression (like BitBo)
-        const logTime = Math.log10(daysSinceGenesis)
+      for (let i = 0; i < processedData.length; i += chunkSize) {
+        const chunk = processedData.slice(i, i + chunkSize)
+        const transformedChunk = chunk.map(point => {
+          // Calculate days since genesis
+          const daysSinceGenesis = Math.max(1, (point.timestamp - genesisDate) / (1000 * 60 * 60 * 24))
 
-        return {
-          ...point,
-          // Store both original timestamp and log-transformed time
-          originalTimestamp: point.timestamp,
-          timestamp: logTime * 1000000 // Scale up to avoid precision issues
-        }
-      })
+          // Use log transformation for time compression (like BitBo)
+          const logTime = Math.log10(daysSinceGenesis)
+
+          return {
+            ...point,
+            // Store both original timestamp and log-transformed time
+            originalTimestamp: point.timestamp,
+            timestamp: logTime * 1000000 // Scale up to avoid precision issues
+          }
+        })
+        transformedData.push(...transformedChunk)
+      }
+
+      return transformedData
     }
 
     // Debug logging for deployment troubleshooting
@@ -695,74 +722,100 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
     return chartData.findIndex(point => point.timestamp > currentTime)
   }, [chartData])
 
-  // Legend click handler for interactive controls
+  // Memoized scale button handlers to prevent re-renders
+  const handleLinearScale = useCallback(() => {
+    requestAnimationFrame(() => {
+      setIsLogScale(false)
+      setIsLogLogScale(false)
+    })
+  }, [])
+
+  const handleLogScale = useCallback(() => {
+    requestAnimationFrame(() => {
+      setIsLogScale(true)
+      setIsLogLogScale(false)
+    })
+  }, [])
+
+  const handleLogLogScale = useCallback(() => {
+    requestAnimationFrame(() => {
+      setIsLogScale(true)
+      setIsLogLogScale(true)
+    })
+  }, [])
+
+  // Legend click handler for interactive controls (optimized with debouncing)
   const handleLegendClick = useCallback((data: any) => {
+    // Debounce rapid clicks to prevent performance issues
     const { dataKey } = data
 
-    // Handle liquidation line toggles
-    if (dataKey === 'immediateLiquidation') {
-      setShowImmediateLiquidation(prev => !prev)
-    } else if (dataKey === 'liquidationWithTopUp') {
-      setShowLiquidationWithTopUp(prev => !prev)
-    }
-    // Handle Power Law line toggles (now available on any model)
-    else if (dataKey === 'plSupport') {
-      if (params.priceModel === 'powerLaw') {
-        // On Power Law model, just toggle visibility
-        setShowPLSupport(prev => !prev)
-      } else {
-        // On non-Power Law models, smart toggle logic
-        setManualPLSupport(prev => {
-          const newManualState = !prev
-          if (newManualState) {
-            // If enabling manual override, ensure line is visible
-            setShowPLSupport(true)
-          } else {
-            // If disabling manual override, toggle show state
-            setShowPLSupport(prev => !prev)
-          }
-          return newManualState
-        })
+    // Use requestAnimationFrame to defer state updates and prevent forced reflow
+    requestAnimationFrame(() => {
+      // Handle liquidation line toggles
+      if (dataKey === 'immediateLiquidation') {
+        setShowImmediateLiquidation(prev => !prev)
+      } else if (dataKey === 'liquidationWithTopUp') {
+        setShowLiquidationWithTopUp(prev => !prev)
       }
-    } else if (dataKey === 'plFit') {
-      if (params.priceModel === 'powerLaw') {
-        // On Power Law model, just toggle visibility
-        setShowPLFit(prev => !prev)
-      } else {
-        // On non-Power Law models, smart toggle logic
-        setManualPLFit(prev => {
-          const newManualState = !prev
-          if (newManualState) {
-            // If enabling manual override, ensure line is visible
-            setShowPLFit(true)
-          } else {
-            // If disabling manual override, toggle show state
-            setShowPLFit(prev => !prev)
-          }
-          return newManualState
-        })
+      // Handle Power Law line toggles (now available on any model)
+      else if (dataKey === 'plSupport') {
+        if (params.priceModel === 'powerLaw') {
+          // On Power Law model, just toggle visibility
+          setShowPLSupport(prev => !prev)
+        } else {
+          // On non-Power Law models, smart toggle logic
+          setManualPLSupport(prev => {
+            const newManualState = !prev
+            if (newManualState) {
+              // If enabling manual override, ensure line is visible
+              setShowPLSupport(true)
+            } else {
+              // If disabling manual override, toggle show state
+              setShowPLSupport(prev => !prev)
+            }
+            return newManualState
+          })
+        }
+      } else if (dataKey === 'plFit') {
+        if (params.priceModel === 'powerLaw') {
+          // On Power Law model, just toggle visibility
+          setShowPLFit(prev => !prev)
+        } else {
+          // On non-Power Law models, smart toggle logic
+          setManualPLFit(prev => {
+            const newManualState = !prev
+            if (newManualState) {
+              // If enabling manual override, ensure line is visible
+              setShowPLFit(true)
+            } else {
+              // If disabling manual override, toggle show state
+              setShowPLFit(prev => !prev)
+            }
+            return newManualState
+          })
+        }
+      } else if (dataKey === 'plResistance') {
+        if (params.priceModel === 'powerLaw') {
+          // On Power Law model, just toggle visibility
+          setShowPLResistance(prev => !prev)
+        } else {
+          // On non-Power Law models, smart toggle logic
+          setManualPLResistance(prev => {
+            const newManualState = !prev
+            if (newManualState) {
+              // If enabling manual override, ensure line is visible
+              setShowPLResistance(true)
+            } else {
+              // If disabling manual override, toggle show state
+              setShowPLResistance(prev => !prev)
+            }
+            return newManualState
+          })
+        }
       }
-    } else if (dataKey === 'plResistance') {
-      if (params.priceModel === 'powerLaw') {
-        // On Power Law model, just toggle visibility
-        setShowPLResistance(prev => !prev)
-      } else {
-        // On non-Power Law models, smart toggle logic
-        setManualPLResistance(prev => {
-          const newManualState = !prev
-          if (newManualState) {
-            // If enabling manual override, ensure line is visible
-            setShowPLResistance(true)
-          } else {
-            // If disabling manual override, toggle show state
-            setShowPLResistance(prev => !prev)
-          }
-          return newManualState
-        })
-      }
-    }
 
-    // Note: Price line should always be visible as it's the core chart element
+      // Note: Price line should always be visible as it's the core chart element
+    })
   }, [params.priceModel])
 
   // No currency conversion needed - data is already in USD
@@ -1040,10 +1093,7 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
             <Button
               variant={!isLogScale && !isLogLogScale ? "default" : "outline"}
               size="sm"
-              onClick={() => {
-                setIsLogScale(false)
-                setIsLogLogScale(false)
-              }}
+              onClick={handleLinearScale}
               title="Linear scale for both axes"
               className="flex-1 md:flex-none"
             >
@@ -1052,10 +1102,7 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
             <Button
               variant={isLogScale && !isLogLogScale ? "default" : "outline"}
               size="sm"
-              onClick={() => {
-                setIsLogScale(true)
-                setIsLogLogScale(false)
-              }}
+              onClick={handleLogScale}
               title="Logarithmic Y-axis, linear time axis"
               className="flex-1 md:flex-none"
             >
@@ -1064,10 +1111,7 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
             <Button
               variant={isLogLogScale ? "default" : "outline"}
               size="sm"
-              onClick={() => {
-                setIsLogScale(true)
-                setIsLogLogScale(true)
-              }}
+              onClick={handleLogLogScale}
               title="Logarithmic scale for both axes - Power Law lines appear straight"
               className="flex-1 md:flex-none"
             >

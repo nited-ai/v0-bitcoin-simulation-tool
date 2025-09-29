@@ -240,6 +240,17 @@ export async function runStrategySimulation(
   return result.monthlyResults || []
 }
 
+// Cache for available strategies to prevent excessive logging and computation
+let cachedStrategies: Array<{
+  id: string
+  name: string
+  description: string
+  metadata: any
+  detailedDescription: string
+  functionality: string
+  suitability: string
+}> | null = null
+
 export function getAvailableStrategies(): Array<{
   id: string
   name: string
@@ -249,11 +260,16 @@ export function getAvailableStrategies(): Array<{
   functionality: string
   suitability: string
 }> {
+  // Return cached result if available to prevent excessive logging
+  if (cachedStrategies) {
+    return cachedStrategies
+  }
+
   console.log('📋 Getting available strategies via legacy adapter...')
 
   const strategies = strategyRegistry.getStrategyNames()
 
-  return strategies.map(strategy => {
+  cachedStrategies = strategies.map(strategy => {
     const metadata = LegacyStrategyAdapter.getLegacyStrategyMetadata(strategy.id)
     return {
       id: strategy.id,
@@ -265,4 +281,13 @@ export function getAvailableStrategies(): Array<{
       suitability: metadata?.suitability || 'General purpose'
     }
   })
+
+  return cachedStrategies
+}
+
+/**
+ * Clear the cached strategies (useful when strategies are updated)
+ */
+export function clearStrategiesCache(): void {
+  cachedStrategies = null
 }

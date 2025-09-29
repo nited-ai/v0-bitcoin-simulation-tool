@@ -67,42 +67,60 @@ export function useCentralizedData(enabled: boolean = false): UseCentralizedData
     return initialState
   })
   
-  // Subscribe to data service state changes
+  // Subscribe to data service state changes with debouncing
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout | null = null
+
     const unsubscribe = centralizedDataService.subscribe((state: DataServiceState) => {
-      setDataServiceState(state)
-      
-      // Update simulation context with new data
-      if (state.isHistoricalDataLoaded && state.historicalData.length > 0) {
-        setHistoricalPriceData(state.historicalData)
-        setInitialDataLoaded(true)
-        
-        // Set initial BTC price from latest historical data or current price
-        const latestHistoricalPrice = state.historicalData[state.historicalData.length - 1]?.close
-        const currentPriceValue = state.currentPrice?.price
-        const initialPrice = currentPriceValue || latestHistoricalPrice
-        
-        if (initialPrice) {
-          setParams((prev) => ({ ...prev, initialBtcPrice: initialPrice }))
+      // Debounce rapid state changes to prevent excessive re-renders
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
+
+      timeoutId = setTimeout(() => {
+        setDataServiceState(state)
+
+        // Update simulation context with new data (only when data actually changes)
+        if (state.isHistoricalDataLoaded && state.historicalData.length > 0) {
+          setHistoricalPriceData(state.historicalData)
+          setInitialDataLoaded(true)
+
+          // Set initial BTC price from latest historical data or current price
+          const latestHistoricalPrice = state.historicalData[state.historicalData.length - 1]?.close
+          const currentPriceValue = state.currentPrice?.price
+          const initialPrice = currentPriceValue || latestHistoricalPrice
+
+          if (initialPrice) {
+            setParams((prev) => {
+              // Only update if price actually changed to prevent infinite loops
+              if (prev.initialBtcPrice !== initialPrice) {
+                return { ...prev, initialBtcPrice: initialPrice }
+              }
+              return prev
+            })
+          }
         }
-      }
-      
-      // Update loading state
-      setIsLoading(state.isLoadingHistoricalData)
-      
-      // Update errors
-      if (state.errors.length > 0) {
-        setErrors(state.errors)
-      } else {
-        setErrors([])
-      }
+
+        // Update loading state
+        setIsLoading(state.isLoadingHistoricalData)
+
+        // Update errors
+        if (state.errors.length > 0) {
+          setErrors(state.errors)
+        } else {
+          setErrors([])
+        }
+      }, 100) // 100ms debounce
     })
-    
+
     return () => {
       console.log('🔌 Unsubscribing from centralized data service')
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
       unsubscribe()
     }
-  }, [setHistoricalPriceData, setInitialDataLoaded, setParams, setIsLoading, setErrors])
+  }, []) // Empty dependency array to prevent re-subscription
   
   // Initialize data service on first mount (only if enabled)
   useEffect(() => {
@@ -125,7 +143,7 @@ export function useCentralizedData(enabled: boolean = false): UseCentralizedData
     if (!dataServiceState.isHistoricalDataLoaded && !dataServiceState.isLoadingHistoricalData) {
       initializeDataService()
     }
-  }, [enabled, t, dataServiceState.isHistoricalDataLoaded, dataServiceState.isLoadingHistoricalData, setErrors])
+  }, [enabled, t]) // Removed dataServiceState dependencies to prevent re-initialization loops
   
   // Refresh historical data
   const refreshHistoricalData = useCallback(async (interval: 'daily' | 'weekly' | 'monthly' = 'weekly') => {

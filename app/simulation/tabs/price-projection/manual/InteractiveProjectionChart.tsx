@@ -117,39 +117,52 @@ export function InteractiveProjectionChart({
       startPrice
     })
 
-    // Add global mouse event listeners
+    // Add global mouse event listeners with throttling for performance
+    let lastUpdateTime = 0
+    const throttleMs = 16 // ~60fps throttling
+
     const handleMouseMove = (e: MouseEvent) => {
+      const now = Date.now()
+      if (now - lastUpdateTime < throttleMs) return
+      lastUpdateTime = now
+
       if (!chartRef.current) return
 
-      const rect = chartRef.current.getBoundingClientRect()
-      const chartHeight = rect.height - 60 // Account for margins
-      const deltaY = e.clientY - startY
-      
-      // Convert pixel movement to price change (logarithmic scale)
-      const priceRatio = Math.exp(-deltaY / (chartHeight / 6)) // Adjust sensitivity
-      const newPrice = startPrice * priceRatio
-      
-      // Calculate new growth rate based on price change
-      const previousPrice = yearIndex === 0 ? startingPrice : 
-        startingPrice * growthRates.slice(0, yearIndex).reduce((acc, rate) => acc * (1 + rate / 100), 1)
-      
-      const newGrowthRate = ((newPrice / previousPrice) - 1) * 100
-      
-      // Clamp growth rate to reasonable bounds
-      const clampedRate = Math.max(-95, Math.min(500, newGrowthRate))
-      
-      // Update growth rates
-      const newRates = [...growthRates]
-      newRates[yearIndex] = Math.round(clampedRate)
-      onGrowthRatesChange(newRates)
+      // Use requestAnimationFrame to prevent forced reflow
+      requestAnimationFrame(() => {
+        const rect = chartRef.current!.getBoundingClientRect()
+        const chartHeight = rect.height - 60 // Account for margins
+        const deltaY = e.clientY - startY
+
+        // Convert pixel movement to price change (logarithmic scale)
+        const priceRatio = Math.exp(-deltaY / (chartHeight / 6)) // Adjust sensitivity
+        const newPrice = startPrice * priceRatio
+
+        // Calculate new growth rate based on price change
+        const previousPrice = yearIndex === 0 ? startingPrice :
+          startingPrice * growthRates.slice(0, yearIndex).reduce((acc, rate) => acc * (1 + rate / 100), 1)
+
+        const newGrowthRate = ((newPrice / previousPrice) - 1) * 100
+
+        // Clamp growth rate to reasonable bounds
+        const clampedRate = Math.max(-95, Math.min(500, newGrowthRate))
+
+        // Update growth rates
+        const newRates = [...growthRates]
+        newRates[yearIndex] = Math.round(clampedRate)
+        onGrowthRatesChange(newRates)
+      })
     }
 
     const handleMouseUp = () => {
-      setDragState({
-        isDragging: false,
-        dragIndex: null,
-        startY: 0,
-        startPrice: 0
+      // Use requestAnimationFrame to prevent forced reflow on mouseup
+      requestAnimationFrame(() => {
+        setDragState({
+          isDragging: false,
+          dragIndex: null,
+          startY: 0,
+          startPrice: 0
+        })
       })
       document.removeEventListener('mousemove', handleMouseMove)
       document.removeEventListener('mouseup', handleMouseUp)
