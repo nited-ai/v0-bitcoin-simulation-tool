@@ -393,6 +393,7 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
     params.powerLawSettings?.prognosisLine, // Only the specific property that affects projections
     params.diminishingReturnsUpdated, // Trigger recalculation when diminishing returns params change
     params.lastUpdated, // General trigger for any parameter updates
+    JSON.stringify(params.annualGrowthRates), // Manual growth model rates (JSON.stringify for array comparison)
     searchParams.get('tab') // Only depend on the tab value, not the entire searchParams object
     // Removed complex JSON.stringify dependencies that cause infinite loops
   ])
