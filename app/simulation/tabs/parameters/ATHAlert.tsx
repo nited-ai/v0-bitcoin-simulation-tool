@@ -1,13 +1,13 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { CheckCircle2, AlertTriangle, AlertOctagon } from "lucide-react"
 import { useATH } from "../../hooks/useATH"
 import { CalculationsService } from "./calculationsService"
 import { useLocaleNumberFormat } from "@/shared/utils/localeNumberFormat"
-import { useCurrentPriceOnly } from "../../hooks/useCentralizedData"
+import { useCentralizedData } from "../../hooks/useCentralizedData"
 
 interface ATHAlertProps {
   className?: string
@@ -23,12 +23,23 @@ interface ATHAlertProps {
 export function ATHAlert({ className = "" }: ATHAlertProps) {
   const { t } = useTranslation()
   const { ath: currentATH, loading: athLoading, error: athError } = useATH()
-  const { currentPrice: currentPriceData } = useCurrentPriceOnly()
+  // Enable centralized data service to ensure current price is loaded
+  const { currentPrice: currentPriceData } = useCentralizedData(true)
   const calculationsService = useMemo(() => new CalculationsService(), [])
   const { formatCurrency, formatNumber } = useLocaleNumberFormat()
 
   // Get actual current Bitcoin price from centralized data service
   const currentPrice = currentPriceData?.price || 100000 // Fallback to default if not available
+
+  // Debug logging to help identify the issue
+  useEffect(() => {
+    console.log('🔍 ATHAlert Debug:', {
+      currentPriceData,
+      currentPrice,
+      athPrice: currentATH,
+      isUsingFallback: !currentPriceData?.price
+    })
+  }, [currentPriceData, currentPrice, currentATH])
 
   // Calculate ATH distance metrics
   const athDistanceMetrics = useMemo(() => {
