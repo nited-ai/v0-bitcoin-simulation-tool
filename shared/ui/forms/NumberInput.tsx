@@ -164,10 +164,38 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
 
 
 
-      // Allow decimal point (period) for English locale
-      // Handle both main keyboard period (190) and numpad decimal (110)
-      // Also handle by key value for better cross-browser compatibility
-      if (e.keyCode === 190 || e.keyCode === 110 || (e.key === '.' && currentDecimalSeparator === '.')) {
+      // Handle decimal separator input based on locale
+      // This includes both period/comma keys and numpad decimal key
+
+      // Numpad decimal key (110) - should behave according to locale
+      if (e.keyCode === 110) {
+        if (currentDecimalSeparator === ',') {
+          // German locale: numpad decimal should act as comma
+          if (displayValue.includes(',')) {
+            e.preventDefault()
+          } else {
+            // Insert comma instead of period
+            e.preventDefault()
+            const cursorPos = e.target.selectionStart
+            const newValue = displayValue.slice(0, cursorPos) + ',' + displayValue.slice(cursorPos)
+            setDisplayValue(newValue)
+            // Set cursor position after the comma
+            setTimeout(() => {
+              e.target.setSelectionRange(cursorPos + 1, cursorPos + 1)
+            }, 0)
+          }
+          return
+        } else {
+          // English locale: numpad decimal acts as period
+          if (displayValue.includes('.')) {
+            e.preventDefault()
+          }
+          return
+        }
+      }
+
+      // Main keyboard period (190) - only for English locale
+      if (e.keyCode === 190 || (e.key === '.' && currentDecimalSeparator === '.')) {
         if (currentDecimalSeparator === '.') {
           // Only allow one decimal point
           if (displayValue.includes('.')) {
@@ -181,9 +209,7 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
         }
       }
 
-      // Allow comma for German locale decimal separator
-      // Handle both main keyboard comma (188) and numpad comma (depending on system)
-      // Note: Numpad comma can be 188, 194, or other codes depending on keyboard layout
+      // Main keyboard comma (188) and other comma sources - only for German locale
       if (e.keyCode === 188 || e.key === ',' || e.key === 'Decimal') {
         if (currentDecimalSeparator === ',') {
           // Only allow one decimal comma
