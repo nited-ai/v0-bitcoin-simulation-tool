@@ -139,7 +139,12 @@ export function SimplifiedManualGrowthInterface({ className }: SimplifiedManualG
   const applyCustomRates = () => {
     setCustomRates(tempCustomRates)
     sessionStorage.setItem(STORAGE_KEYS.customRates, JSON.stringify(tempCustomRates))
-    setParams(prev => ({ ...prev, annualGrowthRates: tempCustomRates }))
+    // Update params with timestamp to trigger chart regeneration
+    setParams(prev => ({
+      ...prev,
+      annualGrowthRates: tempCustomRates,
+      lastUpdated: Date.now()
+    }))
     // Keep drawer open after applying changes
   }
 
@@ -193,7 +198,12 @@ export function SimplifiedManualGrowthInterface({ className }: SimplifiedManualG
       sessionStorage.setItem(STORAGE_KEYS.selectedPreset, 'custom')
       sessionStorage.setItem(STORAGE_KEYS.customRates, JSON.stringify(adjustedRates))
 
-      setParams(prev => ({ ...prev, annualGrowthRates: adjustedRates }))
+      // Update params with timestamp to trigger chart regeneration
+      setParams(prev => ({
+        ...prev,
+        annualGrowthRates: adjustedRates,
+        lastUpdated: Date.now()
+      }))
 
       // Open drawer after state updates
       setTimeout(() => {
@@ -222,7 +232,12 @@ export function SimplifiedManualGrowthInterface({ className }: SimplifiedManualG
         // Save to sessionStorage
         sessionStorage.setItem(STORAGE_KEYS.selectedPreset, presetKey)
 
-        setParams(prev => ({ ...prev, annualGrowthRates: adjustedRates }))
+        // Update params with timestamp to trigger chart regeneration
+        setParams(prev => ({
+          ...prev,
+          annualGrowthRates: adjustedRates,
+          lastUpdated: Date.now()
+        }))
       }
     }
   }

@@ -8,4 +8,4 @@
 export { StrategySelectionCard } from './StrategySelectionCard'
 export { RollingLoanConfigCard } from './RollingLoanConfigCard'
 export { BtcAccumulationCard } from './BtcAccumulationCard'
-export { StrategyPreviewCard } from './StrategyPreviewCard'
+export { default as StrategyPreviewCard } from './StrategyPreviewCard'

@@ -122,16 +122,26 @@ function loadParamsFromStorage(): SimulationParams {
 }
 
 /**
- * Save parameters to localStorage
+ * Save parameters to localStorage (async and debounced)
  */
+let saveTimeoutId: NodeJS.Timeout | null = null
+
 function saveParamsToStorage(params: SimulationParams) {
   if (typeof window === "undefined") return
-  
-  try {
-    localStorage.setItem(PARAMS_STORAGE_KEY, JSON.stringify(params))
-  } catch (error) {
-    console.error("Error saving params to localStorage:", error)
+
+  // Clear existing timeout to debounce rapid saves
+  if (saveTimeoutId) {
+    clearTimeout(saveTimeoutId)
   }
+
+  // Debounce localStorage writes to prevent blocking the main thread
+  saveTimeoutId = setTimeout(() => {
+    try {
+      localStorage.setItem(PARAMS_STORAGE_KEY, JSON.stringify(params))
+    } catch (error) {
+      console.error("Error saving params to localStorage:", error)
+    }
+  }, 500) // 500ms debounce for localStorage writes
 }
 
 /**
@@ -160,10 +170,22 @@ export function SimulationProvider({ children }: SimulationProviderProps) {
   const [currentPage, setCurrentPage] = useState(1)
   const [cacheStatus, setCacheStatus] = useState<CacheStatus>('loading')
   
-  // Enhanced setParams with localStorage persistence
+  // Enhanced setParams with localStorage persistence and shallow comparison
   const setParams = useCallback((newParams: SimulationParams | ((prev: SimulationParams) => SimulationParams)) => {
     setParamsState(prev => {
       const updated = typeof newParams === 'function' ? newParams(prev) : newParams
+
+      // Shallow comparison to prevent unnecessary re-renders
+      const hasChanged = Object.keys(updated).some(key => {
+        const typedKey = key as keyof SimulationParams
+        return prev[typedKey] !== updated[typedKey]
+      })
+
+      if (!hasChanged) {
+        return prev // Return same reference to prevent re-render
+      }
+
+      // Only save to storage if there are actual changes
       saveParamsToStorage(updated)
       return updated
     })

@@ -37,10 +37,10 @@ export default function RootLayout({
             </ThemeProvider>
           </HybridTooltipProvider>
         </TouchProvider>
-        {/* Development testing script */}
-        {process.env.NODE_ENV === 'development' && (
+        {/* Development testing script - temporarily disabled to fix server issues */}
+        {/* {process.env.NODE_ENV === 'development' && (
           <script src="/test-price-switching.js" async />
-        )}
+        )} */}
         <Analytics />
       </body>
     </html>

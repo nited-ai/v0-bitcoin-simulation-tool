@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, memo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
@@ -16,7 +16,7 @@ import { PlatformFeeIntegrationService } from "@/src/modules/strategies/services
  * Provides real-time calculations and previews of strategy mechanics
  * with detailed breakdowns and risk analysis.
  */
-export function StrategyPreviewCard() {
+function StrategyPreviewCard() {
   const { params, priceChartData } = useSimulation()
 
   // Initialize services
@@ -307,6 +307,41 @@ export function StrategyPreviewCard() {
                     <HybridTooltip>
                       <HybridTooltipTrigger asChild>
                         <span className="cursor-help flex items-center gap-1">
+                          Bitcoin Price at Maturity (Month {params.loanTermMonths}):
+                          <Info className="w-3 h-3 text-muted-foreground" />
+                        </span>
+                      </HybridTooltipTrigger>
+                      <HybridTooltipContent>
+                        <p>Projected Bitcoin price at the end of the current loan term based on selected price projection model</p>
+                      </HybridTooltipContent>
+                    </HybridTooltip>
+                    <span className="font-medium">${Math.round(previewData.projectedBtcPrice).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <HybridTooltip>
+                      <HybridTooltipTrigger asChild>
+                        <span className="cursor-help flex items-center gap-1">
+                          Total Bitcoin Collateral:
+                          <Info className="w-3 h-3 text-muted-foreground" />
+                        </span>
+                      </HybridTooltipTrigger>
+                      <HybridTooltipContent>
+                        <p>Your total Bitcoin holdings that serve as collateral for the loan, valued at projected maturity price</p>
+                      </HybridTooltipContent>
+                    </HybridTooltip>
+                    <span className="font-medium">
+                      {params.initialBtcAmount >= 1
+                        ? params.initialBtcAmount.toFixed(2)
+                        : params.initialBtcAmount >= 0.01
+                        ? params.initialBtcAmount.toFixed(4)
+                        : params.initialBtcAmount.toFixed(8)
+                      } BTC (${Math.round(previewData.projectedBtcStackValue).toLocaleString()})
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <HybridTooltip>
+                      <HybridTooltipTrigger asChild>
+                        <span className="cursor-help flex items-center gap-1">
                           Target Loan Amount:
                           <Info className="w-3 h-3 text-muted-foreground" />
                         </span>
@@ -429,3 +464,6 @@ export function StrategyPreviewCard() {
     </Card>
   )
 }
+
+// Memoize component to prevent unnecessary re-renders
+export default memo(StrategyPreviewCard)

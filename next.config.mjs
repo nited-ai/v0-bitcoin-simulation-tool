@@ -1,3 +1,5 @@
+import path from 'path'
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   eslint: {
@@ -6,45 +8,42 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  // Production-ready configuration
-  images: {
-    unoptimized: true,
-  },
-  // Aggressive Windows permission fix
+  // Enhanced webpack configuration for stable development and performance
   webpack: (config, { dev, isServer }) => {
-    // Always apply Windows fixes regardless of environment
-    if (process.platform === 'win32') {
+    // Apply optimizations for development stability only
+    if (dev) {
+      // Enhanced file watching optimization
       config.watchOptions = {
         ...config.watchOptions,
         ignored: [
           '**/node_modules/**',
           '**/.git/**',
-          '**/Anwendungsdaten/**',
-          '**/AppData/**',
-          'C:\\\\Users\\\\**\\\\Anwendungsdaten\\\\**',
-          'C:\\\\Users\\\\**\\\\AppData\\\\**',
+          '**/.next/**',
+          '**/dist/**',
+          '**/build/**'
         ],
-        poll: false,
-        aggregateTimeout: 300,
+        aggregateTimeout: 500, // Increased debounce time to reduce excessive rebuilds
+        poll: false, // Disable polling to prevent continuous file system checks
       };
 
-      // Disable symlinks completely
+      // Optimize caching to prevent cache failures (development only)
+      if (process.platform === 'win32') {
+        config.cache = {
+          type: 'filesystem',
+          cacheDirectory: path.resolve(process.cwd(), '.next/cache/webpack')
+        };
+      }
+
+      // Reduce module resolution overhead (development only)
       config.resolve = {
         ...config.resolve,
-        symlinks: false,
+        symlinks: false, // Disable symlink resolution for performance
       };
-
-      // Set cache to memory only
-      config.cache = {
-        type: 'memory',
-      };
-
-      // Add custom resolver to avoid problematic paths
-      config.resolve.plugins = config.resolve.plugins || [];
     }
 
     return config;
   },
+  // Production-ready configuration
   images: {
     unoptimized: true,
   },
