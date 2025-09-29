@@ -165,7 +165,9 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
 
 
       // Allow decimal point (period) for English locale
-      if (e.keyCode === 190 || e.keyCode === 110) {
+      // Handle both main keyboard period (190) and numpad decimal (110)
+      // Also handle by key value for better cross-browser compatibility
+      if (e.keyCode === 190 || e.keyCode === 110 || (e.key === '.' && currentDecimalSeparator === '.')) {
         if (currentDecimalSeparator === '.') {
           // Only allow one decimal point
           if (displayValue.includes('.')) {
@@ -180,7 +182,9 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
       }
 
       // Allow comma for German locale decimal separator
-      if (e.keyCode === 188) {
+      // Handle both main keyboard comma (188) and numpad comma (depending on system)
+      // Note: Numpad comma can be 188, 194, or other codes depending on keyboard layout
+      if (e.keyCode === 188 || e.key === ',' || e.key === 'Decimal') {
         if (currentDecimalSeparator === ',') {
           // Only allow one decimal comma
           if (displayValue.includes(',')) {
