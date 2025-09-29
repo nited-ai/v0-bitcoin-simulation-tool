@@ -3,6 +3,7 @@
 import * as React from "react"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
+import { useLocaleNumberFormat } from "@/shared/utils/localeNumberFormat"
 
 export interface NumberInputProps {
   value: number
@@ -45,23 +46,26 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
     const [isFocused, setIsFocused] = React.useState(false)
     const debounceTimeoutRef = React.useRef<NodeJS.Timeout | null>(null)
 
-    // Format number for display
+    // Use locale-aware number formatting
+    const {
+      formatForInput,
+      parseNumber,
+      getDecimalSeparator,
+      isValidDecimalSeparator,
+      config
+    } = useLocaleNumberFormat()
+
+    // Format number for display using locale-aware formatting
     const formatNumber = React.useCallback((num: number): string => {
       if (isNaN(num)) return ""
-      // For display formatting, only apply fixed decimals if explicitly set and not during input
-      if (decimals > 0) {
-        // Remove trailing zeros for cleaner display
-        return parseFloat(num.toFixed(decimals)).toString()
-      }
-      return num.toString()
-    }, [decimals])
+      // Use locale-aware formatting for input display
+      return formatForInput(num, decimals)
+    }, [decimals, formatForInput])
 
-    // Parse string to number
-    const parseNumber = React.useCallback((str: string): number => {
-      const cleaned = str.replace(/[^\d.-]/g, '')
-      const parsed = parseFloat(cleaned)
-      return isNaN(parsed) ? 0 : parsed
-    }, [])
+    // Parse string to number using locale-aware parsing
+    const parseNumberLocale = React.useCallback((str: string): number => {
+      return parseNumber(str)
+    }, [parseNumber])
 
     // Update display value when value prop changes
     React.useEffect(() => {
@@ -73,7 +77,7 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
     // Initialize display value
     React.useEffect(() => {
       setDisplayValue(formatNumber(value))
-    }, [])
+    }, [formatNumber, value])
 
     // Debounced onChange to prevent excessive updates
     const debouncedOnChange = React.useCallback((constrainedValue: number) => {
@@ -99,8 +103,8 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
       const inputValue = e.target.value
       setDisplayValue(inputValue)
 
-      // Parse and validate the number
-      const numericValue = parseNumber(inputValue)
+      // Parse and validate the number using locale-aware parsing
+      const numericValue = parseNumberLocale(inputValue)
 
       // Apply min/max constraints
       let constrainedValue = numericValue
@@ -139,13 +143,37 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
         return
       }
 
-      // Allow decimal point (period and numpad decimal)
+      // Handle decimal separator based on locale
+      const currentDecimalSeparator = getDecimalSeparator()
+
+      // Allow decimal point (period) for English locale
       if (e.keyCode === 190 || e.keyCode === 110) {
-        // Only allow one decimal point
-        if (displayValue.includes('.')) {
+        if (currentDecimalSeparator === '.') {
+          // Only allow one decimal point
+          if (displayValue.includes('.')) {
+            e.preventDefault()
+          }
+          return
+        } else {
+          // Block period if locale uses comma as decimal separator
           e.preventDefault()
+          return
         }
-        return
+      }
+
+      // Allow comma for German locale decimal separator
+      if (e.keyCode === 188) {
+        if (currentDecimalSeparator === ',') {
+          // Only allow one decimal comma
+          if (displayValue.includes(',')) {
+            e.preventDefault()
+          }
+          return
+        } else {
+          // Block comma if locale uses period as decimal separator
+          e.preventDefault()
+          return
+        }
       }
 
       // Allow minus sign for negative numbers (only at beginning)

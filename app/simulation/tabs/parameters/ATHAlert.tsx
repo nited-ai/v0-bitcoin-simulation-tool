@@ -6,6 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { CheckCircle2, AlertTriangle, AlertOctagon } from "lucide-react"
 import { useATH } from "../../hooks/useATH"
 import { CalculationsService } from "./calculationsService"
+import { useLocaleNumberFormat } from "@/shared/utils/localeNumberFormat"
 
 interface ATHAlertProps {
   currentPrice: number
@@ -23,26 +24,12 @@ export function ATHAlert({ currentPrice, className = "" }: ATHAlertProps) {
   const { t } = useTranslation()
   const { ath: currentATH, loading: athLoading, error: athError } = useATH()
   const calculationsService = useMemo(() => new CalculationsService(), [])
+  const { formatCurrency, formatPercentage } = useLocaleNumberFormat()
 
   // Calculate ATH distance metrics
   const athDistanceMetrics = useMemo(() => {
     return calculationsService.calculateATHDistance(currentPrice, currentATH)
   }, [calculationsService, currentPrice, currentATH])
-
-  // Format currency with proper separators
-  const formatCurrency = (value: number, decimals: number = 0) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: decimals,
-      maximumFractionDigits: decimals,
-    }).format(value)
-  }
-
-  // Format percentage
-  const formatPercentage = (value: number, decimals: number = 1) => {
-    return `${value.toFixed(decimals)}%`
-  }
 
   // Get appropriate icon based on risk level with color styling
   const getRiskIcon = () => {

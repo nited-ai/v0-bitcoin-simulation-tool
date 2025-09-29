@@ -13,6 +13,7 @@ import { NumberInput } from "../../../../shared/ui/forms/NumberInput"
 import { CollateralSummaryCard } from "./CollateralSummaryCard"
 import { useLoanCalculations } from "../../hooks/useCalculationsIntegration"
 import { CalculationsErrorBoundary } from "./CalculationsErrorBoundary"
+import { useLocaleNumberFormat } from "@/shared/utils/localeNumberFormat"
 
 /**
  * Basic Parameters Card Component
@@ -28,6 +29,7 @@ export const BasicParametersCard = React.memo(function BasicParametersCard() {
     loadingBtcPrice,
     setLoadingBtcPrice
   } = useSimulation()
+  const { formatCurrency } = useLocaleNumberFormat()
 
   // Use centralized loan calculations through integration hook
   const loanData = useLoanCalculations()
@@ -191,12 +193,7 @@ export const BasicParametersCard = React.memo(function BasicParametersCard() {
                 </HybridTooltip>
               </Label>
               <div className="text-4xl font-bold text-orange-600" suppressHydrationWarning>
-                {new Intl.NumberFormat('en-US', {
-                  style: 'currency',
-                  currency: 'USD',
-                  minimumFractionDigits: 0,
-                  maximumFractionDigits: 0,
-                }).format(maxLoanCapacity)}
+                {formatCurrency(maxLoanCapacity, 0)}
               </div>
             </div>
           </div>
