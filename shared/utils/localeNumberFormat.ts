@@ -1,5 +1,6 @@
 "use client"
 
+import * as React from "react"
 import { useTranslation } from "react-i18next"
 
 /**
@@ -36,12 +37,14 @@ export function getLocaleConfig(locale: string) {
 export function useLocaleNumberFormat() {
   const { i18n } = useTranslation()
   const currentLocale = i18n.resolvedLanguage ?? i18n.language ?? 'en'
-  const config = getLocaleConfig(currentLocale)
+
+  // Memoize config to prevent unnecessary recalculations
+  const config = React.useMemo(() => getLocaleConfig(currentLocale), [currentLocale])
 
   /**
    * Format number according to current locale
    */
-  const formatNumber = (
+  const formatNumber = React.useCallback((
     value: number,
     options: LocaleNumberFormatOptions = {}
   ): string => {
@@ -67,12 +70,12 @@ export function useLocaleNumberFormat() {
     }
 
     return new Intl.NumberFormat(config.locale, formatOptions).format(value)
-  }
+  }, [config.locale, config.currency])
 
   /**
    * Format currency with locale-specific formatting
    */
-  const formatCurrency = (
+  const formatCurrency = React.useCallback((
     value: number,
     decimals: number = 0
   ): string => {
@@ -81,12 +84,12 @@ export function useLocaleNumberFormat() {
       currency: config.currency,
       decimals
     })
-  }
+  }, [formatNumber, config.currency])
 
   /**
    * Format percentage with locale-specific formatting
    */
-  const formatPercentage = (
+  const formatPercentage = React.useCallback((
     value: number,
     decimals: number = 1
   ): string => {
@@ -95,17 +98,20 @@ export function useLocaleNumberFormat() {
       style: 'percent',
       decimals
     })
-  }
+  }, [formatNumber])
 
   /**
    * Parse locale-formatted number string to number
    * Handles both German (1.234,56) and English (1,234.56) formats
    */
-  const parseNumber = (str: string): number => {
+  const parseNumber = React.useCallback((str: string): number => {
     if (!str || typeof str !== 'string') return 0
 
     // Remove all whitespace
     let cleaned = str.trim()
+
+    // Handle empty string explicitly
+    if (cleaned === '') return 0
 
     if (config.isGerman) {
       // German format: 1.234.567,89
@@ -122,13 +128,13 @@ export function useLocaleNumberFormat() {
 
     const parsed = parseFloat(cleaned)
     return isNaN(parsed) ? 0 : parsed
-  }
+  }, [config.isGerman])
 
   /**
    * Format number for input display (without currency symbols)
    * Used in NumberInput component for clean editing experience
    */
-  const formatForInput = (
+  const formatForInput = React.useCallback((
     value: number,
     decimals: number = 2
   ): string => {
@@ -137,38 +143,38 @@ export function useLocaleNumberFormat() {
     // For input formatting, we want clean numbers without currency symbols
     // but with proper decimal separators
     const formatted = formatNumber(value, { decimals })
-    
+
     // Remove currency symbols and extra spaces for input display
     return formatted.replace(/[€$£¥]/g, '').trim()
-  }
+  }, [formatNumber])
 
   /**
    * Get the appropriate decimal separator for the current locale
    */
-  const getDecimalSeparator = (): string => {
+  const getDecimalSeparator = React.useCallback((): string => {
     return config.decimalSeparator
-  }
+  }, [config.decimalSeparator])
 
   /**
    * Get the appropriate thousands separator for the current locale
    */
-  const getThousandsSeparator = (): string => {
+  const getThousandsSeparator = React.useCallback((): string => {
     return config.thousandsSeparator
-  }
+  }, [config.thousandsSeparator])
 
   /**
    * Check if a character is a valid decimal separator for current locale
    */
-  const isValidDecimalSeparator = (char: string): boolean => {
+  const isValidDecimalSeparator = React.useCallback((char: string): boolean => {
     return char === config.decimalSeparator
-  }
+  }, [config.decimalSeparator])
 
   /**
    * Check if a character is a valid thousands separator for current locale
    */
-  const isValidThousandsSeparator = (char: string): boolean => {
+  const isValidThousandsSeparator = React.useCallback((char: string): boolean => {
     return char === config.thousandsSeparator
-  }
+  }, [config.thousandsSeparator])
 
   return {
     formatNumber,

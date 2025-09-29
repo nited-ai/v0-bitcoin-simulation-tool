@@ -46,38 +46,39 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
     const [isFocused, setIsFocused] = React.useState(false)
     const debounceTimeoutRef = React.useRef<NodeJS.Timeout | null>(null)
 
-    // Use locale-aware number formatting
-    const {
-      formatForInput,
-      parseNumber,
-      getDecimalSeparator,
-      isValidDecimalSeparator,
-      config
-    } = useLocaleNumberFormat()
+    // Use locale-aware number formatting - memoize to prevent re-renders
+    const localeFormat = useLocaleNumberFormat()
 
-    // Format number for display using locale-aware formatting
+    // Memoize locale functions to prevent excessive re-renders
+    const formatForInput = React.useMemo(() => localeFormat.formatForInput, [localeFormat.currentLocale])
+    const parseNumber = React.useMemo(() => localeFormat.parseNumber, [localeFormat.currentLocale])
+    const getDecimalSeparator = React.useMemo(() => localeFormat.getDecimalSeparator, [localeFormat.currentLocale])
+
+    // Format number for display - simplified and memoized
     const formatNumber = React.useCallback((num: number): string => {
-      if (isNaN(num)) return ""
-      // Use locale-aware formatting for input display
+      if (isNaN(num) || num === 0) return ""
       return formatForInput(num, decimals)
     }, [decimals, formatForInput])
 
-    // Parse string to number using locale-aware parsing
+    // Parse string to number - handle empty values properly
     const parseNumberLocale = React.useCallback((str: string): number => {
+      if (!str || str.trim() === "") return 0
       return parseNumber(str)
     }, [parseNumber])
 
-    // Update display value when value prop changes
+    // Update display value when value prop changes (only when not focused)
     React.useEffect(() => {
       if (!isFocused) {
-        setDisplayValue(formatNumber(value))
+        const formatted = value === 0 ? "" : formatNumber(value)
+        setDisplayValue(formatted)
       }
     }, [value, formatNumber, isFocused])
 
-    // Initialize display value
+    // Initialize display value only once
     React.useEffect(() => {
-      setDisplayValue(formatNumber(value))
-    }, [formatNumber, value])
+      const formatted = value === 0 ? "" : formatNumber(value)
+      setDisplayValue(formatted)
+    }, []) // Remove dependencies to prevent re-initialization
 
     // Debounced onChange to prevent excessive updates
     const debouncedOnChange = React.useCallback((constrainedValue: number) => {
@@ -101,12 +102,20 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const inputValue = e.target.value
+
+      // Update display value immediately for responsive UI
       setDisplayValue(inputValue)
+
+      // Handle empty input - don't parse or constrain
+      if (!inputValue || inputValue.trim() === "") {
+        debouncedOnChange(0)
+        return
+      }
 
       // Parse and validate the number using locale-aware parsing
       const numericValue = parseNumberLocale(inputValue)
 
-      // Apply min/max constraints
+      // Apply min/max constraints only if we have a valid number
       let constrainedValue = numericValue
       if (min !== undefined && constrainedValue < min) {
         constrainedValue = min
@@ -125,8 +134,12 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
 
     const handleBlur = () => {
       setIsFocused(false)
-      // Format the display value on blur
-      setDisplayValue(formatNumber(value))
+      // Only format if we have a valid value, preserve empty inputs
+      if (value !== 0) {
+        setDisplayValue(formatNumber(value))
+      } else {
+        setDisplayValue("")
+      }
     }
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
