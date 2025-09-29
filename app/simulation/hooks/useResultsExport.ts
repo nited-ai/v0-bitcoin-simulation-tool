@@ -112,20 +112,20 @@ export function useResultsExport(results: MonthlyResult[], params: SimulationPar
     // Convert results to CSV rows
     const rows = exportData.monthlyResults.map(result => [
       result.month,
-      result.dateString,
+      result.dateString || result.date,
       result.btcPrice,
       result.collateralValue,
       result.totalDebt,
       result.collateralValue - result.totalDebt,
-      result.currentBtcAmount.toFixed(8),
-      result.freeBtc.toFixed(8),
-      result.lockedBtc.toFixed(8),
-      result.loanCount,
+      (result.currentBtcAmount || result.totalBtcAmount || 0).toFixed(8),
+      (result.freeBtc || 0).toFixed(8),
+      (result.lockedBtc || (result.activeLoans?.reduce((sum, loan) => sum + loan.lockedBtc, 0) || 0)).toFixed(8),
+      result.loanCount || result.activeLoans?.length || 0,
       result.highestLtv.toFixed(2),
-      result.newLoanPrincipal,
-      result.repaymentsDue,
-      result.withdrawalAmount,
-      result.reinvestment,
+      result.newLoanPrincipal || result.principalForNeeds || result.principalForReinvestment || 0,
+      result.repaymentsDue || result.repaymentDue || 0,
+      result.withdrawalAmount || result.monthlyWithdrawal || 0,
+      result.reinvestment || result.principalForReinvestment || 0,
       result.events.map(e => e.type).join('; ')
     ])
 

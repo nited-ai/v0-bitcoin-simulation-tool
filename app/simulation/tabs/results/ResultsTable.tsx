@@ -95,12 +95,12 @@ export function ResultsTable() {
                     }`}
                   >
                     <td className="text-left p-2">{r.month}</td>
-                    <td className="text-left p-2">{r.dateString}</td>
+                    <td className="text-left p-2">{r.dateString || r.date}</td>
                     <td className="p-2">${r.btcPrice.toLocaleString("en-US")}</td>
-                    <td className="p-2">{r.currentBtcAmount.toFixed(4)}</td>
+                    <td className="p-2">{(r.currentBtcAmount || r.totalBtcAmount || 0).toFixed(4)}</td>
                     <td className="p-2">${r.collateralValue.toLocaleString("en-US")}</td>
                     <td className="p-2">${r.totalDebt.toLocaleString("en-US")}</td>
-                    <td className="p-2">${(r.lockedBtc * r.btcPrice).toLocaleString("en-US")}</td>
+                    <td className="p-2">${((r.lockedBtc || (r.activeLoans?.reduce((sum, loan) => sum + loan.lockedBtc, 0) || 0)) * r.btcPrice).toLocaleString("en-US")}</td>
                     <td
                       className={`p-2 text-center ${
                         r.highestLtv >= params.riskManagement.liquidationLtv ? "text-red-500" : ""
@@ -111,11 +111,11 @@ export function ResultsTable() {
                     <td className="p-2">
                       {r.maxSafeDebt !== undefined ? `$${r.maxSafeDebt.toLocaleString("en-US")}` : "-"}
                     </td>
-                    <td className="p-2">${r.newLoanPrincipal.toLocaleString("en-US")}</td>
-                    <td className="p-2">${r.repaymentsDue.toLocaleString("en-US")}</td>
-                    <td className="p-2">${r.withdrawalAmount.toLocaleString("en-US")}</td>
-                    <td className="p-2">${r.reinvestment.toLocaleString("en-US")}</td>
-                    <td className="p-2 text-center">{r.loanCount}</td>
+                    <td className="p-2">${(r.newLoanPrincipal || r.principalForNeeds || r.principalForReinvestment || 0).toLocaleString("en-US")}</td>
+                    <td className="p-2">${(r.repaymentsDue || r.repaymentDue || 0).toLocaleString("en-US")}</td>
+                    <td className="p-2">${(r.withdrawalAmount || r.monthlyWithdrawal || 0).toLocaleString("en-US")}</td>
+                    <td className="p-2">${(r.reinvestment || r.principalForReinvestment || 0).toLocaleString("en-US")}</td>
+                    <td className="p-2 text-center">{r.loanCount || r.activeLoans?.length || 0}</td>
                     <td className="p-2 text-left">
                       {r.events.length > 0 && (
                         <div className="flex flex-col">
