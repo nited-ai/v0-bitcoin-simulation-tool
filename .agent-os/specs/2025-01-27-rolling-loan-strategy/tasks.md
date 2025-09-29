@@ -68,14 +68,15 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 6.7 Verify all tests pass
   ✅ COMPLETED: Comprehensive validation and error handling with StrategyValidationService and StrategyErrorHandlingService
 
-- [ ] 7. Results Tab Enhancement - Core Charts
-  - [ ] 7.1 Write tests for new results visualization components
-  - [ ] 7.2 Implement BTC Accumulation Chart showing holdings growth over time
-  - [ ] 7.3 Implement Risk Progression Chart showing LTV and liquidation risk evolution
-  - [ ] 7.4 Implement Cash Flow Summary visualization
-  - [ ] 7.5 Add chart interactivity and tooltips
-  - [ ] 7.6 Verify charts render correctly with rolling loan data
-  - [ ] 7.7 Verify all tests pass
+- [x] 7. Results Tab Enhancement - Core Charts
+  - [x] 7.1 Write tests for new results visualization components
+  - [x] 7.2 Implement BTC Accumulation Chart showing holdings growth over time
+  - [x] 7.3 Implement Risk Progression Chart showing LTV and liquidation risk evolution
+  - [x] 7.4 Implement Cash Flow Summary visualization
+  - [x] 7.5 Add chart interactivity and tooltips
+  - [x] 7.6 Verify charts render correctly with rolling loan data
+  - [x] 7.7 Verify all tests pass
+  ✅ COMPLETED: Three new chart components implemented with comprehensive test coverage and price projection integration
 
 - [ ] 8. Results Tab Enhancement - Data Tables and Metrics
   - [ ] 8.1 Write tests for loan history table and metrics components

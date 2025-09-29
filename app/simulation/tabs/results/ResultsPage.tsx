@@ -11,6 +11,9 @@ import { PortfolioValueChart } from "./charts/PortfolioValueChart"
 import { DebtCollateralChart } from "./charts/DebtCollateralChart"
 import { LTVProgressionChart } from "./charts/LTVProgressionChart"
 import { CashFlowChart } from "./charts/CashFlowChart"
+import { BTCAccumulationChart } from "./charts/BTCAccumulationChart"
+import { RiskProgressionChart } from "./charts/RiskProgressionChart"
+import { CashFlowSummaryChart } from "./charts/CashFlowSummaryChart"
 import { RiskAssessment } from "./RiskAssessment"
 import { EventsAnalysis } from "./EventsAnalysis"
 import { ResultsExport } from "./ResultsExport"
@@ -191,6 +194,27 @@ export function ResultsPage() {
         <LTVProgressionChart />
         <CashFlowChart />
       </div>
+
+      {/* Rolling Loan Strategy Charts */}
+      {params.investmentStrategy === 'rollingLoan' && (
+        <>
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-2">Rolling Loan Strategy Analysis</h3>
+            <p className="text-sm text-muted-foreground">
+              Specialized visualizations for rolling loan strategy performance and risk analysis
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6">
+            <BTCAccumulationChart />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <RiskProgressionChart />
+            <CashFlowSummaryChart />
+          </div>
+        </>
+      )}
 
       {/* Risk and Events Analysis */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

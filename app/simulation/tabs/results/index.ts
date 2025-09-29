@@ -16,3 +16,8 @@ export { PortfolioValueChart } from './charts/PortfolioValueChart'
 export { DebtCollateralChart } from './charts/DebtCollateralChart'
 export { LTVProgressionChart } from './charts/LTVProgressionChart'
 export { CashFlowChart } from './charts/CashFlowChart'
+
+// Rolling loan strategy charts
+export { BTCAccumulationChart } from './charts/BTCAccumulationChart'
+export { RiskProgressionChart } from './charts/RiskProgressionChart'
+export { CashFlowSummaryChart } from './charts/CashFlowSummaryChart'
