@@ -29,7 +29,8 @@ export function ATHAlert({ className = "" }: ATHAlertProps) {
   const { formatCurrency, formatNumber } = useLocaleNumberFormat()
 
   // Get actual current Bitcoin price from centralized data service
-  const currentPrice = currentPriceData?.price || 100000 // Fallback to default if not available
+  // TEMPORARY: Use a realistic current price for testing
+  const currentPrice = currentPriceData?.price || 114209 // Use realistic current price instead of 100000
 
   // Debug logging to help identify the issue
   useEffect(() => {
@@ -37,9 +38,21 @@ export function ATHAlert({ className = "" }: ATHAlertProps) {
       currentPriceData,
       currentPrice,
       athPrice: currentATH,
-      isUsingFallback: !currentPriceData?.price
+      isUsingFallback: !currentPriceData?.price,
+      timestamp: new Date().toISOString()
     })
   }, [currentPriceData, currentPrice, currentATH])
+
+  // Log when component mounts
+  useEffect(() => {
+    console.log('🚀 ATHAlert component mounted - triggering centralized data service')
+    // Also log to server console
+    if (typeof window === 'undefined') {
+      console.log('🖥️ ATHAlert: Server-side rendering')
+    } else {
+      console.log('🌐 ATHAlert: Client-side rendering')
+    }
+  }, [])
 
   // Calculate ATH distance metrics
   const athDistanceMetrics = useMemo(() => {
