@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useMemo } from "react"
+import React, { useMemo, useCallback } from "react"
 import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -13,6 +13,7 @@ import { NumberInput } from "../../../../shared/ui/forms/NumberInput"
 import { CollateralSummaryCard } from "./CollateralSummaryCard"
 import { useLoanCalculations } from "../../hooks/useCalculationsIntegration"
 import { CalculationsErrorBoundary } from "./CalculationsErrorBoundary"
+import { useLocaleNumberFormat } from "@/shared/utils/localeNumberFormat"
 
 /**
  * Basic Parameters Card Component
@@ -20,7 +21,7 @@ import { CalculationsErrorBoundary } from "./CalculationsErrorBoundary"
  * Handles the core simulation parameters: BTC amount, initial price,
  * and monthly withdrawal with BTC accumulation options.
  */
-export function BasicParametersCard() {
+export const BasicParametersCard = React.memo(function BasicParametersCard() {
   const { t } = useTranslation()
   const {
     params,
@@ -28,6 +29,7 @@ export function BasicParametersCard() {
     loadingBtcPrice,
     setLoadingBtcPrice
   } = useSimulation()
+  const { formatCurrency } = useLocaleNumberFormat()
 
   // Use centralized loan calculations through integration hook
   const loanData = useLoanCalculations()
@@ -49,7 +51,7 @@ export function BasicParametersCard() {
   /**
    * Refresh current BTC price from external APIs
    */
-  const handleLoadCurrentPrice = async () => {
+  const handleLoadCurrentPrice = useCallback(async () => {
     setLoadingBtcPrice(true)
     try {
       // Use centralized data service to refresh current price
@@ -63,7 +65,7 @@ export function BasicParametersCard() {
     } finally {
       setLoadingBtcPrice(false)
     }
-  }
+  }, [setParams, setLoadingBtcPrice])
 
   return (
     <CalculationsErrorBoundary>
@@ -97,12 +99,14 @@ export function BasicParametersCard() {
               </Label>
               <div className="flex gap-2">
                 <NumberInput
+                  id="initialBtcPrice"
+                  name="initialBtcPrice"
                   value={params.initialBtcPrice}
                   onChange={(value) => setParams((p) => ({ ...p, initialBtcPrice: value }))}
                   min={1000}
                   max={10000000}
                   step={100}
-                  decimals={0}
+                  decimals={2}
                   suffix="$"
                   placeholder={t('BasicParameters.initialBtcPrice.placeholder')}
                   className="flex-1"
@@ -135,6 +139,8 @@ export function BasicParametersCard() {
                 </HybridTooltip>
               </Label>
               <NumberInput
+                id="initialBtcAmount"
+                name="initialBtcAmount"
                 value={params.initialBtcAmount}
                 onChange={(value) => setParams((p) => ({ ...p, initialBtcAmount: value }))}
                 min={0.001}
@@ -187,12 +193,7 @@ export function BasicParametersCard() {
                 </HybridTooltip>
               </Label>
               <div className="text-4xl font-bold text-orange-600" suppressHydrationWarning>
-                {new Intl.NumberFormat('en-US', {
-                  style: 'currency',
-                  currency: 'USD',
-                  minimumFractionDigits: 0,
-                  maximumFractionDigits: 0,
-                }).format(maxLoanCapacity)}
+                {formatCurrency(maxLoanCapacity, 0)}
               </div>
             </div>
           </div>
@@ -205,4 +206,4 @@ export function BasicParametersCard() {
     </Card>
     </CalculationsErrorBoundary>
   )
-}
+})

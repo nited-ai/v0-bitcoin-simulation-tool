@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useCallback, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
@@ -15,6 +15,7 @@ import { CalculationsErrorBoundary } from "./CalculationsErrorBoundary"
 import { getPlatformConfig } from "../../constants/platformPresets"
 import { ValidationAlert } from "./ValidationAlert"
 import { COMPONENT_FIELDS } from "./validationFieldMapping"
+import { useLocaleNumberFormat } from "@/shared/utils/localeNumberFormat"
 
 /**
  * Loan Parameters Card Component
@@ -25,6 +26,7 @@ import { COMPONENT_FIELDS } from "./validationFieldMapping"
 export function LoanParametersCard() {
   const { t } = useTranslation()
   const { params, setParams, markParameterAsManual } = useSimulation()
+  const { formatCurrency } = useLocaleNumberFormat()
 
   // Use centralized calculations
   const loanData = useLoanCalculations()
@@ -38,9 +40,9 @@ export function LoanParametersCard() {
   const [loanInputMode, setLoanInputMode] = useState<'percentage' | 'usd'>('percentage')
 
   /**
-   * Handle parameter updates
+   * Handle parameter updates (memoized to prevent re-renders)
    */
-  const updateParam = (key: string, value: number) => {
+  const updateParam = useCallback((key: string, value: number) => {
     if (key.includes('.')) {
       // Handle nested parameter updates (e.g., "riskManagement.targetLtv")
       const [parentKey, childKey] = key.split('.')
@@ -59,19 +61,22 @@ export function LoanParametersCard() {
     }
     // Mark parameter as manually edited
     markParameterAsManual(key)
-  }
+  }, [setParams, markParameterAsManual])
 
-  // Calculate total BTC stack value for conversions
-  const totalStackValue = params.initialBtcAmount * params.initialBtcPrice
+  // Calculate total BTC stack value for conversions (memoized)
+  const totalStackValue = useMemo(() =>
+    params.initialBtcAmount * params.initialBtcPrice,
+    [params.initialBtcAmount, params.initialBtcPrice]
+  )
 
-  // Convert between percentage and USD values
-  const convertPercentageToUsd = (percentage: number) => {
+  // Convert between percentage and USD values (memoized)
+  const convertPercentageToUsd = useCallback((percentage: number) => {
     return (percentage / 100) * totalStackValue
-  }
+  }, [totalStackValue])
 
-  const convertUsdToPercentage = (usdAmount: number) => {
+  const convertUsdToPercentage = useCallback((usdAmount: number) => {
     return totalStackValue > 0 ? (usdAmount / totalStackValue) * 100 : 0
-  }
+  }, [totalStackValue])
 
   // Get current display value based on input mode
   const getCurrentDisplayValue = () => {
@@ -148,6 +153,7 @@ export function LoanParametersCard() {
                   min={loanInputMode === 'percentage' ? 1 : 100}
                   max={loanInputMode === 'percentage' ? 100 : totalStackValue}
                   step={loanInputMode === 'percentage' ? 1 : 100}
+                  decimals={loanInputMode === 'percentage' ? 1 : 2}
                   placeholder={loanInputMode === 'percentage' ? "15" : "15,000"}
                   suffix={loanInputMode === 'percentage' ? t('LoanParameters.percentOfBtcStack', '% of BTC stack') : "$"}
                   className="flex-1"
@@ -193,6 +199,7 @@ export function LoanParametersCard() {
                 min={1}
                 max={platformConfig.maxInitialLtv}
                 step={1}
+                decimals={1}
                 placeholder="50"
                 suffix="%"
               />
@@ -219,6 +226,7 @@ export function LoanParametersCard() {
                 onChange={(value) => updateParam("annualInterestRate", value)}
                 min={0}
                 max={50}
+                decimals={2}
                 step={0.1}
                 placeholder="6.5"
                 suffix="%"
@@ -280,32 +288,17 @@ export function LoanParametersCard() {
                     <HybridTooltipContent>
                       <p>{t('LoanParameters.tooltips.loanAmountBreakdown', 'Initial loan principal amount')}</p>
                       <p className="text-xs text-muted-foreground">
-                        {params.loanAmountPercent.toFixed(2)}{t('LoanParameters.percentOf', '% of')} {new Intl.NumberFormat('en-US', {
-                          style: 'currency',
-                          currency: 'USD',
-                          minimumFractionDigits: 0,
-                          maximumFractionDigits: 0,
-                        }).format(params.initialBtcAmount * params.initialBtcPrice)}
+                        {params.loanAmountPercent.toFixed(2)}{t('LoanParameters.percentOf', '% of')} {formatCurrency(params.initialBtcAmount * params.initialBtcPrice, 0)}
                       </p>
                     </HybridTooltipContent>
                   </HybridTooltip>
                 </Label>
                 <div className="p-3 bg-green-50 dark:bg-green-950/20 rounded-md border border-green-200 dark:border-green-800">
                   <div className="text-lg font-semibold text-green-700 dark:text-green-300" suppressHydrationWarning>
-                    {new Intl.NumberFormat('en-US', {
-                      style: 'currency',
-                      currency: 'USD',
-                      minimumFractionDigits: 0,
-                      maximumFractionDigits: 0,
-                    }).format(loanData?.initialCurrentLoanAmount || 0)}
+                    {formatCurrency(loanData?.initialCurrentLoanAmount || 0, 0)}
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    {params.loanAmountPercent.toFixed(2)}{t('LoanParameters.percentOf', '% of')} {new Intl.NumberFormat('en-US', {
-                      style: 'currency',
-                      currency: 'USD',
-                      minimumFractionDigits: 0,
-                      maximumFractionDigits: 0,
-                    }).format(params.initialBtcAmount * params.initialBtcPrice)}
+                    {params.loanAmountPercent.toFixed(2)}{t('LoanParameters.percentOf', '% of')} {formatCurrency(params.initialBtcAmount * params.initialBtcPrice, 0)}
                   </div>
                 </div>
               </div>
@@ -329,20 +322,10 @@ export function LoanParametersCard() {
                 </Label>
                 <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-md border border-blue-200 dark:border-blue-800">
                   <div className="text-lg font-semibold text-blue-700 dark:text-blue-300" suppressHydrationWarning>
-                    {new Intl.NumberFormat('en-US', {
-                      style: 'currency',
-                      currency: 'USD',
-                      minimumFractionDigits: 0,
-                      maximumFractionDigits: 0,
-                    }).format(loanData?.initialTotalInterestPayment || 0)}
+                    {formatCurrency(loanData?.initialTotalInterestPayment || 0, 0)}
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    {new Intl.NumberFormat('en-US', {
-                      style: 'currency',
-                      currency: 'USD',
-                      minimumFractionDigits: 0,
-                      maximumFractionDigits: 0,
-                    }).format(loanData?.initialMonthlyInterestPayment || 0)} {params.loanTermMonths === Infinity ? '∞' : t('LoanParameters.forMonths', 'for {{count}} months', { count: params.loanTermMonths })}
+                    {formatCurrency(loanData?.initialMonthlyInterestPayment || 0, 0)} {params.loanTermMonths === Infinity ? '∞' : t('LoanParameters.forMonths', 'for {{count}} months', { count: params.loanTermMonths })}
                   </div>
                 </div>
               </div>
@@ -375,20 +358,10 @@ export function LoanParametersCard() {
                 </Label>
                 <div className="p-3 bg-orange-50 dark:bg-orange-950/20 rounded-md border border-orange-200 dark:border-orange-800">
                   <div className="text-lg font-semibold text-orange-700 dark:text-orange-300" suppressHydrationWarning>
-                    {new Intl.NumberFormat('en-US', {
-                      style: 'currency',
-                      currency: 'USD',
-                      minimumFractionDigits: 0,
-                      maximumFractionDigits: 0,
-                    }).format(loanData?.initialOriginationFee || 0)}
+                    {formatCurrency(loanData?.initialOriginationFee || 0, 0)}
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    {platformConfig.originationFeePercent}% {platformConfig.originationFeeType === 'annual' ? t('LoanParameters.tooltips.annualPA', 'p.a.') : ''} of {new Intl.NumberFormat('en-US', {
-                      style: 'currency',
-                      currency: 'USD',
-                      minimumFractionDigits: 0,
-                      maximumFractionDigits: 0,
-                    }).format(loanData?.initialCurrentLoanAmount || 0)}
+                    {platformConfig.originationFeePercent}% {platformConfig.originationFeeType === 'annual' ? t('LoanParameters.tooltips.annualPA', 'p.a.') : ''} of {formatCurrency(loanData?.initialCurrentLoanAmount || 0, 0)}
                   </div>
                 </div>
               </div>
@@ -412,21 +385,11 @@ export function LoanParametersCard() {
                 </Label>
                 <div className="p-3 bg-red-50 dark:bg-red-950/20 rounded-md border border-red-200 dark:border-red-800">
                   <div className="text-lg font-semibold text-red-700 dark:text-red-300" suppressHydrationWarning>
-                    {new Intl.NumberFormat('en-US', {
-                      style: 'currency',
-                      currency: 'USD',
-                      minimumFractionDigits: 0,
-                      maximumFractionDigits: 0,
-                    }).format(loanData?.initialTotalLoanCost || 0)}
+                    {formatCurrency(loanData?.initialTotalLoanCost || 0, 0)}
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">
                     {t('LoanParameters.loanPlusCosts', 'Loan + {{costs}} costs', {
-                      costs: new Intl.NumberFormat('en-US', {
-                        style: 'currency',
-                        currency: 'USD',
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0,
-                      }).format(((loanData?.initialOriginationFee || 0) + (loanData?.initialTotalInterestPayment || 0)))
+                      costs: formatCurrency(((loanData?.initialOriginationFee || 0) + (loanData?.initialTotalInterestPayment || 0)), 0)
                     })}
                   </div>
                 </div>

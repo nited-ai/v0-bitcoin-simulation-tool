@@ -17,7 +17,7 @@ import { PlatformFeeIntegrationService } from "@/src/modules/strategies/services
  * with detailed breakdowns and risk analysis.
  */
 export function StrategyPreviewCard() {
-  const { params } = useSimulation()
+  const { params, priceChartData } = useSimulation()
 
   // Initialize services
   const loanCalculationService = useMemo(() => new LoanRolloverCalculationService(), [])
@@ -27,28 +27,74 @@ export function StrategyPreviewCard() {
   const previewData = useMemo(() => {
     const btcStackValue = params.initialBtcAmount * params.initialBtcPrice
     const initialLoanAmount = btcStackValue * (params.loanAmountPercent / 100)
-    
+
     // Get platform fee configuration
     const platformFeeConfig = platformFeeService.getPlatformFeeConfig(params.platform || 'firefish')
-    
-    // Calculate loan rollover details
+
+    // Calculate annual interest cost
+    const annualInterest = initialLoanAmount * (params.annualInterestRate / 100)
+
+    // Calculate platform fees for the loan amount and term
+    const platformFeeResult = platformFeeService.calculatePlatformFees(
+      initialLoanAmount,
+      params.platform || 'firefish',
+      params.loanTermMonths
+    )
+
+    // Calculate total annual cost (interest + platform fees)
+    const annualCost = annualInterest + platformFeeResult.amount
+
+    // Calculate projected BTC price at loan maturity
+    const loanMaturityMonth = params.loanTermMonths
+    let projectedBtcPrice = params.initialBtcPrice // Fallback to current price
+
+    if (priceChartData && priceChartData.length > loanMaturityMonth) {
+      projectedBtcPrice = priceChartData[loanMaturityMonth - 1]?.price || params.initialBtcPrice
+    }
+
+    // Calculate projected BTC stack value at loan maturity
+    const projectedBtcStackValue = params.initialBtcAmount * projectedBtcPrice
+
+    // Calculate target loan amount based on loan percentage (NOT LTV percentage)
+    const targetLoanAmount = projectedBtcStackValue * (params.loanAmountPercent / 100)
+
+    // Calculate individual components for enhanced rollover analysis
+    const principalRepayment = initialLoanAmount
+    const interestCost = (initialLoanAmount * params.annualInterestRate / 100) * (params.loanTermMonths / 12)
+    const platformFees = platformFeeResult.amount
+    const totalRepaymentDue = principalRepayment + interestCost + platformFees
+
+    // Calculate origination fee on new loan
+    const originationFeePercent = platformFeeConfig.percent
+    const originationFee = (totalRepaymentDue / (1 - originationFeePercent / 100)) - totalRepaymentDue
+    const minimumLoanNeeded = totalRepaymentDue + originationFee
+
+    // Calculate loan rollover details for rollover analysis
     const rolloverParams = {
       previousLoanPrincipal: initialLoanAmount,
-      accruedInterest: (initialLoanAmount * params.annualInterestRate / 100) / 12,
+      // FIXED: Calculate interest for full loan term, not just 1 month
+      accruedInterest: interestCost,
       platformFeeConfig,
-      loanOriginationFeePercent: params.liquidationFeePercent || 1.5,
+      // FIXED: Use actual platform origination fee, not liquidation fee
+      loanOriginationFeePercent: platformFeeConfig.percent,
       loanTermMonths: params.loanTermMonths,
-      btcStackValue,
+      btcStackValue: projectedBtcStackValue, // Use projected value
       targetLtvPercent: params.riskManagement.targetLtv,
       liquidationLtvPercent: params.riskManagement.liquidationLtv
     }
 
     const rolloverResult = loanCalculationService.calculateLoanRollover(rolloverParams)
-    
+
+    // Enhanced rollover analysis calculations
+    const isExceedingConfiguredPercentage = targetLoanAmount < minimumLoanNeeded
+    const actualLoanAmount = isExceedingConfiguredPercentage ? minimumLoanNeeded : targetLoanAmount
+    const actualLoanPercentage = (actualLoanAmount / projectedBtcStackValue) * 100
+    const excessProceeds = Math.max(0, actualLoanAmount - minimumLoanNeeded)
+
     // Calculate liquidation risk
     const liquidationBuffer = params.riskManagement.liquidationLtv - params.riskManagement.targetLtv
     const riskLevel = liquidationBuffer < 20 ? 'high' : liquidationBuffer < 40 ? 'medium' : 'low'
-    
+
     return {
       btcStackValue,
       initialLoanAmount,
@@ -57,9 +103,23 @@ export function StrategyPreviewCard() {
       riskLevel,
       platformFeeConfig,
       monthlyInterest: (initialLoanAmount * params.annualInterestRate / 100) / 12,
-      annualCost: rolloverResult.totalRepaymentDue + rolloverResult.platformFees
+      annualInterest,
+      platformFees: platformFeeResult.amount,
+      annualCost,
+      // Enhanced rollover analysis data
+      projectedBtcPrice,
+      projectedBtcStackValue,
+      targetLoanAmount,
+      principalRepayment,
+      interestCost,
+      originationFee,
+      minimumLoanNeeded,
+      actualLoanAmount,
+      actualLoanPercentage,
+      excessProceeds,
+      isExceedingConfiguredPercentage
     }
-  }, [params, loanCalculationService, platformFeeService])
+  }, [params, priceChartData, loanCalculationService, platformFeeService])
 
   // Get risk color based on level
   const getRiskColor = (level: string) => {
@@ -153,56 +213,160 @@ export function StrategyPreviewCard() {
           </div>
         </div>
 
-        {/* Loan Rollover Breakdown */}
+        {/* Next Loan Rollover Preview */}
         {params.investmentStrategy === 'rollingLoan' && (
           <div className="space-y-4">
             <h4 className="font-medium flex items-center gap-2">
               <Zap className="w-4 h-4 text-orange-500" />
-              Loan Rollover Analysis
+              Next Loan Rollover Preview
             </h4>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Minimum Loan Calculation */}
               <div className="p-4 bg-muted/50 rounded-lg">
-                <h5 className="font-medium mb-2">Minimum Loan Required</h5>
+                <h5 className="font-medium mb-2">Minimum loan required to pay back old loan</h5>
                 <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span>Principal Repayment:</span>
-                    <span className="font-medium">${Math.round(previewData.rolloverResult.totalRepaymentDue).toLocaleString()}</span>
+                  <div className="flex justify-between items-center">
+                    <HybridTooltip>
+                      <HybridTooltipTrigger asChild>
+                        <span className="cursor-help flex items-center gap-1">
+                          Principal Repayment:
+                          <Info className="w-3 h-3 text-muted-foreground" />
+                        </span>
+                      </HybridTooltipTrigger>
+                      <HybridTooltipContent>
+                        <p>Original loan amount that must be repaid</p>
+                      </HybridTooltipContent>
+                    </HybridTooltip>
+                    <span className="font-medium">${Math.round(previewData.principalRepayment).toLocaleString()}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Interest Cost:</span>
-                    <span className="font-medium">${Math.round(previewData.rolloverResult.totalRepaymentDue * 0.8).toLocaleString()}</span>
+                  <div className="flex justify-between items-center">
+                    <HybridTooltip>
+                      <HybridTooltipTrigger asChild>
+                        <span className="cursor-help flex items-center gap-1">
+                          Interest Cost:
+                          <Info className="w-3 h-3 text-muted-foreground" />
+                        </span>
+                      </HybridTooltipTrigger>
+                      <HybridTooltipContent>
+                        <p>Interest accumulated over {params.loanTermMonths} months at {params.annualInterestRate}% annual rate</p>
+                      </HybridTooltipContent>
+                    </HybridTooltip>
+                    <span className="font-medium">${Math.round(previewData.interestCost).toLocaleString()}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Platform Fees:</span>
-                    <span className="font-medium">${Math.round(previewData.rolloverResult.platformFees).toLocaleString()}</span>
+                  <div className="flex justify-between items-center">
+                    <HybridTooltip>
+                      <HybridTooltipTrigger asChild>
+                        <span className="cursor-help flex items-center gap-1">
+                          Platform Fees:
+                          <Info className="w-3 h-3 text-muted-foreground" />
+                        </span>
+                      </HybridTooltipTrigger>
+                      <HybridTooltipContent>
+                        <p>{previewData.platformFeeConfig.type === 'annual' ? `${previewData.platformFeeConfig.percent}% annually, prorated for loan term` : `${previewData.platformFeeConfig.percent}% ${previewData.platformFeeConfig.type} fee`}</p>
+                      </HybridTooltipContent>
+                    </HybridTooltip>
+                    <span className="font-medium">${Math.round(previewData.platformFees).toLocaleString()}</span>
                   </div>
-                  <div className="border-t pt-2 flex justify-between font-bold">
-                    <span>Total Minimum:</span>
-                    <span>${Math.round(previewData.rolloverResult.minimumLoanNeeded).toLocaleString()}</span>
+                  <div className="flex justify-between items-center">
+                    <HybridTooltip>
+                      <HybridTooltipTrigger asChild>
+                        <span className="cursor-help flex items-center gap-1">
+                          Origination Fee:
+                          <Info className="w-3 h-3 text-muted-foreground" />
+                        </span>
+                      </HybridTooltipTrigger>
+                      <HybridTooltipContent>
+                        <p>{previewData.platformFeeConfig.percent}% fee charged on new loan amount</p>
+                      </HybridTooltipContent>
+                    </HybridTooltip>
+                    <span className="font-medium">${Math.round(previewData.originationFee).toLocaleString()}</span>
+                  </div>
+                  <div className="border-t pt-2 flex justify-between font-bold items-center">
+                    <HybridTooltip>
+                      <HybridTooltipTrigger asChild>
+                        <span className="cursor-help flex items-center gap-1">
+                          Total Minimum:
+                          <Info className="w-3 h-3 text-muted-foreground" />
+                        </span>
+                      </HybridTooltipTrigger>
+                      <HybridTooltipContent>
+                        <p>Minimum new loan needed = (Principal + Interest + Platform Fees) ÷ (1 - Origination Fee %)</p>
+                      </HybridTooltipContent>
+                    </HybridTooltip>
+                    <span>${Math.round(previewData.minimumLoanNeeded).toLocaleString()}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Excess Proceeds */}
+              {/* Target Loan Amount & Excess Proceeds */}
               <div className="p-4 bg-muted/50 rounded-lg">
-                <h5 className="font-medium mb-2">Excess Proceeds</h5>
+                <h5 className="font-medium mb-2">Target Loan Amount</h5>
                 <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span>Target Loan Amount:</span>
-                    <span className="font-medium">${Math.round(previewData.rolloverResult.actualLoanAmount).toLocaleString()}</span>
+                  <div className="flex justify-between items-center">
+                    <HybridTooltip>
+                      <HybridTooltipTrigger asChild>
+                        <span className="cursor-help flex items-center gap-1">
+                          Target Loan Amount:
+                          <Info className="w-3 h-3 text-muted-foreground" />
+                        </span>
+                      </HybridTooltipTrigger>
+                      <HybridTooltipContent>
+                        <p>{params.loanAmountPercent}% of projected BTC stack value on loan maturity date</p>
+                      </HybridTooltipContent>
+                    </HybridTooltip>
+                    <span className="font-medium">${Math.round(previewData.actualLoanAmount).toLocaleString()}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Minimum Required:</span>
-                    <span className="font-medium">${Math.round(previewData.rolloverResult.minimumLoanNeeded).toLocaleString()}</span>
+                  <div className="flex justify-between items-center">
+                    <HybridTooltip>
+                      <HybridTooltipTrigger asChild>
+                        <span className="cursor-help flex items-center gap-1">
+                          Minimum Required:
+                          <Info className="w-3 h-3 text-muted-foreground" />
+                        </span>
+                      </HybridTooltipTrigger>
+                      <HybridTooltipContent>
+                        <p>Minimum amount needed from new loan to pay off old loan</p>
+                      </HybridTooltipContent>
+                    </HybridTooltip>
+                    <span className="font-medium">${Math.round(previewData.minimumLoanNeeded).toLocaleString()}</span>
                   </div>
-                  <div className="border-t pt-2 flex justify-between font-bold">
-                    <span>Excess Available:</span>
-                    <span className="text-green-600">${Math.round(previewData.rolloverResult.excessProceeds).toLocaleString()}</span>
+
+                  {previewData.isExceedingConfiguredPercentage && (
+                    <div className="p-2 bg-yellow-50 dark:bg-yellow-950/20 rounded border border-yellow-200 dark:border-yellow-800">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                        <div className="text-xs">
+                          <p className="font-medium text-yellow-900 dark:text-yellow-100">⚠️ Exceeding configured loan percentage</p>
+                          <p className="text-yellow-700 dark:text-yellow-300 mt-1">
+                            Using {previewData.actualLoanPercentage.toFixed(1)}% instead of {params.loanAmountPercent}% due to BTC price decline
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="border-t pt-2 flex justify-between font-bold items-center">
+                    <HybridTooltip>
+                      <HybridTooltipTrigger asChild>
+                        <span className="cursor-help flex items-center gap-1">
+                          Excess Available:
+                          <Info className="w-3 h-3 text-muted-foreground" />
+                        </span>
+                      </HybridTooltipTrigger>
+                      <HybridTooltipContent>
+                        <p>Additional funds available for BTC accumulation or cash withdrawal</p>
+                      </HybridTooltipContent>
+                    </HybridTooltip>
+                    <span className={previewData.excessProceeds > 0 ? "text-green-600" : "text-muted-foreground"}>
+                      ${Math.round(previewData.excessProceeds).toLocaleString()}
+                    </span>
                   </div>
                   <div className="text-xs text-muted-foreground mt-2">
-                    {params.btcAccumulation ? 'Reinvested in BTC' : 'Taken as cash'}
+                    {previewData.excessProceeds > 0
+                      ? (params.btcAccumulation ? 'Reinvested in BTC' : 'Taken as cash')
+                      : 'No excess funds available'
+                    }
                   </div>
                 </div>
               </div>

@@ -270,8 +270,8 @@ export function ManualGrowthControls({
                       onChange={(value) => handleSliderChange(index, [value])}
                       min={-100}
                       max={500}
-                      step={5}
-                      decimals={0}
+                      step={0.5}
+                      decimals={1}
                       suffix="%"
                       className="w-full"
                     />
