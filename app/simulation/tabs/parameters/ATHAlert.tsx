@@ -7,9 +7,9 @@ import { CheckCircle2, AlertTriangle, AlertOctagon } from "lucide-react"
 import { useATH } from "../../hooks/useATH"
 import { CalculationsService } from "./calculationsService"
 import { useLocaleNumberFormat } from "@/shared/utils/localeNumberFormat"
+import { useCurrentPriceOnly } from "../../hooks/useCentralizedData"
 
 interface ATHAlertProps {
-  currentPrice: number
   className?: string
 }
 
@@ -20,11 +20,15 @@ interface ATHAlertProps {
  * Shows risk-based color coding and appropriate messaging for loan decisions.
  * Placed above the risk level selector cards.
  */
-export function ATHAlert({ currentPrice, className = "" }: ATHAlertProps) {
+export function ATHAlert({ className = "" }: ATHAlertProps) {
   const { t } = useTranslation()
   const { ath: currentATH, loading: athLoading, error: athError } = useATH()
+  const { currentPrice: currentPriceData } = useCurrentPriceOnly()
   const calculationsService = useMemo(() => new CalculationsService(), [])
-  const { formatCurrency, formatPercentage } = useLocaleNumberFormat()
+  const { formatCurrency, formatNumber } = useLocaleNumberFormat()
+
+  // Get actual current Bitcoin price from centralized data service
+  const currentPrice = currentPriceData?.price || 100000 // Fallback to default if not available
 
   // Calculate ATH distance metrics
   const athDistanceMetrics = useMemo(() => {
@@ -112,7 +116,7 @@ export function ATHAlert({ currentPrice, className = "" }: ATHAlertProps) {
               return (
                 <>
                   <span style={{ color: athDistanceMetrics.riskColor }}>
-                    {formatPercentage(athDistanceMetrics.distancePercent)}
+                    {formatNumber(athDistanceMetrics.distancePercent, { decimals: 1 })}%
                   </span>
                   {' '}/{' '}
                   <span style={{ color: athDistanceMetrics.riskColor }}>
@@ -159,7 +163,7 @@ export function ATHAlert({ currentPrice, className = "" }: ATHAlertProps) {
             return (
               <>
                 <span style={{ color: athDistanceMetrics.riskColor }}>
-                  {formatPercentage(athDistanceMetrics.distancePercent)}
+                  {formatNumber(athDistanceMetrics.distancePercent, { decimals: 1 })}%
                 </span>
                 {' '}/{' '}
                 <span style={{ color: athDistanceMetrics.riskColor }}>

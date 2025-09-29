@@ -99,7 +99,7 @@ export function RiskLevelSelector() {
           <p>{t('RiskLevelSelector.riskWarning', 'Lending against Bitcoin is highly speculative and carries significant risk. This is not financial advice. Use at your own risk. Bitcoin prices has dropped by 90% in the past. It can happen again. Don\'t get greedy. Don\'t use money you can\'t afford to lose.')}</p>
         </div>
         {/* ATH Alert above risk level selector cards */}
-        <ATHAlert currentPrice={params.initialBtcPrice} />
+        <ATHAlert />
         
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
