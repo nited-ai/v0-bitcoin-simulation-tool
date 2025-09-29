@@ -14,6 +14,9 @@ import { CashFlowChart } from "./charts/CashFlowChart"
 import { BTCAccumulationChart } from "./charts/BTCAccumulationChart"
 import { RiskProgressionChart } from "./charts/RiskProgressionChart"
 import { CashFlowSummaryChart } from "./charts/CashFlowSummaryChart"
+import { LoanHistoryTable } from "./tables/LoanHistoryTable"
+import { RollingLoanMetricsCard } from "./metrics/RollingLoanMetricsCard"
+import { FinalPortfolioSummary } from "./summary/FinalPortfolioSummary"
 import { RiskAssessment } from "./RiskAssessment"
 import { EventsAnalysis } from "./EventsAnalysis"
 import { ResultsExport } from "./ResultsExport"
@@ -212,6 +215,16 @@ export function ResultsPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <RiskProgressionChart />
             <CashFlowSummaryChart />
+          </div>
+
+          {/* Rolling Loan Strategy Metrics and Tables */}
+          <div className="grid grid-cols-1 gap-6">
+            <RollingLoanMetricsCard />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <LoanHistoryTable />
+            <FinalPortfolioSummary />
           </div>
         </>
       )}

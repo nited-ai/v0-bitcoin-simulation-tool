@@ -21,3 +21,8 @@ export { CashFlowChart } from './charts/CashFlowChart'
 export { BTCAccumulationChart } from './charts/BTCAccumulationChart'
 export { RiskProgressionChart } from './charts/RiskProgressionChart'
 export { CashFlowSummaryChart } from './charts/CashFlowSummaryChart'
+
+// Rolling loan strategy tables and metrics
+export { LoanHistoryTable } from './tables/LoanHistoryTable'
+export { RollingLoanMetricsCard } from './metrics/RollingLoanMetricsCard'
+export { FinalPortfolioSummary } from './summary/FinalPortfolioSummary'
