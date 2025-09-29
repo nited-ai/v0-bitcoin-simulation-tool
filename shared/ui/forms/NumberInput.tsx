@@ -46,13 +46,16 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
     const [isFocused, setIsFocused] = React.useState(false)
     const debounceTimeoutRef = React.useRef<NodeJS.Timeout | null>(null)
 
-    // Use locale-aware number formatting - memoize to prevent re-renders
-    const localeFormat = useLocaleNumberFormat()
+    // Use locale-aware number formatting - get fresh functions on each render
+    const {
+      formatForInput,
+      parseNumber,
+      getDecimalSeparator,
+      currentLocale,
+      config
+    } = useLocaleNumberFormat()
 
-    // Memoize locale functions to prevent excessive re-renders
-    const formatForInput = React.useMemo(() => localeFormat.formatForInput, [localeFormat.currentLocale])
-    const parseNumber = React.useMemo(() => localeFormat.parseNumber, [localeFormat.currentLocale])
-    const getDecimalSeparator = React.useMemo(() => localeFormat.getDecimalSeparator, [localeFormat.currentLocale])
+
 
     // Format number for display - simplified and memoized
     const formatNumber = React.useCallback((num: number): string => {
@@ -72,13 +75,13 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
         const formatted = value === 0 ? "" : formatNumber(value)
         setDisplayValue(formatted)
       }
-    }, [value, formatNumber, isFocused])
+    }, [value, formatNumber, isFocused, currentLocale])
 
-    // Initialize display value only once
+    // Initialize display value and re-initialize when locale changes
     React.useEffect(() => {
       const formatted = value === 0 ? "" : formatNumber(value)
       setDisplayValue(formatted)
-    }, []) // Remove dependencies to prevent re-initialization
+    }, [currentLocale]) // Re-initialize when locale changes
 
     // Debounced onChange to prevent excessive updates
     const debouncedOnChange = React.useCallback((constrainedValue: number) => {
@@ -158,6 +161,8 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
 
       // Handle decimal separator based on locale
       const currentDecimalSeparator = getDecimalSeparator()
+
+
 
       // Allow decimal point (period) for English locale
       if (e.keyCode === 190 || e.keyCode === 110) {
