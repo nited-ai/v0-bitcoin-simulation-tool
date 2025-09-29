@@ -91,6 +91,17 @@ function StrategyPreviewCard() {
     const actualLoanPercentage = (actualLoanAmount / projectedBtcStackValue) * 100
     const excessProceeds = Math.max(0, actualLoanAmount - minimumLoanNeeded)
 
+    // Calculate total Bitcoin collateral (original + any purchased with first loan)
+    // For simplicity, assuming first loan proceeds were used to buy BTC at initial price
+    const btcFromFirstLoan = params.btcAccumulation ? (initialLoanAmount * 0.9) / params.initialBtcPrice : 0 // 90% after fees
+    const totalBtcCollateral = params.initialBtcAmount + btcFromFirstLoan
+    const totalCollateralValue = totalBtcCollateral * projectedBtcPrice
+
+    // Calculate Bitcoin after rollover
+    const btcAfterRollover = params.btcAccumulation
+      ? totalBtcCollateral + (excessProceeds / projectedBtcPrice) // Add BTC bought with excess
+      : totalBtcCollateral // No additional BTC if taking cash
+
     // Calculate liquidation risk
     const liquidationBuffer = params.riskManagement.liquidationLtv - params.riskManagement.targetLtv
     const riskLevel = liquidationBuffer < 20 ? 'high' : liquidationBuffer < 40 ? 'medium' : 'low'
@@ -117,7 +128,11 @@ function StrategyPreviewCard() {
       actualLoanAmount,
       actualLoanPercentage,
       excessProceeds,
-      isExceedingConfiguredPercentage
+      isExceedingConfiguredPercentage,
+      // Bitcoin accumulation data
+      totalBtcCollateral,
+      totalCollateralValue,
+      btcAfterRollover
     }
   }, [params, priceChartData, loanCalculationService, platformFeeService])
 
@@ -326,16 +341,16 @@ function StrategyPreviewCard() {
                         </span>
                       </HybridTooltipTrigger>
                       <HybridTooltipContent>
-                        <p>Your total Bitcoin holdings that serve as collateral for the loan, valued at projected maturity price</p>
+                        <p>Your total Bitcoin holdings including original amount plus any purchased with loan proceeds, valued at projected maturity price</p>
                       </HybridTooltipContent>
                     </HybridTooltip>
                     <span className="font-medium">
-                      {params.initialBtcAmount >= 1
-                        ? params.initialBtcAmount.toFixed(2)
-                        : params.initialBtcAmount >= 0.01
-                        ? params.initialBtcAmount.toFixed(4)
-                        : params.initialBtcAmount.toFixed(8)
-                      } BTC (${Math.round(previewData.projectedBtcStackValue).toLocaleString()})
+                      {previewData.totalBtcCollateral >= 1
+                        ? previewData.totalBtcCollateral.toFixed(2)
+                        : previewData.totalBtcCollateral >= 0.01
+                        ? previewData.totalBtcCollateral.toFixed(4)
+                        : previewData.totalBtcCollateral.toFixed(8)
+                      } BTC (${Math.round(previewData.totalCollateralValue).toLocaleString()})
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
@@ -402,6 +417,34 @@ function StrategyPreviewCard() {
                       ? (params.btcAccumulation ? 'Reinvested in BTC' : 'Taken as cash')
                       : 'No excess funds available'
                     }
+                  </div>
+
+                  {/* Bitcoin After Rollover */}
+                  <div className="border-t pt-2 flex justify-between items-center">
+                    <HybridTooltip>
+                      <HybridTooltipTrigger asChild>
+                        <span className="cursor-help flex items-center gap-1">
+                          Bitcoin After Rollover:
+                          <Info className="w-3 h-3 text-muted-foreground" />
+                        </span>
+                      </HybridTooltipTrigger>
+                      <HybridTooltipContent>
+                        <p>
+                          {params.btcAccumulation
+                            ? 'Total Bitcoin holdings including excess proceeds converted to BTC (accumulation mode)'
+                            : 'Current Bitcoin holdings only, excess proceeds taken as cash (cash mode)'
+                          }
+                        </p>
+                      </HybridTooltipContent>
+                    </HybridTooltip>
+                    <span className="font-medium">
+                      {previewData.btcAfterRollover >= 1
+                        ? previewData.btcAfterRollover.toFixed(2)
+                        : previewData.btcAfterRollover >= 0.01
+                        ? previewData.btcAfterRollover.toFixed(4)
+                        : previewData.btcAfterRollover.toFixed(8)
+                      } BTC
+                    </span>
                   </div>
                 </div>
               </div>
