@@ -100,9 +100,40 @@ const loanAmount = minimumNeeded
 3. **Incorrect Service Method**: LoanRolloverCalculationService uses wrong parameter for maximum calculation
 4. **Interface Mismatch**: SimulationParams vs StrategyExecutionParams parameter inconsistency
 
+---
+
+## React Console Warnings (Lower Priority)
+
+### Bug #8: Missing Key Prop in CollateralChart
+**Status**: Identified
+**Severity**: Low (UI Warning)
+**File**: `CollateralChart.tsx:213`
+**Description**: "Each child in a list should have a unique 'key' prop"
+**Component**: `ForwardRef(_c)` (passed from Line component)
+**Reference**: https://react.dev/link/warning-keys
+
+### Bug #9: Key Prop Spread Warning in RiskProgressionChart
+**Status**: Identified
+**Severity**: Low (UI Warning)
+**File**: `RiskProgressionChart.tsx:317`
+**Description**: React keys must be passed directly to JSX, not spread via props object
+**Current**: `<circle {...props} />` where props contains a `key` property
+**Expected**: `<circle key={someKey} {...props} />` with key extracted from props
+
+### Bug #10: Invalid DOM Prop Warning in RiskProgressionChart
+**Status**: Identified
+**Severity**: Low (UI Warning)
+**File**: `RiskProgressionChart.tsx:317`
+**Description**: `dataKey` prop is not recognized on DOM `<circle>` element
+**Should**: Either be lowercase `datakey` or removed from DOM element
+
+---
+
 ## Next Steps
 
 1. Add `loanAmountPercent` parameter to StrategyExecutionParams interface
 2. Fix RollingLoanStrategy to use target percentage instead of maximum LTV
 3. Update LoanRolloverCalculationService to accept target loan percentage parameter
 4. Fix parameter mapping between UI and strategy execution
+5. **HIGH PRIORITY**: Fix Results page to use configured Price Projection parameters
+6. **MEDIUM PRIORITY**: Fix React console warnings (Bugs #8-10)

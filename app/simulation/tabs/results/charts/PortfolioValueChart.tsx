@@ -135,9 +135,16 @@ export function PortfolioValueChart() {
             <AreaChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
               
-              <XAxis 
-                dataKey="month"
-                tickFormatter={(month) => `M${month}`}
+              <XAxis
+                dataKey="date"
+                tickFormatter={(dateString) => {
+                  // Convert dateString to same format as Price Projection tab
+                  const date = new Date(dateString)
+                  return date.toLocaleDateString('de-DE', {
+                    year: 'numeric',
+                    month: 'short'
+                  })
+                }}
                 minTickGap={20}
               />
               
@@ -156,7 +163,14 @@ export function PortfolioValueChart() {
                   name === 'netWorth' ? 'Net Worth' :
                   name === 'totalDebt' ? 'Total Debt' : name
                 ]}
-                labelFormatter={(month: number) => `Month ${month}`}
+                labelFormatter={(dateString: string) => {
+                  // Convert dateString to readable format matching Price Projection tab
+                  const date = new Date(dateString)
+                  return date.toLocaleDateString('de-DE', {
+                    year: 'numeric',
+                    month: 'long'
+                  })
+                }}
               />
               
               <Legend />

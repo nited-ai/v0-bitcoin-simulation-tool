@@ -36,13 +36,15 @@ export function usePriceGeneration(enabled: boolean = false) {
     if (historicalPriceData.length === 0) return
     if (!initialDataLoaded) return // Wait for initial data loading to complete
 
-    // Skip chart generation on price-projection tab to avoid duplicate generation
-    // The UnifiedPriceChart component handles projections for that tab
+    // CRITICAL FIX: Always generate price chart data for simulation runner
+    // The Price Projection tab displays its own charts, but the simulation runner
+    // needs the priceChartData to be available in the simulation context
     const currentTab = searchParams.get('tab') || 'parameters'
-    if (currentTab === 'price-projection') {
-      console.log(`⚡ Skipping price engine chart generation on price-projection tab (handled by UnifiedPriceChart)`)
-      return
-    }
+    console.log(`🔄 Generating price chart data for simulation runner (current tab: ${currentTab})`)
+
+    // Note: We removed the skip logic that was preventing price data generation
+    // when on the price-projection tab. This was causing the Results page to use
+    // stale/default price data instead of the configured Power Law projection.
 
     console.log(`🔄 Chart generation useEffect triggered for model: ${params.priceModel}`)
 
