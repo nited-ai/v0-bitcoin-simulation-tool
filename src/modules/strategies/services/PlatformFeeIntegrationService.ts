@@ -163,10 +163,19 @@ export class PlatformFeeIntegrationService {
       if (platformConfig.id === 'strike' && feeConfig.type !== 'none') {
         errors.push('Strike platform must use no fees')
       }
-      
+
+      if (platformConfig.id === 'coinbase' && feeConfig.type !== 'none') {
+        errors.push('Coinbase platform must use no fees')
+      }
+
       // Validate Strike fee amount
       if (platformConfig.id === 'strike' && feeConfig.percent !== 0) {
         errors.push('Strike platform must have 0% fees')
+      }
+
+      // Validate Coinbase fee amount
+      if (platformConfig.id === 'coinbase' && feeConfig.percent !== 0) {
+        errors.push('Coinbase platform must have 0% fees')
       }
       
     } catch (error) {

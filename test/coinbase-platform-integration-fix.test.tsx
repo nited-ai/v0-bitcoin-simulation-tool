@@ -14,6 +14,7 @@ import React from 'react'
 import { SimulationProvider } from '../app/simulation/context/SimulationContext'
 import { PlatformSelector } from '../app/simulation/tabs/parameters/PlatformSelector'
 import { getPlatformConfig } from '../app/simulation/constants/platformPresets'
+import { CalculationsService } from '../app/simulation/tabs/parameters/calculationsService'
 
 // Mock the translation hook
 vi.mock('react-i18next', () => ({
@@ -124,6 +125,105 @@ describe('Coinbase Platform Integration Fixes', () => {
       // The actual translation is mocked, but the key structure should be correct
       const coinbaseConfig = getPlatformConfig('coinbase')
       expect(coinbaseConfig.name).toBe('Coinbase')
+    })
+  })
+
+  describe('Validation Service Integration', () => {
+    it('should validate Coinbase platform in calculations service', () => {
+      // Create calculations service instance
+      const service = new CalculationsService()
+
+      // Create test parameters with Coinbase platform
+      const testParams = {
+        initialBtcAmount: 1,
+        initialBtcPrice: 50000,
+        loanAmountPercent: 15,
+        platform: 'coinbase',
+        maxInitialLtv: 75,
+        originationFeePercent: 0,
+        originationFeeType: 'one-time',
+        liquidationFeePercent: 4.38,
+        availableLoanTerms: ['infinity'],
+        loanTermMonths: Infinity,
+        riskManagement: {
+          targetLtv: 70,
+          maxLoanAmount: 50000,
+          annualInterestRate: 5,
+          loanTermMonths: Infinity,
+          liquidationLtv: 86,
+          liquidationFeePercent: 4.38
+        }
+      }
+
+      // Validate parameters
+      const validation = service.validateParameters(testParams)
+
+      // Should be valid with Coinbase platform
+      expect(validation.isValid).toBe(true)
+      expect(validation.errors).not.toContain('Invalid platform selection')
+      expect(validation.details.platform.valid).toBe(true)
+    })
+
+    it('should still validate other platforms correctly', () => {
+      const service = new CalculationsService()
+
+      const platforms = ['firefish', 'strike', 'custom']
+
+      platforms.forEach(platform => {
+        const testParams = {
+          initialBtcAmount: 1,
+          initialBtcPrice: 50000,
+          loanAmountPercent: 15,
+          platform,
+          maxInitialLtv: 50,
+          originationFeePercent: 1.5,
+          originationFeeType: 'annual',
+          liquidationFeePercent: 5,
+          availableLoanTerms: [6, 12, 24],
+          loanTermMonths: 12,
+          riskManagement: {
+            targetLtv: 70,
+            maxLoanAmount: 50000,
+            annualInterestRate: 6.5,
+            loanTermMonths: 12,
+            liquidationLtv: 95,
+            liquidationFeePercent: 5
+          }
+        }
+
+        const validation = service.validateParameters(testParams)
+        expect(validation.details.platform.valid).toBe(true)
+      })
+    })
+
+    it('should reject invalid platforms', () => {
+      const service = new CalculationsService()
+
+      const testParams = {
+        initialBtcAmount: 1,
+        initialBtcPrice: 50000,
+        loanAmountPercent: 15,
+        platform: 'invalid-platform',
+        maxInitialLtv: 50,
+        originationFeePercent: 1.5,
+        originationFeeType: 'annual',
+        liquidationFeePercent: 5,
+        availableLoanTerms: [6, 12, 24],
+        loanTermMonths: 12,
+        riskManagement: {
+          targetLtv: 70,
+          maxLoanAmount: 50000,
+          annualInterestRate: 6.5,
+          loanTermMonths: 12,
+          liquidationLtv: 95,
+          liquidationFeePercent: 5
+        }
+      }
+
+      const validation = service.validateParameters(testParams)
+      expect(validation.isValid).toBe(false)
+      expect(validation.errors).toContain('Invalid platform selection')
+      expect(validation.details.platform.valid).toBe(false)
     })
   })
 })

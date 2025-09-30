@@ -450,7 +450,7 @@ export class CalculationsService {
     }
 
     // Validate platform
-    const platformValid = ['firefish', 'strike', 'custom'].includes(params.platform) || params.platform.startsWith('custom-')
+    const platformValid = ['firefish', 'strike', 'coinbase', 'custom'].includes(params.platform) || params.platform.startsWith('custom-')
     if (!platformValid) {
       errors.push('Invalid platform selection')
     }
