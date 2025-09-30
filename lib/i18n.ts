@@ -223,6 +223,11 @@ const fallbackTranslations = {
       description: "Lightning-fast loans with instant approval",
       badge: "Low Rates"
     },
+    coinbase: {
+      name: "Coinbase",
+      description: "Flexible Credit Line. No fixed Loan Terms!",
+      badge: "Infinite Loan Term"
+    },
     custom: {
       name: "Custom",
       description: "Configure your own platform parameters",

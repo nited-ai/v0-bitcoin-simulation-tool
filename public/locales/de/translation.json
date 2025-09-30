@@ -338,6 +338,11 @@
       "description": "Blitzschnelle Kredite mit sofortiger Genehmigung",
       "badge": "Niedrige Zinsen"
     },
+    "coinbase": {
+      "name": "Coinbase",
+      "description": "Flexible Kreditlinie. Keine festen Laufzeiten!",
+      "badge": "Unendliche Laufzeit"
+    },
     "custom": {
       "name": "Benutzerdefiniert",
       "description": "Konfigurieren Sie Ihre eigenen Plattformparameter",

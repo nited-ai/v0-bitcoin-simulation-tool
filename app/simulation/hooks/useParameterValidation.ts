@@ -127,12 +127,15 @@ export function useParameterValidation(params: SimulationParams): ValidationResu
         message: "Loan term must be at least 1 month",
         severity: "error"
       })
-    } else if (params.loanTermMonths > 60) {
-      warnings.push({
-        field: "loanTermMonths",
-        message: "Very long loan terms may not be available",
-        severity: "warning"
-      })
+    } else if (params.loanTermMonths > 60 && params.loanTermMonths !== Infinity) {
+      // Don't show warning for Coinbase platform which supports infinite loan terms
+      if (params.platform !== 'coinbase') {
+        warnings.push({
+          field: "loanTermMonths",
+          message: "Very long loan terms may not be available",
+          severity: "warning"
+        })
+      }
     } else if (params.loanTermMonths < 3) {
       infos.push({
         field: "loanTermMonths",

@@ -30,7 +30,13 @@ export class PlatformFeeIntegrationService {
           type: 'none',
           percent: 0
         }
-      
+
+      case 'coinbase':
+        return {
+          type: 'none',
+          percent: 0
+        }
+
       default:
         // Custom platforms and fallback
         return {
@@ -157,10 +163,19 @@ export class PlatformFeeIntegrationService {
       if (platformConfig.id === 'strike' && feeConfig.type !== 'none') {
         errors.push('Strike platform must use no fees')
       }
-      
+
+      if (platformConfig.id === 'coinbase' && feeConfig.type !== 'none') {
+        errors.push('Coinbase platform must use no fees')
+      }
+
       // Validate Strike fee amount
       if (platformConfig.id === 'strike' && feeConfig.percent !== 0) {
         errors.push('Strike platform must have 0% fees')
+      }
+
+      // Validate Coinbase fee amount
+      if (platformConfig.id === 'coinbase' && feeConfig.percent !== 0) {
+        errors.push('Coinbase platform must have 0% fees')
       }
       
     } catch (error) {
@@ -182,13 +197,13 @@ export class PlatformFeeIntegrationService {
     feeConfig: PlatformFeeConfig
     summary: PlatformFeeResult
   }> {
-    const platforms = ['firefish', 'strike', 'custom']
+    const platforms = ['firefish', 'strike', 'coinbase', 'custom']
     
     return platforms.map(platformId => ({
       platformId,
       platformName: getPlatformConfig(platformId).name,
       feeConfig: this.getPlatformFeeConfig(platformId),
-      summary: this.getPlatformFeeSummary(platformId)
+      summary: this.calculatePlatformFees(10000, platformId) // Use standard loan amount for summary
     }))
   }
 }
