@@ -2,7 +2,7 @@ import React from 'react'
 import { render, screen } from '@testing-library/react'
 import { vi } from 'vitest'
 import { LoanHistoryTable } from '../LoanHistoryTable'
-import type { MonthlyResult } from '../../../../../types/simulation'
+import type { MonthlyResult, MonthlyEvent } from '../../../../types/simulation'
 
 // Mock Recharts components
 vi.mock('recharts', () => ({
@@ -45,25 +45,20 @@ describe('LoanHistoryTable', () => {
       mockSimulationContext.results = [
         {
           month: 1,
-          date: '2024-01-01',
+          dateString: '2024-01-01',
           btcPrice: 50000,
-          totalBtcAmount: 1.0,
-          totalDebt: 10000,
           collateralValue: 50000,
-          ltv: 20,
-          monthlyWithdrawal: 0,
-          principalForNeeds: 0,
-          principalForReinvestment: 10000,
-          totalPrincipal: 10000,
-          activeLoans: [{
-            id: 1,
-            month: 1,
-            principal: 10000,
-            maturityMonth: 7,
-            repaymentAmount: 10650,
-            lockedBtc: 0.2
-          }],
-          repaymentDue: 0,
+          realCollateralValue: 50000,
+          totalDebt: 10000,
+          realTotalDebt: 10000,
+          withdrawalAmount: 0,
+          newLoanPrincipal: 10000,
+          repaymentsDue: 0,
+          reinvestment: 0,
+          currentBtcAmount: 1.0,
+          freeBtc: 0.8,
+          lockedBtc: 0.2,
+          loanCount: 1,
           highestLtv: 20,
           events: []
         }
@@ -79,25 +74,20 @@ describe('LoanHistoryTable', () => {
       mockSimulationContext.results = [
         {
           month: 1,
-          date: '2024-01-01',
+          dateString: '2024-01-01',
           btcPrice: 50000,
-          totalBtcAmount: 1.0,
-          totalDebt: 10000,
           collateralValue: 50000,
-          ltv: 20,
-          monthlyWithdrawal: 0,
-          principalForNeeds: 0,
-          principalForReinvestment: 10000,
-          totalPrincipal: 10000,
-          activeLoans: [{
-            id: 1,
-            month: 1,
-            principal: 10000,
-            maturityMonth: 7,
-            repaymentAmount: 10650,
-            lockedBtc: 0.2
-          }],
-          repaymentDue: 0,
+          realCollateralValue: 50000,
+          totalDebt: 10000,
+          realTotalDebt: 10000,
+          withdrawalAmount: 0,
+          newLoanPrincipal: 10000,
+          repaymentsDue: 0,
+          reinvestment: 0,
+          currentBtcAmount: 1.0,
+          freeBtc: 0.8,
+          lockedBtc: 0.2,
+          loanCount: 1,
           highestLtv: 20,
           events: []
         }
@@ -117,25 +107,20 @@ describe('LoanHistoryTable', () => {
       mockSimulationContext.results = [
         {
           month: 1,
-          date: '2024-01-01',
+          dateString: '2024-01-01',
           btcPrice: 50000,
-          totalBtcAmount: 1.0,
-          totalDebt: 10000,
           collateralValue: 50000,
-          ltv: 20,
-          monthlyWithdrawal: 0,
-          principalForNeeds: 0,
-          principalForReinvestment: 10000,
-          totalPrincipal: 10000,
-          activeLoans: [{
-            id: 1,
-            month: 1,
-            principal: 10000,
-            maturityMonth: 7,
-            repaymentAmount: 10650,
-            lockedBtc: 0.2
-          }],
-          repaymentDue: 0,
+          realCollateralValue: 50000,
+          totalDebt: 10000,
+          realTotalDebt: 10000,
+          withdrawalAmount: 0,
+          newLoanPrincipal: 10000,
+          repaymentsDue: 0,
+          reinvestment: 0,
+          currentBtcAmount: 1.0,
+          freeBtc: 0.8,
+          lockedBtc: 0.2,
+          loanCount: 1,
           highestLtv: 20,
           events: []
         }
@@ -146,32 +131,47 @@ describe('LoanHistoryTable', () => {
       // Check that the table contains loan event data
       expect(screen.getByText('1')).toBeInTheDocument() // Month
       expect(screen.getByText('1.1.2024')).toBeInTheDocument() // Date
-      expect(screen.getByText(/\$10.000/)).toBeInTheDocument() // Amount
+      const amountElements = screen.getAllByText(/\$10.000/)
+      expect(amountElements.length).toBeGreaterThan(0) // Amount appears in table
     })
 
     it('should display loan rollover events', () => {
       mockSimulationContext.results = [
         {
+          month: 6,
+          dateString: '2024-06-01',
+          btcPrice: 52000,
+          collateralValue: 62400,
+          realCollateralValue: 62400,
+          totalDebt: 10000,
+          realTotalDebt: 10000,
+          withdrawalAmount: 0,
+          newLoanPrincipal: 0,
+          repaymentsDue: 0,
+          reinvestment: 0,
+          currentBtcAmount: 1.2,
+          freeBtc: 1.0,
+          lockedBtc: 0.2,
+          loanCount: 1,
+          highestLtv: 20,
+          events: []
+        },
+        {
           month: 7,
-          date: '2024-07-01',
+          dateString: '2024-07-01',
           btcPrice: 55000,
-          totalBtcAmount: 1.2,
-          totalDebt: 11000,
           collateralValue: 66000,
-          ltv: 16.7,
-          monthlyWithdrawal: 0,
-          principalForNeeds: 0,
-          principalForReinvestment: 1000,
-          totalPrincipal: 11000,
-          activeLoans: [{
-            id: 2,
-            month: 7,
-            principal: 11000,
-            maturityMonth: 13,
-            repaymentAmount: 11715,
-            lockedBtc: 0.2
-          }],
-          repaymentDue: 10650,
+          realCollateralValue: 66000,
+          totalDebt: 11000,
+          realTotalDebt: 11000,
+          withdrawalAmount: 0,
+          newLoanPrincipal: 11000,
+          repaymentsDue: 10650,
+          reinvestment: 1000,
+          currentBtcAmount: 1.2,
+          freeBtc: 1.0,
+          lockedBtc: 0.2,
+          loanCount: 1,
           highestLtv: 20,
           events: []
         }
@@ -189,18 +189,20 @@ describe('LoanHistoryTable', () => {
       mockSimulationContext.results = [
         {
           month: 5,
-          date: '2024-05-01',
+          dateString: '2024-05-01',
           btcPrice: 35000,
-          totalBtcAmount: 0.8,
-          totalDebt: 0,
           collateralValue: 28000,
-          ltv: 0,
-          monthlyWithdrawal: 0,
-          principalForNeeds: 0,
-          principalForReinvestment: 0,
-          totalPrincipal: 0,
-          activeLoans: [],
-          repaymentDue: 0,
+          realCollateralValue: 28000,
+          totalDebt: 0,
+          realTotalDebt: 0,
+          withdrawalAmount: 0,
+          newLoanPrincipal: 0,
+          repaymentsDue: 0,
+          reinvestment: 0,
+          currentBtcAmount: 0.8,
+          freeBtc: 0.8,
+          lockedBtc: 0,
+          loanCount: 0,
           highestLtv: 85,
           events: [{ type: 'liquidated', id: 1 }]
         }
@@ -226,49 +228,39 @@ describe('LoanHistoryTable', () => {
       mockSimulationContext.results = [
         {
           month: 3,
-          date: '2024-03-01',
+          dateString: '2024-03-01',
           btcPrice: 52000,
-          totalBtcAmount: 1.1,
-          totalDebt: 5000,
           collateralValue: 57200,
-          ltv: 8.7,
-          monthlyWithdrawal: 0,
-          principalForNeeds: 0,
-          principalForReinvestment: 5000,
-          totalPrincipal: 5000,
-          activeLoans: [{
-            id: 2,
-            month: 3,
-            principal: 5000,
-            maturityMonth: 9,
-            repaymentAmount: 5325,
-            lockedBtc: 0.096
-          }],
-          repaymentDue: 0,
+          realCollateralValue: 57200,
+          totalDebt: 5000,
+          realTotalDebt: 5000,
+          withdrawalAmount: 0,
+          newLoanPrincipal: 5000,
+          repaymentsDue: 0,
+          reinvestment: 0,
+          currentBtcAmount: 1.1,
+          freeBtc: 1.004,
+          lockedBtc: 0.096,
+          loanCount: 1,
           highestLtv: 20,
           events: []
         },
         {
           month: 1,
-          date: '2024-01-01',
+          dateString: '2024-01-01',
           btcPrice: 50000,
-          totalBtcAmount: 1.0,
-          totalDebt: 10000,
           collateralValue: 50000,
-          ltv: 20,
-          monthlyWithdrawal: 0,
-          principalForNeeds: 0,
-          principalForReinvestment: 10000,
-          totalPrincipal: 10000,
-          activeLoans: [{
-            id: 1,
-            month: 1,
-            principal: 10000,
-            maturityMonth: 7,
-            repaymentAmount: 10650,
-            lockedBtc: 0.2
-          }],
-          repaymentDue: 0,
+          realCollateralValue: 50000,
+          totalDebt: 10000,
+          realTotalDebt: 10000,
+          withdrawalAmount: 0,
+          newLoanPrincipal: 10000,
+          repaymentsDue: 0,
+          reinvestment: 0,
+          currentBtcAmount: 1.0,
+          freeBtc: 0.8,
+          lockedBtc: 0.2,
+          loanCount: 1,
           highestLtv: 20,
           events: []
         }
