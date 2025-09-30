@@ -1,10 +1,19 @@
 /**
  * Price Projection Adapter
- * 
+ *
  * Central conversion utility for all price projection formats.
  * Provides conversion between the standard format and specialized formats
  * needed by different parts of the application.
  */
+
+/**
+ * Log deprecation warning in development mode
+ */
+function logDeprecationWarning(method: string, message: string) {
+  if (process.env.NODE_ENV === 'development') {
+    console.warn(`⚠️ [DEPRECATED] ${method}: ${message}`)
+  }
+}
 
 import type {
   PriceProjectionResult as NewPriceProjectionResult,
@@ -147,11 +156,19 @@ export class PriceProjectionAdapter {
   
   /**
    * Convert from old format to new standard format
-   * 
+   *
+   * @deprecated This method is for backward compatibility only and will be removed in Phase 4.
+   * All code should migrate to use the new standard format directly.
+   *
    * @param oldProjection - Old price projection result
    * @returns New standard format
    */
   static fromOldFormat(oldProjection: OldPriceProjectionResult): NewPriceProjectionResult {
+    logDeprecationWarning(
+      'PriceProjectionAdapter.fromOldFormat',
+      'This method is deprecated. Migrate to use the new standard format directly from app/simulation/price-models/types.ts'
+    )
+
     const projectionPoints: ProjectionPoint[] = oldProjection.projectionPoints.map(point => ({
       timestamp: point.timestamp,
       price: point.price,
@@ -177,7 +194,10 @@ export class PriceProjectionAdapter {
   
   /**
    * Convert from legacy PriceChartDataPoint[] format to new standard format
-   * 
+   *
+   * @deprecated This method is for backward compatibility only and will be removed in Phase 4.
+   * All code should migrate to use the new standard format directly.
+   *
    * @param chartData - Legacy chart data points
    * @param modelName - Name of the model that generated this data
    * @param historicalData - Optional historical data for context
@@ -188,6 +208,11 @@ export class PriceProjectionAdapter {
     modelName: string,
     historicalData?: HistoricalDataPoint[]
   ): NewPriceProjectionResult {
+    logDeprecationWarning(
+      'PriceProjectionAdapter.fromLegacyFormat',
+      'This method is deprecated. Migrate to use the new standard format directly from app/simulation/price-models/types.ts'
+    )
+
     // Filter for projection data only (has simulationPath)
     const projectionData = chartData.filter(point => point.simulationPath !== undefined)
     
@@ -227,7 +252,10 @@ export class PriceProjectionAdapter {
   /**
    * Convert from new standard format to legacy PriceChartDataPoint[] format
    * For backward compatibility during migration
-   * 
+   *
+   * @deprecated This method is for backward compatibility only and will be removed in Phase 4.
+   * All code should migrate to use the new standard format directly.
+   *
    * @param projection - Standard price projection result
    * @param historicalData - Optional historical data to merge
    * @returns Legacy chart data points
@@ -236,8 +264,13 @@ export class PriceProjectionAdapter {
     projection: NewPriceProjectionResult,
     historicalData?: HistoricalDataPoint[]
   ): PriceChartDataPoint[] {
+    logDeprecationWarning(
+      'PriceProjectionAdapter.toLegacyFormat',
+      'This method is deprecated. Migrate to use the new standard format directly from app/simulation/price-models/types.ts'
+    )
+
     const chartData: PriceChartDataPoint[] = []
-    
+
     // Add historical data if provided
     if (historicalData) {
       historicalData.forEach(point => {
