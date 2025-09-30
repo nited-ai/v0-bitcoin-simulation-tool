@@ -1,13 +1,12 @@
 "use client"
 
 import { useCallback } from "react"
-import { runStrategySimulation } from "@/src/modules/strategies"
+import { LegacyStrategyAdapter } from "@/src/modules/strategies/adapters/LegacyStrategyAdapter"
 import type { StrategyEngineParams, MonthlyResult as StrategyMonthlyResult } from "@/src/modules/strategies/types"
 import type { MonthlyResult } from "../types/simulation"
 import { useSimulation } from "../context/SimulationContext"
 import { usePriceGeneration } from "./usePriceGeneration"
 import { useCentralizedData } from "./useCentralizedData"
-import { PriceProjectionAdapter } from "@/src/modules/shared/adapters/PriceProjectionAdapter"
 
 /**
  * Hook for running strategy simulations
@@ -80,36 +79,52 @@ export function useSimulationRunner() {
         athCollateralParams: params.athCollateralParams,
       }
 
-      // Phase 3 Migration: Convert priceProjection to legacy chart format for strategy engine
-      let strategyPriceData
-      if (priceProjection) {
-        console.log(`🎯 [Phase 3 Migration] Converting priceProjection to legacy format: ${priceProjection.modelName} (${priceProjection.projectionPoints.length} points)`)
-        strategyPriceData = PriceProjectionAdapter.toLegacyFormat(priceProjection, historicalPriceData)
-      } else {
-        console.warn(`⚠️ [Phase 3 Migration] Falling back to legacy priceChartData (${priceChartData.length} points)`)
-        strategyPriceData = priceChartData
+      // Phase 4: Use new format directly - no legacy conversion needed
+      if (!priceProjection) {
+        console.error('❌ Price projection not available')
+        addError("Price projection data not available. Please wait for data to load.")
+        return
       }
 
       console.log("🚀 Running strategy simulation with params:", {
         strategy: params.investmentStrategy,
         btcAmount: params.initialBtcAmount,
         simulationMonths: params.simulationMonths,
-        priceDataPoints: strategyPriceData.length,
-        usingNewFormat: !!priceProjection
+        priceDataPoints: priceProjection.projectionPoints.length,
+        modelName: priceProjection.modelName
       })
 
-      // Run the strategy simulation
-      const strategyResults = await runStrategySimulation(
-        strategyParams,
-        strategyPriceData,
-        historicalPriceData
-      )
+      // Run the strategy simulation using LegacyStrategyAdapter directly
+      const result = await LegacyStrategyAdapter.executeLegacyStrategy(strategyParams, priceProjection)
+
+      if (!result) {
+        console.error('❌ Strategy simulation failed')
+        addError("Strategy simulation failed. Please try again.")
+        return
+      }
+
+      const strategyResults = result.monthlyResults || []
 
       // Convert StrategyMonthlyResult to MonthlyResult
-      const convertedResults: MonthlyResult[] = strategyResults.map(result => ({
-        ...result,
-        // Add any missing fields that exist in MonthlyResult but not in StrategyMonthlyResult
-        liquidatedBtc: 0, // This field might exist in MonthlyResult but not in StrategyMonthlyResult
+      const convertedResults: MonthlyResult[] = strategyResults.map(strategyResult => ({
+        month: strategyResult.month,
+        dateString: strategyResult.date,
+        btcPrice: strategyResult.btcPrice,
+        collateralValue: strategyResult.collateralValue,
+        realCollateralValue: strategyResult.collateralValue, // Same as collateralValue
+        totalDebt: strategyResult.totalDebt,
+        realTotalDebt: strategyResult.totalDebt, // Same as totalDebt
+        withdrawalAmount: strategyResult.monthlyWithdrawal,
+        newLoanPrincipal: strategyResult.principalForNeeds + strategyResult.principalForReinvestment,
+        repaymentsDue: strategyResult.repaymentDue,
+        reinvestment: strategyResult.principalForReinvestment,
+        currentBtcAmount: strategyResult.totalBtcAmount,
+        freeBtc: strategyResult.totalBtcAmount - strategyResult.activeLoans.reduce((sum, loan) => sum + loan.lockedBtc, 0),
+        lockedBtc: strategyResult.activeLoans.reduce((sum, loan) => sum + loan.lockedBtc, 0),
+        loanCount: strategyResult.activeLoans.length,
+        highestLtv: strategyResult.highestLtv,
+        maxSafeDebt: strategyResult.maxSafeDebt,
+        events: strategyResult.events
       }))
 
       console.log("✅ Strategy simulation completed:", {

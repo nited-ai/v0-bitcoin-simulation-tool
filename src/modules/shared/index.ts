@@ -9,7 +9,6 @@
 export {
   PriceProjectionAdapter,
   isNewPriceProjectionResult,
-  isOldPriceProjectionResult,
   type StrategyPriceData,
   type ResultsPriceData
 } from './adapters/PriceProjectionAdapter'

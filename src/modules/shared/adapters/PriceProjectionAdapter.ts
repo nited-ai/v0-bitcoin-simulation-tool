@@ -6,15 +6,6 @@
  * needed by different parts of the application.
  */
 
-/**
- * Log deprecation warning in development mode
- */
-function logDeprecationWarning(method: string, message: string) {
-  if (process.env.NODE_ENV === 'development') {
-    console.warn(`⚠️ [DEPRECATED] ${method}: ${message}`)
-  }
-}
-
 import type {
   PriceProjectionResult as NewPriceProjectionResult,
   ProjectionPoint,
@@ -24,32 +15,6 @@ import type {
   PriceChartDataPoint,
   HistoricalDataPoint
 } from "../../price-data/types"
-
-/**
- * Old Price Projection Result format (for backward compatibility during migration)
- * @deprecated This type definition will be removed in Phase 4 cleanup
- */
-interface OldPriceProjectionResult {
-  projectedPrices: Array<{
-    month: number
-    date: string
-    price: number
-  }>
-  projectionPoints: Array<{
-    timestamp: number
-    price: number
-    date: string
-  }>
-  metadata: {
-    model: string
-    version: string
-    parameters: Record<string, any>
-    generatedAt: string
-    totalMonths: number
-    initialPrice: number
-    finalPrice: number
-  }
-}
 
 /**
  * Strategy-compatible price data format
@@ -86,7 +51,7 @@ export interface ResultsPriceData extends StrategyPriceData {
 export function isNewPriceProjectionResult(
   projection: any
 ): projection is NewPriceProjectionResult {
-  return (
+  return !!(
     projection &&
     typeof projection === 'object' &&
     'modelName' in projection &&
@@ -97,21 +62,7 @@ export function isNewPriceProjectionResult(
   )
 }
 
-/**
- * Type guard to check if projection is old format
- */
-export function isOldPriceProjectionResult(
-  projection: any
-): projection is OldPriceProjectionResult {
-  return (
-    projection &&
-    typeof projection === 'object' &&
-    'projectedPrices' in projection &&
-    'metadata' in projection &&
-    typeof projection.metadata === 'object' &&
-    'model' in projection.metadata
-  )
-}
+
 
 /**
  * Price Projection Adapter
@@ -176,108 +127,13 @@ export class PriceProjectionAdapter {
       }
     }
   }
-  
-  /**
-   * Convert from old format to new standard format
-   *
-   * @deprecated This method is for backward compatibility only and will be removed in Phase 4.
-   * All code should migrate to use the new standard format directly.
-   *
-   * @param oldProjection - Old price projection result
-   * @returns New standard format
-   */
-  static fromOldFormat(oldProjection: OldPriceProjectionResult): NewPriceProjectionResult {
-    logDeprecationWarning(
-      'PriceProjectionAdapter.fromOldFormat',
-      'This method is deprecated. Migrate to use the new standard format directly from app/simulation/price-models/types.ts'
-    )
 
-    const projectionPoints: ProjectionPoint[] = oldProjection.projectionPoints.map(point => ({
-      timestamp: point.timestamp,
-      price: point.price,
-      confidence: 1.0,
-      metadata: { date: point.date }
-    }))
-    
-    return {
-      modelName: oldProjection.metadata.model,
-      modelVersion: oldProjection.metadata.version,
-      projectionPoints,
-      metadata: {
-        totalMonths: oldProjection.metadata.totalMonths,
-        totalGrowth: ((oldProjection.metadata.finalPrice - oldProjection.metadata.initialPrice) / oldProjection.metadata.initialPrice) * 100,
-        averageMonthlyGrowth: 0, // Calculate if needed
-        maxDecline: 0,
-        volatility: 0,
-        confidence: 1.0,
-        generatedAt: oldProjection.metadata.generatedAt
-      }
-    }
-  }
-  
-  /**
-   * Convert from legacy PriceChartDataPoint[] format to new standard format
-   *
-   * @deprecated This method is for backward compatibility only and will be removed in Phase 4.
-   * All code should migrate to use the new standard format directly.
-   *
-   * @param chartData - Legacy chart data points
-   * @param modelName - Name of the model that generated this data
-   * @param historicalData - Optional historical data for context
-   * @returns New standard format
-   */
-  static fromLegacyFormat(
-    chartData: PriceChartDataPoint[],
-    modelName: string,
-    historicalData?: HistoricalDataPoint[]
-  ): NewPriceProjectionResult {
-    logDeprecationWarning(
-      'PriceProjectionAdapter.fromLegacyFormat',
-      'This method is deprecated. Migrate to use the new standard format directly from app/simulation/price-models/types.ts'
-    )
-
-    // Filter for projection data only (has simulationPath)
-    const projectionData = chartData.filter(point => point.simulationPath !== undefined)
-    
-    const projectionPoints: ProjectionPoint[] = projectionData.map(point => {
-      const timestamp = new Date(point.date).getTime()
-      return {
-        timestamp,
-        price: point.simulationPath || point.historicalPrice || 0,
-        support: point.support,
-        resistance: point.resistance,
-        confidence: 1.0,
-        metadata: { days: point.days, date: point.date }
-      }
-    })
-    
-    // Calculate metadata
-    const startPrice = projectionPoints[0]?.price || 0
-    const endPrice = projectionPoints[projectionPoints.length - 1]?.price || 0
-    const totalGrowth = startPrice > 0 ? ((endPrice - startPrice) / startPrice) * 100 : 0
-    
-    return {
-      modelName,
-      modelVersion: '1.0.0',
-      projectionPoints,
-      metadata: {
-        totalMonths: projectionPoints.length,
-        totalGrowth,
-        averageMonthlyGrowth: projectionPoints.length > 0 ? totalGrowth / projectionPoints.length : 0,
-        maxDecline: 0,
-        volatility: 0,
-        confidence: 1.0,
-        generatedAt: new Date().toISOString()
-      }
-    }
-  }
-  
   /**
    * Convert from new standard format to legacy PriceChartDataPoint[] format
-   * For backward compatibility during migration
    *
-   * @deprecated This method is for backward compatibility only and will be removed in Phase 4.
-   * All code should migrate to use the new standard format directly.
+   * @deprecated INTERNAL USE ONLY - For deprecated PriceDataService backward compatibility.
+   * This method will be removed when PriceDataService is fully deprecated.
+   * New code should NOT use this method.
    *
    * @param projection - Standard price projection result
    * @param historicalData - Optional historical data to merge
@@ -287,11 +143,6 @@ export class PriceProjectionAdapter {
     projection: NewPriceProjectionResult,
     historicalData?: HistoricalDataPoint[]
   ): PriceChartDataPoint[] {
-    logDeprecationWarning(
-      'PriceProjectionAdapter.toLegacyFormat',
-      'This method is deprecated. Migrate to use the new standard format directly from app/simulation/price-models/types.ts'
-    )
-
     const chartData: PriceChartDataPoint[] = []
 
     // Add historical data if provided
@@ -299,7 +150,7 @@ export class PriceProjectionAdapter {
       historicalData.forEach(point => {
         const date = new Date(point.date)
         const days = Math.floor((date.getTime() - new Date('2009-01-03').getTime()) / (1000 * 60 * 60 * 24))
-        
+
         chartData.push({
           date: point.date,
           days,
@@ -307,12 +158,12 @@ export class PriceProjectionAdapter {
         })
       })
     }
-    
+
     // Add projection data
     projection.projectionPoints.forEach(point => {
       const date = new Date(point.timestamp).toISOString().split('T')[0]
       const days = point.metadata?.days || Math.floor((point.timestamp - new Date('2009-01-03').getTime()) / (1000 * 60 * 60 * 24))
-      
+
       chartData.push({
         date,
         days,
@@ -321,10 +172,10 @@ export class PriceProjectionAdapter {
         resistance: point.resistance
       })
     })
-    
+
     return chartData
   }
-  
+
   /**
    * Get price at specific month index with monthly-to-daily conversion
    * 

@@ -249,11 +249,12 @@ describe('Phase 3 Integration Tests', () => {
       expect(Array.isArray(legacyFormat)).toBe(true)
     })
 
-    it('should allow gradual migration', () => {
-      // Components can use either format during Phase 3
-      // Adapter provides conversion utilities
+    it('should allow gradual migration (Phase 4: legacy conversion methods removed)', () => {
+      // Phase 4: Legacy conversion methods removed
+      // Only toLegacyFormat kept for deprecated PriceDataService
       expect(PriceProjectionAdapter.toLegacyFormat).toBeDefined()
-      expect(PriceProjectionAdapter.fromLegacyFormat).toBeDefined()
+      expect((PriceProjectionAdapter as any).fromLegacyFormat).toBeUndefined()
+      expect((PriceProjectionAdapter as any).fromOldFormat).toBeUndefined()
     })
   })
 

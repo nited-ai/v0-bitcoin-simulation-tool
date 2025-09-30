@@ -105,62 +105,59 @@ describe('Phase 1 Integration Tests', () => {
   })
 
   describe('Format Conversion', () => {
-    it('should convert between all formats correctly', async () => {
+    it('should generate new format directly (Phase 4: legacy conversion removed)', async () => {
       const params = createTestParams()
 
-      // Get legacy format from PriceDataService
-      const legacyFormat = await priceDataService.generatePriceProjection(params)
-      expect(detectFormat(legacyFormat)).toBe('legacy')
+      // Load historical data
+      const historicalData = await priceDataService.loadHistoricalData({ useCache: true })
 
-      // Convert to new format
-      const newFormat = PriceProjectionAdapter.fromLegacyFormat(
-        legacyFormat,
-        'manual'
+      // Phase 4: All services now generate new format directly
+      const projection = await unifiedPriceProjectionService.generateProjectionFromLegacyParams(
+        params,
+        historicalData
       )
-      expect(detectFormat(newFormat)).toBe('new')
+
+      // Verify it's new format
+      expect(detectFormat(projection)).toBe('new')
 
       // Validate new format
-      const validation = validateNewFormat(newFormat)
+      const validation = validateNewFormat(projection)
       expect(validation.valid).toBe(true)
       expect(validation.errors).toHaveLength(0)
 
-      // Convert back to legacy format
-      const backToLegacy = PriceProjectionAdapter.toLegacyFormat(newFormat)
-      expect(detectFormat(backToLegacy)).toBe('legacy')
-
-      // Verify data integrity
-      const originalProjection = legacyFormat.filter(p => p.simulationPath !== undefined)
-      const convertedProjection = backToLegacy.filter(p => p.simulationPath !== undefined)
-      expect(convertedProjection.length).toBe(originalProjection.length)
+      // Verify projection has correct structure
+      expect(projection.modelName).toBeDefined()
+      expect(projection.projectionPoints.length).toBeGreaterThan(0)
 
       logMigrationProgress(
-        'Format Conversion',
-        MigrationPhase.PHASE_1_FOUNDATION,
-        'Round-trip conversion successful'
+        'Format Generation',
+        MigrationPhase.PHASE_4_CLEANUP,
+        'Direct new format generation successful'
       )
     })
 
-    it('should preserve price values through conversions', async () => {
+    it('should preserve price values in new format (Phase 4: no conversion needed)', async () => {
       const params = createTestParams({ simulationMonths: 6 })
 
-      // Get legacy format
-      const legacyFormat = await priceDataService.generatePriceProjection(params)
-      const originalPrices = legacyFormat
-        .filter(p => p.simulationPath !== undefined)
-        .map(p => p.simulationPath!)
+      // Load historical data
+      const historicalData = await priceDataService.loadHistoricalData({ useCache: true })
 
-      // Convert to new format and back
-      const newFormat = PriceProjectionAdapter.fromLegacyFormat(legacyFormat, 'manual')
-      const backToLegacy = PriceProjectionAdapter.toLegacyFormat(newFormat)
-      const convertedPrices = backToLegacy
-        .filter(p => p.simulationPath !== undefined)
-        .map(p => p.simulationPath!)
+      // Generate projection in new format
+      const projection = await unifiedPriceProjectionService.generateProjectionFromLegacyParams(
+        params,
+        historicalData
+      )
 
-      // Compare prices (with small tolerance for floating point)
-      expect(convertedPrices.length).toBe(originalPrices.length)
-      for (let i = 0; i < originalPrices.length; i++) {
-        expect(Math.abs(convertedPrices[i] - originalPrices[i])).toBeLessThan(0.01)
-      }
+      // Verify all projection points have valid prices
+      expect(projection.projectionPoints.length).toBeGreaterThan(0)
+      projection.projectionPoints.forEach(point => {
+        expect(point.price).toBeGreaterThan(0)
+        expect(typeof point.price).toBe('number')
+        expect(isFinite(point.price)).toBe(true)
+      })
+
+      // Verify metadata calculations
+      expect(projection.metadata.totalMonths).toBe(6)
 
       logMigrationProgress(
         'Data Integrity',
