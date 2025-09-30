@@ -14,7 +14,7 @@ import type {
   Loan,
   MonthlyEvent
 } from "../types"
-import type { PriceProjectionResult } from "../../price-projection/types"
+import type { PriceProjectionResult } from "../../../../app/simulation/price-models/types"
 import type { HistoricalDataPoint } from "@/lib/services/centralized-data-service"
 
 /**

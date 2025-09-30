@@ -8,7 +8,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { StrategyRegistry } from '../services/StrategyRegistry'
 import { DefaultStrategy } from '../implementations/DefaultStrategy'
 import type { StrategyExecutionParams } from '../types'
-import type { PriceProjectionResult } from '../../price-projection/types'
+import type { PriceProjectionResult } from '../../../../app/simulation/price-models/types'
 
 describe('StrategyRegistry', () => {
   let registry: StrategyRegistry

@@ -16,7 +16,7 @@ import type {
   StrategyValidationResult,
   StrategyEvent
 } from "../types"
-import type { PriceProjectionResult } from "../../price-projection/types"
+import type { PriceProjectionResult } from "../../../../app/simulation/price-models/types"
 import { StrategyExecutionService } from "./StrategyExecutionService"
 
 /**

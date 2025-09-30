@@ -10,7 +10,7 @@ import type {
   StrategyExecutionResult,
   InvestmentStrategy
 } from "../types"
-import type { PriceProjectionResult } from "../../price-projection/types"
+import type { PriceProjectionResult } from "../../../../app/simulation/price-models/types"
 import { strategyRegistry } from "../services/StrategyRegistry"
 
 // Legacy types from the existing system
@@ -205,26 +205,25 @@ export async function runStrategySimulation(
 ): Promise<any[]> {
   console.log('🔄 Running legacy strategy simulation via adapter...')
 
-  // Convert price chart data to price projection format
-  const priceProjection = {
-    projectedPrices: priceChartData.map((point, index) => ({
-      month: index,
-      date: point.date || new Date().toISOString(),
-      price: point.simulationPath || point.price || 0
-    })),
+  // Convert price chart data to new price projection format
+  const initialPrice = priceChartData[0]?.simulationPath || priceChartData[0]?.price || 0
+  const finalPrice = priceChartData[priceChartData.length - 1]?.simulationPath || priceChartData[priceChartData.length - 1]?.price || 0
+  const totalGrowth = ((finalPrice - initialPrice) / initialPrice) * 100
+
+  const priceProjection: PriceProjectionResult = {
+    modelName: 'legacy',
+    modelVersion: '1.0.0',
     projectionPoints: priceChartData.map(point => ({
       timestamp: new Date(point.date || new Date()).getTime(),
       price: point.simulationPath || point.price || 0,
-      date: point.date || new Date().toISOString()
+      confidence: 0.95
     })),
     metadata: {
-      model: 'legacy',
-      version: '1.0.0',
-      parameters: {},
-      generatedAt: new Date().toISOString(),
       totalMonths: priceChartData.length,
-      initialPrice: priceChartData[0]?.simulationPath || priceChartData[0]?.price || 0,
-      finalPrice: priceChartData[priceChartData.length - 1]?.simulationPath || priceChartData[priceChartData.length - 1]?.price || 0
+      totalGrowth,
+      averageMonthlyGrowth: totalGrowth / priceChartData.length,
+      confidence: 0.95,
+      generatedAt: new Date().toISOString()
     }
   }
 

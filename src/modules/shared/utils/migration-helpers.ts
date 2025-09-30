@@ -12,11 +12,34 @@ import type {
   ProjectionPoint
 } from "../../../../app/simulation/price-models/types"
 import type {
-  PriceProjectionResult as OldPriceProjectionResult
-} from "../../price-projection/types"
-import type {
   PriceChartDataPoint
 } from "../../price-data/types"
+
+/**
+ * Old Price Projection Result format (for backward compatibility)
+ * @deprecated Inline type definition - original module removed in Phase 4
+ */
+interface OldPriceProjectionResult {
+  projectedPrices: Array<{
+    month: number
+    date: string
+    price: number
+  }>
+  projectionPoints: Array<{
+    timestamp: number
+    price: number
+    date: string
+  }>
+  metadata: {
+    model: string
+    version: string
+    parameters: Record<string, any>
+    generatedAt: string
+    totalMonths: number
+    initialPrice: number
+    finalPrice: number
+  }
+}
 
 /**
  * Migration phase tracking
