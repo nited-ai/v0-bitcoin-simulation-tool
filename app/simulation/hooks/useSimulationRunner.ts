@@ -7,10 +7,13 @@ import type { MonthlyResult } from "../types/simulation"
 import { useSimulation } from "../context/SimulationContext"
 import { usePriceGeneration } from "./usePriceGeneration"
 import { useCentralizedData } from "./useCentralizedData"
+import { PriceProjectionAdapter } from "@/src/modules/shared/adapters/PriceProjectionAdapter"
 
 /**
  * Hook for running strategy simulations
- * 
+ *
+ * Phase 3 Migration: Now uses priceProjection (new format) instead of priceChartData (legacy format)
+ *
  * Handles the execution of strategy simulations with proper error handling
  * and loading state management. Converts strategy results to simulation results.
  */
@@ -21,7 +24,8 @@ export function useSimulationRunner() {
     setIsLoading,
     addError,
     clearErrors,
-    priceChartData,
+    priceProjection, // Phase 3 Migration: Use new format
+    priceChartData, // @deprecated - Keep for backward compatibility during migration
     historicalPriceData,
   } = useSimulation()
 
@@ -31,10 +35,15 @@ export function useSimulationRunner() {
 
   /**
    * Run the strategy simulation with current parameters
+   *
+   * Phase 3 Migration: Uses priceProjection and converts to strategy format
    */
   const runSimulation = useCallback(async () => {
-    if (priceChartData.length === 0) {
-      addError("Price chart data not available. Please wait for data to load.")
+    // Phase 3 Migration: Check for priceProjection first, fallback to priceChartData
+    const hasPriceData = priceProjection ? priceProjection.projectionPoints.length > 0 : priceChartData.length > 0
+
+    if (!hasPriceData) {
+      addError("Price projection data not available. Please wait for data to load.")
       return
     }
 
@@ -71,17 +80,28 @@ export function useSimulationRunner() {
         athCollateralParams: params.athCollateralParams,
       }
 
+      // Phase 3 Migration: Convert priceProjection to legacy chart format for strategy engine
+      let strategyPriceData
+      if (priceProjection) {
+        console.log(`🎯 [Phase 3 Migration] Converting priceProjection to legacy format: ${priceProjection.modelName} (${priceProjection.projectionPoints.length} points)`)
+        strategyPriceData = PriceProjectionAdapter.toLegacyFormat(priceProjection, historicalPriceData)
+      } else {
+        console.warn(`⚠️ [Phase 3 Migration] Falling back to legacy priceChartData (${priceChartData.length} points)`)
+        strategyPriceData = priceChartData
+      }
+
       console.log("🚀 Running strategy simulation with params:", {
         strategy: params.investmentStrategy,
         btcAmount: params.initialBtcAmount,
         simulationMonths: params.simulationMonths,
-        priceDataPoints: priceChartData.length,
+        priceDataPoints: strategyPriceData.length,
+        usingNewFormat: !!priceProjection
       })
 
       // Run the strategy simulation
       const strategyResults = await runStrategySimulation(
         strategyParams,
-        priceChartData,
+        strategyPriceData,
         historicalPriceData
       )
 
@@ -106,7 +126,8 @@ export function useSimulationRunner() {
     }
   }, [
     params,
-    priceChartData,
+    priceProjection, // Phase 3 Migration: Use new format
+    priceChartData, // Keep for backward compatibility
     historicalPriceData,
     setResults,
     setIsLoading,
@@ -116,23 +137,30 @@ export function useSimulationRunner() {
 
   /**
    * Check if simulation can be run
+   *
+   * Phase 3 Migration: Check priceProjection first, fallback to priceChartData
    */
   const canRunSimulation = useCallback(() => {
-    return priceChartData.length === 0 || !params.initialBtcAmount || params.initialBtcAmount <= 0
-  }, [priceChartData.length, params.initialBtcAmount])
+    const hasPriceData = priceProjection ? priceProjection.projectionPoints.length > 0 : priceChartData.length > 0
+    return !hasPriceData || !params.initialBtcAmount || params.initialBtcAmount <= 0
+  }, [priceProjection, priceChartData.length, params.initialBtcAmount])
 
   /**
    * Get simulation status
+   *
+   * Phase 3 Migration: Check priceProjection first, fallback to priceChartData
    */
   const getSimulationStatus = useCallback(() => {
-    if (priceChartData.length === 0) {
+    const hasPriceData = priceProjection ? priceProjection.projectionPoints.length > 0 : priceChartData.length > 0
+
+    if (!hasPriceData) {
       return "waiting_for_data"
     }
     if (params.initialBtcAmount <= 0) {
       return "invalid_params"
     }
     return "ready"
-  }, [priceChartData.length, params.initialBtcAmount])
+  }, [priceProjection, priceChartData.length, params.initialBtcAmount])
 
   return {
     runSimulation,
@@ -143,18 +171,23 @@ export function useSimulationRunner() {
 
 /**
  * Hook for automatic simulation running
- * 
+ *
+ * Phase 3 Migration: Uses priceProjection instead of priceChartData
+ *
  * Automatically runs simulation when parameters or price data changes.
  * Includes debouncing to prevent excessive simulation runs.
  */
 export function useAutoSimulation() {
   const { runSimulation } = useSimulationRunner()
-  const { params, priceChartData, isLoading } = useSimulation()
+  const { params, priceProjection, priceChartData, isLoading } = useSimulation()
 
   // Auto-run simulation when key parameters change
   // This would typically use useEffect with dependencies, but we'll keep it simple for now
   const triggerAutoSimulation = useCallback(() => {
-    if (!isLoading && priceChartData.length > 0) {
+    // Phase 3 Migration: Check priceProjection first, fallback to priceChartData
+    const hasPriceData = priceProjection ? priceProjection.projectionPoints.length > 0 : priceChartData.length > 0
+
+    if (!isLoading && hasPriceData) {
       // Add a small delay to debounce rapid parameter changes
       const timeoutId = setTimeout(() => {
         runSimulation()
@@ -162,7 +195,7 @@ export function useAutoSimulation() {
 
       return () => clearTimeout(timeoutId)
     }
-  }, [runSimulation, isLoading, priceChartData.length])
+  }, [runSimulation, isLoading, priceProjection, priceChartData.length])
 
   return {
     triggerAutoSimulation,
