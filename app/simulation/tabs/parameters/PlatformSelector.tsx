@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -9,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { HybridTooltip, HybridTooltipContent, HybridTooltipTrigger } from "@/components/ui/hybrid-tooltip"
-import { Fish, Zap, Info, Settings, ExternalLink, Edit, Save, X, ChevronDown, Plus, Trash2, Building2 } from "lucide-react"
+import { Fish, Info, Settings, ExternalLink, Edit, Save, X, ChevronDown, Plus, Trash2 } from "lucide-react"
 import { NumberInput } from "../../../../shared/ui/forms/NumberInput"
 import { useState, useEffect } from "react"
 import { useTranslation } from "react-i18next"
@@ -17,6 +18,21 @@ import { useSimulation } from "../../context/SimulationContext"
 import type { Platform } from "../../types/simulation"
 import { getPlatformConfig, saveCustomPlatformConfig } from "../../constants/platformPresets"
 import { useCalculationsIntegration } from "../../hooks/useCalculationsIntegration"
+
+// Custom SVG Icons
+const CoinbaseIcon = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" className={className} fill="none">
+    <path d="M21 11C20.501 6.50005 16.6743 3 12.0275 3C7.04177 3 3 7.02944 3 12C3 16.9706 7.04177 21 12.0275 21C16.6743 21 20.501 17.5 21 13H16.4295C15.9734 15.004 14.1757 16.5 12.0275 16.5C9.53466 16.5 7.51377 14.4853 7.51377 12C7.51377 9.51472 9.53466 7.5 12.0275 7.5C14.1757 7.5 15.9734 8.99601 16.4295 11H21Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"></path>
+  </svg>
+)
+
+const MeteorIcon = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" className={className} fill="none">
+    <path d="M4.05025 10.0498C1.31658 12.7835 1.31658 17.2156 4.05025 19.9493C6.78392 22.683 11.2161 22.683 13.9497 19.9493L17.899 16M12.1001 2L6.5 7.60006M22 11.899L20 13.899" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    <path d="M11.1213 12.8787C12.2929 14.0503 12.2929 15.9497 11.1213 17.1213C9.94975 18.2929 8.05025 18.2929 6.87868 17.1213C5.70711 15.9497 5.70711 14.0503 6.87868 12.8787C8.05025 11.7071 9.94975 11.7071 11.1213 12.8787Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    <path d="M6.87869 12.8795L13.9998 5.75787M17.7574 2L15.9998 3.75772M21.9998 6.24338L15.3637 12.8795" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+  </svg>
+)
 
 interface PlatformOption {
   id: Platform | "custom" | string
@@ -82,7 +98,7 @@ export function PlatformSelector() {
       case 'fish':
         return <Fish className="w-5 h-5" />
       case 'zap':
-        return <Zap className="w-5 h-5" />
+        return <MeteorIcon className="w-5 h-5" />
       case 'plus':
         return <Plus className="w-5 h-5" />
       default:
@@ -148,7 +164,7 @@ export function PlatformSelector() {
       id: "strike",
       name: t('PlatformSelector.strike.name', 'Strike'),
       description: t('PlatformSelector.strike.description', 'Lightning-fast loans with instant approval'),
-      icon: <Zap className="w-5 h-5" />,
+      icon: <MeteorIcon className="w-5 h-5" />,
       badge: t('PlatformSelector.strike.badge', 'Low Rates'),
       badgeClassName: "border-transparent bg-green-500 text-white hover:bg-green-600",
       features: [],
@@ -158,8 +174,8 @@ export function PlatformSelector() {
       id: "coinbase",
       name: t('PlatformSelector.coinbase.name', 'Coinbase'),
       description: t('PlatformSelector.coinbase.description', 'Regulated exchange with institutional-grade security via Morpho Protocol'),
-      icon: <Building2 className="w-5 h-5" />,
-      badge: t('PlatformSelector.coinbase.badge', 'Morpho Protocol'),
+      icon: <CoinbaseIcon className="w-5 h-5" />,
+      badge: t('PlatformSelector.coinbase.badge', 'Infinite Loan Term'),
       badgeClassName: "border-transparent bg-orange-500 text-white hover:bg-orange-600",
       features: [],
       url: "https://www.coinbase.com/"
@@ -404,7 +420,7 @@ export function PlatformSelector() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Building2 className="w-5 h-5 text-primary" />
+          <Settings className="w-5 h-5 text-primary" />
           {t('PlatformSelector.title', 'Lending Platform')}
         </CardTitle>
       </CardHeader>

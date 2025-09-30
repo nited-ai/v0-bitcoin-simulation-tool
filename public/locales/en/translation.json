@@ -356,7 +356,7 @@
     "coinbase": {
       "name": "Coinbase",
       "description": "Regulated exchange with institutional-grade security via Morpho Protocol",
-      "badge": "Morpho Protocol"
+      "badge": "Infinite Loan Term"
     },
     "custom": {
       "name": "Custom",
