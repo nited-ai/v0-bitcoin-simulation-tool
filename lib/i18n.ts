@@ -225,8 +225,8 @@ const fallbackTranslations = {
     },
     coinbase: {
       name: "Coinbase",
-      description: "Regulated exchange with institutional-grade security via Morpho Protocol",
-      badge: "Morpho Protocol"
+      description: "Benefit from a Flexible Credit Line. No fixed Loan Terms!",
+      badge: "Infinite Loan Term"
     },
     custom: {
       name: "Custom",
