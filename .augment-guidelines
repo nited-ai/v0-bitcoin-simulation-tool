@@ -100,10 +100,19 @@ The project is deployed on Vercel and automatically syncs with the main branch.
 
 ## Documentation
 
+### Core Documentation
 - [Architecture Overview](docs/architecture/module-overview.md)
 - [Migration Guide](docs/architecture/migration-guide.md)
 - [Technical Spec Compliance](docs/architecture/technical-spec-compliance-status.md)
 - [Modular Development Guide](.agent-os/instructions/modular-development.md)
+
+### Documentation Management (AI Assistant)
+- **[📋 Documentation Status](docs/DOCUMENTATION_STATUS.md)** - Current documentation health and pending updates
+- **[⚡ Quick Reference](.augment-guidelines/DOCUMENTATION_QUICK_REFERENCE.md)** - Fast reference for documentation workflow
+- **[📖 Primary Rules](.augment-guidelines/PRIMARY_DOCUMENTATION_RULES.md)** - Core documentation maintenance rules
+- **[📚 Management Guide](.augment-guidelines/documentation-management.md)** - Comprehensive documentation guidelines
+
+> **Note for AI Assistant**: When user says "update docs", refer to the documentation management files above for the complete workflow.
 
 ## Contributing
 
