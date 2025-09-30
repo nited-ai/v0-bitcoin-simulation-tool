@@ -11,6 +11,7 @@ import { PortfolioValueChart } from "./charts/PortfolioValueChart"
 import { DebtCollateralChart } from "./charts/DebtCollateralChart"
 import { LTVProgressionChart } from "./charts/LTVProgressionChart"
 import { CashFlowChart } from "./charts/CashFlowChart"
+import { BitcoinPriceChart } from "./charts/BitcoinPriceChart"
 import { BTCAccumulationChart } from "./charts/BTCAccumulationChart"
 import { RiskProgressionChart } from "./charts/RiskProgressionChart"
 import { CashFlowSummaryChart } from "./charts/CashFlowSummaryChart"
@@ -185,6 +186,9 @@ export function ResultsPage() {
 
       {/* Results Summary Cards */}
       <ResultsSummary />
+
+      {/* Bitcoin Price Verification Chart */}
+      <BitcoinPriceChart />
 
       {/* Core Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

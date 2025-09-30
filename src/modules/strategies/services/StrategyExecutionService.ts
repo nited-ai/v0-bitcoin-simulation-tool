@@ -53,9 +53,28 @@ export class StrategyExecutionService {
       const currentDate = new Date()
       currentDate.setMonth(currentDate.getMonth() + month)
       
-      // Get BTC price for this month
+      // Get BTC price for this month from the price projection
       const pricePoint = priceChartData[month] || priceChartData[priceChartData.length - 1]
-      const btcPrice = pricePoint.price
+
+      // CRITICAL FIX: Use simulationPath (projected price) instead of non-existent 'price' property
+      // PriceChartDataPoint structure: { simulationPath: projected_price, historicalPrice: historical_price, support/resistance/fit: power_law_lines }
+      const btcPrice = pricePoint.simulationPath || pricePoint.historicalPrice || 100000 // Fallback to 100k if no price available
+
+      // Debug logging to verify Power Law price integration
+      if (month === 0 || month === Math.floor(params.simulationMonths / 2) || month === params.simulationMonths - 1) {
+        console.log(`🔍 Month ${month + 1} Price Debug:`, {
+          pricePoint: {
+            date: pricePoint.date,
+            simulationPath: pricePoint.simulationPath,
+            historicalPrice: pricePoint.historicalPrice,
+            support: pricePoint.support,
+            fit: pricePoint.fit,
+            resistance: pricePoint.resistance
+          },
+          selectedPrice: btcPrice,
+          priceSource: pricePoint.simulationPath ? 'simulationPath' : pricePoint.historicalPrice ? 'historicalPrice' : 'fallback'
+        })
+      }
 
       // Initialize monthly tracking
       const monthlyEvents: MonthlyEvent[] = []
@@ -184,6 +203,26 @@ export class StrategyExecutionService {
 
     const executionTime = Date.now() - startTime
     console.log(`✅ Strategy execution completed in ${executionTime}ms`)
+
+    // Final verification logging to ensure Power Law prices are being used
+    const firstResult = monthlyResults[0]
+    const midResult = monthlyResults[Math.floor(monthlyResults.length / 2)]
+    const lastResult = monthlyResults[monthlyResults.length - 1]
+
+    console.log(`🔍 CRITICAL: Price Verification Summary:`, {
+      totalMonths: monthlyResults.length,
+      priceProgression: {
+        month1: { month: firstResult?.month + 1, btcPrice: firstResult?.btcPrice?.toFixed(0), collateralValue: firstResult?.collateralValue?.toFixed(0) },
+        midMonth: { month: (midResult?.month || 0) + 1, btcPrice: midResult?.btcPrice?.toFixed(0), collateralValue: midResult?.collateralValue?.toFixed(0) },
+        lastMonth: { month: (lastResult?.month || 0) + 1, btcPrice: lastResult?.btcPrice?.toFixed(0), collateralValue: lastResult?.collateralValue?.toFixed(0) }
+      },
+      priceGrowthFactor: firstResult?.btcPrice && lastResult?.btcPrice
+        ? `${(lastResult.btcPrice / firstResult.btcPrice).toFixed(2)}x`
+        : 'N/A',
+      portfolioGrowthFactor: firstResult?.collateralValue && lastResult?.collateralValue
+        ? `${(lastResult.collateralValue / firstResult.collateralValue).toFixed(2)}x`
+        : 'N/A'
+    })
 
     // Create execution result
     const result: StrategyExecutionResult = {
