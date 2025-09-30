@@ -225,7 +225,7 @@ const fallbackTranslations = {
     },
     coinbase: {
       name: "Coinbase",
-      description: "Benefit from a Flexible Credit Line. No fixed Loan Terms!",
+      description: "Flexible Credit Line. No fixed Loan Terms!",
       badge: "Infinite Loan Term"
     },
     custom: {

@@ -46,7 +46,7 @@ export const PLATFORM_CONFIGS: Record<string, PlatformConfig> = {
   coinbase: {
     id: 'coinbase',
     name: 'Coinbase',
-    description: 'Benefit from a Flexible Credit Line. No fixed Loan Terms!',
+    description: 'Flexible Credit Line. No fixed Loan Terms!',
     originationFeePercent: 0,
     originationFeeType: 'one-time', // No origination fee, but type needed for consistency
     liquidationLtv: 86,
