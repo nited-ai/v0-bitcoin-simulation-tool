@@ -206,6 +206,30 @@ export async function runStrategySimulation(
 ): Promise<any[]> {
   console.log('🔄 Running legacy strategy simulation via adapter...')
 
+  // Debug: Check what data structure we're receiving
+  const firstPoint = priceChartData[0]
+  const lastPoint = priceChartData[priceChartData.length - 1]
+  const hasSimulationPath = priceChartData.some(p => p.simulationPath !== undefined)
+  const hasPrice = priceChartData.some(p => p.price !== undefined)
+
+  console.log('📊 Price chart data structure:', {
+    totalPoints: priceChartData.length,
+    hasSimulationPath,
+    hasPrice,
+    firstPoint: {
+      date: firstPoint?.date,
+      simulationPath: firstPoint?.simulationPath,
+      price: firstPoint?.price,
+      historicalPrice: firstPoint?.historicalPrice
+    },
+    lastPoint: {
+      date: lastPoint?.date,
+      simulationPath: lastPoint?.simulationPath,
+      price: lastPoint?.price,
+      historicalPrice: lastPoint?.historicalPrice
+    }
+  })
+
   // Convert price chart data to price projection format
   const priceProjection = {
     projectedPrices: priceChartData.map((point, index) => ({
@@ -228,6 +252,14 @@ export async function runStrategySimulation(
       finalPrice: priceChartData[priceChartData.length - 1]?.simulationPath || priceChartData[priceChartData.length - 1]?.price || 0
     }
   }
+
+  console.log('📈 Converted price projection:', {
+    totalMonths: priceProjection.metadata.totalMonths,
+    initialPrice: priceProjection.metadata.initialPrice,
+    finalPrice: priceProjection.metadata.finalPrice,
+    firstProjectionPoint: priceProjection.projectionPoints[0],
+    lastProjectionPoint: priceProjection.projectionPoints[priceProjection.projectionPoints.length - 1]
+  })
 
   // Execute using the adapter
   const result = await LegacyStrategyAdapter.executeLegacyStrategy(params, priceProjection)

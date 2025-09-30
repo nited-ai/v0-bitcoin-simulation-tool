@@ -1,8 +1,10 @@
 /**
  * Strategy Execution Service
- * 
+ *
  * Core service for executing investment strategies and running simulations.
  * Handles the main simulation loop and strategy decision integration.
+ *
+ * UPDATED: Now uses standardized PriceProjectionAdapter for price data access
  */
 
 import type {
@@ -14,8 +16,15 @@ import type {
   Loan,
   MonthlyEvent
 } from "../types"
-import type { PriceProjectionResult } from "../../price-projection/types"
+import type { PriceProjectionResult as OldPriceProjectionResult } from "../../price-projection/types"
+import type { PriceProjectionResult as NewPriceProjectionResult } from "../../../../app/simulation/price-models/types"
 import type { HistoricalDataPoint } from "@/lib/services/centralized-data-service"
+import {
+  PriceProjectionAdapter,
+  isNewPriceProjectionResult,
+  isOldPriceProjectionResult,
+  type StrategyPriceData
+} from "../../shared/adapters/PriceProjectionAdapter"
 
 /**
  * Strategy Execution Service Implementation
@@ -25,54 +34,71 @@ export class StrategyExecutionService {
 
   /**
    * Execute a strategy with given parameters and price projection
+   *
+   * UPDATED: Now accepts both old and new price projection formats
+   * and automatically converts to standardized format using PriceProjectionAdapter
    */
   async executeStrategy(
     strategy: InvestmentStrategyInterface,
     params: StrategyExecutionParams,
-    priceProjection: PriceProjectionResult
+    priceProjection: OldPriceProjectionResult | NewPriceProjectionResult
   ): Promise<StrategyExecutionResult> {
     console.log(`🚀 Executing strategy: ${strategy.getName()}`)
-    
+
     const startTime = Date.now()
     const monthlyResults: MonthlyResult[] = []
-    
+
     // Initialize simulation state
     let totalBtcAmount = params.btcAmount
     let activeLoans: Loan[] = []
     let loanIdCounter = 1
 
-    // Convert price projection to chart data format
-    const priceChartData = priceProjection.projectionPoints.map((point: any) => ({
-      timestamp: point.timestamp,
-      price: point.price,
-      date: new Date(point.timestamp).toISOString().split('T')[0]
-    }))
+    // Convert price projection to standardized strategy format
+    let strategyPriceData: StrategyPriceData
+    let standardizedProjection: NewPriceProjectionResult
+
+    if (isNewPriceProjectionResult(priceProjection)) {
+      // Already in new format
+      console.log('✅ Using new standard price projection format')
+      standardizedProjection = priceProjection
+      strategyPriceData = PriceProjectionAdapter.toStrategyFormat(priceProjection)
+    } else if (isOldPriceProjectionResult(priceProjection)) {
+      // Convert from old format
+      console.log('⚠️ Converting from old price projection format')
+      standardizedProjection = PriceProjectionAdapter.fromOldFormat(priceProjection)
+      strategyPriceData = PriceProjectionAdapter.toStrategyFormat(standardizedProjection)
+    } else {
+      throw new Error('Invalid price projection format')
+    }
+
+    const pricePoints = strategyPriceData.pricePoints
 
     // Main simulation loop
     for (let month = 0; month < params.simulationMonths; month++) {
       const currentDate = new Date()
       currentDate.setMonth(currentDate.getMonth() + month)
-      
-      // Get BTC price for this month from the price projection
-      const pricePoint = priceChartData[month] || priceChartData[priceChartData.length - 1]
 
-      // CRITICAL FIX: Use simulationPath (projected price) instead of non-existent 'price' property
-      // PriceChartDataPoint structure: { simulationPath: projected_price, historicalPrice: historical_price, support/resistance/fit: power_law_lines }
-      const btcPrice = pricePoint.simulationPath || pricePoint.historicalPrice || 100000 // Fallback to 100k if no price available
+      // Use standardized adapter to get price at specific month
+      // Handles monthly-to-daily conversion automatically
+      const btcPrice = PriceProjectionAdapter.getPriceAtMonth(standardizedProjection, month, 30)
 
-      // Debug logging to verify Power Law price integration
+      // Debug logging to verify price integration
       if (month === 0 || month === Math.floor(params.simulationMonths / 2) || month === params.simulationMonths - 1) {
-        console.log(`🔍 Month ${month + 1} Price Debug:`, {
-          pricePoint: {
+        const daysPerMonth = 30
+        const dailyIndex = Math.min(month * daysPerMonth, pricePoints.length - 1)
+        const pricePoint = pricePoints[dailyIndex]
+
+        console.log(`🔍 Month ${month + 1} Price Debug (Standardized):`, {
+          monthIndex: month,
+          dailyIndex: dailyIndex,
+          totalPoints: pricePoints.length,
+          pricePoint: pricePoint ? {
             date: pricePoint.date,
-            simulationPath: pricePoint.simulationPath,
-            historicalPrice: pricePoint.historicalPrice,
-            support: pricePoint.support,
-            fit: pricePoint.fit,
-            resistance: pricePoint.resistance
-          },
+            price: pricePoint.price,
+            timestamp: pricePoint.timestamp
+          } : 'N/A',
           selectedPrice: btcPrice,
-          priceSource: pricePoint.simulationPath ? 'simulationPath' : pricePoint.historicalPrice ? 'historicalPrice' : 'fallback'
+          adapter: 'PriceProjectionAdapter'
         })
       }
 
@@ -81,7 +107,7 @@ export class StrategyExecutionService {
       const collateralValue = totalBtcAmount * btcPrice
       let debtCapacity = collateralValue * (params.riskManagement.targetLtv / 100)
 
-      // Create strategy context
+      // Create strategy context with standardized projection
       const strategyContext: StrategyContext = {
         month,
         currentDate,
@@ -91,7 +117,7 @@ export class StrategyExecutionService {
         collateralValue,
         debtCapacity,
         historicalPriceData: [], // Would be populated with actual historical data
-        priceProjectionData: priceProjection,
+        priceProjectionData: standardizedProjection as any, // Type compatibility maintained
         params
       }
 

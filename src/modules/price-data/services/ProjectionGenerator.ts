@@ -1,6 +1,6 @@
 /**
  * Projection Generator Service
- * 
+ *
  * Generates price projection paths for different models.
  * Migrated from lib/price-engine/projection-generator.ts
  */
@@ -11,7 +11,7 @@ import type { PriceEngineParams, ProjectionPathPoint } from '../types'
  * Service for generating price projections using various models.
  */
 export class ProjectionGenerator {
-  
+
   /**
    * Generate price projection path for the selected model.
    * This is separated from historical data processing for better performance.
@@ -55,7 +55,7 @@ export class ProjectionGenerator {
         return cycleRepeatPowerLawPath
 
       default:
-        throw new Error(`Unknown price model: ${params.priceModel}`)
+        throw new Error(`Unknown price model: ${params.priceModel}. This model may be handled by the PriceModelRegistry system.`)
     }
   }
 

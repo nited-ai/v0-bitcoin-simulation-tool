@@ -5,8 +5,8 @@ import { useTranslation } from 'react-i18next'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { TrendingUp, Bitcoin } from 'lucide-react'
-import { useSimulation } from '@/app/simulation/context/SimulationContext'
-import { MonthlyResult } from '@/app/simulation/types/simulation'
+import { useSimulation } from '../../../context/SimulationContext'
+import { MonthlyResult } from '../../../types/simulation'
 
 interface ChartDataPoint {
   month: number

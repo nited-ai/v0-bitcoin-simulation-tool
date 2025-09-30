@@ -1,16 +1,24 @@
 /**
  * Price Data Service
- * 
+ *
  * Main service for price data management, consolidating functionality from:
  * - lib/price-engine/index.ts
  * - lib/price-engine/historical-data-loader.ts
  * - lib/services/centralized-data-service.ts
- * 
+ *
  * Provides unified interface for:
  * - Historical data loading
  * - Current price fetching
  * - Price projection generation
  * - Data caching and validation
+ *
+ * ⚠️ TECHNICAL DEBT WARNING:
+ * This service currently bridges between two price projection systems:
+ * 1. Legacy ProjectionGenerator (manual, powerLaw, cycleRepeat)
+ * 2. New PriceModelRegistry (enhancedCycleRepeat)
+ *
+ * See docs/architecture/PRICE_PROJECTION_REFACTORING_PLAN.md for migration plan.
+ * TODO: Migrate all models to PriceModelRegistry and remove ProjectionGenerator
  */
 
 import type {
@@ -189,7 +197,13 @@ export class PriceDataService implements IPriceDataService {
       // Load historical data if not provided
       const histData = historicalData || await this.loadHistoricalData({ useCache: true })
 
-      // Generate projection path
+      // For models not supported by ProjectionGenerator, delegate to PriceModelRegistry
+      if (params.priceModel === 'enhancedCycleRepeat') {
+        console.log(`🔄 Delegating to PriceModelRegistry for model: ${params.priceModel}`)
+        return await this.generateProjectionViaPriceModelRegistry(params, histData)
+      }
+
+      // Generate projection path using ProjectionGenerator
       const projectionPath = this.projectionGenerator.generateProjectionPath(params)
 
       // Convert historical data to chart format
@@ -221,6 +235,112 @@ export class PriceDataService implements IPriceDataService {
       console.error('❌ Failed to generate price projection:', error)
       throw error
     }
+  }
+
+  /**
+   * Generate price projection using the new PriceModelRegistry system.
+   * This is used for models that are not yet supported by ProjectionGenerator.
+   */
+  private async generateProjectionViaPriceModelRegistry(
+    params: PriceEngineParams,
+    historicalData: HistoricalDataPoint[]
+  ): Promise<PriceChartDataPoint[]> {
+    // Dynamically import PriceModelRegistry to avoid circular dependencies
+    // Use relative path from workspace root
+    const priceModelRegistryModule = await import('../../../../app/simulation/price-models/PriceModelRegistry')
+    const priceModelRegistry = priceModelRegistryModule.priceModelRegistry
+
+    // Extract model-specific parameters with proper defaults
+    let modelSpecificParams: Record<string, any> = {}
+
+    if (params.priceModel === 'enhancedCycleRepeat') {
+      // Enhanced Cycle Repeat requires diminishingReturns parameters
+      if (params.modelSpecificParams?.diminishingReturns) {
+        modelSpecificParams = params.modelSpecificParams
+      } else {
+        // Try to load from sessionStorage (where the UI saves them)
+        try {
+          const savedParams = sessionStorage.getItem('enhancedCycleRepeat_params')
+          if (savedParams) {
+            const parsed = JSON.parse(savedParams)
+            modelSpecificParams = { diminishingReturns: parsed }
+          }
+        } catch (error) {
+          console.warn('Failed to load saved Enhanced Cycle Repeat parameters:', error)
+        }
+
+        // If still no parameters, use moderate preset as default
+        if (!modelSpecificParams.diminishingReturns) {
+          console.log('📊 Using moderate preset for Enhanced Cycle Repeat model')
+          modelSpecificParams = {
+            diminishingReturns: {
+              diminishingFactor: 0.25,
+              maturityThreshold: 2_000_000_000_000,
+              cycleDegradation: 0.15,
+              adoptionCurveType: 'sigmoid',
+              institutionalSaturation: 0.4,
+              regulatoryMaturity: 0.5,
+              liquidityConstraint: 0.4,
+              competitionFactor: 0.3
+            }
+          }
+        }
+      }
+    } else if (params.modelSpecificParams) {
+      // For other models, pass through any provided parameters
+      modelSpecificParams = params.modelSpecificParams
+    }
+
+    // Convert PriceEngineParams to PriceModelParams
+    const modelParams = {
+      startPrice: params.initialBtcPrice,
+      projectionMonths: params.simulationMonths,
+      modelSpecificParams
+    }
+
+    // Generate projection using the new system
+    const result = await priceModelRegistry.generateProjection(
+      params.priceModel,
+      historicalData,
+      modelParams
+    )
+
+    if (!result) {
+      throw new Error(`Failed to generate projection for model: ${params.priceModel}`)
+    }
+
+    // Convert PriceProjectionResult to PriceChartDataPoint[]
+    const chartData: PriceChartDataPoint[] = []
+
+    // Add historical data
+    historicalData.forEach((point, index) => {
+      chartData.push({
+        date: point.date,
+        days: index,
+        timestamp: point.time,
+        price: point.close,
+        historicalPrice: point.close,
+        isHistorical: true,
+        confidence: 1.0
+      })
+    })
+
+    // Add projection data
+    result.projectionPoints.forEach((point, index) => {
+      const date = new Date(point.timestamp)
+      chartData.push({
+        date: date.toISOString().split('T')[0],
+        days: historicalData.length + index,
+        timestamp: point.timestamp / 1000, // Convert to seconds
+        price: point.price,
+        simulationPath: point.price,
+        isHistorical: false,
+        confidence: point.confidence || 1.0
+      })
+    })
+
+    console.log(`✅ Price projection generated via PriceModelRegistry: ${chartData.length} points`)
+    return chartData
   }
 
   /**

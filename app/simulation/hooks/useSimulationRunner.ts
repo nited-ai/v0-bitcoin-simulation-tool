@@ -72,11 +72,29 @@ export function useSimulationRunner() {
         athCollateralParams: params.athCollateralParams,
       }
 
+      // Debug: Check priceChartData structure
+      const firstPoint = priceChartData[0]
+      const lastPoint = priceChartData[priceChartData.length - 1]
+      const projectionPoints = priceChartData.filter(p => p.simulationPath !== undefined)
+
       console.log("🚀 Running strategy simulation with params:", {
         strategy: params.investmentStrategy,
         btcAmount: params.initialBtcAmount,
         simulationMonths: params.simulationMonths,
         priceDataPoints: priceChartData.length,
+        projectionDataPoints: projectionPoints.length,
+        firstPoint: {
+          date: firstPoint?.date,
+          simulationPath: firstPoint?.simulationPath,
+          historicalPrice: firstPoint?.historicalPrice,
+          price: (firstPoint as any)?.price
+        },
+        lastPoint: {
+          date: lastPoint?.date,
+          simulationPath: lastPoint?.simulationPath,
+          historicalPrice: lastPoint?.historicalPrice,
+          price: (lastPoint as any)?.price
+        }
       })
 
       // Run the strategy simulation
