@@ -20,6 +20,20 @@ export {
   unifiedPriceProjectionService
 } from './services/UnifiedPriceProjectionService'
 
+// Migration Utilities
+export {
+  MigrationHelpers,
+  MigrationPhase,
+  validateNewFormat,
+  detectFormat,
+  compareProjections,
+  createMigrationReport,
+  isMigrated,
+  generateMigrationChecklist,
+  logMigrationProgress,
+  type MigrationStatus
+} from './utils/migration-helpers'
+
 // Re-export standard types for convenience
 export type {
   PriceProjectionResult,
