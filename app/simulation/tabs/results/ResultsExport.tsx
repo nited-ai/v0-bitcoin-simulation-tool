@@ -1,11 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Download, FileText, FileJson, FileSpreadsheet, CheckCircle, AlertCircle, Printer } from "lucide-react"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Download, FileText, FileJson, FileSpreadsheet, CheckCircle, AlertCircle, Printer, HelpCircle } from "lucide-react"
 import { useSimulation } from "../../context/SimulationContext"
 import { useResultsExport, type ExportFormat } from "../../hooks/useResultsExport"
 
@@ -27,33 +28,47 @@ export function ResultsExport() {
   // Handle export with status tracking
   const handleExport = async (format: ExportFormat) => {
     setExportStatus({ format, status: 'exporting' })
-    
+
     try {
+      // The exportResults function returns a boolean synchronously
       const success = exportResults(format)
       if (success) {
-        setExportStatus({ 
-          format, 
-          status: 'success', 
-          message: `Successfully exported results as ${format.toUpperCase()}` 
+        setExportStatus({
+          format,
+          status: 'success',
+          message: `Successfully exported results as ${format.toUpperCase()}`
         })
-        
+
         // Reset status after 3 seconds
         setTimeout(() => {
           setExportStatus({ format: null, status: 'idle' })
         }, 3000)
       } else {
-        setExportStatus({ 
-          format, 
-          status: 'error', 
-          message: 'Export failed. Please try again.' 
+        setExportStatus({
+          format,
+          status: 'error',
+          message: 'Export failed. Please try again.'
         })
+
+        // Reset status after 5 seconds for errors
+        setTimeout(() => {
+          setExportStatus({ format: null, status: 'idle' })
+        }, 5000)
       }
     } catch (error) {
-      setExportStatus({ 
-        format, 
-        status: 'error', 
-        message: 'Export failed due to an error.' 
+      const errorMessage = error instanceof Error ? error.message : 'Export failed due to an error.'
+      setExportStatus({
+        format,
+        status: 'error',
+        message: errorMessage
       })
+
+      // Reset status after 5 seconds for errors
+      setTimeout(() => {
+        setExportStatus({ format: null, status: 'idle' })
+      }, 5000)
+
+      console.error('Export failed:', error)
     }
   }
 
@@ -95,9 +110,29 @@ export function ResultsExport() {
           <CardTitle className="flex items-center gap-2">
             <Download className="h-5 w-5" />
             Export Results
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-sm">
+                  <div className="space-y-2">
+                    <p className="font-medium">Export Options Explained:</p>
+                    <ul className="text-sm space-y-1">
+                      <li><strong>CSV:</strong> Excel-compatible spreadsheet with all monthly data, calculations, and summary metrics. Perfect for further analysis.</li>
+                      <li><strong>JSON:</strong> Complete structured data including metadata, parameters, and results. Ideal for developers and data analysis tools.</li>
+                      <li><strong>TXT:</strong> Human-readable report with key metrics and summary. Great for sharing or documentation.</li>
+                    </ul>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      All exports include your simulation parameters, monthly results, and performance analysis.
+                    </p>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </CardTitle>
           <CardDescription>
-            Export your simulation results in various formats
+            Export your simulation results in various formats for analysis, sharing, or record-keeping
           </CardDescription>
         </CardHeader>
         <CardContent>
