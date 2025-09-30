@@ -223,6 +223,11 @@ const fallbackTranslations = {
       description: "Lightning-fast loans with instant approval",
       badge: "Low Rates"
     },
+    coinbase: {
+      name: "Coinbase",
+      description: "Regulated exchange with institutional-grade security via Morpho Protocol",
+      badge: "Morpho Protocol"
+    },
     custom: {
       name: "Custom",
       description: "Configure your own platform parameters",

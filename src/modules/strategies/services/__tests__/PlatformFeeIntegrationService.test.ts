@@ -29,6 +29,18 @@ vi.mock('../../../../app/simulation/constants/platformPresets', () => ({
         defaultLoanTerm: 'infinity',
         maxInitialLtv: 50
       },
+      coinbase: {
+        id: 'coinbase',
+        name: 'Coinbase',
+        description: 'Regulated exchange with institutional-grade security via Morpho Protocol',
+        originationFeePercent: 0,
+        originationFeeType: 'one-time',
+        liquidationLtv: 86,
+        liquidationFeePercent: 4.38,
+        availableLoanTerms: ['infinity'],
+        defaultLoanTerm: 'infinity',
+        maxInitialLtv: 75
+      },
       custom: {
         id: 'custom',
         name: 'Custom',
@@ -77,7 +89,14 @@ describe('PlatformFeeIntegrationService', () => {
 
     it('should get Strike platform fee configuration', () => {
       const config = service.getPlatformFeeConfig('strike')
-      
+
+      expect(config.type).toBe('none')
+      expect(config.percent).toBe(0)
+    })
+
+    it('should get Coinbase platform fee configuration', () => {
+      const config = service.getPlatformFeeConfig('coinbase')
+
       expect(config.type).toBe('none')
       expect(config.percent).toBe(0)
     })
@@ -117,7 +136,15 @@ describe('PlatformFeeIntegrationService', () => {
 
     it('should handle Strike platform with zero fees', () => {
       const result = service.calculatePlatformFees(10000, 'strike')
-      
+
+      expect(result.amount).toBe(0)
+      expect(result.type).toBe('none')
+      expect(result.description).toBe('No platform fees')
+    })
+
+    it('should handle Coinbase platform with zero fees', () => {
+      const result = service.calculatePlatformFees(10000, 'coinbase')
+
       expect(result.amount).toBe(0)
       expect(result.type).toBe('none')
       expect(result.description).toBe('No platform fees')
@@ -194,7 +221,7 @@ describe('PlatformFeeIntegrationService', () => {
     it('should return all platform fee configurations', () => {
       const configs = service.getAllPlatformFeeConfigurations()
 
-      expect(configs).toHaveLength(3)
+      expect(configs).toHaveLength(4)
 
       const firefishConfig = configs.find(c => c.platformId === 'firefish')
       expect(firefishConfig).toBeDefined()
@@ -205,6 +232,11 @@ describe('PlatformFeeIntegrationService', () => {
       expect(strikeConfig).toBeDefined()
       expect(strikeConfig?.feeConfig.type).toBe('none')
       expect(strikeConfig?.feeConfig.percent).toBe(0)
+
+      const coinbaseConfig = configs.find(c => c.platformId === 'coinbase')
+      expect(coinbaseConfig).toBeDefined()
+      expect(coinbaseConfig?.feeConfig.type).toBe('none')
+      expect(coinbaseConfig?.feeConfig.percent).toBe(0)
 
       const customConfig = configs.find(c => c.platformId === 'custom')
       expect(customConfig).toBeDefined()
@@ -262,10 +294,12 @@ describe('PlatformFeeIntegrationService', () => {
     it('should provide consistent platform summaries', () => {
       const firefishSummary = service.getPlatformFeeSummary('firefish')
       const strikeSummary = service.getPlatformFeeSummary('strike')
+      const coinbaseSummary = service.getPlatformFeeSummary('coinbase')
       const customSummary = service.getPlatformFeeSummary('custom')
 
       expect(firefishSummary.description).toBe('Firefish: Annual recurring fee (1.5%)')
       expect(strikeSummary.description).toBe('Strike: No fees')
+      expect(coinbaseSummary.description).toBe('Coinbase: No fees')
       expect(customSummary.description).toBe('Custom: One-time fee (1%)')
     })
   })

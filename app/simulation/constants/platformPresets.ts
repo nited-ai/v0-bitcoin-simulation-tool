@@ -1,6 +1,6 @@
 /**
  * Platform-specific configuration presets
- * 
+ *
  * Defines default parameter values for each supported platform
  * including fees, LTV ratios, and available loan terms.
  */
@@ -42,6 +42,18 @@ export const PLATFORM_CONFIGS: Record<string, PlatformConfig> = {
     availableLoanTerms: [6, 12, 18, 24, 'infinity'],
     defaultLoanTerm: 'infinity',
     maxInitialLtv: 50
+  },
+  coinbase: {
+    id: 'coinbase',
+    name: 'Coinbase',
+    description: 'Regulated exchange with institutional-grade security via Morpho Protocol',
+    originationFeePercent: 0,
+    originationFeeType: 'one-time', // No origination fee, but type needed for consistency
+    liquidationLtv: 86,
+    liquidationFeePercent: 4.38,
+    availableLoanTerms: ['infinity'],
+    defaultLoanTerm: 'infinity',
+    maxInitialLtv: 75
   },
   custom: {
     id: 'custom',
@@ -124,21 +136,21 @@ export const PLATFORM_VALIDATION_RULES: PlatformValidationRules = {
  */
 export function validatePlatformConfig(config: Partial<PlatformConfig>): string[] {
   const errors: string[] = []
-  
+
   if (config.originationFeePercent !== undefined) {
     const { min, max } = PLATFORM_VALIDATION_RULES.originationFeePercent
     if (config.originationFeePercent < min || config.originationFeePercent > max) {
       errors.push(`Origination fee must be between ${min}% and ${max}%`)
     }
   }
-  
+
   if (config.liquidationLtv !== undefined) {
     const { min, max } = PLATFORM_VALIDATION_RULES.liquidationLtv
     if (config.liquidationLtv < min || config.liquidationLtv > max) {
       errors.push(`Liquidation LTV must be between ${min}% and ${max}%`)
     }
   }
-  
+
   if (config.liquidationFeePercent !== undefined) {
     const { min, max } = PLATFORM_VALIDATION_RULES.liquidationFeePercent
     if (config.liquidationFeePercent < min || config.liquidationFeePercent > max) {

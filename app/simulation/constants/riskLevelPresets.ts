@@ -17,6 +17,7 @@ export interface RiskLevelPreset {
   loanTermMonths: {
     firefish: number | 'infinity'
     strike: number | 'infinity'
+    coinbase: number | 'infinity'
     custom: number | 'infinity'
     default: number | 'infinity'
   }
@@ -33,6 +34,7 @@ export const RISK_LEVEL_PRESETS: Record<RiskLevel, RiskLevelPreset> = {
     loanTermMonths: {
       firefish: 24,
       strike: 'infinity',
+      coinbase: 'infinity',
       custom: 24,
       default: 24
     }
@@ -47,6 +49,7 @@ export const RISK_LEVEL_PRESETS: Record<RiskLevel, RiskLevelPreset> = {
     loanTermMonths: {
       firefish: 24,
       strike: 'infinity',
+      coinbase: 'infinity',
       custom: 24,
       default: 24
     }
@@ -61,6 +64,7 @@ export const RISK_LEVEL_PRESETS: Record<RiskLevel, RiskLevelPreset> = {
     loanTermMonths: {
       firefish: 12,
       strike: 12,
+      coinbase: 'infinity',
       custom: 12,
       default: 12
     }
@@ -75,6 +79,7 @@ export const RISK_LEVEL_PRESETS: Record<RiskLevel, RiskLevelPreset> = {
     loanTermMonths: {
       firefish: 6,
       strike: 6,
+      coinbase: 'infinity',
       custom: 6,
       default: 6
     }

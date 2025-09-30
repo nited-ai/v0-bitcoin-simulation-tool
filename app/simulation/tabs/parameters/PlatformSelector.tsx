@@ -155,6 +155,16 @@ export function PlatformSelector() {
       url: "https://strike.me/lending/"
     },
     {
+      id: "coinbase",
+      name: t('PlatformSelector.coinbase.name', 'Coinbase'),
+      description: t('PlatformSelector.coinbase.description', 'Regulated exchange with institutional-grade security via Morpho Protocol'),
+      icon: <Building2 className="w-5 h-5" />,
+      badge: t('PlatformSelector.coinbase.badge', 'Morpho Protocol'),
+      badgeClassName: "border-transparent bg-orange-500 text-white hover:bg-orange-600",
+      features: [],
+      url: "https://www.coinbase.com/"
+    },
+    {
       id: "custom",
       name: t('PlatformSelector.custom.name', 'Custom'),
       description: t('PlatformSelector.custom.description', 'Configure your own platform parameters'),

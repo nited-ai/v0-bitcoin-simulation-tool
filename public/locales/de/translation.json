@@ -338,6 +338,11 @@
       "description": "Blitzschnelle Kredite mit sofortiger Genehmigung",
       "badge": "Niedrige Zinsen"
     },
+    "coinbase": {
+      "name": "Coinbase",
+      "description": "Regulierte Börse mit institutioneller Sicherheit über Morpho Protocol",
+      "badge": "Morpho Protocol"
+    },
     "custom": {
       "name": "Benutzerdefiniert",
       "description": "Konfigurieren Sie Ihre eigenen Plattformparameter",
