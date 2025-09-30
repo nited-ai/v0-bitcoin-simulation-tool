@@ -173,7 +173,7 @@ export function PlatformSelector() {
     {
       id: "coinbase",
       name: t('PlatformSelector.coinbase.name', 'Coinbase'),
-      description: t('PlatformSelector.coinbase.description', 'Benefit from a Flexible Credit Line. No fixed Loan Terms!'),
+      description: t('PlatformSelector.coinbase.description', 'Flexible Credit Line! No fixed Loan Terms!'),
       icon: <CoinbaseIcon className="w-5 h-5" />,
       badge: t('PlatformSelector.coinbase.badge', 'Infinite Loan Term'),
       badgeClassName: "border-transparent bg-orange-500 text-white hover:bg-orange-600",
