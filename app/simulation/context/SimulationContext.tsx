@@ -270,6 +270,10 @@ export function SimulationProvider({ children }: SimulationProviderProps) {
     setParams(currentParams => {
       const platformConfig = getPlatformConfig(platform)
 
+      // Check if current loan term is available in the new platform
+      const currentLoanTerm = currentParams.loanTermMonths === Infinity ? 'infinity' : currentParams.loanTermMonths
+      const isCurrentLoanTermAvailable = platformConfig.availableLoanTerms.includes(currentLoanTerm as any)
+
       // ONLY apply platform-specific parameters - preserve all user-set loan parameters
       const updatedParams = {
         ...currentParams,
@@ -280,12 +284,16 @@ export function SimulationProvider({ children }: SimulationProviderProps) {
         liquidationFeePercent: platformConfig.liquidationFeePercent,
         maxInitialLtv: platformConfig.maxInitialLtv, // FIX: Apply max LTV from platform config
         availableLoanTerms: platformConfig.availableLoanTerms, // FIX: Apply available loan terms
+        // FIX: Auto-select platform's default loan term if current term is not available
+        loanTermMonths: isCurrentLoanTermAvailable
+          ? currentParams.loanTermMonths
+          : (platformConfig.defaultLoanTerm === 'infinity' ? Infinity : platformConfig.defaultLoanTerm),
         riskManagement: {
           ...currentParams.riskManagement,
           liquidationLtv: platformConfig.liquidationLtv,
           // PRESERVE user-set targetLtv completely - validation will handle incompatible values
         }
-        // PRESERVE: loanAmountPercent, annualInterestRate, loanTermMonths
+        // PRESERVE: loanAmountPercent, annualInterestRate (when loan term is available)
         // PRESERVE: riskManagement.targetLtv (no auto-adjustment)
       }
 
@@ -309,6 +317,10 @@ export function SimulationProvider({ children }: SimulationProviderProps) {
           liquidationFeePercent: shouldPreserveManual('liquidationFeePercent') ? 'manual' : 'platform',
           maxInitialLtv: shouldPreserveManual('maxInitialLtv') ? 'manual' : 'platform',
           availableLoanTerms: shouldPreserveManual('availableLoanTerms') ? 'manual' : 'platform',
+          // FIX: Mark loan term as platform-sourced only if it was auto-selected due to incompatibility
+          loanTermMonths: !isCurrentLoanTermAvailable
+            ? 'platform'
+            : (shouldPreserveManual('loanTermMonths') ? 'manual' : currentParams.parameterSources.loanTermMonths),
           // PRESERVE all other parameter sources (manual/preset)
         }
       }

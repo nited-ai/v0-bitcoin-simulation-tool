@@ -342,6 +342,7 @@ export class StrategyValidationService {
     const platformLtvLimits: Record<string, number> = {
       'firefish': 75,
       'strike': 90,
+      'coinbase': 86,
       'custom': 95
     }
 

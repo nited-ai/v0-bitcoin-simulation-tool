@@ -16,7 +16,7 @@ import type { PlatformConfig } from "../constants/platformPresets"
  * Type definitions
  */
 export type RiskLevel = "conservative" | "moderate" | "optimistic" | "moonshots"
-export type Platform = "firefish" | "strike" | "custom" | string
+export type Platform = "firefish" | "strike" | "coinbase" | "custom" | string
 
 /**
  * Parameter source tracking for preset management
