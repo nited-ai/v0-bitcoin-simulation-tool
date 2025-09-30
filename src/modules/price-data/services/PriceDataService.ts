@@ -180,8 +180,13 @@ export class PriceDataService implements IPriceDataService {
    * Generate price projection chart data.
    * Combines historical data with projected future prices.
    *
-   * Phase 1 Migration: Now uses UnifiedPriceProjectionService internally
+   * @deprecated This method returns legacy PriceChartDataPoint[] format.
+   * For new code, use UnifiedPriceProjectionService.generateProjection() which returns
+   * the standard PriceProjectionResult format from app/simulation/price-models/types.ts
+   *
+   * Phase 1-4 Migration: Now uses UnifiedPriceProjectionService internally
    * while maintaining backward compatibility by converting to legacy format.
+   * This method is kept only for backward compatibility with existing code.
    */
   public async generatePriceProjection(
     params: PriceEngineParams,
