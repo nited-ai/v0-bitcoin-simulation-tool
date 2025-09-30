@@ -139,7 +139,15 @@ export function PortfolioValueChart() {
                 dataKey="date"
                 tickFormatter={(dateString) => {
                   // Convert dateString to same format as Price Projection tab
+                  // Add defensive check for invalid dates
+                  if (!dateString) return 'Invalid'
+
                   const date = new Date(dateString)
+                  if (isNaN(date.getTime())) {
+                    console.warn('Invalid date in PortfolioValueChart:', dateString)
+                    return 'Invalid Date'
+                  }
+
                   return date.toLocaleDateString('de-DE', {
                     year: 'numeric',
                     month: 'short'
@@ -165,7 +173,15 @@ export function PortfolioValueChart() {
                 ]}
                 labelFormatter={(dateString: string) => {
                   // Convert dateString to readable format matching Price Projection tab
+                  // Add defensive check for invalid dates
+                  if (!dateString) return 'Invalid Date'
+
                   const date = new Date(dateString)
+                  if (isNaN(date.getTime())) {
+                    console.warn('Invalid date in PortfolioValueChart tooltip:', dateString)
+                    return 'Invalid Date'
+                  }
+
                   return date.toLocaleDateString('de-DE', {
                     year: 'numeric',
                     month: 'long'

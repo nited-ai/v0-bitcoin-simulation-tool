@@ -87,15 +87,69 @@ export function useSimulationRunner() {
       )
 
       // Convert StrategyMonthlyResult to MonthlyResult
+      // CRITICAL FIX: Map property names between different MonthlyResult type definitions
       const convertedResults: MonthlyResult[] = strategyResults.map(result => ({
-        ...result,
+        // Core identification
+        month: result.month,
+        dateString: result.date, // ✅ CRITICAL: Map "date" → "dateString" for app compatibility
+
+        // Price and BTC data
+        btcPrice: result.btcPrice,
+        currentBtcAmount: result.totalBtcAmount, // Map totalBtcAmount → currentBtcAmount
+
+        // Portfolio values
+        collateralValue: result.collateralValue,
+        realCollateralValue: result.collateralValue, // Use same value for real collateral
+        totalDebt: result.totalDebt,
+        realTotalDebt: result.totalDebt, // Use same value for real debt
+
+        // Loan and withdrawal data
+        withdrawalAmount: result.monthlyWithdrawal,
+        newLoanPrincipal: result.principalForNeeds + result.principalForReinvestment,
+        repaymentsDue: result.repaymentDue,
+        reinvestment: result.principalForReinvestment,
+
+        // BTC breakdown
+        freeBtc: result.totalBtcAmount - (result.activeLoans?.reduce((sum, loan) => sum + loan.lockedBtc, 0) || 0),
+        lockedBtc: result.activeLoans?.reduce((sum, loan) => sum + loan.lockedBtc, 0) || 0,
+
+        // Loan metrics
+        loanCount: result.activeLoans?.length || 0,
+        highestLtv: result.highestLtv,
+        maxSafeDebt: result.maxSafeDebt,
+
+        // Events
+        events: result.events || [],
+
         // Add any missing fields that exist in MonthlyResult but not in StrategyMonthlyResult
         liquidatedBtc: 0, // This field might exist in MonthlyResult but not in StrategyMonthlyResult
       }))
 
+      // Debug logging to verify Power Law price integration
+      const firstResult = convertedResults[0]
+      const lastResult = convertedResults[convertedResults.length - 1]
+
       console.log("✅ Strategy simulation completed:", {
         resultsCount: convertedResults.length,
-        finalMonth: convertedResults[convertedResults.length - 1]?.month,
+        finalMonth: lastResult?.month,
+        priceGrowth: {
+          startPrice: firstResult?.btcPrice,
+          endPrice: lastResult?.btcPrice,
+          growthFactor: lastResult?.btcPrice && firstResult?.btcPrice
+            ? (lastResult.btcPrice / firstResult.btcPrice).toFixed(2) + 'x'
+            : 'N/A'
+        },
+        portfolioGrowth: {
+          startValue: firstResult?.collateralValue,
+          endValue: lastResult?.collateralValue,
+          growthFactor: lastResult?.collateralValue && firstResult?.collateralValue
+            ? (lastResult.collateralValue / firstResult.collateralValue).toFixed(2) + 'x'
+            : 'N/A'
+        },
+        dateRange: {
+          start: firstResult?.dateString,
+          end: lastResult?.dateString
+        }
       })
 
       setResults(convertedResults)
