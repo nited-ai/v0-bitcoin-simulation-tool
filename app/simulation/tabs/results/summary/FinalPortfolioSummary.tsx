@@ -48,20 +48,38 @@ export function FinalPortfolioSummary() {
     const finalResult = results[results.length - 1]
     const initialResult = results[0]
 
-    // Final portfolio metrics
-    const finalBtcAmount = finalResult.currentBtcAmount // Use currentBtcAmount from app/simulation types
-    const finalBtcValue = finalResult.collateralValue
-    const totalDebt = finalResult.totalDebt
+    // Add defensive checks for undefined values
+    if (!finalResult || !initialResult) {
+      console.warn('FinalPortfolioSummary: Missing final or initial result data')
+      return {
+        finalBtcAmount: 0,
+        finalBtcValue: 0,
+        totalDebt: 0,
+        netPortfolioValue: 0,
+        buyHoldValue: 0,
+        outperformance: 0,
+        outperformancePercent: 0,
+        activeLoansCount: 0,
+        totalRemainingDebt: 0,
+        hasActiveLoans: false
+      }
+    }
+
+    // Final portfolio metrics with defensive checks
+    const finalBtcAmount = finalResult.currentBtcAmount ?? 0 // Use nullish coalescing for safety
+    const finalBtcValue = finalResult.collateralValue ?? 0
+    const totalDebt = finalResult.totalDebt ?? 0
     const netPortfolioValue = finalBtcValue - totalDebt
 
-    // Buy and hold comparison
-    const buyHoldValue = initialBtc * finalResult.btcPrice
+    // Buy and hold comparison with defensive checks
+    const finalBtcPrice = finalResult.btcPrice ?? 0
+    const buyHoldValue = initialBtc * finalBtcPrice
     const outperformance = netPortfolioValue - buyHoldValue
     const outperformancePercent = buyHoldValue > 0 ? (outperformance / buyHoldValue) * 100 : 0
 
     // Active loans status - app/simulation types don't have activeLoans array
-    // Use loanCount and totalDebt as approximation
-    const activeLoansCount = finalResult.loanCount || 0
+    // Use loanCount and totalDebt as approximation with defensive checks
+    const activeLoansCount = finalResult.loanCount ?? 0
     const totalRemainingDebt = totalDebt // Total debt represents remaining debt
     const hasActiveLoans = activeLoansCount > 0
 
@@ -140,9 +158,9 @@ export function FinalPortfolioSummary() {
                   </TooltipContent>
                 </Tooltip>
               </div>
-              <div className="text-xl font-bold">{summary.finalBtcAmount.toFixed(3)} BTC</div>
+              <div className="text-xl font-bold">{(summary.finalBtcAmount ?? 0).toFixed(3)} BTC</div>
               <div className="text-xs text-muted-foreground">
-                ${summary.finalBtcValue.toLocaleString()}
+                ${(summary.finalBtcValue ?? 0).toLocaleString()}
               </div>
             </div>
 
@@ -161,7 +179,7 @@ export function FinalPortfolioSummary() {
             </div>
             <div className="text-xl font-bold">
               <span className={summary.totalDebt > 0 ? 'text-red-600' : 'text-green-600'}>
-                ${summary.totalDebt.toLocaleString()}
+                ${(summary.totalDebt ?? 0).toLocaleString()}
               </span>
             </div>
             <div className="text-xs text-muted-foreground">
@@ -182,7 +200,7 @@ export function FinalPortfolioSummary() {
                 </TooltipContent>
               </Tooltip>
             </div>
-            <div className="text-xl font-bold">${summary.netPortfolioValue.toLocaleString()}</div>
+            <div className="text-xl font-bold">${(summary.netPortfolioValue ?? 0).toLocaleString()}</div>
             <div className="text-xs text-muted-foreground">
               After debt deduction
             </div>
@@ -202,10 +220,10 @@ export function FinalPortfolioSummary() {
               </Tooltip>
             </div>
             <div className={`text-xl font-bold ${getPerformanceColor(summary.outperformance)}`}>
-              {summary.outperformance >= 0 ? '+' : ''}${summary.outperformance.toLocaleString()}
+              {(summary.outperformance ?? 0) >= 0 ? '+' : ''}${(summary.outperformance ?? 0).toLocaleString()}
             </div>
             <div className={`text-xs ${getPerformanceColor(summary.outperformance)}`}>
-              {summary.outperformancePercent >= 0 ? '+' : ''}{summary.outperformancePercent.toFixed(1)}%
+              {(summary.outperformancePercent ?? 0) >= 0 ? '+' : ''}{(summary.outperformancePercent ?? 0).toFixed(1)}%
             </div>
           </div>
         </div>
@@ -216,19 +234,19 @@ export function FinalPortfolioSummary() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
               <span className="text-muted-foreground">Rolling Loan Strategy:</span>
-              <div className="font-medium">${summary.netPortfolioValue.toLocaleString()}</div>
+              <div className="font-medium">${(summary.netPortfolioValue ?? 0).toLocaleString()}</div>
             </div>
             <div>
               <span className="text-muted-foreground">Buy & Hold Strategy:</span>
-              <div className="font-medium">${summary.buyHoldValue.toLocaleString()}</div>
+              <div className="font-medium">${(summary.buyHoldValue ?? 0).toLocaleString()}</div>
             </div>
           </div>
           <div className="mt-3 pt-3 border-t">
             <div className={`flex items-center gap-2 ${getPerformanceColor(summary.outperformance)}`}>
               {getPerformanceIcon(summary.outperformance)}
               <span className="font-medium">
-                {summary.outperformance >= 0 ? 'Outperformed' : 'Underperformed'} by{' '}
-                ${Math.abs(summary.outperformance).toLocaleString()} ({Math.abs(summary.outperformancePercent).toFixed(1)}%)
+                {(summary.outperformance ?? 0) >= 0 ? 'Outperformed' : 'Underperformed'} by{' '}
+                ${Math.abs(summary.outperformance ?? 0).toLocaleString()} ({Math.abs(summary.outperformancePercent ?? 0).toFixed(1)}%)
               </span>
             </div>
           </div>
@@ -246,7 +264,7 @@ export function FinalPortfolioSummary() {
               {summary.hasActiveLoans ? (
                 <>
                   <strong>Simulation ended with {summary.activeLoansCount} active loan{summary.activeLoansCount !== 1 ? 's' : ''}</strong>
-                  {' '}totaling ${summary.totalRemainingDebt.toLocaleString()} remaining debt.
+                  {' '}totaling ${(summary.totalRemainingDebt ?? 0).toLocaleString()} remaining debt.
                   {' '}These loans would need to be repaid or rolled over in practice.
                 </>
               ) : (

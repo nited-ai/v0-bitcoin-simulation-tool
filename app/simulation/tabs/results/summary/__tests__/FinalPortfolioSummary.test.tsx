@@ -312,4 +312,83 @@ describe('FinalPortfolioSummary', () => {
       expect(screen.getByText('1.000 BTC')).toBeInTheDocument()
     })
   })
+
+  describe('Runtime Error Prevention', () => {
+    it('should handle undefined finalResult gracefully', () => {
+      mockUseSimulation.mockReturnValue({
+        results: [undefined as any],
+        params: mockParams
+      })
+
+      render(<FinalPortfolioSummary />)
+
+      // Should fallback to zero values without crashing
+      expect(screen.getByText('0.000 BTC')).toBeInTheDocument()
+      expect(screen.getAllByText('$0').length).toBeGreaterThan(0)
+    })
+
+    it('should handle undefined properties in finalResult without crashing', () => {
+      mockUseSimulation.mockReturnValue({
+        results: [{
+          month: 12,
+          dateString: '2024-12-01',
+          btcPrice: 100000,
+          // Missing currentBtcAmount, collateralValue, totalDebt properties
+          events: []
+        } as any],
+        params: mockParams
+      })
+
+      render(<FinalPortfolioSummary />)
+
+      // Should use nullish coalescing to default to 0
+      expect(screen.getByText('0.000 BTC')).toBeInTheDocument()
+      expect(screen.getAllByText('$0').length).toBeGreaterThan(0)
+    })
+
+    it('should handle null/undefined values in calculations without crashing', () => {
+      mockUseSimulation.mockReturnValue({
+        results: [{
+          month: 12,
+          dateString: '2024-12-01',
+          btcPrice: null,
+          currentBtcAmount: undefined,
+          collateralValue: null,
+          totalDebt: undefined,
+          loanCount: null,
+          events: []
+        } as any],
+        params: mockParams
+      })
+
+      render(<FinalPortfolioSummary />)
+
+      // Should handle null/undefined values gracefully using nullish coalescing
+      expect(screen.getByText('0.000 BTC')).toBeInTheDocument()
+      expect(screen.getAllByText('$0').length).toBeGreaterThan(0)
+    })
+
+    it('should prevent toFixed() errors on undefined values', () => {
+      // This test specifically addresses the original runtime error
+      mockUseSimulation.mockReturnValue({
+        results: [{
+          month: 12,
+          dateString: '2024-12-01',
+          btcPrice: 100000,
+          currentBtcAmount: undefined, // This was causing the original error
+          collateralValue: 120000,
+          totalDebt: 20000,
+          loanCount: 1,
+          events: []
+        } as any],
+        params: mockParams
+      })
+
+      // This should not throw "Cannot read properties of undefined (reading 'toFixed')"
+      expect(() => render(<FinalPortfolioSummary />)).not.toThrow()
+
+      // Should display 0.000 BTC instead of crashing
+      expect(screen.getByText('0.000 BTC')).toBeInTheDocument()
+    })
+  })
 })
