@@ -83,6 +83,7 @@ export class LegacyStrategyAdapter {
       maxLoanAmount: legacyParams.maxLoanAmount,
       expectedAnnualInflation: legacyParams.expectedAnnualInflation,
       btcAccumulation: legacyParams.btcAccumulation ?? true,
+      loanAmountPercent: legacyParams.loanAmountPercent || 50, // Default to 50% if not provided
       investmentStrategy: legacyParams.investmentStrategy as InvestmentStrategy,
       riskManagement,
       athBasedParams: legacyParams.athBasedParams,

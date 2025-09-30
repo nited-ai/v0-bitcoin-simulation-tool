@@ -200,7 +200,7 @@ describe('LoanRolloverCalculationService', () => {
         platformFeeConfig: { type: 'none', percent: 0 },
         loanOriginationFeePercent: 2,
         btcStackValue: 100000,
-        targetLtvPercent: 60,
+        loanAmountPercent: 60, // 60% of BTC stack
         liquidationLtvPercent: 95
       }
 

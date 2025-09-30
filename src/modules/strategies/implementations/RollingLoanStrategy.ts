@@ -90,19 +90,24 @@ The strategy automatically handles loan rollovers at maturity, calculates minimu
     }
 
     const collateralValue = totalBtcAmount * btcPrice
-    const targetLtv = params.riskManagement.targetLtv
-    const maxLoanAmount = Math.min(
-      params.maxLoanAmount,
-      collateralValue * (targetLtv / 100)
-    )
+
+    // Calculate target loan amount based on target percentage of BTC stack
+    const targetLoanAmount = collateralValue * (params.loanAmountPercent / 100)
+
+    // For initial loans, calculate minimum needed: target + interest + platform fees
+    const annualInterestRate = params.riskManagement.annualInterestRate / 100
+    const loanTermMonths = params.loanTermMonths
+    const totalInterest = targetLoanAmount * annualInterestRate * (loanTermMonths / 12)
+
+    // Calculate platform fees (simplified - will be refined with proper platform integration)
+    const platformFees = targetLoanAmount * (params.loanOriginationFeePercent / 100) * (loanTermMonths / 12)
+
+    const minimumLoanNeeded = targetLoanAmount + totalInterest + platformFees
+    const maxLoanAmount = Math.min(params.maxLoanAmount, minimumLoanNeeded)
 
     // Get maturing loans for this month
     const maturingLoans = activeLoans.filter(loan => loan.maturityMonth === month)
     const totalRepaymentDue = maturingLoans.reduce((sum, loan) => sum + loan.repaymentAmount, 0)
-
-    // Calculate minimum loan needed to pay off maturing loans
-    const minimumLoanNeeded = totalRepaymentDue > 0 ? 
-      totalRepaymentDue / (1 - params.loanOriginationFeePercent / 100) : 0
 
     // Determine if this is initial loan or rollover
     const isInitialLoan = activeLoans.length === 0
@@ -181,7 +186,7 @@ The strategy automatically handles loan rollovers at maturity, calculates minimu
       loanOriginationFeePercent: params.loanOriginationFeePercent,
       loanTermMonths: params.loanTermMonths,
       btcStackValue: collateralValue,
-      targetLtvPercent: params.riskManagement.targetLtv,
+      loanAmountPercent: params.loanAmountPercent,
       liquidationLtvPercent: params.riskManagement.liquidationLtv
     }
 

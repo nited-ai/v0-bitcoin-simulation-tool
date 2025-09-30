@@ -41,10 +41,10 @@ export class LoanRolloverCalculationService {
   }
   
   /**
-   * Calculate maximum loan amount based on target LTV percentage
+   * Calculate maximum loan amount based on target loan percentage of BTC stack
    */
-  calculateMaximumLoanAmount(btcStackValue: number, targetLtvPercent: number): number {
-    return btcStackValue * (targetLtvPercent / 100)
+  calculateMaximumLoanAmount(btcStackValue: number, loanAmountPercent: number): number {
+    return btcStackValue * (loanAmountPercent / 100)
   }
   
   /**
@@ -116,20 +116,20 @@ export class LoanRolloverCalculationService {
    * Complete loan rollover calculation with conflict resolution
    */
   calculateLoanRollover(params: LoanRolloverParams): LoanRolloverResult {
-    const { 
-      previousLoanPrincipal, 
-      accruedInterest, 
+    const {
+      previousLoanPrincipal,
+      accruedInterest,
       platformFeeConfig,
       btcStackValue = 0,
-      targetLtvPercent = 0,
+      loanAmountPercent = 0,
       liquidationLtvPercent = 95
     } = params
-    
+
     // Calculate minimum loan needed
     const minimumLoanNeeded = this.calculateMinimumLoanAmount(params)
-    
-    // Calculate maximum loan based on target
-    const maximumLoanAmount = this.calculateMaximumLoanAmount(btcStackValue, targetLtvPercent)
+
+    // Calculate maximum loan based on target percentage
+    const maximumLoanAmount = this.calculateMaximumLoanAmount(btcStackValue, loanAmountPercent)
     
     // Calculate total repayment due
     const platformFees = this.calculatePlatformFees(previousLoanPrincipal, platformFeeConfig, params.loanTermMonths)

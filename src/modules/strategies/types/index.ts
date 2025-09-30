@@ -28,6 +28,9 @@ export interface StrategyExecutionParams {
   maxLoanAmount: number
   expectedAnnualInflation: number
 
+  // Rolling loan strategy parameters
+  loanAmountPercent: number // Target loan amount as percentage of BTC stack (e.g., 10%)
+
   // BTC accumulation setting
   btcAccumulation: boolean
 

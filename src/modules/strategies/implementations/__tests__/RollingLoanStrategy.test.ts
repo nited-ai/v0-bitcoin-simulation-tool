@@ -19,10 +19,13 @@ describe('RollingLoanStrategy', () => {
     // Create base mock context
     mockContext = {
       month: 1,
+      currentDate: new Date('2025-01-01'),
       btcPrice: 50000,
       totalBtcAmount: 1.0,
       activeLoans: [],
-      historicalData: [],
+      collateralValue: 50000,
+      debtCapacity: 25000,
+      historicalPriceData: [],
       params: {
         btcAmount: 1.0,
         initialBtcPrice: 50000,
@@ -33,6 +36,7 @@ describe('RollingLoanStrategy', () => {
         simulationMonths: 12,
         maxLoanAmount: 25000,
         expectedAnnualInflation: 3,
+        loanAmountPercent: 50, // 50% of BTC stack (to match old behavior)
         btcAccumulation: true,
         riskManagement: {
           targetLtv: 50,
@@ -40,7 +44,8 @@ describe('RollingLoanStrategy', () => {
           maxLoanAmount: 25000,
           liquidationFeePercent: 5,
           annualInterestRate: 6.5
-        }
+        },
+        investmentStrategy: 'rollingLoan'
       }
     }
   })

@@ -28,7 +28,7 @@ export interface LoanRolloverParams {
   
   // Collateral and target configuration (optional for minimum calculation only)
   btcStackValue?: number
-  targetLtvPercent?: number
+  loanAmountPercent?: number // Target loan amount as percentage of BTC stack (e.g., 10%)
   liquidationLtvPercent?: number
 }
 
