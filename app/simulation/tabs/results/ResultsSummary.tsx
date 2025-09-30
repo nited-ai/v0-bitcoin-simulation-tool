@@ -1,10 +1,12 @@
 "use client"
 
+import React from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useSimulation } from "../../context/SimulationContext"
 import { useResultsAnalysis } from "../../hooks/useResultsAnalysis"
-import { TrendingUp, TrendingDown, AlertTriangle, Shield, DollarSign, Bitcoin } from "lucide-react"
+import { TrendingUp, TrendingDown, AlertTriangle, Shield, DollarSign, Bitcoin, HelpCircle } from "lucide-react"
 
 /**
  * Enhanced Results Summary Component
@@ -76,26 +78,35 @@ export function ResultsSummary() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Main Performance Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Portfolio Value */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <DollarSign className="h-4 w-4" />
-              Final Portfolio Value
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              ${analysis.finalPortfolioValue.toLocaleString("en-US")}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Total BTC value at end
-            </p>
-          </CardContent>
-        </Card>
+    <TooltipProvider>
+      <div className="space-y-6">
+        {/* Main Performance Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Portfolio Value */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <DollarSign className="h-4 w-4" />
+                Final Portfolio Value
+                <Tooltip>
+                  <TooltipTrigger>
+                    <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Total USD value of your Bitcoin holdings at the end of the simulation period</p>
+                  </TooltipContent>
+                </Tooltip>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                ${analysis.finalPortfolioValue.toLocaleString("en-US")}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Total BTC value at end
+              </p>
+            </CardContent>
+          </Card>
 
         {/* Net Worth */}
         <Card>
@@ -103,6 +114,14 @@ export function ResultsSummary() {
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <TrendingUp className="h-4 w-4" />
               Net Worth
+              <Tooltip>
+                <TooltipTrigger>
+                  <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Your portfolio value minus any outstanding loan debt. This is your true net position.</p>
+                </TooltipContent>
+              </Tooltip>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -125,6 +144,14 @@ export function ResultsSummary() {
                 <TrendingDown className="h-4 w-4 text-red-600" />
               )}
               Total Return
+              <Tooltip>
+                <TooltipTrigger>
+                  <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Total percentage return on your investment, including both BTC appreciation and loan strategy effects. Annualized return shows the equivalent yearly rate.</p>
+                </TooltipContent>
+              </Tooltip>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -144,6 +171,14 @@ export function ResultsSummary() {
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Shield className="h-4 w-4" />
               Risk Level
+              <Tooltip>
+                <TooltipTrigger>
+                  <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Overall risk assessment based on loan-to-value ratios, liquidation events, and market exposure. Higher scores indicate more aggressive strategies.</p>
+                </TooltipContent>
+              </Tooltip>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -170,6 +205,14 @@ export function ResultsSummary() {
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Bitcoin className="h-4 w-4" />
               BTC Growth
+              <Tooltip>
+                <TooltipTrigger>
+                  <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Additional Bitcoin accumulated through your strategy compared to simple buy-and-hold. Positive values indicate successful accumulation.</p>
+                </TooltipContent>
+              </Tooltip>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -189,6 +232,14 @@ export function ResultsSummary() {
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <TrendingDown className="h-4 w-4" />
               Max Drawdown
+              <Tooltip>
+                <TooltipTrigger>
+                  <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Largest peak-to-trough decline in portfolio value during the simulation. Lower values indicate more stable performance.</p>
+                </TooltipContent>
+              </Tooltip>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -207,6 +258,14 @@ export function ResultsSummary() {
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <AlertTriangle className="h-4 w-4" />
               Liquidations
+              <Tooltip>
+                <TooltipTrigger>
+                  <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Number of times your loan was liquidated due to Bitcoin price drops. Zero liquidations indicate successful risk management.</p>
+                </TooltipContent>
+              </Tooltip>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -225,8 +284,16 @@ export function ResultsSummary() {
         {/* Max LTV */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
               Max LTV
+              <Tooltip>
+                <TooltipTrigger>
+                  <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Highest loan-to-value ratio reached during the simulation. Values above 80% indicate high liquidation risk.</p>
+                </TooltipContent>
+              </Tooltip>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -242,8 +309,16 @@ export function ResultsSummary() {
         {/* Performance Rating */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
               Performance
+              <Tooltip>
+                <TooltipTrigger>
+                  <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Overall performance rating based on returns, risk management, and strategy effectiveness. Higher scores indicate better risk-adjusted returns.</p>
+                </TooltipContent>
+              </Tooltip>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -262,5 +337,6 @@ export function ResultsSummary() {
         </Card>
       </div>
     </div>
+    </TooltipProvider>
   )
 }

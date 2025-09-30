@@ -129,7 +129,7 @@ export function useResultsAnalysis(
     
     // BTC metrics
     const initialBtcAmount = params.initialBtcAmount
-    const finalBtcAmount = lastResult.currentBtcAmount
+    const finalBtcAmount = lastResult.currentBtcAmount // Use currentBtcAmount from app/simulation types
     const btcGrowth = finalBtcAmount - initialBtcAmount
     const btcGrowthPercent = (btcGrowth / initialBtcAmount) * 100
     
@@ -144,7 +144,7 @@ export function useResultsAnalysis(
     
     // Calculate risk score based on multiple factors
     const liquidationRisk = liquidationCount > 0 ? 40 : 0
-    const ltvRisk = maxLTV > 80 ? 30 : maxLTV > 60 ? 20 : maxLTV > 40 ? 10 : 0
+    const ltvRisk = maxLTV > 80 ? 30 : maxLTV > 60 ? 20 : maxLTV >= 30 ? 10 : 0 // FIXED: Lowered threshold from 40% to 30% (inclusive)
     const drawdownRisk = maxDrawdownPercent > 50 ? 30 : maxDrawdownPercent > 30 ? 20 : maxDrawdownPercent > 15 ? 10 : 0
     
     riskScore = liquidationRisk + ltvRisk + drawdownRisk
