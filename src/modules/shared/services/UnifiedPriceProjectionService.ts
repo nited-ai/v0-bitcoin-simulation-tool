@@ -129,15 +129,21 @@ export class UnifiedPriceProjectionService {
         } catch (error) {
           console.warn('Failed to load saved Enhanced Cycle Repeat parameters:', error)
         }
-        
-        // Use moderate preset as fallback
+
+        // Use moderate preset as fallback with CORRECT field names
+        // Bug Fix: Previous version had wrong field names (competitionLevel, regulatoryImpact, etc.)
+        // which caused the model to fail and produce NaN values
         if (!modelSpecificParams.diminishingReturns) {
+          console.log('⚠️ Using default moderate preset for Enhanced Cycle Repeat')
           modelSpecificParams.diminishingReturns = {
-            institutionalSaturation: 0,
-            competitionLevel: 0,
-            regulatoryImpact: 0,
-            marketMaturity: 0,
-            adoptionCeiling: 0
+            diminishingFactor: 0.25,
+            maturityThreshold: 2_000_000_000_000,
+            cycleDegradation: 0.15,
+            adoptionCurveType: 'sigmoid',
+            institutionalSaturation: 0.4,
+            regulatoryMaturity: 0.5,
+            liquidityConstraint: 0.4,
+            competitionFactor: 0.3
           }
         }
         break
