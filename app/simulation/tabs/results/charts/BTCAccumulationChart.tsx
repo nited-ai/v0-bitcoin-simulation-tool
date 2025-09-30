@@ -65,40 +65,50 @@ export function BTCAccumulationChart() {
     const initialBtc = params.initialBtcAmount || 1.0
 
     return results.map((result: MonthlyResult) => {
-      const accumulatedBtc = Math.max(0, result.totalBtcAmount - initialBtc)
-      const loanFundedBtc = result.principalForReinvestment > 0 
-        ? result.principalForReinvestment / result.btcPrice 
+      // Use currentBtcAmount (mapped from totalBtcAmount) with defensive check
+      const currentBtc = result.currentBtcAmount ?? 0
+      const accumulatedBtc = Math.max(0, currentBtc - initialBtc)
+
+      // Calculate loan funded BTC with defensive checks
+      // reinvestment field contains the reinvestment amount
+      const reinvestmentAmount = result.reinvestment ?? 0
+      const btcPrice = result.btcPrice ?? 1
+      const loanFundedBtc = reinvestmentAmount > 0 && btcPrice > 0
+        ? reinvestmentAmount / btcPrice
         : 0
 
       return {
         month: result.month,
         date: result.dateString || result.date,
-        totalBtc: result.totalBtcAmount,
+        totalBtc: currentBtc, // Use currentBtcAmount instead of totalBtcAmount
         originalBtc: initialBtc,
         accumulatedBtc,
-        btcPrice: result.btcPrice,
-        portfolioValue: result.collateralValue,
+        btcPrice: btcPrice,
+        portfolioValue: result.collateralValue ?? 0,
         loanFundedBtc
       }
     })
   }, [results, params.initialBtcAmount])
 
-  // Calculate summary metrics
+  // Calculate summary metrics with defensive checks
   const summaryMetrics = useMemo(() => {
     if (chartData.length === 0) return null
 
     const finalData = chartData[chartData.length - 1]
+    if (!finalData) return null
+
     const initialBtc = params.initialBtcAmount || 1.0
-    const totalAccumulated = finalData.totalBtc - initialBtc
-    const accumulationPercent = (totalAccumulated / initialBtc) * 100
-    const totalLoanFunded = chartData.reduce((sum, data) => sum + data.loanFundedBtc, 0)
+    const finalBtcAmount = finalData.totalBtc ?? 0
+    const totalAccumulated = Math.max(0, finalBtcAmount - initialBtc)
+    const accumulationPercent = initialBtc > 0 ? (totalAccumulated / initialBtc) * 100 : 0
+    const totalLoanFunded = chartData.reduce((sum, data) => sum + (data.loanFundedBtc ?? 0), 0)
 
     return {
       totalAccumulated,
       accumulationPercent,
       totalLoanFunded,
-      finalBtcAmount: finalData.totalBtc,
-      finalPortfolioValue: finalData.portfolioValue
+      finalBtcAmount,
+      finalPortfolioValue: finalData.portfolioValue ?? 0
     }
   }, [chartData, params.initialBtcAmount])
 
@@ -163,25 +173,25 @@ export function BTCAccumulationChart() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div className="text-center">
               <div className="text-2xl font-bold text-orange-600">
-                {summaryMetrics.finalBtcAmount.toFixed(4)}
+                {(summaryMetrics.finalBtcAmount ?? 0).toFixed(4)}
               </div>
               <div className="text-sm text-muted-foreground">Final BTC</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-green-600">
-                +{summaryMetrics.totalAccumulated.toFixed(4)}
+                +{(summaryMetrics.totalAccumulated ?? 0).toFixed(4)}
               </div>
               <div className="text-sm text-muted-foreground">Accumulated</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-blue-600">
-                {summaryMetrics.totalLoanFunded.toFixed(4)}
+                {(summaryMetrics.totalLoanFunded ?? 0).toFixed(4)}
               </div>
               <div className="text-sm text-muted-foreground">Loan Funded</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold">
-                ${summaryMetrics.finalPortfolioValue.toLocaleString('en-US')}
+                ${(summaryMetrics.finalPortfolioValue ?? 0).toLocaleString('en-US')}
               </div>
               <div className="text-sm text-muted-foreground">Portfolio Value</div>
             </div>
