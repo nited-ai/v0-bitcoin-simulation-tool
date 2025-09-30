@@ -11,6 +11,7 @@ import type {
 } from "../types/simulation"
 import { DEFAULT_PARAMS, PARAMS_STORAGE_KEY } from "../types/simulation"
 import type { HistoricalDataPoint, PriceChartDataPoint } from "@/src/modules/price-data"
+import type { PriceProjectionResult } from "../price-models/types"
 import { applyRiskLevelPreset as applyRiskPresetToParams, type RiskLevel as RiskLevelType } from "../constants/riskLevelPresets"
 import { getPlatformConfig, PLATFORM_CONFIGS } from "../constants/platformPresets"
 
@@ -37,8 +38,10 @@ interface SimulationContextType {
   // Data States
   historicalPriceData: HistoricalDataPoint[]
   setHistoricalPriceData: (data: HistoricalDataPoint[]) => void
-  priceChartData: PriceChartDataPoint[]
-  setPriceChartData: (data: PriceChartDataPoint[]) => void
+  priceChartData: PriceChartDataPoint[] // @deprecated - Use priceProjection instead
+  setPriceChartData: (data: PriceChartDataPoint[]) => void // @deprecated - Use setPriceProjection instead
+  priceProjection: PriceProjectionResult | null // Phase 3 Migration: New standard format
+  setPriceProjection: (projection: PriceProjectionResult | null) => void // Phase 3 Migration
   
   // UI States
   errors: string[]
@@ -163,7 +166,18 @@ export function SimulationProvider({ children }: SimulationProviderProps) {
 
   // Data States
   const [historicalPriceData, setHistoricalPriceData] = useState<HistoricalDataPoint[]>([])
-  const [priceChartData, setPriceChartData] = useState<PriceChartDataPoint[]>([])
+  const [priceChartData, setPriceChartData] = useState<PriceChartDataPoint[]>([]) // @deprecated
+  const [priceProjection, setPriceProjectionState] = useState<PriceProjectionResult | null>(null) // Phase 3 Migration
+
+  // Phase 3 Migration: Enhanced setPriceProjection with logging
+  const setPriceProjection = useCallback((projection: PriceProjectionResult | null) => {
+    if (projection) {
+      console.log(`🎯 [Phase 3 Migration] Setting price projection: ${projection.modelName} (${projection.projectionPoints.length} points)`)
+    } else {
+      console.log(`🗑️ [Phase 3 Migration] Clearing price projection`)
+    }
+    setPriceProjectionState(projection)
+  }, [])
 
   // UI States
   const [errors, setErrors] = useState<string[]>([])
@@ -392,6 +406,8 @@ export function SimulationProvider({ children }: SimulationProviderProps) {
     setHistoricalPriceData: stableSetHistoricalPriceData,
     priceChartData,
     setPriceChartData: stableSetPriceChartData,
+    priceProjection, // Phase 3 Migration
+    setPriceProjection, // Phase 3 Migration
 
     // UI States
     errors,
