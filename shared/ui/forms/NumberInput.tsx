@@ -176,12 +176,13 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
           } else {
             // Insert comma instead of period
             e.preventDefault()
-            const cursorPos = e.target.selectionStart
-            const newValue = displayValue.slice(0, cursorPos) + ',' + displayValue.slice(cursorPos)
+            const target = e.target as HTMLInputElement
+            const cursorPos = target.selectionStart
+            const newValue = displayValue.slice(0, cursorPos || 0) + ',' + displayValue.slice(cursorPos || 0)
             setDisplayValue(newValue)
             // Set cursor position after the comma
             setTimeout(() => {
-              e.target.setSelectionRange(cursorPos + 1, cursorPos + 1)
+              target.setSelectionRange((cursorPos || 0) + 1, (cursorPos || 0) + 1)
             }, 0)
           }
           return

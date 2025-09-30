@@ -49,7 +49,7 @@ function StrategyPreviewCard() {
     let projectedBtcPrice = params.initialBtcPrice // Fallback to current price
 
     if (priceChartData && priceChartData.length > loanMaturityMonth) {
-      projectedBtcPrice = priceChartData[loanMaturityMonth - 1]?.price || params.initialBtcPrice
+      projectedBtcPrice = priceChartData[loanMaturityMonth - 1]?.simulationPath || params.initialBtcPrice
     }
 
     // Calculate projected BTC stack value at loan maturity
