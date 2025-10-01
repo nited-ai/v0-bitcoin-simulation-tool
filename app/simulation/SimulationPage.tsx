@@ -1,6 +1,7 @@
 "use client"
 
 
+import { DataServiceProvider } from "./providers/DataServiceProvider"
 import { SimulationProvider } from "./context/SimulationContext"
 import { SimulationHeader, TabNavigation } from "./shared"
 
@@ -38,12 +39,15 @@ function SimulationContent() {
  * - Clear separation of concerns
  * - Easy to test and maintain
  * - Extensible architecture
+ * - Centralized data service initialization (Issue #31)
  */
 export default function SimulationPage() {
   return (
-    <SimulationProvider>
-      <SimulationContent />
-    </SimulationProvider>
+    <DataServiceProvider>
+      <SimulationProvider>
+        <SimulationContent />
+      </SimulationProvider>
+    </DataServiceProvider>
   )
 }
 
