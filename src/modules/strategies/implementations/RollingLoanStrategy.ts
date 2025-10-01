@@ -137,6 +137,21 @@ The strategy automatically handles loan rollovers at maturity, calculates minimu
     }
   }
 
+  /**
+   * Handle initial loan creation (Month 0)
+   *
+   * ⚠️ IMPORTANT: This method demonstrates the CORRECT way to create loans.
+   *
+   * Steps:
+   * 1. Calculate loan details using CentralizedLoanCalculationService
+   * 2. Get investment multiplier from the service
+   * 3. Format values for display
+   * 4. Return strategy decision with complete loan breakdown
+   *
+   * DO NOT calculate loan amounts manually. Always use the centralized service.
+   *
+   * @see docs/DEVELOPER_GUIDE_LOAN_CALCULATIONS.md for detailed usage guide
+   */
   private handleInitialLoan(
     context: StrategyContext,
     collateralValue: number,
@@ -145,20 +160,43 @@ The strategy automatically handles loan rollovers at maturity, calculates minimu
     const { params } = context
     const principal = maxLoanAmount
 
-    // CRITICAL: Use centralized calculation service for accurate loan details
+    // ═══════════════════════════════════════════════════════════════════════
+    // STEP 1: Calculate complete loan details using centralized service
+    // ═══════════════════════════════════════════════════════════════════════
+    //
+    // ⚠️ CRITICAL: ALWAYS use centralizedLoanCalculationService for loan calculations
+    //
+    // This ensures:
+    // - Accurate cost breakdown (principal + fees + interest)
+    // - Consistent calculations across the application
+    // - Proper rounding (no decimals)
+    // - Clear distinction between principal (received) and repayment (owed)
+    //
+    // DO NOT calculate loan amounts manually!
+    // ═══════════════════════════════════════════════════════════════════════
     const loanDetails = centralizedLoanCalculationService.calculateLoanDetails(
       principal,
       collateralValue,
       params
     )
 
-    // Calculate investment multiplier using centralized service
+    // ═══════════════════════════════════════════════════════════════════════
+    // STEP 2: Calculate investment multiplier for BTC accumulation
+    // ═══════════════════════════════════════════════════════════════════════
+    //
+    // Investment multiplier = principal / collateralValue
+    // This tells the strategy execution service how much BTC to purchase
+    //
+    // Example: $11,724 principal / $117,242 collateral = 0.10 (10%)
+    // ═══════════════════════════════════════════════════════════════════════
     const investmentMultiplier = centralizedLoanCalculationService.calculateInvestmentMultiplier(
       loanDetails,
       collateralValue
     )
 
-    // Format values for display
+    // ═══════════════════════════════════════════════════════════════════════
+    // STEP 3: Format values for display
+    // ═══════════════════════════════════════════════════════════════════════
     const formatted = centralizedLoanCalculationService.formatLoanCalculation(loanDetails)
 
     if (params.btcAccumulation) {

@@ -1,13 +1,53 @@
 /**
- * Centralized Loan Calculation Service
- * 
- * Single source of truth for all loan-related calculations across the application.
- * This service ensures consistency between:
- * - Rolling Loan Strategy execution
- * - Debug page display
- * - Results tab display
- * - Strategy preview card
- * - Parameters tab calculations
+ * ═══════════════════════════════════════════════════════════════════════════
+ * CENTRALIZED LOAN CALCULATION SERVICE
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * ⚠️ CRITICAL: THIS IS THE SINGLE SOURCE OF TRUTH FOR ALL LOAN CALCULATIONS ⚠️
+ *
+ * ALL loan-related calculations in the application MUST use this service.
+ * DO NOT create loans or calculate loan amounts anywhere else in the codebase.
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ * WHY THIS SERVICE EXISTS
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * Previously, loan calculations were scattered across multiple files:
+ * - StrategyExecutionService had its own calculateRepaymentAmount()
+ * - Debug page calculated loan amounts independently
+ * - Different parts used different formulas
+ * - Inconsistent decimal precision ($11,724 vs $11,724.2)
+ * - Displays showed principal when they should show total repayment
+ *
+ * This led to:
+ * ❌ Inconsistent loan amounts across the application
+ * ❌ Users seeing incorrect costs (missing fees and interest)
+ * ❌ Difficult maintenance and debugging
+ * ❌ Risk of calculation errors
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ * WHAT THIS SERVICE PROVIDES
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * ✅ Consistent loan calculations across all features:
+ *    - Rolling Loan Strategy execution
+ *    - Debug page display
+ *    - Results tab display
+ *    - Strategy preview card
+ *    - Parameters tab calculations
+ *
+ * ✅ Accurate cost breakdowns (principal + fees + interest)
+ * ✅ Standardized decimal precision (no decimals for amounts)
+ * ✅ Clear distinction between principal (received) and repayment (owed)
+ * ✅ Support for initial loans and rollovers
+ * ✅ Platform-specific fee handling
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ * @module CentralizedLoanCalculationService
+ * @see docs/CENTRALIZED_LOAN_CALCULATIONS.md for detailed documentation
+ * @see docs/LOAN_AMOUNT_REFACTORING_SUMMARY.md for implementation details
+ * @see docs/DEVELOPER_GUIDE_LOAN_CALCULATIONS.md for usage guidelines
+ * ═══════════════════════════════════════════════════════════════════════════
  */
 
 import type { StrategyExecutionParams } from '../types'
@@ -43,10 +83,80 @@ export interface LoanCalculationResult {
 
 export class CentralizedLoanCalculationService {
   /**
-   * Calculate complete loan details including principal, fees, and interest
-   * 
-   * This is the SINGLE SOURCE OF TRUTH for loan calculations.
-   * All other parts of the application should use this method.
+   * ═══════════════════════════════════════════════════════════════════════════
+   * CALCULATE LOAN DETAILS
+   * ═══════════════════════════════════════════════════════════════════════════
+   *
+   * @important THIS IS THE SINGLE SOURCE OF TRUTH FOR LOAN CALCULATIONS
+   *
+   * Calculates complete loan details including principal, origination fees,
+   * interest, and total repayment amount. This method MUST be used for:
+   * - Creating new loans (initial or rollover)
+   * - Displaying loan costs to users
+   * - Calculating debt obligations
+   * - Strategy decision making
+   *
+   * ═══════════════════════════════════════════════════════════════════════════
+   * USAGE EXAMPLE
+   * ═══════════════════════════════════════════════════════════════════════════
+   *
+   * ```typescript
+   * // 1. Calculate principal (10% of collateral)
+   * const principal = Math.round(collateralValue * 0.10)
+   *
+   * // 2. Get complete loan details
+   * const loanDetails = centralizedLoanCalculationService.calculateLoanDetails(
+   *   principal,
+   *   collateralValue,
+   *   params
+   * )
+   *
+   * // 3. Create loan with correct values
+   * const newLoan: Loan = {
+   *   id: loanIdCounter++,
+   *   month,
+   *   principal: loanDetails.principal,              // $11,724 (received)
+   *   maturityMonth: month + params.loanTermMonths,
+   *   repaymentAmount: loanDetails.totalRepayment,   // $13,659 (owed)
+   *   lockedBtc: loanDetails.principal / btcPrice
+   * }
+   *
+   * // 4. Display breakdown
+   * console.log(`Principal: ${loanDetails.principal}`)
+   * console.log(`Origination Fee: ${loanDetails.originationFee}`)
+   * console.log(`Total Interest: ${loanDetails.totalInterest}`)
+   * console.log(`Total Repayment: ${loanDetails.totalRepayment}`)
+   * ```
+   *
+   * ═══════════════════════════════════════════════════════════════════════════
+   * CALCULATION DETAILS
+   * ═══════════════════════════════════════════════════════════════════════════
+   *
+   * 1. **Principal**: Rounded to eliminate decimals
+   * 2. **Origination Fee**: principal × (feePercent / 100), rounded
+   * 3. **Monthly Interest**: principal × (annualRate / 100 / 12)
+   * 4. **Total Interest**: monthlyInterest × loanTermMonths, rounded
+   * 5. **Total Repayment**: principal + originationFee + totalInterest, rounded
+   * 6. **Effective Cost**: originationFee + totalInterest (excludes principal)
+   * 7. **LTV**: (principal / collateralValue) × 100
+   *
+   * ═══════════════════════════════════════════════════════════════════════════
+   *
+   * @param principal - The loan amount to receive (will be rounded)
+   * @param collateralValue - Total value of BTC collateral
+   * @param params - Strategy execution parameters including rates and terms
+   * @returns Complete loan calculation result with all cost components
+   *
+   * @example
+   * // Initial loan: 10% of $117,242 collateral
+   * const loanDetails = service.calculateLoanDetails(11724, 117242, params)
+   * // Returns: { principal: 11724, originationFee: 176, totalInterest: 1759, totalRepayment: 13659, ... }
+   *
+   * @example
+   * // Rolling loan: Calculate new loan for rollover
+   * const minimumLoan = service.calculateMinimumLoanForRollover(repaymentDue, feePercent)
+   * const newPrincipal = Math.max(minimumLoan, targetLoanAmount)
+   * const loanDetails = service.calculateLoanDetails(newPrincipal, collateralValue, params)
    */
   calculateLoanDetails(
     principal: number,
