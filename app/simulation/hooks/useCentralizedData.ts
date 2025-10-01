@@ -243,6 +243,10 @@ export function useHistoricalDataOnly(enabled: boolean = true, interval: 'daily'
 /**
  * Hook for components that only need current price
  * Lighter version that doesn't load historical data
+ *
+ * **Note**: When used with DataServiceProvider, the current price is already
+ * available from the app-level initialization. This hook simply subscribes
+ * to updates and provides a refresh function.
  */
 export function useCurrentPriceOnly(): {
   currentPrice: CurrentPriceData | null
