@@ -256,6 +256,26 @@ export function RollingLoanDebugPage() {
 
     const formatted = centralizedLoanCalculationService.formatLoanCalculation(loanDetails)
 
+    // Calculate expected loan at maturity month
+    // CRITICAL: Must include BTC accumulated from first loan if btcAccumulation is enabled
+    const maturityMonth = params.loanTermMonths
+    const maturityDailyIndex = Math.min(maturityMonth * 30, (priceProjection?.projectionPoints?.length || 0) - 1)
+    const maturityPrice = priceProjection?.projectionPoints?.[maturityDailyIndex]?.price || 0
+
+    // Calculate total BTC at maturity (initial + BTC purchased with first loan)
+    let totalBtcAtMaturity = params.initialBtcAmount
+    if (params.btcAccumulation && maturityPrice > 0) {
+      // First loan principal is used to buy BTC
+      const firstLoanPrincipal = calculatedByPercent
+      const btcPurchasedWithFirstLoan = firstLoanPrincipal / params.initialBtcPrice
+      totalBtcAtMaturity += btcPurchasedWithFirstLoan
+    }
+
+    // Expected loan at maturity = total BTC × maturity price × loan percent
+    const maturityExpected = maturityPrice > 0
+      ? totalBtcAtMaturity * maturityPrice * (loanPercent / 100)
+      : 0
+
     return {
       btcStackValue,
       loanPercent,
@@ -266,9 +286,9 @@ export function RollingLoanDebugPage() {
       willUseLoanAmountPercent,
       finalLoanAmount,
       month0Expected: calculatedByPercent,
-      month12Expected: priceProjection?.projectionPoints?.[360]?.price
-        ? params.initialBtcAmount * priceProjection.projectionPoints[360].price * (loanPercent / 100)
-        : 0,
+      maturityMonth,
+      maturityExpected,
+      totalBtcAtMaturity,
       loanDetails,
       formatted
     }
@@ -692,23 +712,39 @@ Please go to the Price Projection tab and generate a projection.`
         <Card>
           <CardHeader>
             <CardTitle>2. Expected vs Actual Comparison</CardTitle>
-            <CardDescription>Based on {params.loanAmountPercent || 10}% configuration</CardDescription>
+            <CardDescription>
+              Comparing Month 0 (initial loan) and Month {calculatedValues.maturityMonth} (first rollover)
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {[0, 12].map(month => {
+              {[0, calculatedValues.maturityMonth].map(month => {
                 const actual = debugInfo.find(d => d.month === month)
-                const expected = month === 0 ? calculatedValues.month0Expected : calculatedValues.month12Expected
+                const expected = month === 0 ? calculatedValues.month0Expected : calculatedValues.maturityExpected
                 const actualLoan = actual ? actual.loanAmountCalc.result : 0
                 const isCorrect = Math.abs(actualLoan - expected) < 100
-                
+
+                // Get label for the month
+                const monthLabel = month === 0
+                  ? 'Initial Loan'
+                  : `First Rollover (${params.loanTermMonths}-month term)`
+
                 return (
                   <div key={month} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
+                    <div className="flex-1">
                       <div className="font-semibold">Month {month}</div>
+                      <div className="text-xs text-blue-600 mb-1">{monthLabel}</div>
                       <div className="text-sm text-muted-foreground">
                         Collateral: ${actual?.collateralValue.toLocaleString() || 'N/A'}
                       </div>
+                      {month === calculatedValues.maturityMonth && (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          Total BTC: {calculatedValues.totalBtcAtMaturity.toFixed(4)} BTC
+                          {params.btcAccumulation && (
+                            <span className="text-green-600"> (includes accumulated BTC)</span>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <div className="text-right">
                       <div className="text-sm text-muted-foreground">Expected</div>
