@@ -7,10 +7,11 @@ import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { useSimulation } from "../../context/SimulationContext"
-import { Bug, Play, Copy, CheckCircle, XCircle, AlertTriangle } from "lucide-react"
+import { Bug, Play, Copy, CheckCircle, XCircle, AlertTriangle, DollarSign } from "lucide-react"
 import { RollingLoanStrategy } from "@/src/modules/strategies/implementations/RollingLoanStrategy"
-import type { StrategyContext, Loan } from "@/src/modules/strategies/types"
+import type { StrategyContext, Loan, StrategyExecutionParams } from "@/src/modules/strategies/types"
 import { ParameterMetadataCard, type ParameterInfo } from "./ParameterMetadata"
+import { centralizedLoanCalculationService } from "@/src/modules/strategies/services/CentralizedLoanCalculationService"
 
 interface MonthDebugInfo {
   month: number
@@ -224,6 +225,31 @@ export function RollingLoanDebugPage() {
       ? calculatedByPercent
       : Math.min(maxLoanParam, calculatedByLtv)
 
+    // Calculate loan costs using centralized service
+    const strategyParams: StrategyExecutionParams = {
+      btcAmount: params.initialBtcAmount,
+      initialBtcPrice: params.initialBtcPrice,
+      monthlyWithdrawalAmount: params.monthlyWithdrawalAmount,
+      annualInterestRate: params.annualInterestRate,
+      loanOriginationFeePercent: params.originationFeePercent,
+      loanTermMonths: params.loanTermMonths,
+      simulationMonths: params.simulationMonths,
+      maxLoanAmount: params.maxLoanAmount,
+      expectedAnnualInflation: 3, // Default inflation rate
+      btcAccumulation: (params as any).btcAccumulation ?? true,
+      investmentStrategy: 'rollingLoan',
+      riskManagement: params.riskManagement,
+      loanAmountPercent: params.loanAmountPercent
+    }
+
+    const loanDetails = centralizedLoanCalculationService.calculateLoanDetails(
+      finalLoanAmount,
+      btcStackValue,
+      strategyParams
+    )
+
+    const formatted = centralizedLoanCalculationService.formatLoanCalculation(loanDetails)
+
     return {
       btcStackValue,
       loanPercent,
@@ -236,7 +262,9 @@ export function RollingLoanDebugPage() {
       month0Expected: calculatedByPercent,
       month12Expected: priceProjection?.projectionPoints?.[360]?.price
         ? params.initialBtcAmount * priceProjection.projectionPoints[360].price * (loanPercent / 100)
-        : 0
+        : 0,
+      loanDetails,
+      formatted
     }
   }, [params, priceProjection])
 
@@ -505,6 +533,115 @@ Please go to the Price Projection tab and generate a projection.`
                 }
               </div>
               <div className="text-xs text-blue-600">calculatedValues.finalLoanAmount</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Loan Cost Breakdown - NEW */}
+      <Card className="border-2 border-green-200 dark:border-green-900">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <DollarSign className="h-5 w-5 text-green-600" />
+            Loan Cost Breakdown (Month 0)
+          </CardTitle>
+          <CardDescription>
+            Complete loan calculation including principal, fees, and interest using centralized calculation service
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-6">
+            {/* Principal */}
+            <div className="flex justify-between items-center pb-3 border-b">
+              <div>
+                <div className="font-semibold">Principal Loan Amount</div>
+                <div className="text-xs text-muted-foreground">The actual loan proceeds you receive</div>
+              </div>
+              <div className="text-right">
+                <div className="font-bold text-lg">{calculatedValues.formatted.principalFormatted}</div>
+                <div className="text-xs text-blue-600">loanDetails.principal</div>
+              </div>
+            </div>
+
+            {/* Origination Fee */}
+            <div className="flex justify-between items-center pb-3 border-b">
+              <div>
+                <div className="font-semibold">Origination Fee</div>
+                <div className="text-xs text-muted-foreground">
+                  {calculatedValues.loanDetails.originationFeePercent}% {calculatedValues.loanDetails.originationFeeType} fee
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Formula: {calculatedValues.formatted.principalFormatted} × {calculatedValues.loanDetails.originationFeePercent}%
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="font-bold text-lg text-orange-600">{calculatedValues.formatted.originationFeeFormatted}</div>
+                <div className="text-xs text-blue-600">loanDetails.originationFee</div>
+              </div>
+            </div>
+
+            {/* Interest */}
+            <div className="flex justify-between items-center pb-3 border-b">
+              <div>
+                <div className="font-semibold">Total Interest</div>
+                <div className="text-xs text-muted-foreground">
+                  {calculatedValues.loanDetails.annualInterestRate}% annual rate over {calculatedValues.loanDetails.loanTermMonths} months
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Formula: {calculatedValues.formatted.principalFormatted} × {calculatedValues.loanDetails.annualInterestRate}% ÷ 12 × {calculatedValues.loanDetails.loanTermMonths}
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="font-bold text-lg text-orange-600">{calculatedValues.formatted.totalInterestFormatted}</div>
+                <div className="text-xs text-blue-600">loanDetails.totalInterest</div>
+              </div>
+            </div>
+
+            {/* Total Repayment */}
+            <div className="flex justify-between items-center pb-3 border-b-2 border-green-600">
+              <div>
+                <div className="font-semibold text-lg">Total Repayment Amount</div>
+                <div className="text-xs text-muted-foreground">
+                  Principal + Origination Fee + Interest
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Formula: {calculatedValues.formatted.principalFormatted} + {calculatedValues.formatted.originationFeeFormatted} + {calculatedValues.formatted.totalInterestFormatted}
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="font-bold text-2xl text-green-600">{calculatedValues.formatted.totalRepaymentFormatted}</div>
+                <div className="text-xs text-blue-600">loanDetails.totalRepayment</div>
+              </div>
+            </div>
+
+            {/* Effective Cost */}
+            <div className="bg-amber-50 dark:bg-amber-950/20 p-4 rounded-lg">
+              <div className="flex justify-between items-center">
+                <div>
+                  <div className="font-semibold">Effective Cost</div>
+                  <div className="text-xs text-muted-foreground">
+                    Total fees and interest (excluding principal)
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="font-bold text-xl text-amber-600">{calculatedValues.formatted.effectiveCostFormatted}</div>
+                  <div className="text-sm text-amber-600">{calculatedValues.formatted.effectiveCostPercentFormatted} of principal</div>
+                </div>
+              </div>
+            </div>
+
+            {/* LTV */}
+            <div className="flex justify-between items-center">
+              <div>
+                <div className="font-semibold">Loan-to-Value Ratio</div>
+                <div className="text-xs text-muted-foreground">
+                  Principal as percentage of collateral value
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="font-bold text-lg">{calculatedValues.formatted.ltvFormatted}</div>
+                <div className="text-xs text-blue-600">loanDetails.ltv</div>
+              </div>
             </div>
           </div>
         </CardContent>

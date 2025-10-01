@@ -14,6 +14,7 @@ import type {
 } from "../types"
 import { LoanRolloverCalculationService } from '../services/LoanRolloverCalculationService'
 import { PlatformFeeIntegrationService } from '../services/PlatformFeeIntegrationService'
+import { centralizedLoanCalculationService } from '../services/CentralizedLoanCalculationService'
 import type { LoanRolloverParams, PlatformFeeConfig } from '../services/types'
 
 /**
@@ -142,11 +143,23 @@ The strategy automatically handles loan rollovers at maturity, calculates minimu
     maxLoanAmount: number
   ): StrategyDecision {
     const { params } = context
-    const loanAmount = maxLoanAmount
-    const investmentMultiplier = loanAmount / collateralValue
+    const principal = maxLoanAmount
 
-    // Calculate actual LTV percentage for display
-    const actualLtvPercent = (loanAmount / collateralValue) * 100
+    // CRITICAL: Use centralized calculation service for accurate loan details
+    const loanDetails = centralizedLoanCalculationService.calculateLoanDetails(
+      principal,
+      collateralValue,
+      params
+    )
+
+    // Calculate investment multiplier using centralized service
+    const investmentMultiplier = centralizedLoanCalculationService.calculateInvestmentMultiplier(
+      loanDetails,
+      collateralValue
+    )
+
+    // Format values for display
+    const formatted = centralizedLoanCalculationService.formatLoanCalculation(loanDetails)
 
     if (params.btcAccumulation) {
       // BTC Accumulation Mode: Reinvest loan proceeds into more BTC
@@ -155,7 +168,7 @@ The strategy automatically handles loan rollovers at maturity, calculates minimu
         investmentMultiplier,
         allowWithdrawal: false,
         withdrawalAmount: 0,
-        reasoning: `Taking initial loan of $${Math.round(loanAmount)} for BTC accumulation (${actualLtvPercent.toFixed(1)}% of collateral)`
+        reasoning: `Taking initial loan: ${formatted.principalFormatted} principal + ${formatted.originationFeeFormatted} fee + ${formatted.totalInterestFormatted} interest = ${formatted.totalRepaymentFormatted} total (${loanDetails.ltv.toFixed(1)}% LTV)`
       }
     } else {
       // Cash Generation Mode: Take loan proceeds as cash
@@ -163,8 +176,8 @@ The strategy automatically handles loan rollovers at maturity, calculates minimu
         allowInvestment: true,
         investmentMultiplier,
         allowWithdrawal: true,
-        withdrawalAmount: loanAmount * 0.8, // Take most as cash, keep some buffer
-        reasoning: `Taking initial loan of $${Math.round(loanAmount)} for cash generation (${actualLtvPercent.toFixed(1)}% of collateral)`
+        withdrawalAmount: principal * 0.8, // Take most as cash, keep some buffer
+        reasoning: `Taking initial loan: ${formatted.principalFormatted} principal + ${formatted.originationFeeFormatted} fee + ${formatted.totalInterestFormatted} interest = ${formatted.totalRepaymentFormatted} total (${loanDetails.ltv.toFixed(1)}% LTV)`
       }
     }
   }
