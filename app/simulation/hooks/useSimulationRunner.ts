@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback } from "react"
-import { runStrategySimulation } from "@/src/modules/strategies"
+import { LegacyStrategyAdapter } from "@/src/modules/strategies/adapters/LegacyStrategyAdapter"
 import type { StrategyEngineParams, MonthlyResult as StrategyMonthlyResult } from "@/src/modules/strategies/types"
 import type { MonthlyResult } from "../types/simulation"
 import { useSimulation } from "../context/SimulationContext"
@@ -10,7 +10,9 @@ import { useCentralizedData } from "./useCentralizedData"
 
 /**
  * Hook for running strategy simulations
- * 
+ *
+ * Phase 3 Migration: Now uses priceProjection (new format) instead of priceChartData (legacy format)
+ *
  * Handles the execution of strategy simulations with proper error handling
  * and loading state management. Converts strategy results to simulation results.
  */
@@ -21,7 +23,8 @@ export function useSimulationRunner() {
     setIsLoading,
     addError,
     clearErrors,
-    priceChartData,
+    priceProjection, // Phase 3 Migration: Use new format
+    priceChartData, // @deprecated - Keep for backward compatibility during migration
     historicalPriceData,
   } = useSimulation()
 
@@ -31,10 +34,15 @@ export function useSimulationRunner() {
 
   /**
    * Run the strategy simulation with current parameters
+   *
+   * Phase 3 Migration: Uses priceProjection and converts to strategy format
    */
   const runSimulation = useCallback(async () => {
-    if (priceChartData.length === 0) {
-      addError("Price chart data not available. Please wait for data to load.")
+    // Phase 3 Migration: Check for priceProjection first, fallback to priceChartData
+    const hasPriceData = priceProjection ? priceProjection.projectionPoints.length > 0 : priceChartData.length > 0
+
+    if (!hasPriceData) {
+      addError("Price projection data not available. Please wait for data to load.")
       return
     }
 
@@ -71,25 +79,52 @@ export function useSimulationRunner() {
         athCollateralParams: params.athCollateralParams,
       }
 
+      // Phase 4: Use new format directly - no legacy conversion needed
+      if (!priceProjection) {
+        console.error('❌ Price projection not available')
+        addError("Price projection data not available. Please wait for data to load.")
+        return
+      }
+
       console.log("🚀 Running strategy simulation with params:", {
         strategy: params.investmentStrategy,
         btcAmount: params.initialBtcAmount,
         simulationMonths: params.simulationMonths,
-        priceDataPoints: priceChartData.length,
+        priceDataPoints: priceProjection.projectionPoints.length,
+        modelName: priceProjection.modelName
       })
 
-      // Run the strategy simulation
-      const strategyResults = await runStrategySimulation(
-        strategyParams,
-        priceChartData,
-        historicalPriceData
-      )
+      // Run the strategy simulation using LegacyStrategyAdapter directly
+      const result = await LegacyStrategyAdapter.executeLegacyStrategy(strategyParams, priceProjection)
+
+      if (!result) {
+        console.error('❌ Strategy simulation failed')
+        addError("Strategy simulation failed. Please try again.")
+        return
+      }
+
+      const strategyResults = result.monthlyResults || []
 
       // Convert StrategyMonthlyResult to MonthlyResult
-      const convertedResults: MonthlyResult[] = strategyResults.map(result => ({
-        ...result,
-        // Add any missing fields that exist in MonthlyResult but not in StrategyMonthlyResult
-        liquidatedBtc: 0, // This field might exist in MonthlyResult but not in StrategyMonthlyResult
+      const convertedResults: MonthlyResult[] = strategyResults.map(strategyResult => ({
+        month: strategyResult.month,
+        dateString: strategyResult.date,
+        btcPrice: strategyResult.btcPrice,
+        collateralValue: strategyResult.collateralValue,
+        realCollateralValue: strategyResult.collateralValue, // Same as collateralValue
+        totalDebt: strategyResult.totalDebt,
+        realTotalDebt: strategyResult.totalDebt, // Same as totalDebt
+        withdrawalAmount: strategyResult.monthlyWithdrawal,
+        newLoanPrincipal: strategyResult.principalForNeeds + strategyResult.principalForReinvestment,
+        repaymentsDue: strategyResult.repaymentDue,
+        reinvestment: strategyResult.principalForReinvestment,
+        currentBtcAmount: strategyResult.totalBtcAmount,
+        freeBtc: strategyResult.totalBtcAmount - strategyResult.activeLoans.reduce((sum, loan) => sum + loan.lockedBtc, 0),
+        lockedBtc: strategyResult.activeLoans.reduce((sum, loan) => sum + loan.lockedBtc, 0),
+        loanCount: strategyResult.activeLoans.length,
+        highestLtv: strategyResult.highestLtv,
+        maxSafeDebt: strategyResult.maxSafeDebt,
+        events: strategyResult.events
       }))
 
       console.log("✅ Strategy simulation completed:", {
@@ -106,7 +141,8 @@ export function useSimulationRunner() {
     }
   }, [
     params,
-    priceChartData,
+    priceProjection, // Phase 3 Migration: Use new format
+    priceChartData, // Keep for backward compatibility
     historicalPriceData,
     setResults,
     setIsLoading,
@@ -116,23 +152,30 @@ export function useSimulationRunner() {
 
   /**
    * Check if simulation can be run
+   *
+   * Phase 3 Migration: Check priceProjection first, fallback to priceChartData
    */
   const canRunSimulation = useCallback(() => {
-    return priceChartData.length === 0 || !params.initialBtcAmount || params.initialBtcAmount <= 0
-  }, [priceChartData.length, params.initialBtcAmount])
+    const hasPriceData = priceProjection ? priceProjection.projectionPoints.length > 0 : priceChartData.length > 0
+    return !hasPriceData || !params.initialBtcAmount || params.initialBtcAmount <= 0
+  }, [priceProjection, priceChartData.length, params.initialBtcAmount])
 
   /**
    * Get simulation status
+   *
+   * Phase 3 Migration: Check priceProjection first, fallback to priceChartData
    */
   const getSimulationStatus = useCallback(() => {
-    if (priceChartData.length === 0) {
+    const hasPriceData = priceProjection ? priceProjection.projectionPoints.length > 0 : priceChartData.length > 0
+
+    if (!hasPriceData) {
       return "waiting_for_data"
     }
     if (params.initialBtcAmount <= 0) {
       return "invalid_params"
     }
     return "ready"
-  }, [priceChartData.length, params.initialBtcAmount])
+  }, [priceProjection, priceChartData.length, params.initialBtcAmount])
 
   return {
     runSimulation,
@@ -143,18 +186,23 @@ export function useSimulationRunner() {
 
 /**
  * Hook for automatic simulation running
- * 
+ *
+ * Phase 3 Migration: Uses priceProjection instead of priceChartData
+ *
  * Automatically runs simulation when parameters or price data changes.
  * Includes debouncing to prevent excessive simulation runs.
  */
 export function useAutoSimulation() {
   const { runSimulation } = useSimulationRunner()
-  const { params, priceChartData, isLoading } = useSimulation()
+  const { params, priceProjection, priceChartData, isLoading } = useSimulation()
 
   // Auto-run simulation when key parameters change
   // This would typically use useEffect with dependencies, but we'll keep it simple for now
   const triggerAutoSimulation = useCallback(() => {
-    if (!isLoading && priceChartData.length > 0) {
+    // Phase 3 Migration: Check priceProjection first, fallback to priceChartData
+    const hasPriceData = priceProjection ? priceProjection.projectionPoints.length > 0 : priceChartData.length > 0
+
+    if (!isLoading && hasPriceData) {
       // Add a small delay to debounce rapid parameter changes
       const timeoutId = setTimeout(() => {
         runSimulation()
@@ -162,7 +210,7 @@ export function useAutoSimulation() {
 
       return () => clearTimeout(timeoutId)
     }
-  }, [runSimulation, isLoading, priceChartData.length])
+  }, [runSimulation, isLoading, priceProjection, priceChartData.length])
 
   return {
     triggerAutoSimulation,

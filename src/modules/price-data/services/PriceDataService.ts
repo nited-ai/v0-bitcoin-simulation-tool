@@ -29,6 +29,9 @@ import { ProjectionGenerator } from './ProjectionGenerator'
 import { ChartMerger } from './ChartMerger'
 import { PerformanceMonitor } from './PerformanceMonitor'
 
+// Phase 1 Migration: Import UnifiedPriceProjectionService
+import { unifiedPriceProjectionService, PriceProjectionAdapter } from '../../shared'
+
 // Temporary mock services for migration phase
 // These will be replaced with internal implementations in Phase 7
 const centralizedDataService = {
@@ -176,6 +179,14 @@ export class PriceDataService implements IPriceDataService {
   /**
    * Generate price projection chart data.
    * Combines historical data with projected future prices.
+   *
+   * @deprecated This method returns legacy PriceChartDataPoint[] format.
+   * For new code, use UnifiedPriceProjectionService.generateProjection() which returns
+   * the standard PriceProjectionResult format from app/simulation/price-models/types.ts
+   *
+   * Phase 1-4 Migration: Now uses UnifiedPriceProjectionService internally
+   * while maintaining backward compatibility by converting to legacy format.
+   * This method is kept only for backward compatibility with existing code.
    */
   public async generatePriceProjection(
     params: PriceEngineParams,
@@ -184,27 +195,21 @@ export class PriceDataService implements IPriceDataService {
     const startTime = performance.now()
 
     try {
-      console.log(`🎯 Generating price projection for model: ${params.priceModel}`)
+      console.log(`🎯 [Phase 1 Migration] Generating price projection for model: ${params.priceModel}`)
 
       // Load historical data if not provided
       const histData = historicalData || await this.loadHistoricalData({ useCache: true })
 
-      // Generate projection path
-      const projectionPath = this.projectionGenerator.generateProjectionPath(params)
+      // Phase 1 Migration: Use UnifiedPriceProjectionService
+      console.log(`🔄 [Phase 1 Migration] Using UnifiedPriceProjectionService for ${params.priceModel}`)
+      const projection = await unifiedPriceProjectionService.generateProjectionFromLegacyParams(
+        params,
+        histData
+      )
 
-      // Convert historical data to chart format
-      const historicalChartData = histData.map((point, index) => ({
-        date: point.date,
-        days: index,
-        timestamp: point.time,
-        price: point.close,
-        isHistorical: true,
-        confidence: 1.0,
-        historicalPrice: point.close
-      }))
-
-      // Merge historical and projection data
-      const chartData = this.chartMerger.mergeHistoricalAndProjection(historicalChartData, projectionPath)
+      // Convert to legacy format for backward compatibility
+      console.log(`🔄 [Phase 1 Migration] Converting to legacy format for backward compatibility`)
+      const chartData = PriceProjectionAdapter.toLegacyFormat(projection, histData)
 
       // Add Power Law reference lines if needed
       if (params.priceModel === 'powerLaw' || params.priceModel === 'cycleRepeatPowerLaw') {
@@ -212,13 +217,13 @@ export class PriceDataService implements IPriceDataService {
       }
 
       this.performanceMonitor.recordOperation('price-projection-generation', performance.now() - startTime, true, false)
-      console.log(`✅ Price projection generated: ${chartData.length} points`)
+      console.log(`✅ [Phase 1 Migration] Price projection generated: ${chartData.length} points`)
 
       return chartData
 
     } catch (error) {
       this.performanceMonitor.recordOperation('price-projection-generation', performance.now() - startTime, false, false)
-      console.error('❌ Failed to generate price projection:', error)
+      console.error('❌ [Phase 1 Migration] Failed to generate price projection:', error)
       throw error
     }
   }

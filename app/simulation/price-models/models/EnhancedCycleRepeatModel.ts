@@ -232,7 +232,7 @@ export class EnhancedCycleRepeatModel implements PriceProjectionModel {
         diminishingParams: {
           diminishingFactor: params.diminishingFactor,
           cycleDegradation: params.cycleDegradation,
-          adoptionCurve: params.adoptionCurve
+          adoptionCurveType: params.adoptionCurveType
         }
       }
     })
@@ -291,7 +291,7 @@ export class EnhancedCycleRepeatModel implements PriceProjectionModel {
             diminishingParams: {
               diminishingFactor: params.diminishingFactor,
               cycleDegradation: params.cycleDegradation,
-              adoptionCurve: params.adoptionCurve
+              adoptionCurveType: params.adoptionCurveType
             }
           }
         })

@@ -6,7 +6,7 @@
  */
 
 import type { StrategyExecutionResult } from "../../strategies/types"
-import type { PriceProjectionResult } from "../../price-projection/types"
+import type { PriceProjectionResult } from "../../../../app/simulation/price-models/types"
 
 /**
  * Monthly result data structure from strategy execution
@@ -97,12 +97,14 @@ export interface ResultsAnalysis {
  * Enhanced results analysis with price projection context
  */
 export interface EnhancedResultsAnalysis extends ResultsAnalysis {
-  // Price projection context
+  // Price projection context (updated to new format)
   priceProjectionMetadata: {
-    model: string
-    version: string
+    totalMonths: number
+    totalGrowth: number
+    averageMonthlyGrowth: number
+    confidence: number
     generatedAt: string
-    parameters: Record<string, any>
+    [key: string]: any // Allow additional metadata fields
   }
   
   // Advanced metrics with projection context

@@ -4,9 +4,14 @@ import { priceDataService } from "@/src/modules/price-data"
 import { getPowerLawPrice } from "@/src/modules/price-data/models/powerLaw"
 import { useSimulation } from "../context/SimulationContext"
 import type { PriceEngineParams } from "@/src/modules/price-data"
+import { unifiedPriceProjectionService } from "@/src/modules/shared"
+import { PriceProjectionAdapter } from "@/src/modules/shared/adapters/PriceProjectionAdapter"
 
 /**
  * Hook for generating price chart data with lazy loading
+ *
+ * Phase 4 Migration: Now generates both new format (priceProjection) and legacy format (priceChartData)
+ * for backward compatibility.
  *
  * Handles the generation of complete price chart data by calling the Price Engine
  * whenever chart-relevant parameters change. This includes historical data processing
@@ -21,6 +26,7 @@ export function usePriceGeneration(enabled: boolean = false) {
     initialDataLoaded,
     setChartLoading,
     setPriceChartData,
+    setPriceProjection, // Phase 4 Migration: Set new format
     setErrors,
   } = useSimulation()
 
@@ -79,10 +85,21 @@ export function usePriceGeneration(enabled: boolean = false) {
           historicalChannelPositions,
         }
 
-        // Call the price data service to get the complete chart data
-        const chartData = await priceDataService.generatePriceProjection(engineParams, historicalPriceData)
+        // Phase 4 Migration: Generate new format using UnifiedPriceProjectionService
+        console.log(`🎯 [Phase 4] Generating price projection in new format for model: ${params.priceModel}`)
+        const priceProjection = await unifiedPriceProjectionService.generateProjectionFromLegacyParams(
+          engineParams,
+          historicalPriceData
+        )
+
+        // Set the new format
+        setPriceProjection(priceProjection)
+        console.log(`✅ [Phase 4] Price projection generated: ${priceProjection.projectionPoints.length} points for model ${params.priceModel}`)
+
+        // Phase 4 Migration: Also generate legacy format for backward compatibility
+        const chartData = PriceProjectionAdapter.toLegacyFormat(priceProjection, historicalPriceData)
         setPriceChartData(chartData)
-        console.log(`✅ Chart data generated: ${chartData.length} points for model ${params.priceModel}`)
+        console.log(`✅ [Phase 4] Legacy chart data generated: ${chartData.length} points (backward compatibility)`)
       } catch (error) {
         console.error("Error generating price chart data:", error)
         setErrors((prev) => [...prev, "Failed to generate price model data."])

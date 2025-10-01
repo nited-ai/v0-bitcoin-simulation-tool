@@ -14,7 +14,7 @@ import type {
   MonthlyResult
 } from "../types"
 import type { StrategyExecutionResult } from "../../strategies/types"
-import type { PriceProjectionResult } from "../../price-projection/types"
+import type { PriceProjectionResult } from "../../../../app/simulation/price-models/types"
 
 /**
  * Hook parameters
