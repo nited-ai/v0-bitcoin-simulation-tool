@@ -37,6 +37,12 @@ interface MonthDebugInfo {
     withdrawalAmount: number
     reasoning?: string
   }
+  loanDetails?: {
+    principal: number
+    totalRepayment: number
+    originationFee: number
+    totalInterest: number
+  }
   rolloverDetails?: {
     previousPrincipal: number
     accruedInterest: number
@@ -298,13 +304,30 @@ Please go to the Price Projection tab and generate a projection.`
     setIsRunning(true)
     const strategy = new RollingLoanStrategy()
     const debugResults: MonthDebugInfo[] = []
-    
+
     let totalBtcAmount = params.initialBtcAmount
     let activeLoans: Loan[] = []
     let loanIdCounter = 1
 
+    // Create strategy params for loan calculations
+    const strategyParams: StrategyExecutionParams = {
+      btcAmount: params.initialBtcAmount,
+      initialBtcPrice: params.initialBtcPrice,
+      monthlyWithdrawalAmount: params.monthlyWithdrawalAmount,
+      annualInterestRate: params.annualInterestRate,
+      loanOriginationFeePercent: params.originationFeePercent,
+      loanTermMonths: params.loanTermMonths,
+      simulationMonths: params.simulationMonths,
+      maxLoanAmount: params.maxLoanAmount,
+      expectedAnnualInflation: 3,
+      btcAccumulation: (params as any).btcAccumulation ?? true,
+      investmentStrategy: 'rollingLoan',
+      riskManagement: params.riskManagement,
+      loanAmountPercent: params.loanAmountPercent
+    }
+
     // Simulate key months
-    const monthsToSimulate = showAllMonths 
+    const monthsToSimulate = showAllMonths
       ? Array.from({ length: Math.min(params.simulationMonths, 24) }, (_, i) => i)
       : [0, 6, 12, 18]
 
@@ -376,6 +399,23 @@ Please go to the Price Projection tab and generate a projection.`
         loanAmountCalc.result = Math.min(params.maxLoanAmount, targetLtvAmount)
       }
 
+      // Calculate loan details if investment is allowed
+      let loanDetailsForDebug: { principal: number; totalRepayment: number; originationFee: number; totalInterest: number } | undefined
+      if (decision.allowInvestment && decision.investmentMultiplier > 0) {
+        const principal = Math.round(collateralValue * decision.investmentMultiplier)
+        const loanDetails = centralizedLoanCalculationService.calculateLoanDetails(
+          principal,
+          collateralValue,
+          strategyParams
+        )
+        loanDetailsForDebug = {
+          principal: loanDetails.principal,
+          totalRepayment: loanDetails.totalRepayment,
+          originationFee: loanDetails.originationFee,
+          totalInterest: loanDetails.totalInterest
+        }
+      }
+
       // Store debug info
       debugResults.push({
         month,
@@ -387,24 +427,24 @@ Please go to the Price Projection tab and generate a projection.`
         totalRepaymentDue,
         calculationPath,
         loanAmountCalc,
-        decision
+        decision,
+        loanDetails: loanDetailsForDebug
       })
 
       // Update simulation state based on decision
-      if (decision.allowInvestment && decision.investmentMultiplier > 0) {
-        const loanAmount = collateralValue * decision.investmentMultiplier
+      if (decision.allowInvestment && decision.investmentMultiplier > 0 && loanDetailsForDebug) {
         const newLoan: Loan = {
           id: loanIdCounter++,
           month,
-          principal: loanAmount,
+          principal: loanDetailsForDebug.principal,
           maturityMonth: month + params.loanTermMonths,
-          repaymentAmount: loanAmount * (1 + (params.annualInterestRate / 100) * (params.loanTermMonths / 12)),
-          lockedBtc: loanAmount / btcPrice
+          repaymentAmount: loanDetailsForDebug.totalRepayment,  // Now includes fees + interest
+          lockedBtc: loanDetailsForDebug.principal / btcPrice
         }
         activeLoans.push(newLoan)
 
         if (params.btcAccumulation) {
-          totalBtcAmount += loanAmount / btcPrice
+          totalBtcAmount += loanDetailsForDebug.principal / btcPrice
         }
       }
 
@@ -798,10 +838,26 @@ Please go to the Price Projection tab and generate a projection.`
                       <span className="text-muted-foreground">Investment Multiplier:</span>
                       <span className="font-mono">{info.decision.investmentMultiplier.toFixed(4)} ({(info.decision.investmentMultiplier * 100).toFixed(2)}%)</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Actual Loan Amount:</span>
-                      <span className="font-mono font-semibold">${(info.collateralValue * info.decision.investmentMultiplier).toLocaleString()}</span>
-                    </div>
+                    {info.loanDetails && (
+                      <>
+                        <div className="flex justify-between pt-2 border-t">
+                          <span className="text-muted-foreground">Principal (received):</span>
+                          <span className="font-mono font-semibold">${info.loanDetails.principal.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">+ Origination Fee:</span>
+                          <span className="font-mono text-orange-600">${info.loanDetails.originationFee.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">+ Total Interest:</span>
+                          <span className="font-mono text-orange-600">${info.loanDetails.totalInterest.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between pt-2 border-t">
+                          <span className="font-semibold">Total Repayment (owed):</span>
+                          <span className="font-mono font-bold text-lg text-green-600">${info.loanDetails.totalRepayment.toLocaleString()}</span>
+                        </div>
+                      </>
+                    )}
                     <div className="pt-2 border-t">
                       <div className="text-muted-foreground mb-1">Reasoning:</div>
                       <div className="italic text-sm bg-muted p-2 rounded">{info.decision.reasoning || 'No reasoning provided'}</div>

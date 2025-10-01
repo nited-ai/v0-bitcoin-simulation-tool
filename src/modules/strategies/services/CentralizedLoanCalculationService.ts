@@ -53,6 +53,9 @@ export class CentralizedLoanCalculationService {
     collateralValue: number,
     params: StrategyExecutionParams
   ): LoanCalculationResult {
+    // Round principal to eliminate decimals
+    principal = Math.round(principal)
+
     // Determine origination fee type and percentage
     const originationFeePercent = params.loanOriginationFeePercent || 0
 
@@ -64,28 +67,28 @@ export class CentralizedLoanCalculationService {
     if (originationFeePercent > 0) {
       // For now, treat all fees as one-time
       // In the future, we can add platform-specific logic here
-      originationFee = principal * (originationFeePercent / 100)
+      originationFee = Math.round(principal * (originationFeePercent / 100))
     }
-    
+
     // Calculate interest
     const annualInterestRate = params.annualInterestRate || 0
     const monthlyInterestRate = annualInterestRate / 100 / 12
     const monthlyInterest = principal * monthlyInterestRate
-    
+
     let totalInterest = 0
     if (params.loanTermMonths === Infinity) {
       // For infinite term loans, calculate interest for 12 months as reference
-      totalInterest = monthlyInterest * 12
+      totalInterest = Math.round(monthlyInterest * 12)
     } else {
-      totalInterest = monthlyInterest * params.loanTermMonths
+      totalInterest = Math.round(monthlyInterest * params.loanTermMonths)
     }
-    
-    // Calculate totals
-    const totalRepayment = principal + originationFee + totalInterest
-    const effectiveCost = originationFee + totalInterest
+
+    // Calculate totals (round all monetary values)
+    const totalRepayment = Math.round(principal + originationFee + totalInterest)
+    const effectiveCost = Math.round(originationFee + totalInterest)
     const effectiveCostPercent = principal > 0 ? (effectiveCost / principal) * 100 : 0
     const ltv = collateralValue > 0 ? (principal / collateralValue) * 100 : 0
-    
+
     return {
       principal,
       originationFee,

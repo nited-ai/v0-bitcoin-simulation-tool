@@ -16,6 +16,7 @@ import type {
 } from "../types"
 import type { PriceProjectionResult } from "../../../../app/simulation/price-models/types"
 import type { HistoricalDataPoint } from "@/lib/services/centralized-data-service"
+import { centralizedLoanCalculationService } from "./CentralizedLoanCalculationService"
 
 /**
  * Strategy Execution Service Implementation
@@ -152,13 +153,21 @@ export class StrategyExecutionService {
       // Create new loans if needed
       const totalPrincipal = principalForNeeds + principalForReinvestment
       if (totalPrincipal > 0) {
+        // CRITICAL: Use centralized calculation service for accurate loan details
+        const principal = Math.round(totalPrincipal)
+        const loanDetails = centralizedLoanCalculationService.calculateLoanDetails(
+          principal,
+          collateralValue,
+          params
+        )
+
         const newLoan: Loan = {
           id: loanIdCounter++,
           month,
-          principal: totalPrincipal,
+          principal: loanDetails.principal,
           maturityMonth: month + params.loanTermMonths,
-          repaymentAmount: this.calculateRepaymentAmount(totalPrincipal, params),
-          lockedBtc: totalPrincipal / btcPrice
+          repaymentAmount: loanDetails.totalRepayment,  // Now includes fees + interest
+          lockedBtc: loanDetails.principal / btcPrice
         }
         activeLoans.push(newLoan)
       }
@@ -215,25 +224,7 @@ export class StrategyExecutionService {
     return result
   }
 
-  /**
-   * Calculate loan repayment amount including interest and fees
-   */
-  private calculateRepaymentAmount(principal: number, params: StrategyExecutionParams): number {
-    const monthlyInterestRate = params.annualInterestRate / 100 / 12
-    const termMonths = params.loanTermMonths
-    
-    if (termMonths === Infinity || termMonths <= 0) {
-      // Interest-only loan
-      return principal * (1 + monthlyInterestRate)
-    }
-    
-    // Standard amortizing loan
-    const monthlyPayment = principal * 
-      (monthlyInterestRate * Math.pow(1 + monthlyInterestRate, termMonths)) /
-      (Math.pow(1 + monthlyInterestRate, termMonths) - 1)
-    
-    return monthlyPayment * termMonths
-  }
+
 
   /**
    * Validate strategy execution parameters
