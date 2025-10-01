@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useEffect } from "react"
+import React, { useMemo, useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { CheckCircle2, AlertTriangle, AlertOctagon } from "lucide-react"
@@ -15,44 +15,26 @@ interface ATHAlertProps {
 
 /**
  * ATH Alert Component
- * 
+ *
  * Displays current Bitcoin price distance from ATH using shadcn Alert component.
  * Shows risk-based color coding and appropriate messaging for loan decisions.
  * Placed above the risk level selector cards.
+ *
+ * **Note**: This component now relies on DataServiceProvider for data initialization.
+ * The provider ensures current price data is available before this component renders.
  */
 export function ATHAlert({ className = "" }: ATHAlertProps) {
   const { t } = useTranslation()
   const { ath: currentATH, loading: athLoading, error: athError } = useATH()
-  // Enable centralized data service to ensure current price is loaded
-  const { currentPrice: currentPriceData } = useCentralizedData(true)
+  // Get current price from provider-initialized data service
+  // No need to pass 'true' - provider handles initialization
+  const { currentPrice: currentPriceData } = useCentralizedData(false)
   const calculationsService = useMemo(() => new CalculationsService(), [])
   const { formatCurrency, formatNumber } = useLocaleNumberFormat()
 
   // Get actual current Bitcoin price from centralized data service
-  // TEMPORARY: Use a realistic current price for testing
-  const currentPrice = currentPriceData?.price || 114209 // Use realistic current price instead of 100000
-
-  // Debug logging to help identify the issue
-  useEffect(() => {
-    console.log('🔍 ATHAlert Debug:', {
-      currentPriceData,
-      currentPrice,
-      athPrice: currentATH,
-      isUsingFallback: !currentPriceData?.price,
-      timestamp: new Date().toISOString()
-    })
-  }, [currentPriceData, currentPrice, currentATH])
-
-  // Log when component mounts
-  useEffect(() => {
-    console.log('🚀 ATHAlert component mounted - triggering centralized data service')
-    // Also log to server console
-    if (typeof window === 'undefined') {
-      console.log('🖥️ ATHAlert: Server-side rendering')
-    } else {
-      console.log('🌐 ATHAlert: Client-side rendering')
-    }
-  }, [])
+  // Use realistic fallback if data not yet available
+  const currentPrice = currentPriceData?.price || 114209
 
   // Calculate ATH distance metrics
   const athDistanceMetrics = useMemo(() => {
