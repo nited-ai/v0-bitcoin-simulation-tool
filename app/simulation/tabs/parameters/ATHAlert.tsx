@@ -36,17 +36,6 @@ export function ATHAlert({ className = "" }: ATHAlertProps) {
   // Use realistic fallback if data not yet available
   const currentPrice = currentPriceData?.price || 114209
 
-  // Debug logging to help identify the issue
-  useEffect(() => {
-    console.log('🔍 ATHAlert Debug:', {
-      currentPriceData,
-      currentPrice,
-      athPrice: currentATH,
-      isUsingFallback: !currentPriceData?.price,
-      timestamp: new Date().toISOString()
-    })
-  }, [currentPriceData, currentPrice, currentATH])
-
   // Calculate ATH distance metrics
   const athDistanceMetrics = useMemo(() => {
     return calculationsService.calculateATHDistance(currentPrice, currentATH)

@@ -62,9 +62,12 @@ describe('ATHAlert', () => {
     // Mock centralized data service
     ;(centralizedDataService.getState as any).mockReturnValue({
       historicalData: [],
+      ath: 124277.98,
+      athData: null,
       currentPrice: { price: 100000, timestamp: Date.now() / 1000, source: 'test' },
       isHistoricalDataLoaded: true,
       isLoadingHistoricalData: false,
+      isATHLoaded: true,
       lastHistoricalDataLoad: Date.now(),
       errors: [],
       isInitializing: false
@@ -118,9 +121,12 @@ describe('ATHAlert', () => {
   it('should use realistic fallback when price data not available', async () => {
     ;(centralizedDataService.getState as any).mockReturnValue({
       historicalData: [],
+      ath: 124277.98,
+      athData: null,
       currentPrice: null,
       isHistoricalDataLoaded: false,
       isLoadingHistoricalData: false,
+      isATHLoaded: true,
       lastHistoricalDataLoad: 0,
       errors: [],
       isInitializing: false
@@ -204,9 +210,12 @@ describe('ATHAlert', () => {
     // Simulate price update
     const newState = {
       historicalData: [],
+      ath: 124277.98,
+      athData: null,
       currentPrice: { price: 110000, timestamp: Date.now() / 1000, source: 'test' },
       isHistoricalDataLoaded: true,
       isLoadingHistoricalData: false,
+      isATHLoaded: true,
       lastHistoricalDataLoad: Date.now(),
       errors: [],
       isInitializing: false

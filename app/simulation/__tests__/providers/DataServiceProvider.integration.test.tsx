@@ -44,8 +44,11 @@ describe('DataServiceProvider Integration', () => {
         { timestamp: 1000, close: 50000, high: 51000, low: 49000, open: 50000 }
       ],
       currentPrice: { price: 50000, timestamp: Date.now() / 1000, source: 'test' },
+      ath: 124277.98,
+      athData: null,
       isHistoricalDataLoaded: true,
       isLoadingHistoricalData: false,
+      isATHLoaded: true,
       lastHistoricalDataLoad: Date.now(),
       errors: [],
       isInitializing: false
@@ -225,8 +228,11 @@ describe('DataServiceProvider Integration', () => {
     const newState = {
       historicalData: [],
       currentPrice: { price: 55000, timestamp: Date.now() / 1000, source: 'test' },
+      ath: 124277.98,
+      athData: null,
       isHistoricalDataLoaded: true,
       isLoadingHistoricalData: false,
+      isATHLoaded: true,
       lastHistoricalDataLoad: Date.now(),
       errors: [],
       isInitializing: false

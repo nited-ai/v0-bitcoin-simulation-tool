@@ -38,8 +38,11 @@ const DataServiceContext = createContext<DataServiceContextValue>({
   dataServiceState: {
     historicalData: [],
     currentPrice: null,
+    ath: null,
+    athData: null,
     isHistoricalDataLoaded: false,
     isLoadingHistoricalData: false,
+    isATHLoaded: false,
     lastHistoricalDataLoad: 0,
     errors: [],
     isInitializing: false

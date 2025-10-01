@@ -28,8 +28,11 @@ describe('DataServiceProvider', () => {
     ;(centralizedDataService.getState as any).mockReturnValue({
       historicalData: [],
       currentPrice: null,
+      ath: null,
+      athData: null,
       isHistoricalDataLoaded: false,
       isLoadingHistoricalData: false,
+      isATHLoaded: false,
       lastHistoricalDataLoad: 0,
       errors: [],
       isInitializing: false
@@ -64,8 +67,11 @@ describe('DataServiceProvider', () => {
     ;(centralizedDataService.getState as any).mockReturnValue({
       historicalData: [],
       currentPrice: null,
+      ath: null,
+      athData: null,
       isHistoricalDataLoaded: false,
       isLoadingHistoricalData: false,
+      isATHLoaded: false,
       lastHistoricalDataLoad: 0,
       errors: [],
       isInitializing: true
@@ -92,8 +98,11 @@ describe('DataServiceProvider', () => {
     ;(centralizedDataService.getState as any).mockReturnValue({
       historicalData: [],
       currentPrice: { price: 50000, timestamp: Date.now() / 1000, source: 'test' },
+      ath: 124277.98,
+      athData: null,
       isHistoricalDataLoaded: true,
       isLoadingHistoricalData: false,
+      isATHLoaded: true,
       lastHistoricalDataLoad: Date.now(),
       errors: [],
       isInitializing: false
@@ -242,8 +251,11 @@ describe('DataServiceProvider', () => {
     ;(centralizedDataService.getState as any).mockReturnValue({
       historicalData: [],
       currentPrice: { price: 50000, timestamp: Date.now() / 1000, source: 'test' },
+      ath: 124277.98,
+      athData: null,
       isHistoricalDataLoaded: true,
       isLoadingHistoricalData: false,
+      isATHLoaded: true,
       lastHistoricalDataLoad: Date.now(),
       errors: [],
       isInitializing: false

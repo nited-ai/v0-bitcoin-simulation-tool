@@ -28,9 +28,12 @@ describe('useCurrentPriceOnly', () => {
     vi.clearAllMocks()
     ;(centralizedDataService.getState as any).mockReturnValue({
       historicalData: [],
+      ath: 124277.98,
+      athData: null,
       currentPrice: { price: 50000, timestamp: Date.now() / 1000, source: 'test' },
       isHistoricalDataLoaded: true,
       isLoadingHistoricalData: false,
+      isATHLoaded: true,
       lastHistoricalDataLoad: Date.now(),
       errors: [],
       isInitializing: false
@@ -110,9 +113,12 @@ describe('useCurrentPriceOnly', () => {
   it('should handle null current price', async () => {
     ;(centralizedDataService.getState as any).mockReturnValue({
       historicalData: [],
+      ath: 124277.98,
+      athData: null,
       currentPrice: null,
       isHistoricalDataLoaded: false,
       isLoadingHistoricalData: false,
+      isATHLoaded: true,
       lastHistoricalDataLoad: 0,
       errors: [],
       isInitializing: false
@@ -150,9 +156,12 @@ describe('useCurrentPriceOnly', () => {
     // Simulate price update
     const newState = {
       historicalData: [],
+      ath: 124277.98,
+      athData: null,
       currentPrice: { price: 55000, timestamp: Date.now() / 1000, source: 'test' },
       isHistoricalDataLoaded: true,
       isLoadingHistoricalData: false,
+      isATHLoaded: true,
       lastHistoricalDataLoad: Date.now(),
       errors: [],
       isInitializing: false

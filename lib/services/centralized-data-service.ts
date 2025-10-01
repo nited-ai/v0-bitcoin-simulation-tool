@@ -13,6 +13,7 @@
 
 import { enhancedBitcoinApiService } from './bitcoin-api-service'
 import { bitcoinJsonDataService } from './bitcoin-json-data-service'
+import { athService, type ATHData } from './ath-service'
 
 // Types
 export interface HistoricalDataPoint {
@@ -36,8 +37,11 @@ export interface CurrentPriceData {
 export interface DataServiceState {
   historicalData: HistoricalDataPoint[]
   currentPrice: CurrentPriceData | null
+  ath: number | null
+  athData: ATHData | null
   isHistoricalDataLoaded: boolean
   isLoadingHistoricalData: boolean
+  isATHLoaded: boolean
   lastHistoricalDataLoad: number
   errors: string[]
   isInitializing: boolean // Flag to prevent premature notifications during initialization
@@ -52,8 +56,11 @@ class CentralizedDataService {
   private state: DataServiceState = {
     historicalData: [],
     currentPrice: null,
+    ath: null,
+    athData: null,
     isHistoricalDataLoaded: false,
     isLoadingHistoricalData: false,
+    isATHLoaded: false,
     lastHistoricalDataLoad: 0,
     errors: [],
     isInitializing: false
@@ -260,11 +267,27 @@ class CentralizedDataService {
       console.log('📊 Loading historical data...')
       await this.loadHistoricalData()
 
+      // Load ATH data
+      console.log('📈 Loading ATH data...')
+      try {
+        const athValue = await athService.getCurrentATH()
+        const athDataFull = await athService.getATHData()
+        this.state.ath = athValue
+        this.state.athData = athDataFull
+        this.state.isATHLoaded = true
+        console.log(`✅ ATH data loaded: $${athValue}`)
+      } catch (error) {
+        console.warn('⚠️ Could not fetch ATH during initialization, using fallback:', error)
+        this.state.ath = 124277.98 // Fallback ATH
+        this.state.athData = null
+        this.state.isATHLoaded = true
+      }
+
       // Load current price synchronously to prevent duplicate chart generations
       console.log('💰 Loading current price...')
       try {
         await this.getCurrentPrice()
-        console.log('✅ Both historical data and current price loaded successfully')
+        console.log('✅ Historical data, ATH, and current price loaded successfully')
       } catch (error) {
         console.warn('⚠️ Could not fetch current price during initialization, using latest historical price:', error)
         // Set current price to latest historical price as fallback
@@ -301,8 +324,11 @@ class CentralizedDataService {
     this.state = {
       historicalData: [],
       currentPrice: null,
+      ath: null,
+      athData: null,
       isHistoricalDataLoaded: false,
       isLoadingHistoricalData: false,
+      isATHLoaded: false,
       lastHistoricalDataLoad: 0,
       errors: [],
       isInitializing: false
