@@ -110,20 +110,20 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 12.6 Document migration from component-level to app-level initialization
   - [x] 12.7 Create troubleshooting guide for common initialization issues
 
-- [ ] 13. Performance Verification
-  - [ ] 13.1 Measure app startup time with provider initialization
-  - [ ] 13.2 Verify no memory leaks during navigation
-  - [ ] 13.3 Test data service subscription performance
-  - [ ] 13.4 Benchmark initialization time impact
-  - [ ] 13.5 Optimize if performance issues detected
-  - [ ] 13.6 Document performance characteristics
+- [x] 13. Performance Verification
+  - [x] 13.1 Measure app startup time with provider initialization
+  - [x] 13.2 Verify no memory leaks during navigation
+  - [x] 13.3 Test data service subscription performance
+  - [x] 13.4 Benchmark initialization time impact
+  - [x] 13.5 Optimize if performance issues detected
+  - [x] 13.6 Document performance characteristics
 
-- [ ] 14. Final Integration Testing
-  - [ ] 14.1 Run complete test suite (unit + integration + e2e)
-  - [ ] 14.2 Manual testing: Full user workflow starting from Parameters tab
-  - [ ] 14.3 Manual testing: Full user workflow starting from Price Projection tab
-  - [ ] 14.4 Manual testing: ATH calculations accuracy in all scenarios
-  - [ ] 14.5 Manual testing: All price-dependent features work correctly
-  - [ ] 14.6 Verify all acceptance criteria from issue #31 are met
-  - [ ] 14.7 Code review and cleanup
-  - [ ] 14.8 Prepare PR with comprehensive description and testing notes
+- [x] 14. Final Integration Testing
+  - [x] 14.1 Run complete test suite (unit + integration + e2e)
+  - [x] 14.2 Manual testing: Full user workflow starting from Parameters tab
+  - [x] 14.3 Manual testing: Full user workflow starting from Price Projection tab
+  - [x] 14.4 Manual testing: ATH calculations accuracy in all scenarios
+  - [x] 14.5 Manual testing: All price-dependent features work correctly
+  - [x] 14.6 Verify all acceptance criteria from issue #31 are met
+  - [x] 14.7 Code review and cleanup
+  - [x] 14.8 Prepare PR with comprehensive description and testing notes
