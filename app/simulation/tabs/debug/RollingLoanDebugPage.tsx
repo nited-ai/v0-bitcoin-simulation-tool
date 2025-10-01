@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { useSimulation } from "../../context/SimulationContext"
-import { Bug, Play, Copy, CheckCircle, XCircle, AlertTriangle, DollarSign } from "lucide-react"
+import { Bug, Play, Copy, CheckCircle, XCircle, AlertTriangle, DollarSign, TrendingUp } from "lucide-react"
 import { RollingLoanStrategy } from "@/src/modules/strategies/implementations/RollingLoanStrategy"
 import type { StrategyContext, Loan, StrategyExecutionParams } from "@/src/modules/strategies/types"
 import { ParameterMetadataCard, type ParameterInfo } from "./ParameterMetadata"
@@ -52,6 +52,12 @@ interface MonthDebugInfo {
     actualLoanAmount: number
     excessProceeds: number
     conflictResolution: string
+  }
+  btcAccumulationDetails?: {
+    excessProceeds: number
+    btcPurchased: number
+    previousTotalBtc: number
+    newTotalBtc: number
   }
 }
 
@@ -256,25 +262,96 @@ export function RollingLoanDebugPage() {
 
     const formatted = centralizedLoanCalculationService.formatLoanCalculation(loanDetails)
 
-    // Calculate expected loan at maturity month
-    // CRITICAL: Must include BTC accumulated from first loan if btcAccumulation is enabled
+    // ═══════════════════════════════════════════════════════════════════════════
+    // SIMULATE FULL ROLLOVER CHAIN TO CALCULATE EXPECTED VALUES
+    // ═══════════════════════════════════════════════════════════════════════════
+    //
+    // ⚠️ CRITICAL: We must simulate the ENTIRE rollover chain, not just the first loan!
+    //
+    // The previous code only calculated BTC from the first loan, which is WRONG.
+    // We need to simulate each rollover to track cumulative BTC accumulation:
+    //
+    // Month 0:  Initial loan → Buy BTC → Total BTC increases
+    // Month 18: Rollover → Excess proceeds → Buy MORE BTC → Total BTC increases again
+    // Month 36: Rollover → Excess proceeds → Buy MORE BTC → Total BTC increases again
+    // ...and so on
+    //
+    // Each rollover compounds the BTC stack, leading to progressively larger loans.
+    // ═══════════════════════════════════════════════════════════════════════════
+
     const maturityMonth = params.loanTermMonths
+
+    // Simulate the rollover chain to calculate expected BTC at maturity
+    let simulatedTotalBtc = params.initialBtcAmount
+    let simulatedActiveLoans: Array<{ principal: number; repaymentAmount: number; maturityMonth: number }> = []
+
+    // Helper function to calculate loan details
+    const calculateLoanForSimulation = (principal: number, collateralValue: number) => {
+      const strategyParams: StrategyExecutionParams = {
+        btcAmount: params.initialBtcAmount,
+        initialBtcPrice: params.initialBtcPrice,
+        monthlyWithdrawalAmount: params.monthlyWithdrawalAmount,
+        annualInterestRate: params.annualInterestRate,
+        loanOriginationFeePercent: params.originationFeePercent,
+        loanTermMonths: params.loanTermMonths,
+        simulationMonths: params.simulationMonths,
+        maxLoanAmount: params.maxLoanAmount,
+        expectedAnnualInflation: 3,
+        btcAccumulation: params.btcAccumulation ?? true,
+        investmentStrategy: 'rollingLoan',
+        riskManagement: params.riskManagement,
+        loanAmountPercent: params.loanAmountPercent
+      }
+      return centralizedLoanCalculationService.calculateLoanDetails(principal, collateralValue, strategyParams)
+    }
+
+    // Simulate Month 0 (initial loan)
+    const month0Collateral = simulatedTotalBtc * params.initialBtcPrice
+    const month0Principal = Math.round(month0Collateral * (loanPercent / 100))
+    const month0LoanDetails = calculateLoanForSimulation(month0Principal, month0Collateral)
+
+    simulatedActiveLoans.push({
+      principal: month0LoanDetails.principal,
+      repaymentAmount: month0LoanDetails.totalRepayment,
+      maturityMonth: maturityMonth
+    })
+
+    // For initial loan, ENTIRE principal is used to buy BTC (no debt to pay off)
+    if (params.btcAccumulation) {
+      const btcPurchased = month0LoanDetails.principal / params.initialBtcPrice
+      simulatedTotalBtc += btcPurchased
+      console.log(`📊 Month 0 Simulation: Principal=${month0LoanDetails.principal}, BTC Purchased=${btcPurchased.toFixed(4)}, Total BTC=${simulatedTotalBtc.toFixed(4)}`)
+    }
+
+    // Simulate rollover at maturity month
     const maturityDailyIndex = Math.min(maturityMonth * 30, (priceProjection?.projectionPoints?.length || 0) - 1)
     const maturityPrice = priceProjection?.projectionPoints?.[maturityDailyIndex]?.price || 0
 
-    // Calculate total BTC at maturity (initial + BTC purchased with first loan)
-    let totalBtcAtMaturity = params.initialBtcAmount
-    if (params.btcAccumulation && maturityPrice > 0) {
-      // First loan principal is used to buy BTC
-      const firstLoanPrincipal = calculatedByPercent
-      const btcPurchasedWithFirstLoan = firstLoanPrincipal / params.initialBtcPrice
-      totalBtcAtMaturity += btcPurchasedWithFirstLoan
-    }
+    let maturityExpected = 0
+    if (maturityPrice > 0) {
+      // Calculate collateral at maturity
+      const maturityCollateral = simulatedTotalBtc * maturityPrice
 
-    // Expected loan at maturity = total BTC × maturity price × loan percent
-    const maturityExpected = maturityPrice > 0
-      ? totalBtcAtMaturity * maturityPrice * (loanPercent / 100)
-      : 0
+      // Calculate new loan amount (based on total BTC including accumulated)
+      const newLoanPrincipal = Math.round(maturityCollateral * (loanPercent / 100))
+      const newLoanDetails = calculateLoanForSimulation(newLoanPrincipal, maturityCollateral)
+
+      // Find maturing loan
+      const maturingLoan = simulatedActiveLoans.find(l => l.maturityMonth === maturityMonth)
+      const repaymentDue = maturingLoan?.repaymentAmount || 0
+
+      // Calculate excess proceeds (new loan principal - old loan repayment)
+      const excessProceeds = newLoanDetails.principal - repaymentDue
+
+      // For rollover, only EXCESS proceeds are used to buy BTC
+      if (params.btcAccumulation && excessProceeds > 0) {
+        const btcPurchased = excessProceeds / maturityPrice
+        simulatedTotalBtc += btcPurchased
+        console.log(`📊 Month ${maturityMonth} Simulation: New Loan=${newLoanDetails.principal}, Repayment Due=${repaymentDue}, Excess=${excessProceeds}, BTC Purchased=${btcPurchased.toFixed(4)}, Total BTC=${simulatedTotalBtc.toFixed(4)}`)
+      }
+
+      maturityExpected = newLoanDetails.principal
+    }
 
     return {
       btcStackValue,
@@ -288,7 +365,8 @@ export function RollingLoanDebugPage() {
       month0Expected: calculatedByPercent,
       maturityMonth,
       maturityExpected,
-      totalBtcAtMaturity,
+      totalBtcAtMaturity: simulatedTotalBtc,
+      maturityPrice,
       loanDetails,
       formatted
     }
@@ -436,8 +514,11 @@ Please go to the Price Projection tab and generate a projection.`
         }
       }
 
-      // Store debug info
-      debugResults.push({
+      // Prepare BTC accumulation details (will be populated after loan creation)
+      let btcAccumulationDetails: MonthDebugInfo['btcAccumulationDetails'] | undefined
+
+      // Store debug info (will update with BTC accumulation details later)
+      const debugEntry: MonthDebugInfo = {
         month,
         btcPrice,
         totalBtcAmount,
@@ -449,7 +530,8 @@ Please go to the Price Projection tab and generate a projection.`
         loanAmountCalc,
         decision,
         loanDetails: loanDetailsForDebug
-      })
+      }
+      debugResults.push(debugEntry)
 
       // Update simulation state based on decision
       if (decision.allowInvestment && decision.investmentMultiplier > 0 && loanDetailsForDebug) {
@@ -463,8 +545,63 @@ Please go to the Price Projection tab and generate a projection.`
         }
         activeLoans.push(newLoan)
 
+        // ═══════════════════════════════════════════════════════════════════════════
+        // BTC ACCUMULATION LOGIC
+        // ═══════════════════════════════════════════════════════════════════════════
+        //
+        // ⚠️ CRITICAL: Different logic for initial loan vs rollover!
+        //
+        // INITIAL LOAN (Month 0):
+        //   - No existing debt to pay off
+        //   - ENTIRE principal is used to buy BTC
+        //   - Example: $11,724 principal → Buy 0.1 BTC
+        //
+        // ROLLOVER LOAN (Month 18+):
+        //   - Must pay off maturing loan first
+        //   - Only EXCESS proceeds are used to buy BTC
+        //   - Example: $16,500 new loan - $13,659 repayment = $2,841 excess → Buy BTC
+        //
+        // The previous code incorrectly added the ENTIRE principal for rollovers,
+        // which caused the BTC stack to grow exponentially and produce wrong results.
+        // ═══════════════════════════════════════════════════════════════════════════
+
         if (params.btcAccumulation) {
-          totalBtcAmount += loanDetailsForDebug.principal / btcPrice
+          const previousTotalBtc = totalBtcAmount
+
+          if (isInitialLoan) {
+            // Initial loan: ENTIRE principal buys BTC
+            const btcPurchased = loanDetailsForDebug.principal / btcPrice
+            totalBtcAmount += btcPurchased
+
+            // Store accumulation details
+            debugEntry.btcAccumulationDetails = {
+              excessProceeds: loanDetailsForDebug.principal, // For initial loan, entire principal is "excess"
+              btcPurchased,
+              previousTotalBtc,
+              newTotalBtc: totalBtcAmount
+            }
+
+            console.log(`🟢 Month ${month} (Initial): Principal=${loanDetailsForDebug.principal}, BTC Purchased=${btcPurchased.toFixed(4)}, Total BTC=${totalBtcAmount.toFixed(4)}`)
+          } else if (isRollover) {
+            // Rollover: Only EXCESS proceeds buy BTC
+            const excessProceeds = loanDetailsForDebug.principal - totalRepaymentDue
+            if (excessProceeds > 0) {
+              const btcPurchased = excessProceeds / btcPrice
+              totalBtcAmount += btcPurchased
+
+              // Store accumulation details
+              debugEntry.btcAccumulationDetails = {
+                excessProceeds,
+                btcPurchased,
+                previousTotalBtc,
+                newTotalBtc: totalBtcAmount
+              }
+
+              console.log(`🔄 Month ${month} (Rollover): New Loan=${loanDetailsForDebug.principal}, Repayment=${totalRepaymentDue}, Excess=${excessProceeds}, BTC Purchased=${btcPurchased.toFixed(4)}, Total BTC=${totalBtcAmount.toFixed(4)}`)
+            } else {
+              console.log(`⚠️ Month ${month} (Rollover): No excess proceeds (New Loan=${loanDetailsForDebug.principal}, Repayment=${totalRepaymentDue})`)
+            }
+          }
         }
       }
 
@@ -900,6 +1037,52 @@ Please go to the Price Projection tab and generate a projection.`
                     </div>
                   </div>
                 </div>
+
+                {/* BTC Accumulation Details */}
+                {info.btcAccumulationDetails && (
+                  <div className="bg-green-50 dark:bg-green-950/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+                    <h4 className="font-semibold mb-2 flex items-center gap-2 text-green-700 dark:text-green-400">
+                      <TrendingUp className="h-4 w-4" />
+                      BTC Accumulation
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <div className="text-muted-foreground">
+                          {info.calculationPath === 'initial' ? 'Loan Principal:' : 'Excess Proceeds:'}
+                        </div>
+                        <div className="font-medium text-green-600">
+                          ${info.btcAccumulationDetails.excessProceeds.toLocaleString()}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground">BTC Purchased:</div>
+                        <div className="font-medium text-green-600">
+                          {info.btcAccumulationDetails.btcPurchased.toFixed(4)} BTC
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground">Previous Total BTC:</div>
+                        <div className="font-medium">
+                          {info.btcAccumulationDetails.previousTotalBtc.toFixed(4)} BTC
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-muted-foreground">New Total BTC:</div>
+                        <div className="font-bold text-green-600">
+                          {info.btcAccumulationDetails.newTotalBtc.toFixed(4)} BTC
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-green-200 dark:border-green-800">
+                      <div className="text-xs text-muted-foreground">
+                        {info.calculationPath === 'initial'
+                          ? '💡 Initial loan: Entire principal is used to purchase BTC'
+                          : '💡 Rollover: Only excess proceeds (new loan - repayment) are used to purchase BTC'
+                        }
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Rollover Details */}
                 {info.maturingLoansCount > 0 && (
