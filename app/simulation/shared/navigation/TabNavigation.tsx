@@ -5,30 +5,26 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useTranslation } from 'react-i18next'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Label } from '@/components/ui/label'
-import { HybridTooltip, HybridTooltipTrigger, HybridTooltipContent } from '@/components/ui/hybrid-tooltip'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
-import { DollarSign, Info, TrendingUp, Menu, Settings, BarChart3, Target, TrendingDown, Home, Globe, Sun, Moon } from 'lucide-react'
+import { Menu, Settings, BarChart3, Target, Home, Globe, Sun, Moon, Bug } from 'lucide-react'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { ModeToggle } from "@/components/mode-toggle"
 import { LocaleSwitcher } from "@/components/locale-switcher"
 import { useTheme } from "next-themes"
 import Link from "next/link"
-import { NumberInput } from '../../../../shared/ui/forms/NumberInput'
-import { PriceModelSelector, UnifiedPriceChart, SimplifiedManualGrowthInterface, GrowthRateAnalysis, DiminishingReturnsControls, LogarithmicCurveControls, PowerLawControls } from '../../tabs/price-projection'
+import { ProjectionParametersCard, UnifiedPriceChart, SimplifiedManualGrowthInterface, GrowthRateAnalysis, DiminishingReturnsControls, LogarithmicCurveControls, PowerLawControls } from '../../tabs/price-projection'
 import { BasicParametersCard, ValidationSummary, RiskLevelSelector } from '../../tabs/parameters'
 
 import { CollateralVisualizationCard, LoanUsageVisualizationCard, PriceDropToleranceCard, LoanParametersCard, PlatformSelector } from '../../tabs/parameters'
-import { StrategySelectionCard, RollingLoanConfigCard, BtcAccumulationCard, StrategyPreviewCard } from '../../tabs/strategy'
+import { StrategySelectionCard, RollingLoanConfigCard, BtcAccumulationCard, FinancialFlowCard, StrategyPreviewCard } from '../../tabs/strategy'
 import { ResultsPage } from '../../tabs/results'
+import { RollingLoanDebugPage } from '../../tabs/debug/RollingLoanDebugPage'
 import { useSimulation } from '../../context/SimulationContext'
 import type { PriceProjectionResult } from '../../price-models/types'
 // import { CsvUpdatePanel } from '../admin/CsvUpdatePanel' // Disabled for production
 
-export type TabValue = 'parameters' | 'price-projection' | 'strategy' | 'results'
+export type TabValue = 'parameters' | 'price-projection' | 'strategy' | 'results' | 'debug'
 
 interface TabNavigationProps {
   children?: React.ReactNode
@@ -47,7 +43,7 @@ export function TabNavigation({ children }: TabNavigationProps) {
   const { t } = useTranslation()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { params, setParams } = useSimulation()
+  const { params, setParams, setPriceProjection, priceProjection } = useSimulation()
   const isMobile = useIsMobile()
   const { setTheme, theme } = useTheme()
 
@@ -75,53 +71,28 @@ export function TabNavigation({ children }: TabNavigationProps) {
     results: {
       label: t('Navigation.results.label'),
       shortLabel: t('Navigation.results.shortLabel'),
-      icon: TrendingDown,
+      icon: BarChart3,
       enabled: false,
       badge: 'Coming Soon'
+    },
+    debug: {
+      label: 'Debug',
+      shortLabel: 'Debug',
+      icon: Bug,
+      enabled: true,
+      badge: 'Dev'
     }
   }
 
-  // State for projection data from UnifiedPriceChart
-  const [projection, setProjection] = useState<PriceProjectionResult | null>(null)
+  // FIXED: Use context's setPriceProjection instead of local state
+  // This ensures the projection is available to all components including Debug page
   const [isSheetOpen, setIsSheetOpen] = useState(false)
-
-  // Get BTC accumulation state (default to true)
-  const btcAccumulation = (params as any).btcAccumulation ?? true
-
-  /**
-   * Handle BTC accumulation checkbox change
-   */
-  const handleBtcAccumulationChange = (checked: boolean) => {
-    setParams((current) => ({
-      ...current,
-      btcAccumulation: checked
-    }))
-  }
-
-  /**
-   * Get investment mode description based on checkbox and savings/withdrawal amount
-   */
-  const getInvestmentModeDescription = () => {
-    if (btcAccumulation && params.monthlyWithdrawalAmount === 0) {
-      return "Accumulate more BTC only (reinvest all loan proceeds)"
-    } else if (btcAccumulation && params.monthlyWithdrawalAmount > 0) {
-      return "Hybrid approach (add monthly savings AND reinvest remaining loan proceeds into BTC)"
-    } else if (btcAccumulation && params.monthlyWithdrawalAmount < 0) {
-      return "Hybrid approach (withdraw specific amount AND reinvest remaining loan proceeds into BTC)"
-    } else if (!btcAccumulation && params.monthlyWithdrawalAmount > 0) {
-      return "Monthly savings only (add specific amount, no loan reinvestment)"
-    } else if (!btcAccumulation && params.monthlyWithdrawalAmount < 0) {
-      return "Live from BTC stack only (withdraw specific amount, no reinvestment)"
-    } else {
-      return "No savings/withdrawals, no reinvestment"
-    }
-  }
 
   // Get initial tab from URL, localStorage, or default to parameters
   const getInitialTab = (): TabValue => {
     // First, try to get from URL parameters
     const urlTab = searchParams.get('tab') as TabValue
-    if (urlTab && ['parameters', 'price-projection', 'strategy', 'results'].includes(urlTab)) {
+    if (urlTab && ['parameters', 'price-projection', 'strategy', 'results', 'debug'].includes(urlTab)) {
       return urlTab
     }
 
@@ -129,7 +100,7 @@ export function TabNavigation({ children }: TabNavigationProps) {
     if (typeof window !== 'undefined') {
       try {
         const savedTab = localStorage.getItem('bitcoin-sim-active-tab') as TabValue
-        if (savedTab && ['parameters', 'price-projection', 'strategy', 'results'].includes(savedTab)) {
+        if (savedTab && ['parameters', 'price-projection', 'strategy', 'results', 'debug'].includes(savedTab)) {
           return savedTab
         }
       } catch (error) {
@@ -148,7 +119,7 @@ export function TabNavigation({ children }: TabNavigationProps) {
     const tabParam = searchParams.get('tab') as TabValue
 
     // If URL has a valid tab parameter, use it
-    if (tabParam && ['parameters', 'price-projection', 'strategy', 'results'].includes(tabParam)) {
+    if (tabParam && ['parameters', 'price-projection', 'strategy', 'results', 'debug'].includes(tabParam)) {
       setActiveTab(tabParam)
       // Save to localStorage for persistence
       if (typeof window !== 'undefined') {
@@ -175,7 +146,7 @@ export function TabNavigation({ children }: TabNavigationProps) {
     const tabValue = value as TabValue
 
     // Validate tab value
-    if (!['parameters', 'price-projection', 'strategy', 'results'].includes(tabValue)) {
+    if (!['parameters', 'price-projection', 'strategy', 'results', 'debug'].includes(tabValue)) {
       return
     }
 
@@ -415,8 +386,8 @@ export function TabNavigation({ children }: TabNavigationProps) {
         <TabsContent value="price-projection" className={`${isMobile ? 'mt-0 px-4' : 'mt-6'}`}>
           <div className="space-y-6">
 
-            {/* Price Model Selection */}
-            <PriceModelSelector />
+            {/* Price Model Selection & Simulation Length */}
+            <ProjectionParametersCard />
 
             {/* Simplified Manual Growth Interface (when manual model is selected) */}
             {params.priceModel === 'manual' && (
@@ -424,7 +395,7 @@ export function TabNavigation({ children }: TabNavigationProps) {
             )}
 
             {/* Unified Price Chart */}
-            <UnifiedPriceChart onProjectionChange={setProjection} />
+            <UnifiedPriceChart onProjectionChange={setPriceProjection} />
 
 
 
@@ -446,7 +417,7 @@ export function TabNavigation({ children }: TabNavigationProps) {
 
             {/* Universal Growth Rate Analysis (for all models) */}
             <GrowthRateAnalysis
-              projection={projection}
+              projection={priceProjection}
               startPrice={params.initialBtcPrice}
             />
 
@@ -473,61 +444,23 @@ export function TabNavigation({ children }: TabNavigationProps) {
               <BtcAccumulationCard />
             </div>
 
+            {/* Financial Flow Configuration */}
+            <FinancialFlowCard />
+
             {/* Rolling Loan Strategy Configuration (conditional) */}
             <RollingLoanConfigCard />
 
             {/* Strategy Mechanics Preview */}
             <StrategyPreviewCard />
-
-            {/* Monthly Savings/Withdrawal - Legacy Component */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="w-5 h-5 text-blue-500" />
-                  Monthly Cash Flow
-                </CardTitle>
-                <CardDescription>
-                  Configure additional monthly savings or withdrawals
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    Monthly Savings/Withdrawal
-                    <HybridTooltip>
-                      <HybridTooltipTrigger asChild>
-                        <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                      </HybridTooltipTrigger>
-                      <HybridTooltipContent>
-                        <p>Positive values: Monthly savings added to BTC stack. Negative values: Monthly withdrawals from BTC stack for living expenses.</p>
-                      </HybridTooltipContent>
-                    </HybridTooltip>
-                  </Label>
-                  <NumberInput
-                    value={params.monthlyWithdrawalAmount}
-                    onChange={(value) => setParams((p) => ({ ...p, monthlyWithdrawalAmount: value }))}
-                    min={-50000}
-                    max={50000}
-                    step={100}
-                    decimals={0}
-                    suffix="$"
-                    placeholder="150"
-                  />
-                </div>
-
-                {/* Investment Mode Description */}
-                <div className="p-3 bg-muted/50 rounded-lg">
-                  <p className="text-sm text-muted-foreground">
-                    {getInvestmentModeDescription()}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
           </div>
         </TabsContent>
         
         <TabsContent value="results" className={`${isMobile ? 'mt-0 px-4' : 'mt-6'}`}>
           <ResultsPage />
+        </TabsContent>
+
+        <TabsContent value="debug" className={`${isMobile ? 'mt-0 px-4' : 'mt-6'}`}>
+          <RollingLoanDebugPage />
         </TabsContent>
       </Tabs>
     </div>

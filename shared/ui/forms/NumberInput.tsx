@@ -227,9 +227,20 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
 
       // Allow minus sign for negative numbers (only at beginning)
       if (e.keyCode === 189 || e.keyCode === 109) {
-        // Only allow at the beginning and if min allows negative values
-        if (displayValue.length > 0 || (min !== undefined && min >= 0)) {
+        // Block if min doesn't allow negative values
+        if (min !== undefined && min >= 0) {
           e.preventDefault()
+          return
+        }
+        // Block if minus is not at the beginning
+        if (displayValue.length > 0 && !displayValue.startsWith('-')) {
+          e.preventDefault()
+          return
+        }
+        // Block if minus already exists
+        if (displayValue.includes('-')) {
+          e.preventDefault()
+          return
         }
         return
       }

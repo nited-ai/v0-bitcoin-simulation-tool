@@ -31,6 +31,9 @@ export interface StrategyExecutionParams {
   // BTC accumulation setting
   btcAccumulation: boolean
 
+  // User-configured loan amount percentage (NEW - for consistent loan sizing)
+  loanAmountPercent?: number // Percentage of BTC stack to use as loan amount (e.g., 10 = 10%)
+
   // Risk management
   riskManagement: {
     targetLtv: number

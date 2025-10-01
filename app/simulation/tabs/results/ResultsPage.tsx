@@ -11,6 +11,8 @@ import { PortfolioValueChart } from "./charts/PortfolioValueChart"
 import { DebtCollateralChart } from "./charts/DebtCollateralChart"
 import { LTVProgressionChart } from "./charts/LTVProgressionChart"
 import { CashFlowChart } from "./charts/CashFlowChart"
+import { BitcoinPriceChart } from "./charts/BitcoinPriceChart"
+import { LoanActivityTable } from "./charts/LoanActivityTable"
 import { RiskAssessment } from "./RiskAssessment"
 import { EventsAnalysis } from "./EventsAnalysis"
 import { ResultsExport } from "./ResultsExport"
@@ -180,6 +182,9 @@ export function ResultsPage() {
       {/* Results Summary Cards */}
       <ResultsSummary />
 
+      {/* Bitcoin Price Chart - Full Width */}
+      <BitcoinPriceChart />
+
       {/* Core Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <PortfolioValueChart />
@@ -191,6 +196,9 @@ export function ResultsPage() {
         <LTVProgressionChart />
         <CashFlowChart />
       </div>
+
+      {/* Loan Activity Table - Full Width */}
+      <LoanActivityTable />
 
       {/* Risk and Events Analysis */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

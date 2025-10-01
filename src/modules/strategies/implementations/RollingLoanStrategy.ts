@@ -90,11 +90,21 @@ The strategy automatically handles loan rollovers at maturity, calculates minimu
     }
 
     const collateralValue = totalBtcAmount * btcPrice
-    const targetLtv = params.riskManagement.targetLtv
-    const maxLoanAmount = Math.min(
-      params.maxLoanAmount,
-      collateralValue * (targetLtv / 100)
-    )
+
+    // CRITICAL FIX: Use loanAmountPercent if available (user-configured percentage)
+    // Otherwise fall back to old logic for backward compatibility
+    let maxLoanAmount: number
+    if (params.loanAmountPercent !== undefined && params.loanAmountPercent > 0) {
+      // Use user-configured percentage (e.g., 10% of collateral)
+      maxLoanAmount = collateralValue * (params.loanAmountPercent / 100)
+    } else {
+      // Legacy fallback: use targetLtv and maxLoanAmount constraint
+      const targetLtv = params.riskManagement.targetLtv
+      maxLoanAmount = Math.min(
+        params.maxLoanAmount,
+        collateralValue * (targetLtv / 100)
+      )
+    }
 
     // Get maturing loans for this month
     const maturingLoans = activeLoans.filter(loan => loan.maturityMonth === month)
@@ -135,6 +145,9 @@ The strategy automatically handles loan rollovers at maturity, calculates minimu
     const loanAmount = maxLoanAmount
     const investmentMultiplier = loanAmount / collateralValue
 
+    // Calculate actual LTV percentage for display
+    const actualLtvPercent = (loanAmount / collateralValue) * 100
+
     if (params.btcAccumulation) {
       // BTC Accumulation Mode: Reinvest loan proceeds into more BTC
       return {
@@ -142,7 +155,7 @@ The strategy automatically handles loan rollovers at maturity, calculates minimu
         investmentMultiplier,
         allowWithdrawal: false,
         withdrawalAmount: 0,
-        reasoning: `Taking initial loan of $${Math.round(loanAmount)} for BTC accumulation (${params.riskManagement.targetLtv}% LTV)`
+        reasoning: `Taking initial loan of $${Math.round(loanAmount)} for BTC accumulation (${actualLtvPercent.toFixed(1)}% of collateral)`
       }
     } else {
       // Cash Generation Mode: Take loan proceeds as cash
@@ -151,7 +164,7 @@ The strategy automatically handles loan rollovers at maturity, calculates minimu
         investmentMultiplier,
         allowWithdrawal: true,
         withdrawalAmount: loanAmount * 0.8, // Take most as cash, keep some buffer
-        reasoning: `Taking initial loan of $${Math.round(loanAmount)} for cash generation (${params.riskManagement.targetLtv}% LTV)`
+        reasoning: `Taking initial loan of $${Math.round(loanAmount)} for cash generation (${actualLtvPercent.toFixed(1)}% of collateral)`
       }
     }
   }
@@ -173,6 +186,11 @@ The strategy automatically handles loan rollovers at maturity, calculates minimu
     // TODO: Add platform information to StrategyContext or StrategyExecutionParams
     const platformFeeConfig: PlatformFeeConfig = this.getPlatformFeeConfigFromParams(params)
 
+    // CRITICAL FIX: Use loanAmountPercent if available, otherwise fall back to targetLtv
+    const targetLtvPercent = params.loanAmountPercent !== undefined && params.loanAmountPercent > 0
+      ? params.loanAmountPercent
+      : params.riskManagement.targetLtv
+
     // Prepare loan rollover parameters
     const rolloverParams: LoanRolloverParams = {
       previousLoanPrincipal: totalPrincipal,
@@ -181,7 +199,7 @@ The strategy automatically handles loan rollovers at maturity, calculates minimu
       loanOriginationFeePercent: params.loanOriginationFeePercent,
       loanTermMonths: params.loanTermMonths,
       btcStackValue: collateralValue,
-      targetLtvPercent: params.riskManagement.targetLtv,
+      targetLtvPercent, // Use user-configured percentage or fall back to targetLtv
       liquidationLtvPercent: params.riskManagement.liquidationLtv
     }
 

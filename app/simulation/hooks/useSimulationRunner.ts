@@ -50,7 +50,7 @@ export function useSimulationRunner() {
     clearErrors()
 
     try {
-      // Calculate actual loan amount from percentage of BTC stack value
+      // Calculate actual loan amount from percentage of BTC stack value (for initial reference)
       const btcStackValue = params.initialBtcAmount * params.initialBtcPrice
       const calculatedLoanAmount = (params.loanAmountPercent / 100) * btcStackValue
 
@@ -63,7 +63,8 @@ export function useSimulationRunner() {
         loanOriginationFeePercent: params.originationFeePercent, // Updated field name for consistency
         loanTermMonths: params.loanTermMonths,
         simulationMonths: params.simulationMonths,
-        maxLoanAmount: calculatedLoanAmount, // Use calculated amount instead of params.maxLoanAmount
+        maxLoanAmount: calculatedLoanAmount, // Initial loan amount (for backward compatibility)
+        loanAmountPercent: params.loanAmountPercent, // CRITICAL: Pass percentage for dynamic calculation
         expectedAnnualInflation: 3.0, // Default 3% annual inflation
         btcAccumulation: (params as any).btcAccumulation ?? true, // Default to true if not set
         riskManagement: {

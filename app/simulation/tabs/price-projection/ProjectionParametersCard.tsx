@@ -17,11 +17,11 @@ interface ModelInfo {
   description: string
 }
 
-interface PriceModelSelectorProps {
+interface ProjectionParametersCardProps {
   className?: string
 }
 
-export function PriceModelSelector({ className }: PriceModelSelectorProps) {
+export function ProjectionParametersCard({ className }: ProjectionParametersCardProps) {
   const { t } = useTranslation()
   const { params, setParams } = useSimulation()
   const [models, setModels] = useState<ModelInfo[]>([])

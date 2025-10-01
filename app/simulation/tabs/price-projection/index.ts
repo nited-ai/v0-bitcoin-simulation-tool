@@ -4,7 +4,7 @@
  */
 
 // Main price projection components
-export { PriceModelSelector } from './PriceModelSelector'
+export { ProjectionParametersCard } from './ProjectionParametersCard'
 export { default as UnifiedPriceChart } from './UnifiedPriceChart'
 export { PriceProjectionChart } from './PriceProjectionChart'
 export { GrowthRateAnalysis } from './GrowthRateAnalysis'

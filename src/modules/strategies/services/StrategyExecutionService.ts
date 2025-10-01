@@ -52,15 +52,28 @@ export class StrategyExecutionService {
     for (let month = 0; month < params.simulationMonths; month++) {
       const currentDate = new Date()
       currentDate.setMonth(currentDate.getMonth() + month)
-      
+
       // Get BTC price for this month
       const pricePoint = priceChartData[month] || priceChartData[priceChartData.length - 1]
-      const btcPrice = pricePoint.price
+
+      // CRITICAL FIX: Use initialBtcPrice for Month 0, projected price for subsequent months
+      const btcPrice = month === 0 ? params.initialBtcPrice : pricePoint.price
 
       // Initialize monthly tracking
       const monthlyEvents: MonthlyEvent[] = []
       const collateralValue = totalBtcAmount * btcPrice
-      let debtCapacity = collateralValue * (params.riskManagement.targetLtv / 100)
+
+      // CRITICAL FIX: Calculate debt capacity dynamically based on user-configured percentage
+      // If loanAmountPercent is provided, use it to calculate debt capacity that scales with BTC price
+      // Otherwise, fall back to fixed maxLoanAmount (for backward compatibility)
+      let debtCapacity: number
+      if (params.loanAmountPercent !== undefined && params.loanAmountPercent > 0) {
+        // Use percentage-based calculation (scales with collateral value)
+        debtCapacity = collateralValue * (params.loanAmountPercent / 100)
+      } else {
+        // Fall back to fixed amount (legacy behavior)
+        debtCapacity = params.maxLoanAmount
+      }
 
       // Create strategy context
       const strategyContext: StrategyContext = {
