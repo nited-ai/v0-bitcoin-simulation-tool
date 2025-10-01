@@ -49,7 +49,13 @@ export interface UseCentralizedDataReturn {
  * It automatically subscribes to the centralized data service and provides
  * reactive updates when data changes.
  *
+ * **Note**: When used with DataServiceProvider, the data service is already
+ * initialized at the app level, so the `enabled` parameter is less critical.
+ * The hook will still work correctly and receive data from the provider.
+ *
  * @param enabled - Whether to enable data loading (default: false for lazy loading)
+ *                  With DataServiceProvider, this parameter is optional as initialization
+ *                  happens at the app level.
  */
 export function useCentralizedData(enabled: boolean = false): UseCentralizedDataReturn {
   const { t } = useTranslation()
@@ -123,6 +129,7 @@ export function useCentralizedData(enabled: boolean = false): UseCentralizedData
   }, []) // Empty dependency array to prevent re-subscription
   
   // Initialize data service on first mount (only if enabled)
+  // Note: With DataServiceProvider, this initialization is redundant but harmless
   useEffect(() => {
     // Skip if not enabled (lazy loading)
     if (!enabled) {
@@ -132,6 +139,12 @@ export function useCentralizedData(enabled: boolean = false): UseCentralizedData
 
     const initializeDataService = async () => {
       try {
+        // Check if already initialized (e.g., by DataServiceProvider)
+        if (dataServiceState.isHistoricalDataLoaded) {
+          console.log('✅ Data service already initialized by provider')
+          return
+        }
+
         await centralizedDataService.initialize()
       } catch (error) {
         console.error('❌ Failed to initialize data service:', error)
