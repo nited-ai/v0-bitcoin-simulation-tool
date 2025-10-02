@@ -50,10 +50,25 @@ export class VolatilityService {
       return []
     }
 
-    // Take the last N months of historical data (or all available if less than requested)
-    const relevantHistory = historicalData.slice(-patternLengthMonths)
+    // Detect data interval by checking time difference between consecutive points
+    const dataInterval = this.detectDataInterval(historicalData)
+    console.log('🌊 [VolatilityService] Detected data interval:', dataInterval)
 
-    console.log(`📊 VolatilityService: Extracting deviation pattern from ${relevantHistory.length} months of data`)
+    // Convert months to data points based on interval
+    const dataPointsNeeded = this.convertMonthsToDataPoints(patternLengthMonths, dataInterval)
+    console.log(`🌊 [VolatilityService] Converting ${patternLengthMonths} months to ${dataPointsNeeded} data points (${dataInterval} interval)`)
+
+    // Take the last N data points (representing the requested months)
+    const relevantHistory = historicalData.slice(-dataPointsNeeded)
+
+    // Calculate actual time span
+    if (relevantHistory.length > 0) {
+      const startDate = new Date(relevantHistory[0].time * 1000)
+      const endDate = new Date(relevantHistory[relevantHistory.length - 1].time * 1000)
+      const monthsSpan = ((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44)).toFixed(1)
+      console.log(`📊 VolatilityService: Extracting pattern from ${relevantHistory.length} data points spanning ${monthsSpan} months`)
+      console.log(`📊 VolatilityService: Date range: ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`)
+    }
 
     const deviationPattern: number[] = []
 
@@ -180,12 +195,66 @@ export class VolatilityService {
 
   /**
    * Check if sufficient historical data is available for volatility calculation
-   * 
+   *
    * @param historicalData - Historical data array
    * @param requiredMonths - Required number of months
    * @returns True if sufficient data is available
    */
   hasSufficientData(historicalData: HistoricalDataPoint[], requiredMonths: number): boolean {
     return historicalData && historicalData.length >= Math.min(requiredMonths, this.PATTERN_LENGTH_MIN)
+  }
+
+  /**
+   * Detect the interval of historical data by analyzing time differences
+   *
+   * @param historicalData - Historical data array
+   * @returns Detected interval ('daily', 'weekly', or 'monthly')
+   */
+  private detectDataInterval(historicalData: HistoricalDataPoint[]): 'daily' | 'weekly' | 'monthly' {
+    if (historicalData.length < 2) {
+      return 'weekly' // Default fallback
+    }
+
+    // Calculate average time difference between consecutive points (in days)
+    let totalDaysDiff = 0
+    let count = 0
+
+    for (let i = 1; i < Math.min(10, historicalData.length); i++) {
+      const timeDiff = historicalData[i].time - historicalData[i - 1].time
+      const daysDiff = timeDiff / (60 * 60 * 24) // Convert seconds to days
+      totalDaysDiff += daysDiff
+      count++
+    }
+
+    const avgDaysDiff = totalDaysDiff / count
+
+    // Classify based on average difference
+    if (avgDaysDiff < 3) {
+      return 'daily'
+    } else if (avgDaysDiff < 15) {
+      return 'weekly'
+    } else {
+      return 'monthly'
+    }
+  }
+
+  /**
+   * Convert months to data points based on interval
+   *
+   * @param months - Number of months
+   * @param interval - Data interval
+   * @returns Number of data points needed
+   */
+  private convertMonthsToDataPoints(months: number, interval: 'daily' | 'weekly' | 'monthly'): number {
+    switch (interval) {
+      case 'daily':
+        return Math.round(months * 30.44) // Average days per month
+      case 'weekly':
+        return Math.round(months * 4.33) // Average weeks per month
+      case 'monthly':
+        return months // 1:1 mapping
+      default:
+        return months
+    }
   }
 }

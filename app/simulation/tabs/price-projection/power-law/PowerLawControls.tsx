@@ -175,21 +175,29 @@ export function PowerLawControls({ className }: PowerLawControlsProps) {
 
   // Apply to Price Projection functionality
   const applyToPriceProjection = () => {
+    console.log('🔘 [PowerLawControls] Apply to Price Projection button clicked')
     const settings = params.powerLawSettings!
     const fitParams = settings.controlMode === 'unified'
       ? { slope: settings.unifiedSlope!, intercept: settings.unifiedIntercept! }
       : settings.individualParams!.fit
 
-    setParams(prev => ({
-      ...prev,
-      powerLawSettings: {
-        ...prev.powerLawSettings!,
-        priceProjectionParams: {
-          slope: fitParams.slope,
-          intercept: fitParams.intercept
+    console.log('🔘 [PowerLawControls] Current Fit line params:', fitParams)
+    console.log('🔘 [PowerLawControls] Current priceProjectionParams:', settings.priceProjectionParams)
+
+    setParams(prev => {
+      const newSettings = {
+        ...prev,
+        powerLawSettings: {
+          ...prev.powerLawSettings!,
+          priceProjectionParams: {
+            slope: fitParams.slope,
+            intercept: fitParams.intercept
+          }
         }
       }
-    }))
+      console.log('🔘 [PowerLawControls] New priceProjectionParams:', newSettings.powerLawSettings.priceProjectionParams)
+      return newSettings
+    })
   }
 
   return (
