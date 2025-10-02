@@ -224,21 +224,6 @@ export function PowerLawControls({ className }: PowerLawControlsProps) {
       </CardHeader>
 
       <CardContent className="space-y-6">
-        {/* Apply to Price Projection Button */}
-        <div className="flex justify-center">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={applyToPriceProjection}
-            className="flex items-center gap-2"
-          >
-            <Copy className="h-4 w-4" />
-            Apply to Price Projection
-          </Button>
-        </div>
-
-        <Separator />
-
         {/* Control Mode Toggle */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -282,9 +267,20 @@ export function PowerLawControls({ className }: PowerLawControlsProps) {
         {/* Unified Controls */}
         {isUnified && (
           <div className="space-y-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Sliders className="h-4 w-4 text-primary" />
-              <h4 className="font-medium">Unified Controls</h4>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Sliders className="h-4 w-4 text-primary" />
+                <h4 className="font-medium">Unified Controls</h4>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={applyToPriceProjection}
+                className="flex items-center gap-2"
+              >
+                <Copy className="h-4 w-4" />
+                Apply to Price Projection
+              </Button>
             </div>
             
             {/* Unified Slope */}
@@ -336,9 +332,20 @@ export function PowerLawControls({ className }: PowerLawControlsProps) {
         {/* Individual Controls */}
         {!isUnified && (
           <div className="space-y-6">
-            <div className="flex items-center gap-2 mb-3">
-              <Sliders className="h-4 w-4 text-primary" />
-              <h4 className="font-medium">Individual Controls</h4>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Sliders className="h-4 w-4 text-primary" />
+                <h4 className="font-medium">Individual Controls</h4>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={applyToPriceProjection}
+                className="flex items-center gap-2"
+              >
+                <Copy className="h-4 w-4" />
+                Apply to Price Projection
+              </Button>
             </div>
 
             {/* PL Fit Controls */}
