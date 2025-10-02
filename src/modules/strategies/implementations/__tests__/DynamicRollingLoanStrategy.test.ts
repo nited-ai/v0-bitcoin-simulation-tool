@@ -197,6 +197,81 @@ describe('DynamicRollingLoanStrategy', () => {
       expect(decision.reasoning).toContain('LTV')
     })
   })
+
+  describe('Automatic Mode Selection', () => {
+    it('should route to Dynamic LTV mode when loanTermMonths is Infinity', () => {
+      const context = createMockContext({
+        month: 1, // Not Month 0
+        btcPrice: 100000,
+        totalBtcAmount: 10,
+        activeLoans: [],
+        params: {
+          loanTermMonths: Infinity // Dynamic LTV mode
+        }
+      })
+
+      const decision = strategy.makeDecision(context)
+
+      // Should call handleDynamicLtvMode (currently returns placeholder)
+      expect(decision.reasoning).toContain('Dynamic LTV mode')
+    })
+
+    it('should route to Fixed Term mode when loanTermMonths is specific number', () => {
+      const context = createMockContext({
+        month: 1, // Not Month 0
+        btcPrice: 100000,
+        totalBtcAmount: 10,
+        activeLoans: [],
+        params: {
+          loanTermMonths: 6 // Fixed Term mode
+        }
+      })
+
+      const decision = strategy.makeDecision(context)
+
+      // Should call handleFixedTermMode (currently returns placeholder)
+      expect(decision.reasoning).toContain('Fixed Term mode')
+    })
+
+    it('should handle 3-month loan term (Fixed Term mode)', () => {
+      const context = createMockContext({
+        month: 1,
+        params: {
+          loanTermMonths: 3
+        }
+      })
+
+      const decision = strategy.makeDecision(context)
+
+      expect(decision.reasoning).toContain('Fixed Term mode')
+    })
+
+    it('should handle 12-month loan term (Fixed Term mode)', () => {
+      const context = createMockContext({
+        month: 1,
+        params: {
+          loanTermMonths: 12
+        }
+      })
+
+      const decision = strategy.makeDecision(context)
+
+      expect(decision.reasoning).toContain('Fixed Term mode')
+    })
+
+    it('should handle 24-month loan term (Fixed Term mode)', () => {
+      const context = createMockContext({
+        month: 1,
+        params: {
+          loanTermMonths: 24
+        }
+      })
+
+      const decision = strategy.makeDecision(context)
+
+      expect(decision.reasoning).toContain('Fixed Term mode')
+    })
+  })
 })
 
 /**
