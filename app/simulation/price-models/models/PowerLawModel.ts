@@ -200,8 +200,13 @@ export class PowerLawModel implements PriceProjectionModel {
       }
 
       volatilityApplied = deviationPattern.length > 0
+
+      if (volatilityApplied) {
+        console.log(`📊 Power Law Model: Will apply ${deviationPattern.length} deviation points to ${params.projectionMonths} projection months`)
+        console.log(`📊 Power Law Model: Pattern will cycle every ${deviationPattern.length} months`)
+      }
     }
-    
+
     // Generate monthly projections
     for (let month = 1; month <= params.projectionMonths; month++) {
       const currentDate = new Date(startDate)

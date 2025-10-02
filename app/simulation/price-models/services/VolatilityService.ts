@@ -89,7 +89,13 @@ export class VolatilityService {
     }
 
     console.log(`✅ VolatilityService: Extracted ${deviationPattern.length} deviation ratios`)
-    return deviationPattern
+
+    // Resample to monthly frequency if needed
+    // This ensures the pattern matches the projection time scale (monthly)
+    const monthlyPattern = this.resampleToMonthly(deviationPattern, dataInterval, patternLengthMonths)
+    console.log(`✅ VolatilityService: Resampled to ${monthlyPattern.length} monthly deviation ratios`)
+
+    return monthlyPattern
   }
 
   /**
@@ -145,11 +151,8 @@ export class VolatilityService {
 
       const adjustedPrice = basePrice * volatilityMultiplier
 
-      if (monthIndex === 0) {
-        console.log('🌊 [VolatilityService] Pattern index:', patternIndex)
-        console.log('🌊 [VolatilityService] Deviation ratio:', deviationRatio)
-        console.log('🌊 [VolatilityService] Volatility multiplier:', volatilityMultiplier)
-        console.log('🌊 [VolatilityService] Adjusted price:', adjustedPrice)
+      if (monthIndex === 0 || monthIndex === 1 || monthIndex === 95 || monthIndex === 96 || monthIndex === 97) {
+        console.log(`🌊 [VolatilityService] Month ${monthIndex}: Pattern[${patternIndex}/${deviationPattern.length}] = ${deviationRatio.toFixed(3)} → Multiplier: ${volatilityMultiplier.toFixed(3)}`)
       }
 
       return adjustedPrice
@@ -256,5 +259,48 @@ export class VolatilityService {
       default:
         return months
     }
+  }
+
+  /**
+   * Resample deviation pattern to monthly frequency
+   *
+   * This ensures the pattern matches the projection time scale (monthly).
+   * For example, if we have 416 weekly data points spanning 96 months,
+   * we resample to 96 monthly data points by taking every ~4.33rd point.
+   *
+   * @param deviationPattern - Original deviation pattern (at data interval frequency)
+   * @param dataInterval - Original data interval
+   * @param targetMonths - Target number of months
+   * @returns Resampled pattern at monthly frequency
+   */
+  private resampleToMonthly(
+    deviationPattern: number[],
+    dataInterval: 'daily' | 'weekly' | 'monthly',
+    targetMonths: number
+  ): number[] {
+    // If already monthly, no resampling needed
+    if (dataInterval === 'monthly') {
+      return deviationPattern
+    }
+
+    // Calculate how many data points per month
+    const dataPointsPerMonth = dataInterval === 'daily' ? 30.44 : 4.33
+
+    // Resample to monthly frequency
+    const monthlyPattern: number[] = []
+    for (let month = 0; month < targetMonths; month++) {
+      // Calculate which data point index corresponds to this month
+      const dataPointIndex = Math.floor(month * dataPointsPerMonth)
+
+      // Make sure we don't go out of bounds
+      if (dataPointIndex < deviationPattern.length) {
+        monthlyPattern.push(deviationPattern[dataPointIndex])
+      } else {
+        // If we run out of data, use the last available point
+        monthlyPattern.push(deviationPattern[deviationPattern.length - 1])
+      }
+    }
+
+    return monthlyPattern
   }
 }

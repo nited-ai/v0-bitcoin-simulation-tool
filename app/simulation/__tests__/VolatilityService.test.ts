@@ -64,8 +64,11 @@ describe('VolatilityService', () => {
         mockGetPowerLawPrice
       )
 
-      expect(pattern).toHaveLength(1)
+      // After resampling, should return 96 monthly deviation ratios (repeating the single value)
+      expect(pattern).toHaveLength(96)
       expect(pattern[0]).toBeGreaterThan(0)
+      // All values should be the same since we only have 1 data point
+      expect(pattern.every(v => v === pattern[0])).toBe(true)
     })
 
     it('should work with different prognosis lines', () => {
