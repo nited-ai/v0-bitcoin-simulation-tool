@@ -118,9 +118,9 @@ export function FinancialFlowCard() {
                   {params.btcAccumulation
                     ? " These funds will be used to purchase additional Bitcoin."
                     : " These funds will be held as cash reserves."}
-                  {params.annualSavingsIncrease && params.annualSavingsIncrease > 0 && (
-                    <span className="block mt-1 text-green-700 dark:text-green-300">
-                      Growing at <strong>{params.annualSavingsIncrease}%</strong> annually (Year 10: ${Math.round(Math.abs(params.monthlyWithdrawalAmount) * Math.pow(1 + params.annualSavingsIncrease / 100, 9)).toLocaleString()}/month)
+                  {params.annualSavingsIncrease && params.annualSavingsIncrease !== 0 && (
+                    <span className={`block mt-1 ${params.annualSavingsIncrease > 0 ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>
+                      {params.annualSavingsIncrease > 0 ? 'Growing' : 'Decreasing'} at <strong>{Math.abs(params.annualSavingsIncrease)}%</strong> annually (Year 10: ${Math.round(Math.abs(params.monthlyWithdrawalAmount) * Math.pow(1 + params.annualSavingsIncrease / 100, 9)).toLocaleString()}/month)
                     </span>
                   )}
                 </p>
@@ -138,9 +138,9 @@ export function FinancialFlowCard() {
                 <p className="text-sm text-muted-foreground mt-1">
                   You're withdrawing <strong>${Math.abs(params.monthlyWithdrawalAmount).toLocaleString()}</strong> per month from your investment.
                   This will reduce your available collateral over time.
-                  {params.annualSavingsIncrease && params.annualSavingsIncrease > 0 && (
-                    <span className="block mt-1 text-orange-700 dark:text-orange-300">
-                      Increasing at <strong>{params.annualSavingsIncrease}%</strong> annually (Year 10: ${Math.round(Math.abs(params.monthlyWithdrawalAmount) * Math.pow(1 + params.annualSavingsIncrease / 100, 9)).toLocaleString()}/month)
+                  {params.annualSavingsIncrease && params.annualSavingsIncrease !== 0 && (
+                    <span className={`block mt-1 ${params.annualSavingsIncrease > 0 ? 'text-orange-700 dark:text-orange-300' : 'text-green-700 dark:text-green-300'}`}>
+                      {params.annualSavingsIncrease > 0 ? 'Increasing' : 'Decreasing'} at <strong>{Math.abs(params.annualSavingsIncrease)}%</strong> annually (Year 10: ${Math.round(Math.abs(params.monthlyWithdrawalAmount) * Math.pow(1 + params.annualSavingsIncrease / 100, 9)).toLocaleString()}/month)
                     </span>
                   )}
                 </p>

@@ -135,15 +135,17 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 10.9 Verify module tests pass (422/435 pass, 13 pre-existing failures)
   - [x] 10.10 Commit changes
 
-- [x] 11. Update BtcAccumulationCard Descriptions
+- [x] 11. Update BtcAccumulationCard Descriptions (REVISED - Fixed Conceptual Errors)
   - [x] 11.1 Write tests for updated descriptions (no tests needed - UI text changes only)
-  - [x] 11.2 Update Accumulation Mode description (changed "No immediate cash flow" to "Monthly savings add to BTC stack")
-  - [x] 11.3 Update Cash Generation Mode description (changed "Preserve Bitcoin stack size" to "Monthly withdrawals reduce BTC stack")
+  - [x] 11.2 Update Accumulation Mode description (CORRECT: Monthly savings add to BTC stack)
+  - [x] 11.3 Update Cash Generation Mode description (FIXED: "Take loans to cover monthly withdrawals", "Loans taken against BTC collateral (BTC stays intact)", "May exceed target loan percentage")
   - [x] 11.4 Remove "90% of excess proceeds" references (none found in current code)
-  - [x] 11.5 Add reference to Financial Flow settings (added info box with dynamic text based on btcAccumulation mode)
-  - [x] 11.6 Test component rendering (visual verification)
-  - [x] 11.7 Verify all tests pass (422/435 pass, 13 pre-existing failures)
-  - [x] 11.8 Commit changes
+  - [x] 11.5 Add reference to Financial Flow settings (FIXED: Clarified that withdrawals are funded by loans against BTC collateral, not by selling BTC)
+  - [x] 11.6 Update Strategy Impact section (FIXED: "Loan Proceeds: Used to fund withdrawals", "Cash Flow: From loans (covering withdrawals)", "Risk Profile: Accumulating debt")
+  - [x] 11.7 Fix negative annual increase rate display in FinancialFlowCard (shows "Decreasing at X%" with proper color coding)
+  - [x] 11.8 Test component rendering (visual verification)
+  - [x] 11.9 Verify all tests pass (422/435 pass, 13 pre-existing failures)
+  - [x] 11.10 Commit changes with conceptual corrections
 
 - [ ] 12. Update ResultsSummary Component
   - [ ] 12.1 Write tests for updated ResultsSummary
