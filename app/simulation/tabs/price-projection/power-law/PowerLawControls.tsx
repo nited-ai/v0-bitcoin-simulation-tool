@@ -224,6 +224,21 @@ export function PowerLawControls({ className }: PowerLawControlsProps) {
       </CardHeader>
 
       <CardContent className="space-y-6">
+        {/* Apply to Price Projection Button */}
+        <div className="flex justify-center">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={applyToPriceProjection}
+            className="flex items-center gap-2"
+          >
+            <Copy className="h-4 w-4" />
+            Apply to Price Projection
+          </Button>
+        </div>
+
+        <Separator />
+
         {/* Control Mode Toggle */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -459,19 +474,6 @@ export function PowerLawControls({ className }: PowerLawControlsProps) {
             </div>
           </div>
         )}
-
-        {/* Apply to Price Projection Button */}
-        <div className="flex justify-center pt-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={applyToPriceProjection}
-            className="flex items-center gap-2"
-          >
-            <Copy className="h-4 w-4" />
-            Apply to Price Projection
-          </Button>
-        </div>
 
         {/* Cycle Repeat Volatility Section */}
         <Separator className="my-6" />
