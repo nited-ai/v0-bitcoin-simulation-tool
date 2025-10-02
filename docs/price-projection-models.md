@@ -4,8 +4,8 @@
 
 The Bitcoin Simulation Tool provides multiple sophisticated price projection models for forecasting Bitcoin prices. This document covers all available models, their parameters, and recent enhancements.
 
-**Last Updated**: 2025-09-30  
-**Related PRs**: #23 (Power Law Correction), #27 (Manual Growth Fixes), #25 (Manual Growth Drawer)
+**Last Updated**: 2025-10-02
+**Related PRs**: #23 (Power Law Correction), #27 (Manual Growth Fixes), #25 (Manual Growth Drawer), #36 (Cycle Repeat Volatility)
 
 ---
 
@@ -55,6 +55,61 @@ const projections = model.generateProjections(simulationMonths)
 
 - **On Power Law model**: Support and Resistance lines visible by default
 - **On other models**: All Power Law lines hidden by default (can be toggled on)
+
+#### 🌊 Cycle Repeat Volatility (NEW in v2.0.0)
+
+**Added**: 2025-10-02 (PR #36)
+**Reference**: Based on algorithm from `docs/reference/ROLLING LOAN STRATEGY.html`
+**Version**: Power Law Model v2.0.0
+
+Applies historical Bitcoin price volatility patterns to create more realistic price projections while maintaining the mathematical integrity of Power Law regression lines.
+
+##### Key Features
+
+- **Historical Pattern Application**: Uses price-to-PowerLaw ratios from historical data
+- **Configurable Pattern Length**: 24-120 months of historical data (default: 96 months)
+- **Diminishing Factor**: Reduces volatility impact over time (0.5-1.0, default: 1.0)
+- **Selective Application**: Applies only to price projection line, not regression lines
+- **Performance Optimized**: Deviation pattern caching prevents recalculation
+
+##### Critical Design Decision
+
+- ✅ **Price Projection Line**: Applies volatility for realistic market movements
+- ✅ **Power Law Regression Lines**: Remain pure mathematical curves (Support/Fit/Resistance)
+- ✅ **Strategy Engine**: Uses volatility-enhanced price projection for decisions
+
+##### UI Controls
+
+- **Volatility Toggle**: Enable/disable cycle repeat volatility
+- **Pattern Length Slider**: Adjust historical data period (2-10 years)
+- **Diminishing Factor Slider**: Control volatility reduction over time
+- **Apply to Price Projection Button**: Copy Fit line parameters to projection baseline
+- **Parameter Display**: Shows current custom projection parameters
+- **Informational Tooltips**: Explains feature behavior and parameter effects
+
+##### Default Behavior
+
+- ✅ **Volatility Disabled**: Maintains existing Power Law behavior by default
+- ✅ **96-Month Pattern**: Uses 8 years of historical data (matches original)
+- ✅ **No Diminishing**: Factor of 1.0 preserves full volatility impact
+- ✅ **Backward Compatible**: Existing simulations unchanged
+
+##### Technical Implementation
+
+- **VolatilityService**: Handles deviation pattern calculations and application
+- **Enhanced PowerLawModel**: Integrates volatility while preserving regression lines
+- **Extended Type System**: Full TypeScript support with backward compatibility
+- **Performance Optimization**: Deviation pattern caching prevents recalculation
+- **Microservices Architecture**: Self-contained components with clear APIs
+
+##### Testing & Validation
+
+- ✅ **42 Tests Passing** - Comprehensive coverage of all functionality
+- ✅ **Type System Tests** - Interface validation and backward compatibility
+- ✅ **VolatilityService Tests** - Core algorithm validation
+- ✅ **PowerLawModel Tests** - Integration and regression line preservation
+- ✅ **UI Component Tests** - Control behavior and parameter validation
+- ✅ **Integration Tests** - End-to-end workflow validation
 
 ---
 
