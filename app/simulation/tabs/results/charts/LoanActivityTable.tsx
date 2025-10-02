@@ -139,15 +139,15 @@ export function LoanActivityTable() {
             </div>
             <div className="text-center">
               <div className="text-sm text-muted-foreground">Total Principal</div>
-              <div className="text-sm font-medium">${loanStats.totalPrincipal.toLocaleString('en-US')}</div>
+              <div className="text-sm font-medium">${Math.round(loanStats.totalPrincipal).toLocaleString('en-US')}</div>
             </div>
             <div className="text-center">
               <div className="text-sm text-muted-foreground">Total Repayment</div>
-              <div className="text-sm font-medium">${loanStats.totalRepayment.toLocaleString('en-US')}</div>
+              <div className="text-sm font-medium">${Math.round(loanStats.totalRepayment).toLocaleString('en-US')}</div>
             </div>
             <div className="text-center">
               <div className="text-sm text-muted-foreground">Total Interest</div>
-              <div className="text-sm font-medium text-orange-600">${loanStats.totalInterest.toLocaleString('en-US')}</div>
+              <div className="text-sm font-medium text-orange-600">${Math.round(loanStats.totalInterest).toLocaleString('en-US')}</div>
             </div>
           </div>
         )}
@@ -189,14 +189,14 @@ export function LoanActivityTable() {
                         <div className="text-xs text-muted-foreground">{loan.takenDate}</div>
                       </td>
                       <td className="text-right p-2">
-                        ${loan.principal.toLocaleString('en-US')}
+                        ${Math.round(loan.principal).toLocaleString('en-US')}
                       </td>
                       <td className="text-right p-2">
-                        ${loan.repaymentAmount.toLocaleString('en-US')}
+                        ${Math.round(loan.repaymentAmount).toLocaleString('en-US')}
                       </td>
                       <td className="text-right p-2">
                         <div className="text-orange-600">
-                          ${interest.toLocaleString('en-US')}
+                          ${Math.round(interest).toLocaleString('en-US')}
                         </div>
                         <div className="text-xs text-muted-foreground">
                           ({interestRate.toFixed(1)}%)
@@ -206,7 +206,7 @@ export function LoanActivityTable() {
                         {loan.lockedBtc.toFixed(4)} BTC
                       </td>
                       <td className="text-right p-2">
-                        ${loan.btcPriceAtOrigination.toLocaleString('en-US')}
+                        ${Math.round(loan.btcPriceAtOrigination).toLocaleString('en-US')}
                       </td>
                       <td className="text-left p-2">
                         <div className="flex items-center gap-1">
