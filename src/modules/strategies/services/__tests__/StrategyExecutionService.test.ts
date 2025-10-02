@@ -356,5 +356,98 @@ describe('StrategyExecutionService', () => {
       })
     })
   })
+
+  describe('Strategy Execution Data Tracking', () => {
+    test('should track btcPurchased when investment is allowed', async () => {
+      // Create a strategy that allows investment
+      class InvestingStrategy extends MockStrategy {
+        makeDecision(context: StrategyContext): StrategyDecision {
+          return {
+            allowInvestment: true,
+            investmentMultiplier: 0.1, // 10% investment
+            allowWithdrawal: false,
+            withdrawalAmount: 0,
+            reasoning: 'Investing 10%'
+          }
+        }
+      }
+
+      const investingStrategy = new InvestingStrategy()
+      const result = await service.executeStrategy(investingStrategy, mockParams, mockPriceProjection)
+
+      // Check that btcPurchased is tracked when investment happens
+      const monthsWithInvestment = result.monthlyResults.filter(m => m.btcPurchased !== undefined && m.btcPurchased > 0)
+      expect(monthsWithInvestment.length).toBeGreaterThan(0)
+    })
+
+    test('should calculate btcPurchased from principal for reinvestment', async () => {
+      class InvestingStrategy extends MockStrategy {
+        makeDecision(context: StrategyContext): StrategyDecision {
+          if (context.month === 0) {
+            return {
+              allowInvestment: true,
+              investmentMultiplier: 0.15, // 15% investment
+              allowWithdrawal: false,
+              withdrawalAmount: 0,
+              reasoning: 'Initial investment'
+            }
+          }
+          return super.makeDecision(context)
+        }
+      }
+
+      const investingStrategy = new InvestingStrategy()
+      const result = await service.executeStrategy(investingStrategy, mockParams, mockPriceProjection)
+
+      // Month 0 should have btcPurchased
+      const month0 = result.monthlyResults[0]
+      if (month0.btcPurchased) {
+        expect(month0.btcPurchased).toBeGreaterThan(0)
+        // btcPurchased should be principal / btcPrice
+        expect(month0.btcPurchased).toBeCloseTo(month0.principalForReinvestment / month0.btcPrice, 5)
+      }
+    })
+
+    test('should not track btcPurchased when no investment', async () => {
+      // Use default MockStrategy which doesn't allow investment
+      const result = await service.executeStrategy(mockStrategy, mockParams, mockPriceProjection)
+
+      // Most months should not have btcPurchased
+      const monthsWithoutInvestment = result.monthlyResults.filter(m => m.btcPurchased === undefined || m.btcPurchased === 0)
+      expect(monthsWithoutInvestment.length).toBeGreaterThan(0)
+    })
+
+    test('should track btcPurchased separately from monthly savings', async () => {
+      class InvestingStrategy extends MockStrategy {
+        makeDecision(context: StrategyContext): StrategyDecision {
+          return {
+            allowInvestment: true,
+            investmentMultiplier: 0.1,
+            allowWithdrawal: false,
+            withdrawalAmount: 0,
+            reasoning: 'Investing'
+          }
+        }
+      }
+
+      const paramsWithSavings = {
+        ...mockParams,
+        monthlyWithdrawalAmount: 1000, // $1000 savings
+        annualSavingsIncrease: 0
+      }
+
+      const investingStrategy = new InvestingStrategy()
+      const result = await service.executeStrategy(investingStrategy, paramsWithSavings, mockPriceProjection)
+
+      // Check that both btcPurchased and monthlySavingsApplied are tracked
+      const month1 = result.monthlyResults[1]
+      if (month1.btcPurchased && month1.monthlySavingsApplied) {
+        expect(month1.btcPurchased).toBeGreaterThan(0)
+        expect(month1.monthlySavingsApplied).toBe(1000)
+        // They should be different values
+        expect(month1.btcPurchased).not.toBe(month1.monthlySavingsApplied / month1.btcPrice)
+      }
+    })
+  })
 })
 

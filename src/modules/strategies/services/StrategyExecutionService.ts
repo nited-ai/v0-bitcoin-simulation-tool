@@ -153,18 +153,26 @@ export class StrategyExecutionService {
       // Calculate projected debt after covering needs
       const projectedDebtAfterNeeds = debtFromOngoingLoans + principalForNeeds
 
+      // Track BTC purchased from loan proceeds
+      let btcPurchased: number | undefined = undefined
+
       // Apply strategy decision for investment
       if (decision.allowInvestment && projectedDebtAfterNeeds <= debtCapacity) {
         const remainingDebtCapacity = debtCapacity - projectedDebtAfterNeeds
         principalForReinvestment = remainingDebtCapacity * decision.investmentMultiplier
+
+        // Track BTC purchased if reinvesting
+        if (principalForReinvestment > 0) {
+          btcPurchased = principalForReinvestment / btcPrice
+        }
       } else if (projectedDebtAfterNeeds > debtCapacity) {
         // Handle debt capacity overflow
         principalForReinvestment = 0
-        
+
         // Check if we can at least cover repayments
         principalForNeeds = repaymentDue / (1 - params.loanOriginationFeePercent / 100)
         const projectedDebtForRepaymentOnly = debtFromOngoingLoans + principalForNeeds
-        
+
         if (projectedDebtForRepaymentOnly > debtCapacity) {
           // Emergency: Skip withdrawal to prioritize loan repayments
           monthlyWithdrawal = 0
@@ -223,7 +231,8 @@ export class StrategyExecutionService {
         repaymentDue,
         highestLtv: Math.round(highestLtv),
         maxSafeDebt: decision.maxDebtOverride !== undefined ? Math.round(decision.maxDebtOverride) : undefined,
-        monthlySavingsApplied, // NEW: Track monthly savings/withdrawals
+        monthlySavingsApplied, // Track monthly savings/withdrawals
+        btcPurchased, // Track BTC purchased from loan proceeds
         events: monthlyEvents
       })
     }
