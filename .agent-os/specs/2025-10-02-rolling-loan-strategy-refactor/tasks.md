@@ -112,15 +112,16 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 8.8 Commit changes
   - Note: interestAccrued and loanRollover tracking deferred (requires strategy interface changes)
 
-- [ ] 9. Register New Strategy in StrategyRegistry
-  - [ ] 9.1 Write tests for strategy registration
-  - [ ] 9.2 Export DynamicRollingLoanStrategy from implementations/index.ts
-  - [ ] 9.3 Register strategy with ID 'dynamic-rolling-loan'
-  - [ ] 9.4 Set priority higher than old rolling loan strategy
-  - [ ] 9.5 Verify strategy appears in dropdown
-  - [ ] 9.6 Test strategy retrieval by ID
-  - [ ] 9.7 Verify all tests pass
-  - [ ] 9.8 Commit changes
+- [x] 9. Register New Strategy in StrategyRegistry
+  - [x] 9.1 Write tests for strategy registration (4 new tests)
+  - [x] 9.2 Export DynamicRollingLoanStrategy from implementations/index.ts
+  - [x] 9.3 Import DynamicRollingLoanStrategy in strategy module index
+  - [x] 9.4 Register strategy with ID 'dynamicRollingLoan' and priority 98
+  - [x] 9.5 Keep legacy rolling loan at priority 95 for backward compatibility
+  - [x] 9.6 Test strategy retrieval by ID and metadata
+  - [x] 9.7 Test strategy priority ordering (dynamicRollingLoan > rollingLoan)
+  - [x] 9.8 Verify all tests pass (15/15)
+  - [x] 9.9 Commit changes
 
 - [ ] 10. Add Annual Increase Parameter to FinancialFlowCard
   - [ ] 10.1 Write tests for annual increase input

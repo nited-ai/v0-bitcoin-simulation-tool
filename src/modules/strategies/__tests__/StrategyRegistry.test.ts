@@ -7,6 +7,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { StrategyRegistry } from '../services/StrategyRegistry'
 import { DefaultStrategy } from '../implementations/DefaultStrategy'
+import { DynamicRollingLoanStrategy } from '../implementations/DynamicRollingLoanStrategy'
 import type { StrategyExecutionParams } from '../types'
 import type { PriceProjectionResult } from '../../../../app/simulation/price-models/types'
 
@@ -165,6 +166,56 @@ describe('StrategyRegistry', () => {
       expect(stats.enabled).toBe(1)
       expect(stats.disabled).toBe(1)
       expect(stats.strategies).toHaveLength(2)
+    })
+  })
+
+  describe('DynamicRollingLoanStrategy Registration', () => {
+    it('should register DynamicRollingLoanStrategy successfully', () => {
+      const strategy = new DynamicRollingLoanStrategy()
+      registry.registerStrategy('dynamicRollingLoan', strategy, true, 98)
+
+      expect(registry.hasStrategy('dynamicRollingLoan')).toBe(true)
+      expect(registry.getStrategy('dynamicRollingLoan')).toBe(strategy)
+    })
+
+    it('should have correct metadata for DynamicRollingLoanStrategy', () => {
+      const strategy = new DynamicRollingLoanStrategy()
+      registry.registerStrategy('dynamicRollingLoan', strategy)
+
+      const metadata = registry.getStrategyMetadata('dynamicRollingLoan')
+
+      expect(metadata).not.toBeNull()
+      expect(metadata?.securityRating).toBe(3)
+      expect(metadata?.complexityRating).toBe(4)
+      expect(metadata?.suitableFor).toContain('moderate')
+      expect(metadata?.suitableFor).toContain('aggressive')
+      expect(metadata?.criteria).toContain('automatic_mode_selection')
+    })
+
+    it('should list DynamicRollingLoanStrategy in available strategies', () => {
+      const strategy = new DynamicRollingLoanStrategy()
+      registry.registerStrategy('dynamicRollingLoan', strategy, true, 98)
+
+      const names = registry.getStrategyNames()
+      const dynamicStrategy = names.find(s => s.id === 'dynamicRollingLoan')
+
+      expect(dynamicStrategy).toBeDefined()
+      expect(dynamicStrategy?.name).toBe('Dynamic Rolling Loan')
+    })
+
+    it('should prioritize DynamicRollingLoanStrategy over legacy RollingLoanStrategy', () => {
+      const dynamicStrategy = new DynamicRollingLoanStrategy()
+      const legacyStrategy = new DefaultStrategy() // Using DefaultStrategy as placeholder
+
+      registry.registerStrategy('dynamicRollingLoan', dynamicStrategy, true, 98)
+      registry.registerStrategy('rollingLoan', legacyStrategy, true, 95)
+
+      const strategies = registry.getStrategiesByPriority()
+
+      expect(strategies[0].id).toBe('dynamicRollingLoan')
+      expect(strategies[0].priority).toBe(98)
+      expect(strategies[1].id).toBe('rollingLoan')
+      expect(strategies[1].priority).toBe(95)
     })
   })
 })
