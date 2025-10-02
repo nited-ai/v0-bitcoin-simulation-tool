@@ -1,50 +1,124 @@
 "use client"
 
+import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useSimulation } from "../../context/SimulationContext"
-import type { MonthlyResult, MonthlyEvent } from "../../types/simulation"
+import type { MonthlyResult } from "../../types/simulation"
 
 /**
- * Format event for display in the results table
+ * Format currency in German locale with Euro symbol
+ * @param value - The value to format
+ * @returns Formatted string like "€95.234"
  */
-function formatEvent(event: MonthlyEvent): string {
-  switch (event.type) {
-    case "withdrawal_skipped":
-      return "Withdrawal skipped"
-    case "deleveraged":
-      return `Deleveraged: €${Math.round(event.amount).toLocaleString("de-DE")}`
-    case "liquidated":
-      return `Liquidated: Loan #${event.id}`
-    case "collateral_topped_up":
-      return `Collateral topped up: €${Math.round(event.amount).toLocaleString("de-DE")}`
-    default:
-      return "Unknown event"
-  }
+function formatCurrency(value: number): string {
+  return `€${Math.round(value).toLocaleString("de-DE")}`
+}
+
+/**
+ * Format BTC amount with 4 decimal places
+ * @param value - The BTC amount to format
+ * @returns Formatted string like "1.2345 BTC"
+ */
+function formatBtc(value: number): string {
+  return `${value.toFixed(4)} BTC`
+}
+
+/**
+ * Format percentage with 2 decimal places
+ * @param value - The percentage value (0-1 or 0-100)
+ * @returns Formatted string like "15.75%"
+ */
+function formatPercentage(value: number): string {
+  // Assume value is already in percentage form (0-100)
+  return `${value.toFixed(2)}%`
+}
+
+/**
+ * Format date in MM/YYYY format
+ * @param dateString - The date string to format
+ * @returns Formatted string like "01/2025"
+ */
+function formatDate(dateString: string): string {
+  const date = new Date(dateString)
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const year = date.getFullYear()
+  return `${month}/${year}`
 }
 
 /**
  * Results Table Component
- * 
- * Displays detailed monthly simulation results in a paginated table format.
- * Shows all key metrics including BTC price, collateral, debt, LTV, and events.
+ *
+ * Displays comprehensive monthly simulation results in a 9-column table format
+ * matching the HTML prototype structure with German localization.
+ *
+ * Columns:
+ * 1. Datum (Date) - MM/YYYY
+ * 2. BTC Preis (€) - BTC Price in Euros
+ * 3. BTC Bestand - Total BTC Holdings
+ * 4. Wert (€) - Portfolio Value (BTC Bestand × BTC Preis)
+ * 5. Gekaufte BTC - BTC Purchased from loan proceeds
+ * 6. Spar./Entn. d. Zyklus (€) - Savings/Withdrawals of the cycle
+ * 7. Akt. LTV (%) - Current LTV percentage
+ * 8. Schulden (€) - Total Debt
+ * 9. Netto BTC - Net BTC (BTC Bestand - locked collateral)
  */
 export function ResultsTable() {
   const { t } = useTranslation()
-  const { results, params, currentPage, setCurrentPage } = useSimulation()
+  const { results, currentPage, setCurrentPage } = useSimulation()
+
+  // Calculate Netto BTC for each result (memoized for performance)
+  const enrichedResults = useMemo(() => {
+    return results.map(r => {
+      // Use totalBtcAmount if available, otherwise fall back to currentBtcAmount
+      const btcAmount = r.totalBtcAmount ?? r.currentBtcAmount
+      // Use date if available, otherwise fall back to dateString
+      const dateStr = r.date ?? r.dateString
+      // Calculate LTV if not provided
+      const ltvValue = r.ltv ?? (btcAmount * r.btcPrice > 0 ? r.totalDebt / (btcAmount * r.btcPrice) : 0)
+
+      return {
+        ...r,
+        totalBtcAmount: btcAmount,
+        date: dateStr,
+        ltv: ltvValue,
+        portfolioValue: btcAmount * r.btcPrice,
+        nettoBtc: btcAmount - (r.totalDebt / r.btcPrice)
+      }
+    })
+  }, [results])
+
+  // Check for liquidation events
+  const hasLiquidation = useMemo(() => {
+    return results.some(r => r.events.some(e => e.type === "liquidated"))
+  }, [results])
+
+  // Find liquidation month if any
+  const liquidationMonth = useMemo(() => {
+    const liquidatedResult = results.find(r => r.events.some(e => e.type === "liquidated"))
+    return liquidatedResult?.month
+  }, [results])
+
+  // Filter results up to liquidation if it occurred
+  const displayResults = useMemo(() => {
+    if (liquidationMonth !== undefined) {
+      return enrichedResults.filter(r => r.month <= liquidationMonth)
+    }
+    return enrichedResults
+  }, [enrichedResults, liquidationMonth])
 
   // Don't render if no results
   if (results.length === 0) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>{t("Results.monthlyResults")}</CardTitle>
-          <CardDescription>{t("Results.noResults")}</CardDescription>
+          <CardTitle>Detailergebnisse</CardTitle>
+          <CardDescription>Monatliche Simulationsergebnisse</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-muted-foreground">
-            {t("Results.runSimulation")}
+            Bitte starten Sie die Simulation.
           </div>
         </CardContent>
       </Card>
@@ -52,106 +126,123 @@ export function ResultsTable() {
   }
 
   const itemsPerPage = 12
-  const totalPages = Math.ceil(results.length / itemsPerPage)
+  const totalPages = Math.ceil(displayResults.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
-  const endIndex = Math.min(currentPage * itemsPerPage, results.length)
-  const currentResults = results.slice(startIndex, endIndex)
+  const endIndex = Math.min(currentPage * itemsPerPage, displayResults.length)
+  const currentResults = displayResults.slice(startIndex, endIndex)
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t("Results.monthlyResults")}</CardTitle>
-        <CardDescription>{t("Results.monthlyResultsDescription")}</CardDescription>
+        <CardTitle>Detailergebnisse</CardTitle>
+        <CardDescription>Monatliche Simulationsergebnisse im Detail</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
           <div className="max-h-[60vh] overflow-y-auto">
-            <table className="w-full text-sm text-right">
-              <thead className="sticky top-0 bg-background z-10">
-                <tr className="border-b">
-                  <th className="text-left p-2">{t("Results.tableMonth")}</th>
-                  <th className="text-left p-2">{t("Results.tableDate")}</th>
-                  <th className="p-2">{t("Results.tableBtcPrice")}</th>
-                  <th className="p-2">{t("Results.tableBtcTotal")}</th>
-                  <th className="p-2">{t("Results.tableCollateral")}</th>
-                  <th className="p-2">{t("Results.tableTotalDebt")}</th>
-                  <th className="p-2">{t("Results.tableLockedCollateral")}</th>
-                  <th className="p-2">{t("Results.tableHighestLtv")}</th>
-                  <th className="p-2">{t("Results.tableMaxSafeDebt")}</th>
-                  <th className="p-2">{t("Results.tableNewLoans")}</th>
-                  <th className="p-2">{t("Results.tableRepayments")}</th>
-                  <th className="p-2">{t("Results.tableWithdrawal")}</th>
-                  <th className="p-2">{t("Results.tableReinvestment")}</th>
-                  <th className="p-2 text-center">{t("Results.tableLoanCount")}</th>
-                  <th className="p-2 text-left">{t("Results.tableEvents")}</th>
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-gray-700 z-10 text-xs text-gray-300 uppercase">
+                <tr>
+                  <th scope="col" className="px-4 py-3 text-left rounded-l-lg">Datum</th>
+                  <th scope="col" className="px-4 py-3 text-right">BTC Preis (€)</th>
+                  <th scope="col" className="px-4 py-3 text-right">BTC Bestand</th>
+                  <th scope="col" className="px-4 py-3 text-right">Wert (€)</th>
+                  <th scope="col" className="px-4 py-3 text-right">Gekaufte BTC</th>
+                  <th scope="col" className="px-4 py-3 text-right">Spar./Entn. d. Zyklus (€)</th>
+                  <th scope="col" className="px-4 py-3 text-right">Akt. LTV (%)</th>
+                  <th scope="col" className="px-4 py-3 text-right">Schulden (€)</th>
+                  <th scope="col" className="px-4 py-3 text-right rounded-r-lg">Netto BTC</th>
                 </tr>
               </thead>
-              <tbody>
-                {currentResults.map((r) => (
-                  <tr
-                    key={r.month}
-                    className={`border-b hover:bg-muted/50 ${
-                      r.events.some((e) => e.type === "liquidated") ? "bg-red-900/20" : ""
-                    }`}
-                  >
-                    <td className="text-left p-2">{r.month}</td>
-                    <td className="text-left p-2">{r.dateString}</td>
-                    <td className="p-2">${Math.round(r.btcPrice).toLocaleString("en-US")}</td>
-                    <td className="p-2">{r.currentBtcAmount.toFixed(4)}</td>
-                    <td className="p-2">${Math.round(r.collateralValue).toLocaleString("en-US")}</td>
-                    <td className="p-2">${Math.round(r.totalDebt).toLocaleString("en-US")}</td>
-                    <td className="p-2">${Math.round(r.lockedBtc * r.btcPrice).toLocaleString("en-US")}</td>
-                    <td
-                      className={`p-2 text-center ${
-                        r.highestLtv >= params.riskManagement.liquidationLtv ? "text-red-500" : ""
-                      }`}
+              <tbody className="divide-y divide-gray-700">
+                {currentResults.map((r, index) => {
+                  // Check if this row has a liquidation event
+                  const isLiquidated = r.events.some(e => e.type === "liquidated")
+
+                  if (isLiquidated) {
+                    return (
+                      <tr key={r.month} className="bg-red-900/80 text-red-200 font-bold">
+                        <td colSpan={9} className="text-center p-4">
+                          LIQUIDATION am {formatDate(r.date)}
+                        </td>
+                      </tr>
+                    )
+                  }
+
+                  return (
+                    <tr
+                      key={r.month}
+                      className={`${
+                        index % 2 === 0 ? 'bg-gray-800' : 'bg-gray-800/50'
+                      } hover:bg-gray-700/50 transition-colors`}
                     >
-                      {r.highestLtv}%
-                    </td>
-                    <td className="p-2">
-                      {r.maxSafeDebt !== undefined ? `$${Math.round(r.maxSafeDebt).toLocaleString("en-US")}` : "-"}
-                    </td>
-                    <td className="p-2">${Math.round(r.newLoanPrincipal).toLocaleString("en-US")}</td>
-                    <td className="p-2">${Math.round(r.repaymentsDue).toLocaleString("en-US")}</td>
-                    <td className="p-2">${Math.round(r.withdrawalAmount).toLocaleString("en-US")}</td>
-                    <td className="p-2">${Math.round(r.reinvestment).toLocaleString("en-US")}</td>
-                    <td className="p-2 text-center">{r.loanCount}</td>
-                    <td className="p-2 text-left">
-                      {r.events.length > 0 && (
-                        <div className="flex flex-col">
-                          {r.events.map((event, i) => (
-                            <span
-                              key={i}
-                              className={
-                                event.type === "liquidated" || event.type === "deleveraged"
-                                  ? "text-red-500"
-                                  : event.type === "collateral_topped_up"
-                                    ? "text-blue-500"
-                                    : "text-yellow-500"
-                              }
-                            >
-                              {formatEvent(event)}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                      {/* Column 1: Datum */}
+                      <td className="px-4 py-3 font-medium text-left">
+                        {formatDate(r.date)}
+                      </td>
+
+                      {/* Column 2: BTC Preis (€) */}
+                      <td className="px-4 py-3 text-right">
+                        {formatCurrency(r.btcPrice)}
+                      </td>
+
+                      {/* Column 3: BTC Bestand */}
+                      <td className="px-4 py-3 text-right">
+                        {formatBtc(r.totalBtcAmount)}
+                      </td>
+
+                      {/* Column 4: Wert (€) - Calculated */}
+                      <td className="px-4 py-3 text-right">
+                        {formatCurrency(r.portfolioValue)}
+                      </td>
+
+                      {/* Column 5: Gekaufte BTC - Green */}
+                      <td className="px-4 py-3 text-right text-green-400">
+                        {r.btcPurchased && r.btcPurchased > 0
+                          ? `+${formatBtc(r.btcPurchased)}`
+                          : '-'}
+                      </td>
+
+                      {/* Column 6: Spar./Entn. d. Zyklus (€) - Color coded */}
+                      <td className={`px-4 py-3 text-right ${
+                        r.monthlySavingsApplied
+                          ? r.monthlySavingsApplied > 0
+                            ? 'text-green-400'
+                            : 'text-red-400'
+                          : ''
+                      }`}>
+                        {r.monthlySavingsApplied
+                          ? formatCurrency(r.monthlySavingsApplied)
+                          : formatCurrency(0)}
+                      </td>
+
+                      {/* Column 7: Akt. LTV (%) */}
+                      <td className="px-4 py-3 text-right">
+                        {formatPercentage(r.ltv * 100)}
+                      </td>
+
+                      {/* Column 8: Schulden (€) */}
+                      <td className="px-4 py-3 text-right">
+                        {formatCurrency(r.totalDebt)}
+                      </td>
+
+                      {/* Column 9: Netto BTC - Teal */}
+                      <td className="px-4 py-3 text-right font-semibold text-teal-300">
+                        {formatBtc(r.nettoBtc)}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
         </div>
 
         {/* Pagination */}
-        {results.length > itemsPerPage && (
+        {displayResults.length > itemsPerPage && (
           <div className="flex items-center justify-between mt-4">
             <div className="text-sm text-muted-foreground">
-              {t("Results.paginationShowing", {
-                start: startIndex + 1,
-                end: endIndex,
-                total: results.length,
-              })}
+              Zeige Monate {startIndex + 1}-{endIndex} von {displayResults.length}
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -160,15 +251,18 @@ export function ResultsTable() {
                 onClick={() => setCurrentPage(Math.max(currentPage - 1, 1))}
                 disabled={currentPage === 1}
               >
-                {t("Results.paginationPrevious")}
+                Zurück
               </Button>
+              <span className="text-sm text-muted-foreground">
+                Seite {currentPage} von {totalPages}
+              </span>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setCurrentPage(Math.min(currentPage + 1, totalPages))}
                 disabled={currentPage >= totalPages}
               >
-                {t("Results.paginationNext")}
+                Weiter
               </Button>
             </div>
           </div>
