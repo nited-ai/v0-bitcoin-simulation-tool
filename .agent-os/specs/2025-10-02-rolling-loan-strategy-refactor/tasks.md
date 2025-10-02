@@ -159,107 +159,125 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 12.9 Verify all tests pass (422/435 pass, 13 pre-existing failures)
   - [x] 12.10 Commit changes
 
-- [ ] 13. Update PortfolioValueChart Component
-  - [ ] 13.1 Write tests for updated PortfolioValueChart
-  - [ ] 13.2 Ensure chart handles new monthly result fields
-  - [ ] 13.3 Update data series if needed
-  - [ ] 13.4 Test chart rendering with new data
-  - [ ] 13.5 Verify all tests pass
-  - [ ] 13.6 Commit changes
+- [ ] 13. Create Comprehensive Monthly Results Table Component
+  - [ ] 13.1 Write tests for ResultsTable component with 9-column structure
+  - [ ] 13.2 Create table structure with German column headers (Datum, BTC Preis, BTC Bestand, Wert, Gekaufte BTC, Spar./Entn. d. Zyklus, Akt. LTV, Schulden, Netto BTC)
+  - [ ] 13.3 Implement data mapping from MonthlyResult fields to table columns
+  - [ ] 13.4 Add calculated columns (Wert = totalBtcAmount × btcPrice, Netto BTC = totalBtcAmount - totalDebt/btcPrice)
+  - [ ] 13.5 Implement German number formatting (currency with €, BTC with 4 decimals, percentages with 2 decimals)
+  - [ ] 13.6 Add color coding (green for Gekaufte BTC, color-coded for Spar./Entn., teal for Netto BTC)
+  - [ ] 13.7 Implement special rows (liquidation events with red background, yearly summaries for Dynamic LTV mode)
+  - [ ] 13.8 Add responsive design with horizontal scroll and sticky header
+  - [ ] 13.9 Implement empty state ("Bitte starten Sie die Simulation") and loading state
+  - [ ] 13.10 Add pagination or virtual scrolling for long simulations (>120 months)
+  - [ ] 13.11 Test with Dynamic LTV mode data (verify yearly summary rows)
+  - [ ] 13.12 Test with Fixed Term mode data (verify rollover event display)
+  - [ ] 13.13 Test with liquidation scenarios (verify red row and table termination)
+  - [ ] 13.14 Verify all number formats match HTML prototype exactly
+  - [ ] 13.15 Verify all tests pass
+  - [ ] 13.16 Commit changes
 
-- [ ] 14. Update DebtCollateralChart Component
-  - [ ] 14.1 Write tests for updated DebtCollateralChart
-  - [ ] 14.2 Update Current LTV data series
-  - [ ] 14.3 Add Target LTV reference line
-  - [ ] 14.4 Add Liquidation LTV reference line
-  - [ ] 14.5 Test chart rendering
-  - [ ] 14.6 Verify all tests pass
-  - [ ] 14.7 Commit changes
+- [ ] 14. Update PortfolioValueChart Component
+  - [ ] 14.1 Write tests for updated PortfolioValueChart
+  - [ ] 14.2 Ensure chart handles new monthly result fields
+  - [ ] 14.3 Update data series if needed
+  - [ ] 14.4 Test chart rendering with new data
+  - [ ] 14.5 Verify all tests pass
+  - [ ] 14.6 Commit changes
 
-- [ ] 15. Update LTVProgressionChart Component
-  - [ ] 15.1 Write tests for updated LTVProgressionChart
-  - [ ] 15.2 Update monthly LTV progression data
-  - [ ] 15.3 Highlight LTV reset months (Dynamic LTV mode)
-  - [ ] 15.4 Highlight rollover events (Fixed Term mode)
-  - [ ] 15.5 Show distance to liquidation threshold
-  - [ ] 15.6 Test chart rendering
-  - [ ] 15.7 Verify all tests pass
-  - [ ] 15.8 Commit changes
+- [ ] 15. Update DebtCollateralChart Component
+  - [ ] 15.1 Write tests for updated DebtCollateralChart
+  - [ ] 15.2 Update Current LTV data series
+  - [ ] 15.3 Add Target LTV reference line
+  - [ ] 15.4 Add Liquidation LTV reference line
+  - [ ] 15.5 Test chart rendering
+  - [ ] 15.6 Verify all tests pass
+  - [ ] 15.7 Commit changes
 
-- [ ] 16. Update CashFlowChart Component
-  - [ ] 16.1 Write tests for updated CashFlowChart
-  - [ ] 16.2 Add Monthly Savings/Withdrawals series using monthlySavingsApplied
-  - [ ] 16.3 Add BTC Purchases series using btcPurchased
-  - [ ] 16.4 Add Interest Accrued series using interestAccrued
-  - [ ] 16.5 Update chart legend and colors
+- [ ] 16. Update LTVProgressionChart Component
+  - [ ] 16.1 Write tests for updated LTVProgressionChart
+  - [ ] 16.2 Update monthly LTV progression data
+  - [ ] 16.3 Highlight LTV reset months (Dynamic LTV mode)
+  - [ ] 16.4 Highlight rollover events (Fixed Term mode)
+  - [ ] 16.5 Show distance to liquidation threshold
   - [ ] 16.6 Test chart rendering
   - [ ] 16.7 Verify all tests pass
   - [ ] 16.8 Commit changes
 
-- [ ] 17. Update LoanActivityTable Component
-  - [ ] 17.1 Write tests for updated LoanActivityTable
-  - [ ] 17.2 Add Interest Accrued column (Dynamic LTV mode)
-  - [ ] 17.3 Add BTC Purchased column
-  - [ ] 17.4 Add Monthly Savings column
-  - [ ] 17.5 Add Rollover Event indicator (Fixed Term mode)
-  - [ ] 17.6 Test table rendering
+- [ ] 17. Update CashFlowChart Component
+  - [ ] 17.1 Write tests for updated CashFlowChart
+  - [ ] 17.2 Add Monthly Savings/Withdrawals series using monthlySavingsApplied
+  - [ ] 17.3 Add BTC Purchases series using btcPurchased
+  - [ ] 17.4 Add Interest Accrued series using interestAccrued
+  - [ ] 17.5 Update chart legend and colors
+  - [ ] 17.6 Test chart rendering
   - [ ] 17.7 Verify all tests pass
   - [ ] 17.8 Commit changes
 
-- [ ] 18. Update RiskAssessment Component
-  - [ ] 18.1 Write tests for updated RiskAssessment
-  - [ ] 18.2 Add Maximum LTV Reached metric
-  - [ ] 18.3 Add Months Above 80% LTV metric
-  - [ ] 18.4 Add Liquidation Risk Score metric
-  - [ ] 18.5 Add Strategy Mode indicator (Dynamic vs Fixed Term)
-  - [ ] 18.6 Test risk calculations
+- [ ] 18. Update LoanActivityTable Component
+  - [ ] 18.1 Write tests for updated LoanActivityTable
+  - [ ] 18.2 Add Interest Accrued column (Dynamic LTV mode)
+  - [ ] 18.3 Add BTC Purchased column
+  - [ ] 18.4 Add Monthly Savings column
+  - [ ] 18.5 Add Rollover Event indicator (Fixed Term mode)
+  - [ ] 18.6 Test table rendering
   - [ ] 18.7 Verify all tests pass
   - [ ] 18.8 Commit changes
 
-- [ ] 19. Create HTML Prototype Validation Tests
-  - [ ] 19.1 Extract test data from HTML prototype
-  - [ ] 19.2 Create test fixtures with expected results
-  - [ ] 19.3 Write validation tests for initial loan
-  - [ ] 19.4 Write validation tests for Dynamic LTV mode
-  - [ ] 19.5 Write validation tests for monthly savings
-  - [ ] 19.6 Write validation tests for annual increases
-  - [ ] 19.7 Write validation tests for interest accrual
-  - [ ] 19.8 Verify results within 0.1% of HTML prototype
-  - [ ] 19.9 Verify all tests pass
-  - [ ] 19.10 Commit changes
+- [ ] 19. Update RiskAssessment Component
+  - [ ] 19.1 Write tests for updated RiskAssessment
+  - [ ] 19.2 Add Maximum LTV Reached metric
+  - [ ] 19.3 Add Months Above 80% LTV metric
+  - [ ] 19.4 Add Liquidation Risk Score metric
+  - [ ] 19.5 Add Strategy Mode indicator (Dynamic vs Fixed Term)
+  - [ ] 19.6 Test risk calculations
+  - [ ] 19.7 Verify all tests pass
+  - [ ] 19.8 Commit changes
 
-- [ ] 20. Integration Testing
-  - [ ] 20.1 Write end-to-end Dynamic LTV mode simulation test
-  - [ ] 20.2 Write end-to-end Fixed Term mode simulation test
-  - [ ] 20.3 Test Dynamic LTV mode with monthly savings
-  - [ ] 20.4 Test Dynamic LTV mode with withdrawals
-  - [ ] 20.5 Test Fixed Term mode with monthly savings
-  - [ ] 20.6 Test mode selection based on loan term
-  - [ ] 20.7 Test annual increase over multiple years
-  - [ ] 20.8 Verify all integration tests pass
-  - [ ] 20.9 Commit changes
+- [ ] 20. Create HTML Prototype Validation Tests
+  - [ ] 20.1 Extract test data from HTML prototype
+  - [ ] 20.2 Create test fixtures with expected results
+  - [ ] 20.3 Write validation tests for initial loan
+  - [ ] 20.4 Write validation tests for Dynamic LTV mode
+  - [ ] 20.5 Write validation tests for monthly savings
+  - [ ] 20.6 Write validation tests for annual increases
+  - [ ] 20.7 Write validation tests for interest accrual
+  - [ ] 20.8 Verify results within 0.1% of HTML prototype
+  - [ ] 20.9 Verify all tests pass
+  - [ ] 20.10 Commit changes
 
-- [ ] 21. Documentation Updates
-  - [ ] 21.1 Update developer guide with new strategy
-  - [ ] 21.2 Document automatic mode selection
-  - [ ] 21.3 Update user help text for strategy
-  - [ ] 21.4 Update tooltips with clear explanations
-  - [ ] 21.5 Add migration notes for users
-  - [ ] 21.6 Document annual increase calculation
-  - [ ] 21.7 Add examples for each mode
-  - [ ] 21.8 Commit changes
+- [ ] 21. Integration Testing
+  - [ ] 21.1 Write end-to-end Dynamic LTV mode simulation test
+  - [ ] 21.2 Write end-to-end Fixed Term mode simulation test
+  - [ ] 21.3 Test Dynamic LTV mode with monthly savings
+  - [ ] 21.4 Test Dynamic LTV mode with withdrawals
+  - [ ] 21.5 Test Fixed Term mode with monthly savings
+  - [ ] 21.6 Test mode selection based on loan term
+  - [ ] 21.7 Test annual increase over multiple years
+  - [ ] 21.8 Verify all integration tests pass
+  - [ ] 21.9 Commit changes
 
-- [ ] 22. Final Validation
-  - [ ] 22.1 Run all unit tests (pnpm test)
-  - [ ] 22.2 Run all module tests (pnpm test:modules)
-  - [ ] 22.3 Run type checking (pnpm type-check)
-  - [ ] 22.4 Run build (pnpm build)
-  - [ ] 22.5 Verify code coverage >90%
-  - [ ] 22.6 Manual testing: Dynamic LTV mode (Infinity loan term)
-  - [ ] 22.7 Manual testing: Fixed Term mode (specific loan term)
-  - [ ] 22.8 Manual testing: Mode switching
-  - [ ] 22.9 Manual testing: Monthly savings with annual increase
-  - [ ] 22.10 Compare results with HTML prototype
-  - [ ] 22.11 Test backward compatibility (old strategy still works)
-  - [ ] 22.12 Verify no breaking changes
-  - [ ] 22.13 Final commit with summary message
+- [ ] 22. Documentation Updates
+  - [ ] 22.1 Update developer guide with new strategy
+  - [ ] 22.2 Document automatic mode selection
+  - [ ] 22.3 Update user help text for strategy
+  - [ ] 22.4 Update tooltips with clear explanations
+  - [ ] 22.5 Add migration notes for users
+  - [ ] 22.6 Document annual increase calculation
+  - [ ] 22.7 Add examples for each mode
+  - [ ] 22.8 Commit changes
+
+- [ ] 23. Final Validation
+  - [ ] 23.1 Run all unit tests (pnpm test)
+  - [ ] 23.2 Run all module tests (pnpm test:modules)
+  - [ ] 23.3 Run type checking (pnpm type-check)
+  - [ ] 23.4 Run build (pnpm build)
+  - [ ] 23.5 Verify code coverage >90%
+  - [ ] 23.6 Manual testing: Dynamic LTV mode (Infinity loan term)
+  - [ ] 23.7 Manual testing: Fixed Term mode (specific loan term)
+  - [ ] 23.8 Manual testing: Mode switching
+  - [ ] 23.9 Manual testing: Monthly savings with annual increase
+  - [ ] 23.10 Compare results with HTML prototype
+  - [ ] 23.11 Test backward compatibility (old strategy still works)
+  - [ ] 23.12 Verify no breaking changes
+  - [ ] 23.13 Final commit with summary message

@@ -71,7 +71,155 @@ As a Bitcoin retiree, I want to generate monthly income from my Bitcoin holdings
 6. **Update Results Tab Components and Calculations** - Modify all results components, cards, and calculation services to display accurate strategy execution data
 7. **Add Annual Increase Parameter** - New input field in FinancialFlowCard for annual savings/withdrawal increase rate
 8. **Strategy Registry Integration** - Register new strategy and optionally deprecate old RollingLoanStrategy
-9. **Comprehensive Testing** - Unit tests for strategy logic, integration tests for simulation execution, HTML prototype validation
+9. **Create Comprehensive Monthly Results Table** - Implement detailed monthly results table matching HTML prototype with 9 columns and German localization
+10. **Comprehensive Testing** - Unit tests for strategy logic, integration tests for simulation execution, HTML prototype validation
+
+## Monthly Results Table Component
+
+### Overview
+
+The Monthly Results Table is the primary component for displaying detailed simulation results. It provides a comprehensive month-by-month view of all key metrics, matching the structure and functionality of the HTML prototype (`docs/ROLLING LOAN STRATEGY.html`).
+
+### Table Structure
+
+The table displays 9 columns with German labels, showing monthly progression of the simulation:
+
+| Column # | German Label | English Translation | Data Source | Format |
+|----------|--------------|---------------------|-------------|---------|
+| 1 | Datum | Date | `MonthlyResult.date` | MM/YYYY |
+| 2 | BTC Preis (€) | BTC Price (€) | `MonthlyResult.btcPrice` | €XX,XXX (no decimals) |
+| 3 | BTC Bestand | BTC Holdings | `MonthlyResult.totalBtcAmount` | X.XXXX BTC (4 decimals) |
+| 4 | Wert (€) | Portfolio Value (€) | `totalBtcAmount × btcPrice` | €XXX,XXX (no decimals) |
+| 5 | Gekaufte BTC | BTC Purchased | `MonthlyResult.btcPurchased` | +X.XXXX BTC (4 decimals, green) |
+| 6 | Spar./Entn. d. Zyklus (€) | Savings/Withdrawals of Cycle (€) | `MonthlyResult.monthlySavingsApplied` | €X,XXX (no decimals, color-coded) |
+| 7 | Akt. LTV (%) | Current LTV (%) | `MonthlyResult.ltv` | XX.XX% (2 decimals) |
+| 8 | Schulden (€) | Debt (€) | `MonthlyResult.totalDebt` | €XXX,XXX (no decimals) |
+| 9 | Netto BTC | Net BTC | Calculated: `totalBtcAmount - (totalDebt / btcPrice)` | X.XXXX BTC (4 decimals, teal) |
+
+### Data Mapping
+
+**Direct Mappings (from MonthlyResult):**
+- `date` → Datum (Column 1)
+- `btcPrice` → BTC Preis (Column 2)
+- `totalBtcAmount` → BTC Bestand (Column 3)
+- `btcPurchased` → Gekaufte BTC (Column 5)
+- `monthlySavingsApplied` → Spar./Entn. d. Zyklus (Column 6)
+- `ltv` → Akt. LTV (Column 7)
+- `totalDebt` → Schulden (Column 8)
+
+**Calculated Values:**
+- **Wert (€)** (Column 4): `totalBtcAmount × btcPrice`
+- **Netto BTC** (Column 9): `totalBtcAmount - (totalDebt / btcPrice)`
+  - This represents the "free" or "unlocked" BTC not used as collateral
+  - Equivalent to `freeBtc` field if available in MonthlyResult
+
+### Formatting Requirements
+
+**Currency (€):**
+- Format: German locale with Euro symbol
+- No decimal places (use `Math.round()`)
+- Thousands separator: dot (.)
+- Example: €95.234
+
+**BTC Amounts:**
+- Format: 4 decimal places
+- Suffix: " BTC"
+- Example: 1.2345 BTC
+
+**Percentages:**
+- Format: 2 decimal places
+- Suffix: "%"
+- Example: 15.75%
+
+**Dates:**
+- Format: MM/YYYY or localized month name
+- Example: "01/2025" or "Januar 2025"
+
+### Color Coding
+
+**Gekaufte BTC (Column 5):**
+- Always green (`text-green-400` or similar)
+- Shows positive BTC acquisition from loan proceeds
+- Prefix with "+" sign
+
+**Spar./Entn. d. Zyklus (Column 6):**
+- Positive values (savings): Green
+- Negative values (withdrawals): Red or neutral
+- Zero: Neutral gray
+
+**Netto BTC (Column 9):**
+- Teal/cyan color (`text-teal-300` or similar)
+- Emphasizes this as a key metric (free BTC available)
+
+### Special Rows
+
+**Liquidation Events:**
+- Full-width row spanning all 9 columns
+- Red background (`bg-red-900/80`)
+- Bold text: "LIQUIDATION am [DATE]"
+- Stops table rendering at liquidation point
+
+**Summary Rows (Dynamic LTV Mode):**
+- Yearly summary rows showing aggregated data
+- Slightly different background color for distinction
+- Shows cumulative BTC purchased for the year
+
+### UI/UX Requirements
+
+**Table Container:**
+- Responsive design with horizontal scroll on mobile
+- Sticky header row for easy column reference
+- Alternating row colors for readability
+- Hover effects on rows
+
+**Pagination/Scrolling:**
+- For long simulations (>120 months), implement pagination or virtual scrolling
+- Show month range indicator (e.g., "Showing months 1-12 of 120")
+- Jump to specific month functionality
+
+**Empty State:**
+- Show placeholder message when no results available
+- German text: "Bitte starten Sie die Simulation."
+- Center-aligned, gray text
+
+**Loading State:**
+- Show loading indicator while simulation runs
+- Disable table interaction during loading
+
+### Integration Points
+
+**Data Source:**
+- Primary: `results` array from SimulationContext (`MonthlyResult[]`)
+- All data comes from strategy execution results
+
+**Localization:**
+- Use i18n for all column headers and UI text
+- German as primary language
+- English translations available
+
+**Component Location:**
+- File: `app/simulation/tabs/results/ResultsTable.tsx`
+- Parent: Results tab component
+- Siblings: ResultsSummary, charts components
+
+### Technical Considerations
+
+**Performance:**
+- For large datasets (>1000 months), use virtualization
+- Memoize calculated columns (Wert, Netto BTC)
+- Debounce sorting/filtering operations
+
+**Accessibility:**
+- Proper table semantics (`<table>`, `<thead>`, `<tbody>`)
+- Column headers with `scope="col"`
+- ARIA labels for screen readers
+- Keyboard navigation support
+
+**Testing:**
+- Unit tests for data mapping and calculations
+- Integration tests with mock MonthlyResult data
+- Visual regression tests for formatting
+- Test with both Dynamic LTV and Fixed Term mode data
 
 ## Out of Scope
 
@@ -94,8 +242,9 @@ As a Bitcoin retiree, I want to generate monthly income from my Bitcoin holdings
 6. **Updated Results Tab** - All components, cards, and calculations display accurate data from new strategy execution
 7. **Annual Increase Input** - New parameter in Financial Flow card with helpful tooltips
 8. **Strategy Registry Integration** - New strategy registered and available in strategy dropdown
-9. **Passing Test Suite** - All unit and integration tests pass with >90% code coverage
-10. **Updated Documentation** - Developer guide, user help text, and migration notes
+9. **Comprehensive Monthly Results Table** - Detailed 9-column table with German localization matching HTML prototype
+10. **Passing Test Suite** - All unit and integration tests pass with >90% code coverage
+11. **Updated Documentation** - Developer guide, user help text, and migration notes
 
 ## Success Criteria
 
@@ -108,6 +257,9 @@ As a Bitcoin retiree, I want to generate monthly income from my Bitcoin holdings
 - [ ] All Results tab components, cards, and calculations display accurate data from strategy execution
 - [ ] Annual increase parameter is functional and persists in SimulationContext
 - [ ] New strategy registered in StrategyRegistry and available in dropdown
+- [ ] Monthly Results Table displays all 9 columns with correct data mapping and German labels
+- [ ] Table formatting matches HTML prototype (currency, BTC, percentages)
+- [ ] Netto BTC calculation is accurate (totalBtcAmount - locked collateral)
 - [ ] All existing tests pass and new tests achieve >90% coverage
 - [ ] No breaking changes to existing functionality (old strategy remains available)
 - [ ] Build completes without errors (`pnpm build` succeeds)
