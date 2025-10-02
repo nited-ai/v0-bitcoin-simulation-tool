@@ -187,9 +187,13 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
             annualGrowthRates: params.annualGrowthRates || [20, 15, 10, 8, 5]
           }
         } else if (params.priceModel === 'powerLaw') {
+          console.log('📊 [UnifiedPriceChart] Power Law settings from params:', params.powerLawSettings)
           modelParams.modelSpecificParams = {
-            prognosisLine: params.powerLawSettings?.prognosisLine || 'fit'
+            prognosisLine: params.powerLawSettings?.prognosisLine || 'fit',
+            priceProjectionParams: params.powerLawSettings?.priceProjectionParams,
+            cycleRepeatVolatility: params.powerLawSettings?.cycleRepeatVolatility
           }
+          console.log('📊 [UnifiedPriceChart] Passing to model:', modelParams.modelSpecificParams)
         } else if (params.priceModel === 'enhancedCycleRepeat') {
           // Load diminishing returns parameters from sessionStorage
           let diminishingReturns = null
@@ -308,9 +312,13 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
             annualGrowthRates: params.annualGrowthRates
           }
         } else if (params.priceModel === 'powerLaw') {
+          console.log('📊 [UnifiedPriceChart-Sampled] Power Law settings from params:', params.powerLawSettings)
           modelParams.modelSpecificParams = {
-            prognosisLine: params.powerLawSettings.prognosisLine
+            prognosisLine: params.powerLawSettings.prognosisLine,
+            priceProjectionParams: params.powerLawSettings.priceProjectionParams,
+            cycleRepeatVolatility: params.powerLawSettings.cycleRepeatVolatility
           }
+          console.log('📊 [UnifiedPriceChart-Sampled] Passing to model:', modelParams.modelSpecificParams)
         } else if (params.priceModel === 'enhancedCycleRepeat') {
           // Get diminishing returns parameters asynchronously to prevent blocking
           let diminishingReturns = null
@@ -390,12 +398,15 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
     params.priceModel,
     params.initialBtcPrice,
     params.simulationMonths,
-    params.powerLawSettings?.prognosisLine, // Only the specific property that affects projections
+    params.powerLawSettings?.prognosisLine, // Prognosis line selection
+    params.powerLawSettings?.cycleRepeatVolatility?.enabled, // Volatility toggle
+    params.powerLawSettings?.cycleRepeatVolatility?.patternLengthMonths, // Pattern length slider
+    params.powerLawSettings?.cycleRepeatVolatility?.diminishingFactor, // Diminishing factor slider
+    JSON.stringify(params.powerLawSettings?.priceProjectionParams), // Custom projection params
     params.diminishingReturnsUpdated, // Trigger recalculation when diminishing returns params change
     params.lastUpdated, // General trigger for any parameter updates
     JSON.stringify(params.annualGrowthRates), // Manual growth model rates (JSON.stringify for array comparison)
     searchParams.get('tab') // Only depend on the tab value, not the entire searchParams object
-    // Removed complex JSON.stringify dependencies that cause infinite loops
   ])
 
   // Calculate liquidation prices with bounds checking (unified calculation)
