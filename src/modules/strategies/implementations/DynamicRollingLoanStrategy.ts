@@ -304,19 +304,110 @@ Both modes support monthly savings with annual increases, BTC accumulation for p
 
   /**
    * Handle Fixed Term Mode (Specific Loan Term)
-   * 
+   *
    * - Interest calculated at rollover (full term interest)
    * - Loan rollover only at maturity months
    * - Excess proceeds calculation
+   *
+   * @param context - Strategy context with BTC price, amount, active loans, and parameters
+   * @returns StrategyDecision with investment/withdrawal instructions
    */
   private handleFixedTermMode(context: StrategyContext): StrategyDecision {
-    // TODO: Implement Fixed Term mode logic in Task 6
-    return {
-      allowInvestment: false,
-      investmentMultiplier: 0,
-      allowWithdrawal: false,
-      withdrawalAmount: 0,
-      reasoning: "Fixed Term mode logic not yet implemented"
+    const { month, btcPrice, totalBtcAmount, activeLoans, params } = context
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // SKIP MONTH 0: Initial loan already created
+    // ═══════════════════════════════════════════════════════════════════════
+    if (month === 0) {
+      return {
+        allowInvestment: false,
+        investmentMultiplier: 0,
+        allowWithdrawal: false,
+        withdrawalAmount: 0,
+        reasoning: "Month 0: Initial loan already created"
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // CHECK IF LOAN IS MATURING THIS MONTH
+    // ═══════════════════════════════════════════════════════════════════════
+    const maturingLoan = activeLoans.find(loan => loan.maturityMonth === month)
+
+    if (!maturingLoan) {
+      // No loan maturing this month, no action needed
+      return {
+        allowInvestment: false,
+        investmentMultiplier: 0,
+        allowWithdrawal: false,
+        withdrawalAmount: 0,
+        reasoning: `No loan maturing this month (next maturity: ${activeLoans.length > 0 ? activeLoans[0].maturityMonth : 'N/A'})`
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // STEP 1: Calculate full term interest
+    // ═══════════════════════════════════════════════════════════════════════
+    const annualRate = params.annualInterestRate
+    const termYears = params.loanTermMonths / 12
+    const interestDue = maturingLoan.principal * annualRate * termYears
+    const totalDebtToRepay = maturingLoan.principal + interestDue
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // STEP 2: Calculate new target loan based on current collateral
+    // ═══════════════════════════════════════════════════════════════════════
+    const collateralValue = totalBtcAmount * btcPrice
+    const targetLtv = params.riskManagement.targetLtv / 100
+    const targetLoan = collateralValue * targetLtv
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // STEP 3: Calculate amount to borrow (after repaying old loan)
+    // ═══════════════════════════════════════════════════════════════════════
+    const amountToBorrow = targetLoan - totalDebtToRepay
+
+    if (amountToBorrow <= 0) {
+      // Forced exceedance scenario - insufficient collateral to maintain target LTV
+      return {
+        allowInvestment: false,
+        investmentMultiplier: 0,
+        allowWithdrawal: false,
+        withdrawalAmount: 0,
+        reasoning: `Rollover: repaying $${Math.round(totalDebtToRepay)} (principal $${Math.round(maturingLoan.principal)} + interest $${Math.round(interestDue)}), insufficient collateral for target LTV`
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // STEP 4: Calculate net proceeds after origination fee
+    // ═══════════════════════════════════════════════════════════════════════
+    const loanFee = params.loanOriginationFeePercent / 100
+    const netProceeds = amountToBorrow * (1 - loanFee)
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // STEP 5: Calculate investment multiplier
+    // ═══════════════════════════════════════════════════════════════════════
+    const investmentMultiplier = netProceeds / collateralValue
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // STEP 6: Return decision based on accumulation mode
+    // ═══════════════════════════════════════════════════════════════════════
+    if (params.btcAccumulation) {
+      // BTC Accumulation Mode: Reinvest net proceeds
+      return {
+        allowInvestment: true,
+        investmentMultiplier,
+        allowWithdrawal: false,
+        withdrawalAmount: 0,
+        reasoning: `Rollover: repaying $${Math.round(totalDebtToRepay)} (principal $${Math.round(maturingLoan.principal)} + interest $${Math.round(interestDue)}), borrowing $${Math.round(targetLoan)} (net $${Math.round(netProceeds)})`
+      }
+    } else {
+      // Cash Generation Mode: Take specified withdrawal amount
+      const withdrawalAmount = Math.abs(params.monthlyWithdrawalAmount || 0)
+      return {
+        allowInvestment: true,
+        investmentMultiplier,
+        allowWithdrawal: true,
+        withdrawalAmount,
+        reasoning: `Rollover: repaying $${Math.round(totalDebtToRepay)} (principal $${Math.round(maturingLoan.principal)} + interest $${Math.round(interestDue)}), borrowing $${Math.round(targetLoan)}, withdrawing $${Math.round(withdrawalAmount)}`
+      }
     }
   }
 }

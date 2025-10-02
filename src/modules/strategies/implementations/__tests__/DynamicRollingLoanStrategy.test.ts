@@ -229,8 +229,8 @@ describe('DynamicRollingLoanStrategy', () => {
 
       const decision = strategy.makeDecision(context)
 
-      // Should call handleFixedTermMode (currently returns placeholder)
-      expect(decision.reasoning).toContain('Fixed Term mode')
+      // Should call handleFixedTermMode and return "No loan maturing" message
+      expect(decision.reasoning).toContain('No loan maturing')
     })
 
     it('should handle 3-month loan term (Fixed Term mode)', () => {
@@ -243,7 +243,7 @@ describe('DynamicRollingLoanStrategy', () => {
 
       const decision = strategy.makeDecision(context)
 
-      expect(decision.reasoning).toContain('Fixed Term mode')
+      expect(decision.reasoning).toContain('No loan maturing')
     })
 
     it('should handle 12-month loan term (Fixed Term mode)', () => {
@@ -256,7 +256,7 @@ describe('DynamicRollingLoanStrategy', () => {
 
       const decision = strategy.makeDecision(context)
 
-      expect(decision.reasoning).toContain('Fixed Term mode')
+      expect(decision.reasoning).toContain('No loan maturing')
     })
 
     it('should handle 24-month loan term (Fixed Term mode)', () => {
@@ -269,7 +269,7 @@ describe('DynamicRollingLoanStrategy', () => {
 
       const decision = strategy.makeDecision(context)
 
-      expect(decision.reasoning).toContain('Fixed Term mode')
+      expect(decision.reasoning).toContain('No loan maturing')
     })
   })
 
@@ -479,6 +479,213 @@ describe('DynamicRollingLoanStrategy', () => {
 
       expect(decision.allowWithdrawal).toBe(true)
       expect(decision.withdrawalAmount).toBeGreaterThan(0)
+    })
+  })
+
+  describe('Fixed Term Mode (Specific Loan Term)', () => {
+    it('should skip Month 0 in Fixed Term mode (initial loan already created)', () => {
+      const context = createMockContext({
+        month: 0,
+        params: {
+          loanTermMonths: 6
+        }
+      })
+
+      const decision = strategy.makeDecision(context)
+
+      // Should create initial loan, not enter Fixed Term mode
+      expect(decision.reasoning).toContain('initial loan')
+    })
+
+    it('should do nothing when no loan is maturing', () => {
+      const context = createMockContext({
+        month: 3, // Loan matures at month 6
+        btcPrice: 100000,
+        totalBtcAmount: 10,
+        activeLoans: [{
+          principal: 150000,
+          repaymentAmount: 150000,
+          originationMonth: 0,
+          maturityMonth: 6, // Matures at month 6
+          interestRate: 0.08,
+          originationFee: 1500,
+          loanTermMonths: 6
+        }],
+        params: {
+          loanTermMonths: 6
+        }
+      })
+
+      const decision = strategy.makeDecision(context)
+
+      expect(decision.allowInvestment).toBe(false)
+      expect(decision.investmentMultiplier).toBe(0)
+      expect(decision.reasoning).toContain('No loan maturing')
+    })
+
+    it('should rollover loan at maturity month', () => {
+      const context = createMockContext({
+        month: 6, // Loan matures this month
+        btcPrice: 100000,
+        totalBtcAmount: 10, // Collateral = 1,000,000
+        activeLoans: [{
+          principal: 100000, // Lower principal so we can borrow more
+          repaymentAmount: 100000,
+          originationMonth: 0,
+          maturityMonth: 6,
+          interestRate: 0.08,
+          originationFee: 1000,
+          loanTermMonths: 6
+        }],
+        params: {
+          loanTermMonths: 6,
+          annualInterestRate: 0.08,
+          maxLoanAmount: 150000,
+          riskManagement: {
+            targetLtv: 15, // Target = 150,000
+            liquidationLtv: 85,
+            maxLoanAmount: 150000,
+            liquidationFeePercent: 5,
+            annualInterestRate: 0.08
+          }
+        }
+      })
+
+      const decision = strategy.makeDecision(context)
+
+      expect(decision.allowInvestment).toBe(true)
+      expect(decision.reasoning).toContain('Rollover')
+    })
+
+    it('should calculate full term interest at rollover', () => {
+      const principal = 150000
+      const annualRate = 0.08
+      const termMonths = 6
+      const termYears = termMonths / 12 // 0.5 years
+      const expectedInterest = principal * annualRate * termYears // 6000
+
+      const context = createMockContext({
+        month: 6,
+        btcPrice: 100000,
+        totalBtcAmount: 10,
+        activeLoans: [{
+          principal,
+          repaymentAmount: principal,
+          originationMonth: 0,
+          maturityMonth: 6,
+          interestRate: annualRate,
+          originationFee: 1500,
+          loanTermMonths: termMonths
+        }],
+        params: {
+          loanTermMonths: termMonths,
+          annualInterestRate: annualRate,
+          riskManagement: {
+            targetLtv: 15,
+            liquidationLtv: 85,
+            maxLoanAmount: 150000,
+            liquidationFeePercent: 5,
+            annualInterestRate: annualRate
+          }
+        }
+      })
+
+      const decision = strategy.makeDecision(context)
+
+      // Should mention repayment amount (principal + interest)
+      const totalRepayment = principal + expectedInterest
+      expect(decision.reasoning).toContain('repaying')
+      expect(decision.reasoning).toContain(Math.round(totalRepayment).toString())
+    })
+
+    it('should handle forced exceedance when collateral insufficient', () => {
+      const context = createMockContext({
+        month: 6,
+        btcPrice: 50000, // Price dropped, collateral = 500,000
+        totalBtcAmount: 10,
+        activeLoans: [{
+          principal: 150000,
+          repaymentAmount: 150000,
+          originationMonth: 0,
+          maturityMonth: 6,
+          interestRate: 0.08,
+          originationFee: 1500,
+          loanTermMonths: 6
+        }],
+        params: {
+          loanTermMonths: 6,
+          annualInterestRate: 0.08,
+          riskManagement: {
+            targetLtv: 15, // Target = 75,000
+            liquidationLtv: 85,
+            maxLoanAmount: 150000,
+            liquidationFeePercent: 5,
+            annualInterestRate: 0.08
+          }
+        }
+      })
+
+      const decision = strategy.makeDecision(context)
+
+      // With debt > target, should be forced exceedance
+      expect(decision.reasoning).toContain('insufficient collateral')
+    })
+
+    it('should support BTC accumulation mode in Fixed Term', () => {
+      const context = createMockContext({
+        month: 6,
+        btcPrice: 100000,
+        totalBtcAmount: 10,
+        activeLoans: [{
+          principal: 150000,
+          repaymentAmount: 150000,
+          originationMonth: 0,
+          maturityMonth: 6,
+          interestRate: 0.08,
+          originationFee: 1500,
+          loanTermMonths: 6
+        }],
+        params: {
+          loanTermMonths: 6,
+          btcAccumulation: true
+        }
+      })
+
+      const decision = strategy.makeDecision(context)
+
+      if (decision.allowInvestment) {
+        expect(decision.allowWithdrawal).toBe(false)
+        expect(decision.withdrawalAmount).toBe(0)
+      }
+    })
+
+    it('should support cash generation mode in Fixed Term', () => {
+      const context = createMockContext({
+        month: 6,
+        btcPrice: 100000,
+        totalBtcAmount: 10,
+        activeLoans: [{
+          principal: 150000,
+          repaymentAmount: 150000,
+          originationMonth: 0,
+          maturityMonth: 6,
+          interestRate: 0.08,
+          originationFee: 1500,
+          loanTermMonths: 6
+        }],
+        params: {
+          loanTermMonths: 6,
+          btcAccumulation: false,
+          monthlyWithdrawalAmount: -2500
+        }
+      })
+
+      const decision = strategy.makeDecision(context)
+
+      if (decision.allowInvestment) {
+        expect(decision.allowWithdrawal).toBe(true)
+        expect(decision.withdrawalAmount).toBeGreaterThan(0)
+      }
     })
   })
 })

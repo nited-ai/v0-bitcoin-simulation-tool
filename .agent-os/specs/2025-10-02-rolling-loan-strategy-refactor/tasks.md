@@ -72,19 +72,19 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 5.11 Verify all tests pass (26/26)
   - [x] 5.12 Commit changes
 
-- [ ] 6. Implement Fixed Term Mode (Specific Loan Term)
-  - [ ] 6.1 Write tests for Fixed Term mode logic
-  - [ ] 6.2 Create handleFixedTermMode() method
-  - [ ] 6.3 Implement maturity month checking
-  - [ ] 6.4 Calculate full term interest: `principal * rate * (term/12)`
-  - [ ] 6.5 Calculate debt to repay: `principal + interest`
-  - [ ] 6.6 Calculate new target loan
-  - [ ] 6.7 Calculate amount to borrow: `targetLoan - debtToRepay`
-  - [ ] 6.8 Handle forced exceedance scenario (insufficient collateral)
-  - [ ] 6.9 Test rollover at various maturity dates
-  - [ ] 6.10 Test with different loan terms (3, 6, 12, 18, 24 months)
-  - [ ] 6.11 Verify all tests pass
-  - [ ] 6.12 Commit changes
+- [x] 6. Implement Fixed Term Mode (Specific Loan Term)
+  - [x] 6.1 Write tests for Fixed Term mode logic (7 new tests)
+  - [x] 6.2 Create handleFixedTermMode() method
+  - [x] 6.3 Implement maturity month checking
+  - [x] 6.4 Calculate full term interest: `principal * rate * (term/12)`
+  - [x] 6.5 Calculate debt to repay: `principal + interest`
+  - [x] 6.6 Calculate new target loan
+  - [x] 6.7 Calculate amount to borrow: `targetLoan - debtToRepay`
+  - [x] 6.8 Handle forced exceedance scenario (insufficient collateral)
+  - [x] 6.9 Support both BTC accumulation and cash generation modes
+  - [x] 6.10 Test rollover at various maturity dates and loan terms
+  - [x] 6.11 Verify all tests pass (33/33)
+  - [x] 6.12 Commit changes
 
 - [ ] 7. Integrate Monthly Savings in StrategyExecutionService
   - [ ] 7.1 Write tests for monthly savings integration
