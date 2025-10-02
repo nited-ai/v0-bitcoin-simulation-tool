@@ -151,21 +151,48 @@ export class PowerLawModel implements PriceProjectionModel {
     if (volatilitySettings?.enabled) {
       console.log(`📊 Power Law Model: Volatility enabled with ${volatilitySettings.patternLengthMonths} months pattern`)
 
-      // Create cache key for deviation pattern
-      const cacheKey = `${prognosisLine}-${volatilitySettings.patternLengthMonths}-${historicalData.length}`
+      // Determine which Power Law baseline to use for deviation extraction
+      // CRITICAL: Must match the baseline used for projection to ensure pattern consistency
+      let baselineForDeviation: 'fit' | 'support' | 'resistance' | 'custom' = prognosisLine
+      let customParams: { slope: number; intercept: number } | undefined = undefined
+
+      if (priceProjectionParams) {
+        // If custom projection params are used, extract deviations using those same params
+        baselineForDeviation = 'custom'
+        customParams = priceProjectionParams
+        console.log(`📊 Power Law Model: Using custom projection params for deviation extraction (slope: ${priceProjectionParams.slope}, intercept: ${priceProjectionParams.intercept})`)
+      }
+
+      // Create cache key that includes custom params if used
+      const cacheKey = priceProjectionParams
+        ? `custom-${priceProjectionParams.slope}-${priceProjectionParams.intercept}-${volatilitySettings.patternLengthMonths}-${historicalData.length}`
+        : `${prognosisLine}-${volatilitySettings.patternLengthMonths}-${historicalData.length}`
 
       // Check cache first
       if (this.deviationPatternCache.has(cacheKey)) {
         deviationPattern = this.deviationPatternCache.get(cacheKey)!
         console.log(`✅ Power Law Model: Using cached deviation pattern (${deviationPattern.length} points)`)
       } else {
-        // Extract deviation pattern from historical data
-        deviationPattern = this.volatilityService.extractDeviationPattern(
-          historicalData,
-          volatilitySettings.patternLengthMonths,
-          prognosisLine,
-          (date, line) => this.getPowerLawPrice(date, line)
-        )
+        // Extract deviation pattern from historical data using the correct baseline
+        if (customParams) {
+          // Use custom parameters for deviation extraction
+          const slope = customParams.slope
+          const intercept = customParams.intercept
+          deviationPattern = this.volatilityService.extractDeviationPattern(
+            historicalData,
+            volatilitySettings.patternLengthMonths,
+            'fit', // Placeholder, not used when custom function is provided
+            (date) => this.getPowerLawPriceCustom(date, slope, intercept)
+          )
+        } else {
+          // Use standard prognosis line
+          deviationPattern = this.volatilityService.extractDeviationPattern(
+            historicalData,
+            volatilitySettings.patternLengthMonths,
+            prognosisLine,
+            (date, line) => this.getPowerLawPrice(date, line)
+          )
+        }
 
         // Cache the pattern
         this.deviationPatternCache.set(cacheKey, deviationPattern)
