@@ -142,6 +142,7 @@ export interface SimulationParams {
   riskLevel: RiskLevel
   platform: Platform
   loanAmountPercent: number // Percentage of BTC stack value
+  annualSavingsIncrease?: number // Annual compound increase for monthly savings/withdrawals (percentage)
   // Strategy parameters
   investmentStrategy: InvestmentStrategy
   athBasedParams: AthBasedStrategyParams

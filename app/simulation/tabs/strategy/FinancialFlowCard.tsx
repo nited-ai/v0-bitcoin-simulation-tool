@@ -69,6 +69,41 @@ export function FinancialFlowCard() {
           />
         </div>
 
+        {/* Annual Savings/Withdrawal Increase */}
+        {params.monthlyWithdrawalAmount !== 0 && (
+          <div className="space-y-2">
+            <Label htmlFor="annualSavingsIncrease" className="flex items-center gap-2">
+              Annual Increase Rate
+              <HybridTooltip>
+                <HybridTooltipTrigger asChild>
+                  <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
+                </HybridTooltipTrigger>
+                <HybridTooltipContent>
+                  <div className="space-y-2">
+                    <p><strong>Compound annual increase</strong> applied to your monthly amount</p>
+                    <p><strong>Example:</strong> 10% means your monthly amount increases by 10% each year</p>
+                    <p><strong>Year 1:</strong> ${Math.abs(params.monthlyWithdrawalAmount).toLocaleString()}/month</p>
+                    <p><strong>Year 2:</strong> ${Math.round(Math.abs(params.monthlyWithdrawalAmount) * (1 + (params.annualSavingsIncrease || 0) / 100)).toLocaleString()}/month</p>
+                    <p><strong>Year 3:</strong> ${Math.round(Math.abs(params.monthlyWithdrawalAmount) * Math.pow(1 + (params.annualSavingsIncrease || 0) / 100, 2)).toLocaleString()}/month</p>
+                  </div>
+                </HybridTooltipContent>
+              </HybridTooltip>
+            </Label>
+            <NumberInput
+              id="annualSavingsIncrease"
+              name="annualSavingsIncrease"
+              value={params.annualSavingsIncrease || 0}
+              onChange={(value) => setParams((p) => ({ ...p, annualSavingsIncrease: value }))}
+              min={0}
+              max={50}
+              step={1}
+              decimals={0}
+              suffix="%"
+              placeholder="0"
+            />
+          </div>
+        )}
+
         {/* Financial Flow Status Indicator */}
         <div className="p-4 rounded-lg border-2 transition-all">
           {isSaving && (
@@ -80,9 +115,14 @@ export function FinancialFlowCard() {
                 </h4>
                 <p className="text-sm text-muted-foreground mt-1">
                   You're adding <strong>${Math.abs(params.monthlyWithdrawalAmount).toLocaleString()}</strong> per month to your investment.
-                  {params.btcAccumulation 
+                  {params.btcAccumulation
                     ? " These funds will be used to purchase additional Bitcoin."
                     : " These funds will be held as cash reserves."}
+                  {params.annualSavingsIncrease && params.annualSavingsIncrease > 0 && (
+                    <span className="block mt-1 text-green-700 dark:text-green-300">
+                      Growing at <strong>{params.annualSavingsIncrease}%</strong> annually (Year 10: ${Math.round(Math.abs(params.monthlyWithdrawalAmount) * Math.pow(1 + params.annualSavingsIncrease / 100, 9)).toLocaleString()}/month)
+                    </span>
+                  )}
                 </p>
               </div>
             </div>
@@ -98,6 +138,11 @@ export function FinancialFlowCard() {
                 <p className="text-sm text-muted-foreground mt-1">
                   You're withdrawing <strong>${Math.abs(params.monthlyWithdrawalAmount).toLocaleString()}</strong> per month from your investment.
                   This will reduce your available collateral over time.
+                  {params.annualSavingsIncrease && params.annualSavingsIncrease > 0 && (
+                    <span className="block mt-1 text-orange-700 dark:text-orange-300">
+                      Increasing at <strong>{params.annualSavingsIncrease}%</strong> annually (Year 10: ${Math.round(Math.abs(params.monthlyWithdrawalAmount) * Math.pow(1 + params.annualSavingsIncrease / 100, 9)).toLocaleString()}/month)
+                    </span>
+                  )}
                 </p>
               </div>
             </div>
