@@ -40,6 +40,11 @@ export class VolatilityService {
     prognosisLine: 'fit' | 'support' | 'resistance',
     getPowerLawPrice: (date: Date, line: 'fit' | 'support' | 'resistance') => number
   ): number[] {
+    console.log('🌊 [VolatilityService] extractDeviationPattern called')
+    console.log('🌊 [VolatilityService] Historical data length:', historicalData?.length)
+    console.log('🌊 [VolatilityService] Pattern length months:', patternLengthMonths)
+    console.log('🌊 [VolatilityService] Prognosis line:', prognosisLine)
+
     if (!historicalData || historicalData.length === 0) {
       console.warn('⚠️ VolatilityService: No historical data available for deviation pattern extraction')
       return []
@@ -47,7 +52,7 @@ export class VolatilityService {
 
     // Take the last N months of historical data (or all available if less than requested)
     const relevantHistory = historicalData.slice(-patternLengthMonths)
-    
+
     console.log(`📊 VolatilityService: Extracting deviation pattern from ${relevantHistory.length} months of data`)
 
     const deviationPattern: number[] = []
@@ -92,7 +97,15 @@ export class VolatilityService {
     monthIndex: number,
     diminishingFactor: number
   ): number {
+    if (monthIndex === 0) {
+      console.log('🌊 [VolatilityService] applyVolatility called for first month')
+      console.log('🌊 [VolatilityService] Base price:', basePrice)
+      console.log('🌊 [VolatilityService] Deviation pattern length:', deviationPattern?.length)
+      console.log('🌊 [VolatilityService] Diminishing factor:', diminishingFactor)
+    }
+
     if (!deviationPattern || deviationPattern.length === 0) {
+      console.warn('⚠️ VolatilityService: No deviation pattern available')
       return basePrice // No volatility pattern available
     }
 
@@ -116,6 +129,13 @@ export class VolatilityService {
       const volatilityMultiplier = 1 + (deviationRatio - 1) * diminishingMultiplier
 
       const adjustedPrice = basePrice * volatilityMultiplier
+
+      if (monthIndex === 0) {
+        console.log('🌊 [VolatilityService] Pattern index:', patternIndex)
+        console.log('🌊 [VolatilityService] Deviation ratio:', deviationRatio)
+        console.log('🌊 [VolatilityService] Volatility multiplier:', volatilityMultiplier)
+        console.log('🌊 [VolatilityService] Adjusted price:', adjustedPrice)
+      }
 
       return adjustedPrice
     } catch (error) {

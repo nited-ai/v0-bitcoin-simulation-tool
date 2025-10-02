@@ -137,30 +137,40 @@ export function PowerLawControls({ className }: PowerLawControlsProps) {
 
   // Volatility handling functions
   const handleVolatilityToggle = (enabled: boolean) => {
-    setParams(prev => ({
-      ...prev,
-      powerLawSettings: {
-        ...prev.powerLawSettings!,
-        cycleRepeatVolatility: {
-          enabled,
-          patternLengthMonths: prev.powerLawSettings?.cycleRepeatVolatility?.patternLengthMonths || VOLATILITY_DEFAULTS.patternLengthMonths,
-          diminishingFactor: prev.powerLawSettings?.cycleRepeatVolatility?.diminishingFactor || VOLATILITY_DEFAULTS.diminishingFactor
+    console.log('🎛️ [PowerLawControls] Volatility checkbox toggled:', enabled)
+    setParams(prev => {
+      const newSettings = {
+        ...prev,
+        powerLawSettings: {
+          ...prev.powerLawSettings!,
+          cycleRepeatVolatility: {
+            enabled,
+            patternLengthMonths: prev.powerLawSettings?.cycleRepeatVolatility?.patternLengthMonths || VOLATILITY_DEFAULTS.patternLengthMonths,
+            diminishingFactor: prev.powerLawSettings?.cycleRepeatVolatility?.diminishingFactor || VOLATILITY_DEFAULTS.diminishingFactor
+          }
         }
       }
-    }))
+      console.log('🎛️ [PowerLawControls] Saving volatility settings:', newSettings.powerLawSettings.cycleRepeatVolatility)
+      return newSettings
+    })
   }
 
   const handleVolatilityParamChange = (param: 'patternLengthMonths' | 'diminishingFactor', value: number[]) => {
-    setParams(prev => ({
-      ...prev,
-      powerLawSettings: {
-        ...prev.powerLawSettings!,
-        cycleRepeatVolatility: {
-          ...prev.powerLawSettings?.cycleRepeatVolatility!,
-          [param]: value[0]
+    console.log(`🎛️ [PowerLawControls] ${param} changed to:`, value[0])
+    setParams(prev => {
+      const newSettings = {
+        ...prev,
+        powerLawSettings: {
+          ...prev.powerLawSettings!,
+          cycleRepeatVolatility: {
+            ...prev.powerLawSettings?.cycleRepeatVolatility!,
+            [param]: value[0]
+          }
         }
       }
-    }))
+      console.log('🎛️ [PowerLawControls] Updated volatility settings:', newSettings.powerLawSettings.cycleRepeatVolatility)
+      return newSettings
+    })
   }
 
   // Apply to Price Projection functionality

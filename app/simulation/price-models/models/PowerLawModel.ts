@@ -132,10 +132,15 @@ export class PowerLawModel implements PriceProjectionModel {
   ): Promise<PriceProjectionResult> {
 
     console.log(`🚀 Power Law Model: Generating projection for ${params.projectionMonths} months`)
+    console.log('🔧 [PowerLawModel] Received params:', params)
+    console.log('🔧 [PowerLawModel] modelSpecificParams:', params.modelSpecificParams)
 
     const prognosisLine = params.modelSpecificParams?.prognosisLine || 'fit'
     const volatilitySettings = params.modelSpecificParams?.cycleRepeatVolatility
     const priceProjectionParams = params.modelSpecificParams?.priceProjectionParams
+
+    console.log('🔧 [PowerLawModel] Extracted volatility settings:', volatilitySettings)
+    console.log('🔧 [PowerLawModel] Volatility enabled?', volatilitySettings?.enabled)
     const projectionPoints: ProjectionPoint[] = []
     const startDate = new Date()
 
