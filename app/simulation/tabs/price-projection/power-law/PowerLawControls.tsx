@@ -6,7 +6,8 @@ import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { RotateCcw, Info, Settings2, Sliders } from 'lucide-react'
+import { Checkbox } from '@/components/ui/checkbox'
+import { RotateCcw, Info, Settings2, Sliders, Zap, Copy } from 'lucide-react'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useSimulation } from '../../../context/SimulationContext'
 
@@ -21,6 +22,16 @@ const DEFAULT_PARAMS = {
 const SLOPE_RANGE = { min: 5.0, max: 6.0, step: 0.01 }
 const INTERCEPT_RANGE = { min: -19.0, max: -13.0, step: 0.01 }
 
+// Volatility parameter ranges and defaults
+const VOLATILITY_DEFAULTS = {
+  enabled: false,
+  patternLengthMonths: 96,  // 8 years (matches original implementation)
+  diminishingFactor: 1.0    // No diminishing by default
+}
+
+const PATTERN_LENGTH_RANGE = { min: 24, max: 120, step: 1 }  // 2-10 years
+const DIMINISHING_FACTOR_RANGE = { min: 0.5, max: 1.0, step: 0.01 }
+
 interface PowerLawControlsProps {
   className?: string
 }
@@ -32,9 +43,9 @@ export function PowerLawControls({ className }: PowerLawControlsProps) {
   useEffect(() => {
     if (params.priceModel === 'powerLaw' && params.powerLawSettings) {
       const settings = params.powerLawSettings
-      
+
       // Initialize missing properties with defaults
-      if (!settings.controlMode || !settings.unifiedSlope || !settings.individualParams) {
+      if (!settings.controlMode || !settings.unifiedSlope || !settings.individualParams || !settings.cycleRepeatVolatility) {
         setParams(prev => ({
           ...prev,
           powerLawSettings: {
@@ -42,7 +53,9 @@ export function PowerLawControls({ className }: PowerLawControlsProps) {
             controlMode: settings.controlMode || 'unified',
             unifiedSlope: settings.unifiedSlope || DEFAULT_PARAMS.fit.slope,
             unifiedIntercept: settings.unifiedIntercept || DEFAULT_PARAMS.fit.intercept,
-            individualParams: settings.individualParams || DEFAULT_PARAMS
+            individualParams: settings.individualParams || DEFAULT_PARAMS,
+            // Initialize volatility settings with defaults
+            cycleRepeatVolatility: settings.cycleRepeatVolatility || VOLATILITY_DEFAULTS
           }
         }))
       }
@@ -118,6 +131,53 @@ export function PowerLawControls({ className }: PowerLawControlsProps) {
         unifiedSlope: DEFAULT_PARAMS.fit.slope,
         unifiedIntercept: DEFAULT_PARAMS.fit.intercept,
         individualParams: DEFAULT_PARAMS
+      }
+    }))
+  }
+
+  // Volatility handling functions
+  const handleVolatilityToggle = (enabled: boolean) => {
+    setParams(prev => ({
+      ...prev,
+      powerLawSettings: {
+        ...prev.powerLawSettings!,
+        cycleRepeatVolatility: {
+          enabled,
+          patternLengthMonths: prev.powerLawSettings?.cycleRepeatVolatility?.patternLengthMonths || VOLATILITY_DEFAULTS.patternLengthMonths,
+          diminishingFactor: prev.powerLawSettings?.cycleRepeatVolatility?.diminishingFactor || VOLATILITY_DEFAULTS.diminishingFactor
+        }
+      }
+    }))
+  }
+
+  const handleVolatilityParamChange = (param: 'patternLengthMonths' | 'diminishingFactor', value: number[]) => {
+    setParams(prev => ({
+      ...prev,
+      powerLawSettings: {
+        ...prev.powerLawSettings!,
+        cycleRepeatVolatility: {
+          ...prev.powerLawSettings?.cycleRepeatVolatility!,
+          [param]: value[0]
+        }
+      }
+    }))
+  }
+
+  // Apply to Price Projection functionality
+  const applyToPriceProjection = () => {
+    const settings = params.powerLawSettings!
+    const fitParams = settings.controlMode === 'unified'
+      ? { slope: settings.unifiedSlope!, intercept: settings.unifiedIntercept! }
+      : settings.individualParams!.fit
+
+    setParams(prev => ({
+      ...prev,
+      powerLawSettings: {
+        ...prev.powerLawSettings!,
+        priceProjectionParams: {
+          slope: fitParams.slope,
+          intercept: fitParams.intercept
+        }
       }
     }))
   }
@@ -381,6 +441,145 @@ export function PowerLawControls({ className }: PowerLawControlsProps) {
             </div>
           </div>
         )}
+
+        {/* Cycle Repeat Volatility Section */}
+        <Separator className="my-6" />
+
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Zap className="h-4 w-4 text-amber-500" />
+              <Label className="text-base font-medium">Cycle Repeat Volatility</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                      <Info className="h-3 w-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="text-sm">
+                      Applies historical Bitcoin price volatility patterns to the <strong>price projection line only</strong>.
+                      Power Law regression lines (Support/Fit/Resistance) remain pure mathematical curves.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <Checkbox
+              checked={settings.cycleRepeatVolatility?.enabled || false}
+              onCheckedChange={handleVolatilityToggle}
+            />
+          </div>
+
+          {/* Price Projection Parameters Display */}
+          <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium">Price Projection Parameters</Label>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={applyToPriceProjection}
+                className="flex items-center gap-2 h-7"
+              >
+                <Copy className="h-3 w-3" />
+                Apply Fit Line
+              </Button>
+            </div>
+
+            {settings.priceProjectionParams ? (
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Slope:</span>
+                  <span className="font-mono">{settings.priceProjectionParams.slope.toFixed(3)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Intercept:</span>
+                  <span className="font-mono">{settings.priceProjectionParams.intercept.toFixed(3)}</span>
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">Using Fit line parameters</p>
+            )}
+          </div>
+
+          {/* Volatility Controls */}
+          {settings.cycleRepeatVolatility?.enabled && (
+            <div className="space-y-4 pl-6 border-l-2 border-amber-200">
+              {/* Pattern Length Slider */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-sm">Pattern Length</Label>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-5 w-5 p-0">
+                            <Info className="h-3 w-3" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-sm">Number of months of historical data to use for volatility pattern (24-120 months)</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                  <span className="text-xs font-mono bg-muted px-2 py-1 rounded">
+                    {settings.cycleRepeatVolatility.patternLengthMonths} months
+                  </span>
+                </div>
+                <Slider
+                  value={[settings.cycleRepeatVolatility.patternLengthMonths]}
+                  onValueChange={(value) => handleVolatilityParamChange('patternLengthMonths', value)}
+                  min={PATTERN_LENGTH_RANGE.min}
+                  max={PATTERN_LENGTH_RANGE.max}
+                  step={PATTERN_LENGTH_RANGE.step}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>2 years</span>
+                  <span>10 years</span>
+                </div>
+              </div>
+
+              {/* Diminishing Factor Slider */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-sm">Diminishing Factor</Label>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-5 w-5 p-0">
+                            <Info className="h-3 w-3" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-sm">Reduces volatility impact over time. 1.0 = no reduction, 0.5 = strong reduction</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                  <span className="text-xs font-mono bg-muted px-2 py-1 rounded">
+                    {settings.cycleRepeatVolatility.diminishingFactor.toFixed(2)}
+                  </span>
+                </div>
+                <Slider
+                  value={[settings.cycleRepeatVolatility.diminishingFactor]}
+                  onValueChange={(value) => handleVolatilityParamChange('diminishingFactor', value)}
+                  min={DIMINISHING_FACTOR_RANGE.min}
+                  max={DIMINISHING_FACTOR_RANGE.max}
+                  step={DIMINISHING_FACTOR_RANGE.step}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Strong reduction</span>
+                  <span>No reduction</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   )

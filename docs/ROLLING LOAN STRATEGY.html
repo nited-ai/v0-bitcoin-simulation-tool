@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bitcoin Leverage Simulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1f2937; }
+        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+        .info-box {
+            display: none;
+            background-color: #1e3a8a;
+            border: 1px solid #1d4ed8;
+            color: #bfdbfe;
+            font-size: 0.875rem;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 antialiased">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-7xl">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">Bitcoin Leverage Simulator</h1>
+            <p class="text-md text-gray-400">
+                Vergleichen Sie feste Laufzeiten mit einer dynamischen Kreditlinie.
+            </p>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Settings Panel -->
+            <div class="lg-col-span-1 bg-gray-800 p-6 rounded-2xl shadow-lg h-fit">
+                <h2 class="text-2xl font-semibold mb-6 border-b border-gray-700 pb-3">Einstellungen</h2>
+                <div class="space-y-4">
+                     <div>
+                        <label for="strategyType" class="block text-sm font-medium text-gray-300 mb-1">Strategie-Typ</label>
+                        <select id="strategyType" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                            <option value="dynamicLtv">Dynamische Kreditlinie</option>
+                            <option value="fixedTerm">Feste Laufzeit</option>
+                        </select>
+                        <div id="dynamicLtvInfo" class="info-box">Der LTV wird jeden Monat aktiv auf den Zielwert zurückgesetzt.</div>
+                        <div id="fixedTermInfo" class="info-box">Reinvestition findet nur am Ende der festgelegten Laufzeit statt.</div>
+                    </div>
+                    <div>
+                        <label for="initialBtc" class="block text-sm font-medium text-gray-300 mb-1">Anfangskapital (BTC)</label>
+                        <input type="number" id="initialBtc" value="10" min="0" step="0.1" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                    </div>
+                     <div>
+                        <label for="monthlySavings" class="block text-sm font-medium text-gray-300 mb-1">Monatliche Sparrate / Entnahme (€)</label>
+                        <input type="number" id="monthlySavings" value="-2500" step="50" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                    </div>
+                     <div>
+                        <label for="savingsRateIncrease" class="block text-sm font-medium text-gray-300 mb-1">Jährliche Anpassung der Sparrate (%)</label>
+                        <input type="number" id="savingsRateIncrease" value="10" min="0" step="0.5" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                    </div>
+                     <div>
+                        <label for="simulationYears" class="block text-sm font-medium text-gray-300 mb-1">Simulationsdauer (Jahre)</label>
+                        <input type="number" id="simulationYears" value="21" min="1" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                    </div>
+                    <div>
+                        <label for="interestRate" class="block text-sm font-medium text-gray-300 mb-1">Jahreszins (%)</label>
+                        <input type="number" id="interestRate" value="8" min="0" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                    </div>
+                    <div>
+                        <label for="loanFee" class="block text-sm font-medium text-gray-300 mb-1">Gebühr auf neuen Kredit (%)</label>
+                        <input type="number" id="loanFee" value="0" min="0" step="0.1" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                    </div>
+                     <div>
+                        <label for="ltv" class="block text-sm font-medium text-gray-300 mb-1">Ziel-LTV (%)</label>
+                        <input type="number" id="ltv" value="15" min="1" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                    </div>
+                    <div id="loanDurationContainer">
+                        <label for="loanDuration" class="block text-sm font-medium text-gray-300 mb-1">Kreditlaufzeit (Monate)</label>
+                        <input type="number" id="loanDuration" value="12" min="1" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                    </div>
+                    <div class="flex items-center pt-2">
+                        <input id="volatilityToggle" name="volatilityToggle" type="checkbox" checked class="h-4 w-4 rounded border-gray-500 bg-gray-600 text-blue-600 focus:ring-blue-500">
+                        <label for="volatilityToggle" class="ml-3 block text-sm text-gray-300">Volatilitätsprognose anwenden</label>
+                    </div>
+                </div>
+                <button id="simulateBtn" class="w-full mt-8 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-transform transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-blue-500">
+                    Simulation starten
+                </button>
+            </div>
+
+            <!-- Results Area -->
+            <div class="lg:col-span-2 space-y-8">
+                <div class="bg-gray-800 p-4 sm:p-6 rounded-2xl shadow-lg">
+                    <h2 class="text-2xl font-semibold mb-4">Simulationsverlauf</h2>
+                    <div class="h-96 relative">
+                        <canvas id="simulationChart"></canvas>
+                    </div>
+                </div>
+                <div class="bg-gray-800 p-4 sm:p-6 rounded-2xl shadow-lg">
+                    <h2 id="resultsTitle" class="text-2xl font-semibold mb-4">Detailergebnisse</h2>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left text-gray-300">
+                            <thead class="text-xs text-gray-300 uppercase bg-gray-700">
+                                <tr>
+                                    <th scope="col" class="px-4 py-3 rounded-l-lg">Datum</th>
+                                    <th scope="col" class="px-4 py-3">BTC Preis (€)</th>
+                                    <th scope="col" class="px-4 py-3">BTC Bestand</th>
+                                    <th scope="col" class="px-4 py-3">Wert (€)</th>
+                                    <th scope="col" class="px-4 py-3">Gekaufte BTC</th>
+                                    <th scope="col" class="px-4 py-3">Spar./Entn. d. Zyklus (€)</th>
+                                    <th scope="col" class="px-4 py-3">Akt. LTV (%)</th>
+                                    <th scope="col" class="px-4 py-3">Schulden (€)</th>
+                                    <th scope="col" class="px-4 py-3 rounded-r-lg">Netto BTC</th>
+                                </tr>
+                            </thead>
+                            <tbody id="resultsBody" class="divide-y divide-gray-700">
+                               <tr><td colspan="9" class="text-center p-8 text-gray-500">Bitte starten Sie die Simulation.</td></tr>
+                            </tbody>
+                             <tfoot id="resultsFooter" class="bg-gray-700 font-semibold">
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const historicalData = [ { date: '2015-10-01', price: 280.37 }, { date: '2015-11-01', price: 337.26 }, { date: '2015-12-01', price: 410.74 }, { date: '2016-01-01', price: 382.72 }, { date: '2016-02-01', price: 388.21 }, { date: '2016-03-01', price: 379.46 }, { date: '2016-04-01', price: 399.04 }, { date: '2016-05-01', price: 440.59 }, { date: '2016-06-01', price: 610.15 }, { date: '2016-07-01', price: 597.10 }, { date: '2016-08-01', price: 521.84 }, { date: '2016-09-01', price: 544.13 }, { date: '2016-10-01', price: 588.42 }, { date: '2016-11-01', price: 686.04 }, { date: '2016-12-01', price: 818.15 }, { date: '2017-01-01', price: 919.10 }, { date: '2017-02-01', price: 1046.22 }, { date: '2017-03-01', price: 1109.95 }, { date: '2017-04-01', price: 1198.85 }, { date: '2017-05-01', price: 1845.50 }, { date: '2017-06-01', price: 2420.73 }, { date: '2017-07-01', price: 2315.71 }, { date: '2017-08-01', price: 3415.17 }, { date: '2017-09-01', price: 3591.13 }, { date: '2017-10-01', price: 4894.21 }, { date: '2017-11-01', price: 7192.83 }, { date: '2017-12-01', price: 14088.33 }, { date: '2018-01-01', price: 10981.41 }, { date: '2018-02-01', price: 8320.15 }, { date: '2018-03-01', price: 7600.89 }, { date: '2018-04-01', price: 6932.12 }, { date: '2018-05-01', price: 7208.70 }, { date: '2018-06-01', price: 5971.86 }, { date: '2018-07-01', price: 6516.48 }, { date: '2018-08-01', price: 6010.51 }, { date: '2018-09-01', price: 5698.41 }, { date: '2018-10-01', price: 5676.88 }, { date: '2018-11-01', price: 4725.10 }, { date: '2018-12-01', price: 3326.60 }, { date: '2019-01-01', price: 3266.97 }, { date: '2019-02-01', price: 3379.46 }, { date: '2019-03-01', price: 3530.93 }, { date: '2019-04-01', price: 4627.42 }, { date: '2019-05-01', price: 6925.32 }, { date: '2019-06-01', price: 8645.18 }, { date: '2019-07-01', price: 9557.06 }, { date: '2019-08-01', price: 9694.94 }, { date: '2019-09-01', price: 9110.15 }, { date: '2019-10-01', price: 7922.37 }, { date: '2019-11-01', price: 7750.04 }, { date: '2019-12-01', price: 6681.25 }, { date: '2020-01-01', price: 8122.18 }, { date: '2020-02-01', price: 9029.23 }, { date: '2020-03-01', price: 6717.30 }, { date: '2020-04-01', price: 7334.26 }, { date: '2020-05-01', price: 8632.18 }, { date: '2020-06-01', price: 8393.97 }, { date: '2020-07-01', price: 8871.91 }, { date: '2020-08-01', price: 9974.79 }, { date: '2020-09-01', price: 9161.46 }, { date: '2020-10-01', price: 10323.86 }, { date: '2020-11-01', price: 14782.93 }, { date: '2020-12-01', price: 20111.45 }, { date: '2021-01-01', price: 29532.78 }, { date: '2021-02-01', price: 40536.54 }, { date: '2021-03-01', price: 48116.20 }, { date: '2021-04-01', price: 49451.98 }, { date: '2021-05-01', price: 41249.20 }, { date: '2021-06-01', price: 31086.11 }, { date: '2021-07-01', price: 31697.80 }, { date: '2021-08-01', price: 39682.02 }, { date: '2021-09-01', price: 38994.51 }, { date: '2021-10-01', price: 50965.23 }, { date: '2021-11-01', price: 55437.28 }, { date: '2021-12-01', price: 45041.34 }, { date: '2022-01-01', price: 37175.76 }, { date: '2022-02-01', price: 37385.96 }, { date: '2022-03-01', price: 39689.47 }, { date: '2022-04-01', price: 38622.61 }, { date: '2022-05-01', price: 29845.02 }, { date: '2022-06-01', price: 24701.32 }, { date: '2022-07-01', price: 21338.25 }, { date: '2022-08-01', price: 21727.65 }, { date: '2022-09-01', price: 19895.89 }, { date: '2022-10-01', price: 19998.61 }, { date: '2022-11-01', price: 17929.35 }, { date: '2022-12-01', price: 16183.17 }, { date: '2023-01-01', price: 20059.23 }, { date: '2023-02-01', price: 22008.12 }, { date: '2023-03-01', price: 24653.88 }, { date: '2023-04-01', price: 26581.08 }, { date: '2023-05-01', price: 25445.62 }, { date: '2023-06-01', price: 26661.32 }, { date: '2023-07-01', price: 27159.98 }, { date: '2023-08-01', price: 25330.34 }, { date: '2023-09-01', price: 24898.39 }, { date: '2023-10-01', price: 29112.55 }, { date: '2023-11-01', price: 34123.63 }, { date: '2023-12-01', price: 39009.67 }, { date: '2024-01-01', price: 39989.10 }, { date: '2024-02-01', price: 51231.54 }, { date: '2024-03-01', price: 63891.02 }, { date: '2024-04-01', price: 62001.34 }, { date: '2024-05-01', price: 62141.22 }, { date: '2024-06-01', price: 62201.50 }, { date: '2024-07-01', price: 57984.21 }, { date: '2024-08-01', price: 62541.33 }, { date: '2024-09-01', price: 58901.88 }, { date: '2024-10-01', price: 64123.45 }, { date: '2024-11-01', price: 71234.56 }, { date: '2024-12-01', price: 75345.67 }, { date: '2025-01-01', price: 78456.78 }, { date: '2025-02-01', price: 81567.89 }, { date: '2025-03-01', price: 85678.90 }, { date: '2025-04-01', price: 88789.01 }, { date: '2025-05-01', price: 91890.12 }, { date: '2025-06-01', price: 95001.23 }, { date: '2025-07-01', price: 98112.34 }, { date: '2025-08-01', price: 101223.45 }, { date: '2025-09-01', price: 105334.56 },
+        ].map(d => ({ date: new Date(d.date), price: d.price }));
+
+        let simulationChartInstance;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const simulateBtn = document.getElementById('simulateBtn');
+            const strategyTypeSelect = document.getElementById('strategyType');
+            const loanDurationContainer = document.getElementById('loanDurationContainer');
+            const dynamicLtvInfo = document.getElementById('dynamicLtvInfo');
+            const fixedTermInfo = document.getElementById('fixedTermInfo');
+            const resultsTitle = document.getElementById('resultsTitle');
+
+            function toggleStrategyInputs() {
+                if (strategyTypeSelect.value === 'fixedTerm') {
+                    loanDurationContainer.style.display = 'block';
+                    fixedTermInfo.style.display = 'block';
+                    dynamicLtvInfo.style.display = 'none';
+                    resultsTitle.innerText = 'Detailergebnisse (Rollover-Punkte)';
+                } else {
+                    loanDurationContainer.style.display = 'none';
+                    fixedTermInfo.style.display = 'none';
+                    dynamicLtvInfo.style.display = 'block';
+                    resultsTitle.innerText = 'Jährliche Zusammenfassung';
+                }
+            }
+            strategyTypeSelect.addEventListener('change', toggleStrategyInputs);
+            
+            const renderChart = (chartData, forecastDate) => {
+                const ctx = document.getElementById('simulationChart').getContext('2d');
+                if (simulationChartInstance) { simulationChartInstance.destroy(); }
+                const annotation = { type: 'box', xMin: forecastDate, xMax: chartData.labels[chartData.labels.length - 1], backgroundColor: 'rgba(0, 255, 255, 0.05)', borderColor: 'rgba(0, 255, 255, 0.3)', borderWidth: 1, label: { content: 'Prognose', display: true, position: 'start', color: 'rgba(0, 255, 255, 0.7)', font: { size: 10 } } };
+                simulationChartInstance = new Chart(ctx, {
+                    type: 'line', data: { labels: chartData.labels, datasets: [ { label: 'Wert der Sicherheiten (€)', data: chartData.collateral, borderColor: 'rgba(59, 130, 246, 1)', backgroundColor: 'rgba(59, 130, 246, 0.2)', fill: true, tension: 0.1, pointRadius: 0, yAxisID: 'y' }, { label: 'Schulden (€)', data: chartData.loan, borderColor: 'rgba(239, 68, 68, 1)', backgroundColor: 'rgba(239, 68, 68, 0.2)', fill: false, tension: 0.1, pointRadius: 0, yAxisID: 'y' }, { label: 'BTC Preis (€)', data: chartData.btcPrice, borderColor: 'rgba(249, 115, 22, 1)', backgroundColor: 'rgba(249, 115, 22, 0.2)', fill: false, tension: 0.1, pointRadius: 0, yAxisID: 'y' }, { label: 'Power Law Trend', data: chartData.powerLaw, borderColor: 'rgba(255, 255, 255, 0.4)', borderDash: [5, 5], fill: false, tension: 0.1, pointRadius: 0, yAxisID: 'y' }, { label: 'BTC Bestand', data: chartData.totalBtc, borderColor: 'rgba(168, 85, 247, 1)', backgroundColor: 'rgba(168, 85, 247, 0.2)', fill: false, tension: 0.1, pointRadius: 0, yAxisID: 'y1' }, { label: 'Netto BTC', data: chartData.netBtc, borderColor: 'rgba(22, 163, 74, 1)', backgroundColor: 'rgba(22, 163, 74, 0.2)', fill: false, tension: 0.1, pointRadius: 0, yAxisID: 'y1' } ] },
+                    options: { responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' }, plugins: { legend: { labels: { color: '#d1d5db' } }, tooltip: { callbacks: { label: (context) => { let label = context.dataset.label || ''; if (context.dataset.yAxisID === 'y1') { return `${label}: ${new Intl.NumberFormat('de-DE', { minimumFractionDigits: 4, maximumFractionDigits: 4 }).format(context.parsed.y)} BTC`; } return `${label}: ${new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(context.parsed.y)}`; } } }, annotation: { annotations: { annotation } } },
+                        scales: { x: { type: 'time', time: { unit: 'year' }, ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } }, y: { type: 'logarithmic', position: 'left', ticks: { color: '#9ca3af', callback: (value) => { if ([1e10, 1e9, 1e8, 1e7, 1e6, 1e5, 1e4, 1e3].includes(value)) { return new Intl.NumberFormat('de-DE', { notation: 'compact', style: 'currency', currency: 'EUR' }).format(value); } return null; } }, grid: { color: 'rgba(255, 255, 255, 0.1)' } }, y1: { type: 'linear', position: 'right', title: { display: true, text: 'BTC', color: '#9ca3af'}, ticks: { color: '#9ca3af'}, grid: { drawOnChartArea: false } } }
+                    }
+                });
+            };
+
+            const calculateSimulation = () => {
+                const resultsBody = document.getElementById('resultsBody');
+                const resultsFooter = document.getElementById('resultsFooter');
+                const strategyType = document.getElementById('strategyType').value;
+                const initialBtc = parseFloat(document.getElementById('initialBtc').value);
+                const initialMonthlySavings = parseFloat(document.getElementById('monthlySavings').value);
+                const savingsRateIncrease = parseFloat(document.getElementById('savingsRateIncrease').value) / 100;
+                const simulationYears = parseInt(document.getElementById('simulationYears').value);
+                const interestRate = parseFloat(document.getElementById('interestRate').value) / 100;
+                const loanFee = parseFloat(document.getElementById('loanFee').value) / 100;
+                const targetLtv = parseFloat(document.getElementById('ltv').value) / 100;
+                const loanDuration = parseInt(document.getElementById('loanDuration').value);
+                const useVolatility = document.getElementById('volatilityToggle').checked;
+                const liquidationLtv = 0.9;
+                
+                resultsBody.innerHTML = ''; 
+                resultsFooter.innerHTML = '';
+
+                const GENESIS_BLOCK_DATE = new Date('2009-01-03');
+                const today = new Date('2025-10-02'); 
+                const lastHistoricalDate = historicalData[historicalData.length - 1].date;
+                const startDate = today > lastHistoricalDate ? today : lastHistoricalDate;
+
+                const powerLawFn = (date) => (10**-17) * (((date - GENESIS_BLOCK_DATE) / 86400000)**5.8);
+
+                const deviationPattern = [];
+                if(useVolatility) {
+                    const PATTERN_LENGTH_MONTHS = 96;
+                    const relevantHistory = historicalData.slice(-PATTERN_LENGTH_MONTHS); 
+                    for(const point of relevantHistory) { deviationPattern.push(point.price / powerLawFn(point.date)); }
+                }
+
+                const futurePrices = [];
+                const endDate = new Date(startDate);
+                endDate.setFullYear(endDate.getFullYear() + simulationYears);
+                let currentDate = new Date(startDate);
+                currentDate.setDate(1);
+                currentDate.setMonth(currentDate.getMonth() + 1); 
+                let patternIndex = 0;
+                
+                while (currentDate <= endDate) {
+                    const baselinePrice = powerLawFn(currentDate);
+                    const price = (useVolatility && deviationPattern.length > 0) ? baselinePrice * deviationPattern[patternIndex % deviationPattern.length] : baselinePrice;
+                    futurePrices.push({ date: new Date(currentDate), price });
+                    patternIndex++;
+                    currentDate.setMonth(currentDate.getMonth() + 1);
+                }
+                const fullPriceData = [...historicalData, ...futurePrices];
+                const currencyFormatter = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                const btcFormatter = new Intl.NumberFormat('de-DE', { minimumFractionDigits: 5, maximumFractionDigits: 5 });
+                const dateFormatter = new Intl.DateTimeFormat('de-DE', { year: 'numeric', month: 'short' });
+                const getPriceForDate = (targetDate) => fullPriceData.reduce((prev, curr) => Math.abs(curr.date - targetDate) < Math.abs(prev.date - targetDate) ? curr : prev)?.price;
+
+                let btcHoldings = initialBtc;
+                let loanBalance = 0;
+                let totalSavings = 0;
+                let btcPrice = getPriceForDate(startDate);
+                if (!btcPrice) { resultsBody.innerHTML = `<tr><td colspan="9" class="text-center p-8 text-yellow-400">Keine Preisdaten.</td></tr>`; return; }
+                
+                let purchasedBtc = (btcHoldings * btcPrice * targetLtv * (1 - loanFee)) / btcPrice;
+                btcHoldings += purchasedBtc;
+                loanBalance = btcHoldings * btcPrice * targetLtv;
+                
+                let tableRow = resultsBody.insertRow();
+                tableRow.className = "bg-gray-800";
+                tableRow.innerHTML = ` <td class="px-4 py-3 font-medium">${dateFormatter.format(startDate)} (Start)</td> <td class="px-4 py-3">${currencyFormatter.format(btcPrice)}</td> <td class="px-4 py-3">${btcFormatter.format(btcHoldings)}</td> <td class="px-4 py-3">${currencyFormatter.format(btcHoldings * btcPrice)}</td> <td class="px-4 py-3 text-green-400">+${btcFormatter.format(purchasedBtc)}</td> <td class="px-4 py-3">${currencyFormatter.format(0)}</td><td class="px-4 py-3">${(targetLtv*100).toFixed(2)}%</td> <td class="px-4 py-3">${currencyFormatter.format(loanBalance)}</td> <td class="px-4 py-3 font-semibold text-teal-300">${btcFormatter.format(btcHoldings - (loanBalance / btcPrice))}</td> `;
+
+                const chartData = { labels: [], collateral: [], loan: [], btcPrice: [], totalBtc: [], netBtc: [], powerLaw: [] };
+                let loopDate = new Date(startDate);
+                const finalEndDate = new Date(endDate);
+                finalEndDate.setMonth(finalEndDate.getMonth() -1);
+                let nextActionDate = new Date(startDate);
+                if (strategyType === 'fixedTerm') { nextActionDate.setMonth(nextActionDate.getMonth() + loanDuration); }
+                
+                let lastSummaryDate = new Date(startDate);
+                let btcPurchasedInYear = purchasedBtc;
+                let savingsInCycle = 0;
+
+
+                while (loopDate <= finalEndDate) {
+                    const currentPrice = getPriceForDate(loopDate);
+                    if (!currentPrice || currentPrice <= 0) { loopDate.setMonth(loopDate.getMonth() + 1); continue; }
+                    
+                    if (initialMonthlySavings !== 0) {
+                        const yearsPassed = loopDate.getFullYear() - startDate.getFullYear();
+                        const currentMonthlySavings = initialMonthlySavings * Math.pow((1 + savingsRateIncrease), yearsPassed);
+                        btcHoldings += currentMonthlySavings / currentPrice;
+                        totalSavings += currentMonthlySavings;
+                        savingsInCycle += currentMonthlySavings;
+                    }
+
+                    if (strategyType === 'dynamicLtv' && loopDate.getTime() > startDate.getTime()) {
+                        loanBalance *= (1 + (interestRate / 12));
+                        const targetLoan = btcHoldings * currentPrice * targetLtv;
+                        const amountToBorrow = targetLoan - loanBalance;
+                        if (amountToBorrow > 0) {
+                            const netToInvest = amountToBorrow * (1 - loanFee);
+                            if(netToInvest > 0) {
+                                purchasedBtc = netToInvest / currentPrice;
+                                btcHoldings += purchasedBtc;
+                                btcPurchasedInYear += purchasedBtc;
+                            }
+                            loanBalance = targetLoan;
+                        }
+                    } else if (strategyType === 'fixedTerm' && loopDate.getTime() >= nextActionDate.getTime()) {
+                        const interestDueForTerm = loanBalance * interestRate * (loanDuration / 12);
+                        const debtToRepay = loanBalance + interestDueForTerm;
+                        const collateralValueOnAction = btcHoldings * currentPrice;
+                        const targetLoan = collateralValueOnAction * targetLtv;
+                        const amountToBorrow = targetLoan - debtToRepay;
+                        
+                        purchasedBtc = 0; // Default to 0
+                        if (amountToBorrow > 0) {
+                           purchasedBtc = (amountToBorrow * (1 - loanFee)) / currentPrice;
+                           btcHoldings += purchasedBtc;
+                           loanBalance = targetLoan;
+                        }
+
+                        tableRow = resultsBody.insertRow();
+                        tableRow.className = "bg-gray-800/50";
+                        tableRow.innerHTML = ` <td class="px-4 py-3 font-medium">${dateFormatter.format(loopDate)}</td> <td class="px-4 py-3">${currencyFormatter.format(currentPrice)}</td> <td class="px-4 py-3">${btcFormatter.format(btcHoldings)}</td> <td class="px-4 py-3">${currencyFormatter.format(collateralValueOnAction)}</td> <td class="px-4 py-3 text-green-400">${purchasedBtc > 0 ? '+' : ''}${btcFormatter.format(purchasedBtc)}</td> <td class="px-4 py-3">${currencyFormatter.format(savingsInCycle)}</td><td class="px-4 py-3">${((debtToRepay/collateralValueOnAction)*100).toFixed(2)}%</td> <td class="px-4 py-3">${currencyFormatter.format(loanBalance)}</td> <td class="px-4 py-3 font-semibold text-teal-300">${btcFormatter.format(btcHoldings - (loanBalance / currentPrice))}</td> `;
+                        savingsInCycle = 0;
+                        nextActionDate.setMonth(nextActionDate.getMonth() + loanDuration);
+                    }
+                    
+                    const collateralValue = btcHoldings * currentPrice;
+                    const currentLtv = (collateralValue > 0) ? loanBalance / collateralValue : 0;
+                    if (currentLtv >= liquidationLtv) {
+                        tableRow = resultsBody.insertRow();
+                        tableRow.className = "bg-red-900/80 text-red-200 font-bold";
+                        tableRow.innerHTML = `<td colspan="9" class="text-center p-4">LIQUIDATION am ${dateFormatter.format(loopDate)}</td>`;
+                        break; 
+                    }
+                    
+                    if (strategyType === 'dynamicLtv' && (loopDate.getFullYear() > lastSummaryDate.getFullYear() || loopDate.getTime() >= finalEndDate.getTime())) {
+                         tableRow = resultsBody.insertRow();
+                         tableRow.className = "bg-gray-800/50";
+                         tableRow.innerHTML = ` <td class="px-4 py-3 font-medium">${dateFormatter.format(loopDate)}</td> <td class="px-4 py-3">${currencyFormatter.format(currentPrice)}</td> <td class="px-4 py-3">${btcFormatter.format(btcHoldings)}</td> <td class="px-4 py-3">${currencyFormatter.format(collateralValue)}</td> <td class="px-4 py-3 text-green-400">+${btcFormatter.format(btcPurchasedInYear)}</td> <td class="px-4 py-3">${currencyFormatter.format(savingsInCycle)}</td><td class="px-4 py-3">${(currentLtv * 100).toFixed(2)}%</td> <td class="px-4 py-3">${currencyFormatter.format(loanBalance)}</td> <td class="px-4 py-3 font-semibold text-teal-300">${btcFormatter.format(btcHoldings - (loanBalance / currentPrice))}</td> `;
+                         lastSummaryDate = new Date(loopDate);
+                         btcPurchasedInYear = 0;
+                         savingsInCycle = 0;
+                    }
+
+                    chartData.labels.push(new Date(loopDate));
+                    chartData.btcPrice.push(currentPrice);
+                    chartData.collateral.push(collateralValue > 0 ? collateralValue : null);
+                    chartData.loan.push(loanBalance > 0 ? loanBalance : null);
+                    chartData.totalBtc.push(btcHoldings);
+                    chartData.netBtc.push(btcHoldings - (loanBalance/currentPrice));
+                    chartData.powerLaw.push(powerLawFn(loopDate));
+                    
+                    loopDate.setMonth(loopDate.getMonth() + 1);
+                }
+
+                const summaryRow = resultsFooter.insertRow();
+                const summaryCell = summaryRow.insertCell();
+                summaryCell.colSpan = 9;
+                summaryCell.className = "px-4 py-3 text-center text-gray-300";
+                const summaryText = totalSavings >= 0 ? 'Gesamtsumme Sparrate:' : 'Gesamtsumme Entnahme:';
+                summaryCell.innerText = `${summaryText} ${currencyFormatter.format(totalSavings)}`;
+
+                renderChart(chartData, lastHistoricalDate);
+            };
+            
+            toggleStrategyInputs();
+            simulateBtn.addEventListener('click', calculateSimulation);
+            calculateSimulation();
+        });
+    </script>
+</body>
+</html>
+
+

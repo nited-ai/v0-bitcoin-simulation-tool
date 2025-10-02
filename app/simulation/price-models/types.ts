@@ -51,6 +51,26 @@ export interface PriceModelParams {
 }
 
 /**
+ * Power Law specific parameters for enhanced volatility support
+ */
+export interface PowerLawModelParams extends PriceModelParams {
+  modelSpecificParams: {
+    prognosisLine: 'fit' | 'support' | 'resistance'
+    // Independent price projection parameters (separate from regression lines)
+    priceProjectionParams?: {
+      slope: number                  // Custom slope for price projection
+      intercept: number              // Custom intercept for price projection
+    }
+    // Cycle Repeat Volatility settings
+    cycleRepeatVolatility?: {
+      enabled: boolean               // Enable/disable volatility feature
+      patternLengthMonths: number    // 24-120 months, default: 96
+      diminishingFactor: number      // 0.5-1.0, default: 1.0 (no diminishing)
+    }
+  }
+}
+
+/**
  * Core interface that all price models must implement
  */
 export interface PriceProjectionModel {
