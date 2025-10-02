@@ -38,7 +38,7 @@ export function LoanActivityTable() {
 
     results.forEach((result: MonthlyResult) => {
       // Track new loans
-      if (result.newLoans > 0) {
+      if (result.newLoanPrincipal > 0) {
         // Estimate loan details from the result data
         // Note: This is a simplified extraction. In a real implementation,
         // you'd want to track individual loans through the simulation
@@ -47,11 +47,11 @@ export function LoanActivityTable() {
           loanId,
           takenMonth: result.month,
           takenDate: result.dateString,
-          principal: result.newLoans,
-          repaymentAmount: result.newLoans * 1.065, // Approximate with interest
+          principal: result.newLoanPrincipal,
+          repaymentAmount: result.newLoanPrincipal * 1.065, // Approximate with interest
           maturityMonth: result.month + 6, // Assuming 6-month term
           maturityDate: new Date(new Date(result.dateString).setMonth(new Date(result.dateString).getMonth() + 6)).toISOString().split('T')[0],
-          lockedBtc: result.newLoans / result.btcPrice,
+          lockedBtc: result.newLoanPrincipal / result.btcPrice,
           btcPriceAtOrigination: result.btcPrice,
           status: 'active'
         }
@@ -60,7 +60,7 @@ export function LoanActivityTable() {
       }
 
       // Mark loans as matured when repayments occur
-      if (result.repayments > 0) {
+      if (result.repaymentsDue > 0) {
         // Find loans that should mature at this month
         loans.forEach(loan => {
           if (loan.maturityMonth === result.month && loan.status === 'active') {
