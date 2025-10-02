@@ -104,13 +104,13 @@ export function PortfolioValueChart() {
             <div className="text-center">
               <div className="text-sm text-muted-foreground">Final Portfolio</div>
               <div className="text-lg font-semibold">
-                ${stats.finalValue.toLocaleString("en-US")}
+                ${Math.round(stats.finalValue).toLocaleString("en-US")}
               </div>
             </div>
             <div className="text-center">
               <div className="text-sm text-muted-foreground">Final Net Worth</div>
               <div className={`text-lg font-semibold ${stats.finalNetWorth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                ${stats.finalNetWorth.toLocaleString("en-US")}
+                ${Math.round(stats.finalNetWorth).toLocaleString("en-US")}
               </div>
             </div>
             <div className="text-center">
@@ -149,9 +149,9 @@ export function PortfolioValueChart() {
                 }}
               />
               
-              <Tooltip 
+              <Tooltip
                 formatter={(value: number, name: string) => [
-                  `$${value.toLocaleString('en-US')}`,
+                  `$${Math.round(value).toLocaleString('en-US')}`,
                   name === 'portfolioValue' ? 'Portfolio Value' :
                   name === 'netWorth' ? 'Net Worth' :
                   name === 'totalDebt' ? 'Total Debt' : name

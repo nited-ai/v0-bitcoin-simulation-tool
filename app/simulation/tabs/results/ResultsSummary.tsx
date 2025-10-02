@@ -89,7 +89,7 @@ export function ResultsSummary() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${analysis.finalPortfolioValue.toLocaleString("en-US")}
+              ${Math.round(analysis.finalPortfolioValue).toLocaleString("en-US")}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Total BTC value at end
@@ -107,7 +107,7 @@ export function ResultsSummary() {
           </CardHeader>
           <CardContent>
             <div className={`text-2xl font-bold ${getValueColor(analysis.finalNetWorth)}`}>
-              ${analysis.finalNetWorth.toLocaleString("en-US")}
+              ${Math.round(analysis.finalNetWorth).toLocaleString("en-US")}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Portfolio value minus debt
@@ -196,7 +196,7 @@ export function ResultsSummary() {
               -{analysis.maxDrawdownPercent.toFixed(1)}%
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              ${analysis.maxDrawdown.toLocaleString("en-US")}
+              ${Math.round(analysis.maxDrawdown).toLocaleString("en-US")}
             </p>
           </CardContent>
         </Card>

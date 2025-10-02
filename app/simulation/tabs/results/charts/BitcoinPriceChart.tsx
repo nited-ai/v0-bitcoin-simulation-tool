@@ -85,19 +85,19 @@ export function BitcoinPriceChart() {
             <div className="text-center">
               <div className="text-sm text-muted-foreground">Initial Price</div>
               <div className="text-lg font-semibold">
-                ${priceStats.initialPrice.toLocaleString('en-US')}
+                ${Math.round(priceStats.initialPrice).toLocaleString('en-US')}
               </div>
             </div>
             <div className="text-center">
               <div className="text-sm text-muted-foreground">Final Price</div>
               <div className="text-lg font-semibold">
-                ${priceStats.finalPrice.toLocaleString('en-US')}
+                ${Math.round(priceStats.finalPrice).toLocaleString('en-US')}
               </div>
             </div>
             <div className="text-center">
               <div className="text-sm text-muted-foreground">Price Range</div>
               <div className="text-sm font-medium">
-                ${priceStats.minPrice.toLocaleString('en-US')} - ${priceStats.maxPrice.toLocaleString('en-US')}
+                ${Math.round(priceStats.minPrice).toLocaleString('en-US')} - ${Math.round(priceStats.maxPrice).toLocaleString('en-US')}
               </div>
             </div>
             <div className="text-center">
@@ -138,10 +138,10 @@ export function BitcoinPriceChart() {
                 tickFormatter={(value) => `${value.toFixed(0)}%`}
               />
               
-              <Tooltip 
+              <Tooltip
                 formatter={(value: number, name: string) => {
                   if (name === 'btcPrice') {
-                    return [`$${value.toLocaleString('en-US')}`, 'BTC Price']
+                    return [`$${Math.round(value).toLocaleString('en-US')}`, 'BTC Price']
                   }
                   if (name === 'priceChange') {
                     return [`${value >= 0 ? '+' : ''}${value.toFixed(1)}%`, 'Price Change']

@@ -14,11 +14,11 @@ function formatEvent(event: MonthlyEvent): string {
     case "withdrawal_skipped":
       return "Withdrawal skipped"
     case "deleveraged":
-      return `Deleveraged: €${event.amount.toLocaleString("de-DE")}`
+      return `Deleveraged: €${Math.round(event.amount).toLocaleString("de-DE")}`
     case "liquidated":
       return `Liquidated: Loan #${event.id}`
     case "collateral_topped_up":
-      return `Collateral topped up: €${event.amount.toLocaleString("de-DE")}`
+      return `Collateral topped up: €${Math.round(event.amount).toLocaleString("de-DE")}`
     default:
       return "Unknown event"
   }
@@ -96,11 +96,11 @@ export function ResultsTable() {
                   >
                     <td className="text-left p-2">{r.month}</td>
                     <td className="text-left p-2">{r.dateString}</td>
-                    <td className="p-2">${r.btcPrice.toLocaleString("en-US")}</td>
+                    <td className="p-2">${Math.round(r.btcPrice).toLocaleString("en-US")}</td>
                     <td className="p-2">{r.currentBtcAmount.toFixed(4)}</td>
-                    <td className="p-2">${r.collateralValue.toLocaleString("en-US")}</td>
-                    <td className="p-2">${r.totalDebt.toLocaleString("en-US")}</td>
-                    <td className="p-2">${(r.lockedBtc * r.btcPrice).toLocaleString("en-US")}</td>
+                    <td className="p-2">${Math.round(r.collateralValue).toLocaleString("en-US")}</td>
+                    <td className="p-2">${Math.round(r.totalDebt).toLocaleString("en-US")}</td>
+                    <td className="p-2">${Math.round(r.lockedBtc * r.btcPrice).toLocaleString("en-US")}</td>
                     <td
                       className={`p-2 text-center ${
                         r.highestLtv >= params.riskManagement.liquidationLtv ? "text-red-500" : ""
@@ -109,12 +109,12 @@ export function ResultsTable() {
                       {r.highestLtv}%
                     </td>
                     <td className="p-2">
-                      {r.maxSafeDebt !== undefined ? `$${r.maxSafeDebt.toLocaleString("en-US")}` : "-"}
+                      {r.maxSafeDebt !== undefined ? `$${Math.round(r.maxSafeDebt).toLocaleString("en-US")}` : "-"}
                     </td>
-                    <td className="p-2">${r.newLoanPrincipal.toLocaleString("en-US")}</td>
-                    <td className="p-2">${r.repaymentsDue.toLocaleString("en-US")}</td>
-                    <td className="p-2">${r.withdrawalAmount.toLocaleString("en-US")}</td>
-                    <td className="p-2">${r.reinvestment.toLocaleString("en-US")}</td>
+                    <td className="p-2">${Math.round(r.newLoanPrincipal).toLocaleString("en-US")}</td>
+                    <td className="p-2">${Math.round(r.repaymentsDue).toLocaleString("en-US")}</td>
+                    <td className="p-2">${Math.round(r.withdrawalAmount).toLocaleString("en-US")}</td>
+                    <td className="p-2">${Math.round(r.reinvestment).toLocaleString("en-US")}</td>
                     <td className="p-2 text-center">{r.loanCount}</td>
                     <td className="p-2 text-left">
                       {r.events.length > 0 && (

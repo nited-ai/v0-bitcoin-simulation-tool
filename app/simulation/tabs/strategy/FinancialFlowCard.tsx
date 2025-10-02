@@ -81,7 +81,7 @@ export function FinancialFlowCard() {
                 <HybridTooltipContent>
                   <div className="space-y-2">
                     <p><strong>Compound annual increase</strong> applied to your monthly amount</p>
-                    <p><strong>Example:</strong> 10% means your monthly amount increases by 10% each year</p>
+                    <p><strong>Example:</strong> {params.annualSavingsIncrease || 0}% means your monthly amount {(params.annualSavingsIncrease || 0) >= 0 ? 'increases' : 'decreases'} by {Math.abs(params.annualSavingsIncrease || 0)}% each year</p>
                     <p><strong>Year 1:</strong> ${Math.abs(params.monthlyWithdrawalAmount).toLocaleString()}/month</p>
                     <p><strong>Year 2:</strong> ${Math.round(Math.abs(params.monthlyWithdrawalAmount) * (1 + (params.annualSavingsIncrease || 0) / 100)).toLocaleString()}/month</p>
                     <p><strong>Year 3:</strong> ${Math.round(Math.abs(params.monthlyWithdrawalAmount) * Math.pow(1 + (params.annualSavingsIncrease || 0) / 100, 2)).toLocaleString()}/month</p>
@@ -94,7 +94,7 @@ export function FinancialFlowCard() {
               name="annualSavingsIncrease"
               value={params.annualSavingsIncrease || 0}
               onChange={(value) => setParams((p) => ({ ...p, annualSavingsIncrease: value }))}
-              min={0}
+              min={-50}
               max={50}
               step={1}
               decimals={0}
