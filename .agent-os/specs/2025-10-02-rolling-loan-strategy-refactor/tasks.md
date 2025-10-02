@@ -58,19 +58,19 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 4.7 Verify all tests pass (19/19)
   - [x] 4.8 Commit changes
 
-- [ ] 5. Implement Dynamic LTV Mode (Infinite Loan Term)
-  - [ ] 5.1 Write tests for Dynamic LTV mode logic
-  - [ ] 5.2 Create handleDynamicLtvMode() method
-  - [ ] 5.3 Implement Month 0 skip logic
-  - [ ] 5.4 Implement monthly interest accrual: `loanBalance *= (1 + rate/12)`
-  - [ ] 5.5 Calculate target loan: `collateralValue * targetLtv`
-  - [ ] 5.6 Calculate amount to borrow: `targetLoan - currentLoanBalance`
-  - [ ] 5.7 Apply loan fees to net proceeds
-  - [ ] 5.8 Update loan balance to target
-  - [ ] 5.9 Test with various LTV scenarios
-  - [ ] 5.10 Test interest accrual over multiple months
-  - [ ] 5.11 Verify all tests pass
-  - [ ] 5.12 Commit changes
+- [x] 5. Implement Dynamic LTV Mode (Infinite Loan Term)
+  - [x] 5.1 Write tests for Dynamic LTV mode logic (8 new tests)
+  - [x] 5.2 Create handleDynamicLtvMode() method
+  - [x] 5.3 Implement Month 0 skip logic
+  - [x] 5.4 Implement monthly interest accrual: `loanBalance *= (1 + rate/12)`
+  - [x] 5.5 Calculate target loan: `collateralValue * targetLtv`
+  - [x] 5.6 Calculate amount to borrow: `targetLoan - currentLoanBalance`
+  - [x] 5.7 Apply loan fees to net proceeds
+  - [x] 5.8 Update loan balance to target
+  - [x] 5.9 Test with various LTV scenarios (accumulation, cash generation, exceeds target)
+  - [x] 5.10 Support both BTC accumulation and cash generation modes
+  - [x] 5.11 Verify all tests pass (26/26)
+  - [x] 5.12 Commit changes
 
 - [ ] 6. Implement Fixed Term Mode (Specific Loan Term)
   - [ ] 6.1 Write tests for Fixed Term mode logic

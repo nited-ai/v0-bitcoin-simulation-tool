@@ -212,8 +212,8 @@ describe('DynamicRollingLoanStrategy', () => {
 
       const decision = strategy.makeDecision(context)
 
-      // Should call handleDynamicLtvMode (currently returns placeholder)
-      expect(decision.reasoning).toContain('Dynamic LTV mode')
+      // Should call handleDynamicLtvMode and contain "Dynamic LTV" in reasoning
+      expect(decision.reasoning).toContain('Dynamic LTV')
     })
 
     it('should route to Fixed Term mode when loanTermMonths is specific number', () => {
@@ -270,6 +270,215 @@ describe('DynamicRollingLoanStrategy', () => {
       const decision = strategy.makeDecision(context)
 
       expect(decision.reasoning).toContain('Fixed Term mode')
+    })
+  })
+
+  describe('Dynamic LTV Mode (Infinite Loan Term)', () => {
+    it('should skip Month 0 in Dynamic LTV mode (initial loan already created)', () => {
+      const context = createMockContext({
+        month: 0,
+        params: {
+          loanTermMonths: Infinity
+        }
+      })
+
+      const decision = strategy.makeDecision(context)
+
+      // Should create initial loan, not enter Dynamic LTV mode
+      expect(decision.reasoning).toContain('initial loan')
+    })
+
+    it('should accrue monthly interest and then reset to target LTV', () => {
+      const initialLoanAmount = 100000
+      const annualRate = 0.08 // 8% annual
+
+      const context = createMockContext({
+        month: 1,
+        btcPrice: 100000,
+        totalBtcAmount: 10, // Collateral = 1,000,000
+        activeLoans: [{
+          principal: initialLoanAmount,
+          repaymentAmount: initialLoanAmount,
+          originationMonth: 0,
+          maturityMonth: Infinity,
+          interestRate: annualRate,
+          originationFee: 1000,
+          loanTermMonths: Infinity
+        }],
+        params: {
+          loanTermMonths: Infinity,
+          annualInterestRate: annualRate,
+          riskManagement: {
+            targetLtv: 15, // Target = 150,000
+            liquidationLtv: 85,
+            maxLoanAmount: 150000,
+            liquidationFeePercent: 5,
+            annualInterestRate: annualRate
+          }
+        }
+      })
+
+      const decision = strategy.makeDecision(context)
+
+      // After Dynamic LTV mode, loan should be reset to target (150,000)
+      // The interest accrual happens first, then reset to target
+      const targetLoan = 1000000 * 0.15
+      expect(context.activeLoans[0].repaymentAmount).toBeCloseTo(targetLoan, 0)
+      expect(decision.allowInvestment).toBe(true)
+    })
+
+    it('should reset loan balance to target LTV', () => {
+      const context = createMockContext({
+        month: 1,
+        btcPrice: 100000,
+        totalBtcAmount: 10, // Collateral = 1,000,000
+        activeLoans: [{
+          principal: 100000,
+          repaymentAmount: 100000,
+          originationMonth: 0,
+          maturityMonth: Infinity,
+          interestRate: 0.08,
+          originationFee: 1000,
+          loanTermMonths: Infinity
+        }],
+        params: {
+          loanTermMonths: Infinity,
+          riskManagement: {
+            targetLtv: 15, // Target = 150,000
+            liquidationLtv: 85,
+            maxLoanAmount: 150000,
+            liquidationFeePercent: 5,
+            annualInterestRate: 0.08
+          }
+        }
+      })
+
+      const decision = strategy.makeDecision(context)
+
+      // Loan balance should be reset to target LTV (150,000)
+      const targetLoan = 1000000 * 0.15
+      expect(context.activeLoans[0].repaymentAmount).toBeCloseTo(targetLoan, 0)
+    })
+
+    it('should calculate correct investment multiplier for Dynamic LTV mode', () => {
+      const context = createMockContext({
+        month: 1,
+        btcPrice: 100000,
+        totalBtcAmount: 10, // Collateral = 1,000,000
+        activeLoans: [{
+          principal: 100000,
+          repaymentAmount: 100000,
+          originationMonth: 0,
+          maturityMonth: Infinity,
+          interestRate: 0.08,
+          originationFee: 1000,
+          loanTermMonths: Infinity
+        }],
+        params: {
+          loanTermMonths: Infinity,
+          loanOriginationFeePercent: 1,
+          riskManagement: {
+            targetLtv: 15, // Target = 150,000
+            liquidationLtv: 85,
+            maxLoanAmount: 150000,
+            liquidationFeePercent: 5,
+            annualInterestRate: 0.08
+          }
+        }
+      })
+
+      const decision = strategy.makeDecision(context)
+
+      // Amount to borrow = 150,000 - 100,000 = 50,000
+      // Net proceeds after 1% fee = 50,000 * 0.99 = 49,500
+      // Investment multiplier = 49,500 / 1,000,000 = 0.0495
+      expect(decision.investmentMultiplier).toBeGreaterThan(0.04)
+      expect(decision.investmentMultiplier).toBeLessThan(0.06)
+    })
+
+    it('should not invest when current loan exceeds target LTV', () => {
+      const context = createMockContext({
+        month: 1,
+        btcPrice: 100000,
+        totalBtcAmount: 10, // Collateral = 1,000,000
+        activeLoans: [{
+          principal: 200000,
+          repaymentAmount: 200000, // Already above target
+          originationMonth: 0,
+          maturityMonth: Infinity,
+          interestRate: 0.08,
+          originationFee: 2000,
+          loanTermMonths: Infinity
+        }],
+        params: {
+          loanTermMonths: Infinity,
+          riskManagement: {
+            targetLtv: 15, // Target = 150,000
+            liquidationLtv: 85,
+            maxLoanAmount: 150000,
+            liquidationFeePercent: 5,
+            annualInterestRate: 0.08
+          }
+        }
+      })
+
+      const decision = strategy.makeDecision(context)
+
+      expect(decision.allowInvestment).toBe(false)
+      expect(decision.investmentMultiplier).toBe(0)
+    })
+
+    it('should support BTC accumulation mode in Dynamic LTV', () => {
+      const context = createMockContext({
+        month: 1,
+        btcPrice: 100000,
+        totalBtcAmount: 10,
+        activeLoans: [{
+          principal: 100000,
+          repaymentAmount: 100000,
+          originationMonth: 0,
+          maturityMonth: Infinity,
+          interestRate: 0.08,
+          originationFee: 1000,
+          loanTermMonths: Infinity
+        }],
+        params: {
+          loanTermMonths: Infinity,
+          btcAccumulation: true
+        }
+      })
+
+      const decision = strategy.makeDecision(context)
+
+      expect(decision.allowWithdrawal).toBe(false)
+      expect(decision.withdrawalAmount).toBe(0)
+    })
+
+    it('should support cash generation mode in Dynamic LTV', () => {
+      const context = createMockContext({
+        month: 1,
+        btcPrice: 100000,
+        totalBtcAmount: 10,
+        activeLoans: [{
+          principal: 100000,
+          repaymentAmount: 100000,
+          originationMonth: 0,
+          maturityMonth: Infinity,
+          interestRate: 0.08,
+          originationFee: 1000,
+          loanTermMonths: Infinity
+        }],
+        params: {
+          loanTermMonths: Infinity,
+          btcAccumulation: false,
+          monthlyWithdrawalAmount: -2500 // Withdraw $2500/month
+        }
+      })
+
+      const decision = strategy.makeDecision(context)
+
+      expect(decision.allowWithdrawal).toBe(true)
+      expect(decision.withdrawalAmount).toBeGreaterThan(0)
     })
   })
 })

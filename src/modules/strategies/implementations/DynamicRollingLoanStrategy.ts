@@ -197,19 +197,108 @@ Both modes support monthly savings with annual increases, BTC accumulation for p
 
   /**
    * Handle Dynamic LTV Mode (Infinite Loan Term)
-   * 
+   *
    * - Monthly interest accrual on loan balance
    * - Automatic LTV reset to target percentage
    * - No rollover events
+   *
+   * @param context - Strategy context with BTC price, amount, active loans, and parameters
+   * @returns StrategyDecision with investment/withdrawal instructions
    */
   private handleDynamicLtvMode(context: StrategyContext): StrategyDecision {
-    // TODO: Implement Dynamic LTV mode logic in Task 5
-    return {
-      allowInvestment: false,
-      investmentMultiplier: 0,
-      allowWithdrawal: false,
-      withdrawalAmount: 0,
-      reasoning: "Dynamic LTV mode logic not yet implemented"
+    const { month, btcPrice, totalBtcAmount, activeLoans, params } = context
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // SKIP MONTH 0: Initial loan already created
+    // ═══════════════════════════════════════════════════════════════════════
+    if (month === 0) {
+      return {
+        allowInvestment: false,
+        investmentMultiplier: 0,
+        allowWithdrawal: false,
+        withdrawalAmount: 0,
+        reasoning: "Month 0: Initial loan already created"
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // STEP 1: Accrue monthly interest on existing loan
+    // ═══════════════════════════════════════════════════════════════════════
+    if (activeLoans.length > 0) {
+      const monthlyRate = params.annualInterestRate / 12
+      activeLoans[0].repaymentAmount *= (1 + monthlyRate)
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // STEP 2: Calculate target loan based on current collateral
+    // ═══════════════════════════════════════════════════════════════════════
+    const collateralValue = totalBtcAmount * btcPrice
+    const targetLtv = params.riskManagement.targetLtv / 100
+    const targetLoan = collateralValue * targetLtv
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // STEP 3: Calculate current loan balance
+    // ═══════════════════════════════════════════════════════════════════════
+    const currentLoanBalance = activeLoans.length > 0
+      ? activeLoans[0].repaymentAmount
+      : 0
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // STEP 4: Calculate amount to borrow
+    // ═══════════════════════════════════════════════════════════════════════
+    const amountToBorrow = targetLoan - currentLoanBalance
+
+    if (amountToBorrow <= 0) {
+      // Current loan exceeds target, no action needed
+      return {
+        allowInvestment: false,
+        investmentMultiplier: 0,
+        allowWithdrawal: false,
+        withdrawalAmount: 0,
+        reasoning: `Dynamic LTV: Current loan $${Math.round(currentLoanBalance)} exceeds target $${Math.round(targetLoan)}, no action needed`
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // STEP 5: Calculate net proceeds after origination fee
+    // ═══════════════════════════════════════════════════════════════════════
+    const loanFee = params.loanOriginationFeePercent / 100
+    const netProceeds = amountToBorrow * (1 - loanFee)
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // STEP 6: Update loan balance to target
+    // ═══════════════════════════════════════════════════════════════════════
+    if (activeLoans.length > 0) {
+      activeLoans[0].repaymentAmount = targetLoan
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // STEP 7: Calculate investment multiplier
+    // ═══════════════════════════════════════════════════════════════════════
+    const investmentMultiplier = netProceeds / collateralValue
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // STEP 8: Return decision based on accumulation mode
+    // ═══════════════════════════════════════════════════════════════════════
+    if (params.btcAccumulation) {
+      // BTC Accumulation Mode: Reinvest net proceeds
+      return {
+        allowInvestment: true,
+        investmentMultiplier,
+        allowWithdrawal: false,
+        withdrawalAmount: 0,
+        reasoning: `Dynamic LTV reset: borrowing $${Math.round(amountToBorrow)} (net $${Math.round(netProceeds)}) to maintain ${(targetLtv * 100).toFixed(1)}% LTV`
+      }
+    } else {
+      // Cash Generation Mode: Take specified withdrawal amount
+      const withdrawalAmount = Math.abs(params.monthlyWithdrawalAmount || 0)
+      return {
+        allowInvestment: true,
+        investmentMultiplier,
+        allowWithdrawal: true,
+        withdrawalAmount,
+        reasoning: `Dynamic LTV reset: borrowing $${Math.round(amountToBorrow)} (net $${Math.round(netProceeds)}), withdrawing $${Math.round(withdrawalAmount)}`
+      }
     }
   }
 
