@@ -442,6 +442,19 @@ export function PowerLawControls({ className }: PowerLawControlsProps) {
           </div>
         )}
 
+        {/* Apply to Price Projection Button */}
+        <div className="flex justify-center pt-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={applyToPriceProjection}
+            className="flex items-center gap-2"
+          >
+            <Copy className="h-4 w-4" />
+            Apply to Price Projection
+          </Button>
+        </div>
+
         {/* Cycle Repeat Volatility Section */}
         <Separator className="my-6" />
 
@@ -472,36 +485,7 @@ export function PowerLawControls({ className }: PowerLawControlsProps) {
             />
           </div>
 
-          {/* Price Projection Parameters Display */}
-          <div className="bg-muted/50 rounded-lg p-3 space-y-2">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm font-medium">Price Projection Parameters</Label>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={applyToPriceProjection}
-                className="flex items-center gap-2 h-7"
-              >
-                <Copy className="h-3 w-3" />
-                Apply Fit Line
-              </Button>
-            </div>
 
-            {settings.priceProjectionParams ? (
-              <div className="grid grid-cols-2 gap-4 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Slope:</span>
-                  <span className="font-mono">{settings.priceProjectionParams.slope.toFixed(3)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Intercept:</span>
-                  <span className="font-mono">{settings.priceProjectionParams.intercept.toFixed(3)}</span>
-                </div>
-              </div>
-            ) : (
-              <p className="text-xs text-muted-foreground">Using Fit line parameters</p>
-            )}
-          </div>
 
           {/* Volatility Controls */}
           {settings.cycleRepeatVolatility?.enabled && (

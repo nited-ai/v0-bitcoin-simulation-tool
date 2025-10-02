@@ -188,7 +188,9 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
           }
         } else if (params.priceModel === 'powerLaw') {
           modelParams.modelSpecificParams = {
-            prognosisLine: params.powerLawSettings?.prognosisLine || 'fit'
+            prognosisLine: params.powerLawSettings?.prognosisLine || 'fit',
+            priceProjectionParams: params.powerLawSettings?.priceProjectionParams,
+            cycleRepeatVolatility: params.powerLawSettings?.cycleRepeatVolatility
           }
         } else if (params.priceModel === 'enhancedCycleRepeat') {
           // Load diminishing returns parameters from sessionStorage
@@ -309,7 +311,9 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
           }
         } else if (params.priceModel === 'powerLaw') {
           modelParams.modelSpecificParams = {
-            prognosisLine: params.powerLawSettings.prognosisLine
+            prognosisLine: params.powerLawSettings.prognosisLine,
+            priceProjectionParams: params.powerLawSettings.priceProjectionParams,
+            cycleRepeatVolatility: params.powerLawSettings.cycleRepeatVolatility
           }
         } else if (params.priceModel === 'enhancedCycleRepeat') {
           // Get diminishing returns parameters asynchronously to prevent blocking

@@ -9,7 +9,7 @@ import { useSimulation } from "../../context/SimulationContext"
 import { priceModelRegistry } from "../../price-models/PriceModelRegistry"
 import { useHistoricalDataOnly } from "../../hooks/useCentralizedData"
 import { useLiquidationCalculations } from "../../hooks/useCalculationsIntegration"
-import type { PriceProjectionResult, PriceLineType } from "../../price-models/types"
+import type { PriceProjectionResult, PriceLineType, PriceModelParams } from "../../price-models/types"
 import type { HistoricalDataPoint } from "@/lib/services/centralized-data-service"
 
 /**
@@ -56,7 +56,7 @@ export function PriceProjectionChart() {
         : params.initialBtcPrice
 
       // Prepare model parameters based on selected model
-      let modelParams = {
+      let modelParams: PriceModelParams = {
         startPrice: lastHistoricalPrice,
         projectionMonths: params.simulationMonths,
         modelSpecificParams: {
@@ -73,7 +73,9 @@ export function PriceProjectionChart() {
       } else if (selectedModel === 'powerLaw') {
         modelParams.modelSpecificParams = {
           ...modelParams.modelSpecificParams,
-          // prognosisLine: 'fit' // Default to fit line
+          prognosisLine: params.powerLawSettings?.prognosisLine || 'fit',
+          priceProjectionParams: params.powerLawSettings?.priceProjectionParams,
+          cycleRepeatVolatility: params.powerLawSettings?.cycleRepeatVolatility
         }
       }
       // cycleRepeat doesn't need specific parameters
