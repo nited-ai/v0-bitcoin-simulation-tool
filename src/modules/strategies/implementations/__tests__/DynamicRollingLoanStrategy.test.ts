@@ -92,6 +92,111 @@ describe('DynamicRollingLoanStrategy', () => {
       expect(decision.investmentMultiplier).toBe(0)
     })
   })
+
+  describe('Initial Loan Logic (Month 0)', () => {
+    it('should create initial loan at Month 0 with no active loans', () => {
+      const context = createMockContext({
+        month: 0,
+        btcPrice: 100000,
+        totalBtcAmount: 10,
+        activeLoans: [],
+        params: {
+          maxLoanAmount: 150000,
+          riskManagement: {
+            targetLtv: 15,
+            liquidationLtv: 85,
+            maxLoanAmount: 150000,
+            liquidationFeePercent: 5,
+            annualInterestRate: 0.08
+          }
+        }
+      })
+
+      const decision = strategy.makeDecision(context)
+
+      expect(decision.allowInvestment).toBe(true)
+      expect(decision.investmentMultiplier).toBeGreaterThan(0)
+      expect(decision.reasoning).toContain('initial loan')
+    })
+
+    it('should use maxLoanAmount for initial loan calculation', () => {
+      const context = createMockContext({
+        month: 0,
+        btcPrice: 100000,
+        totalBtcAmount: 10,
+        activeLoans: [],
+        params: {
+          maxLoanAmount: 150000,
+          riskManagement: {
+            targetLtv: 15,
+            liquidationLtv: 85,
+            maxLoanAmount: 150000,
+            liquidationFeePercent: 5,
+            annualInterestRate: 0.08
+          }
+        }
+      })
+
+      const decision = strategy.makeDecision(context)
+
+      // Investment multiplier should be principal / collateralValue
+      // With maxLoanAmount = 150000 and collateral = 1000000
+      // Expected multiplier ≈ 0.15 (15%)
+      expect(decision.investmentMultiplier).toBeGreaterThan(0.10)
+      expect(decision.investmentMultiplier).toBeLessThan(0.20)
+    })
+
+    it('should support BTC accumulation mode for initial loan', () => {
+      const context = createMockContext({
+        month: 0,
+        btcPrice: 100000,
+        totalBtcAmount: 10,
+        activeLoans: [],
+        params: {
+          btcAccumulation: true,
+          maxLoanAmount: 150000
+        }
+      })
+
+      const decision = strategy.makeDecision(context)
+
+      expect(decision.allowInvestment).toBe(true)
+      expect(decision.allowWithdrawal).toBe(false)
+      expect(decision.withdrawalAmount).toBe(0)
+    })
+
+    it('should support cash generation mode for initial loan', () => {
+      const context = createMockContext({
+        month: 0,
+        btcPrice: 100000,
+        totalBtcAmount: 10,
+        activeLoans: [],
+        params: {
+          btcAccumulation: false,
+          maxLoanAmount: 150000
+        }
+      })
+
+      const decision = strategy.makeDecision(context)
+
+      expect(decision.allowInvestment).toBe(true)
+      expect(decision.allowWithdrawal).toBe(true)
+      expect(decision.withdrawalAmount).toBeGreaterThan(0)
+    })
+
+    it('should include LTV in reasoning for initial loan', () => {
+      const context = createMockContext({
+        month: 0,
+        btcPrice: 100000,
+        totalBtcAmount: 10,
+        activeLoans: []
+      })
+
+      const decision = strategy.makeDecision(context)
+
+      expect(decision.reasoning).toContain('LTV')
+    })
+  })
 })
 
 /**

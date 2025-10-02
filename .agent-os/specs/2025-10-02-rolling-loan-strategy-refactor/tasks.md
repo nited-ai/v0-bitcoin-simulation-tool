@@ -38,15 +38,15 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 2.7 Verify all tests pass
   - [x] 2.8 Commit changes
 
-- [ ] 3. Implement Initial Loan Logic
-  - [ ] 3.1 Write tests for initial loan calculation
-  - [ ] 3.2 Implement handleInitialLoan() method using HTML prototype formula
-  - [ ] 3.3 Calculate BTC to purchase: `(totalBtc * price * targetLtv * (1 - fee)) / price`
-  - [ ] 3.4 Calculate loan balance after purchase
-  - [ ] 3.5 Return correct investment multiplier
-  - [ ] 3.6 Test with various LTV and fee scenarios
-  - [ ] 3.7 Verify all tests pass
-  - [ ] 3.8 Commit changes
+- [x] 3. Implement Initial Loan Logic
+  - [x] 3.1 Write tests for initial loan calculation
+  - [x] 3.2 Implement handleInitialLoan() method using CentralizedLoanCalculationService
+  - [x] 3.3 Calculate investment multiplier using centralized service
+  - [x] 3.4 Support both BTC accumulation and cash generation modes
+  - [x] 3.5 Format loan details for display with reasoning
+  - [x] 3.6 Test with various LTV and fee scenarios
+  - [x] 3.7 Verify all tests pass (14/14)
+  - [x] 3.8 Commit changes
 
 - [ ] 4. Implement Automatic Mode Selection
   - [ ] 4.1 Write tests for mode selection logic

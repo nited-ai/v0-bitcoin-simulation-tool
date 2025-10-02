@@ -14,6 +14,7 @@ import type {
   StrategyDecision,
   StrategyMetadata
 } from "../types"
+import { centralizedLoanCalculationService } from '../services/CentralizedLoanCalculationService'
 
 /**
  * Dynamic Rolling Loan Strategy - Automated loan management with dual modes
@@ -130,18 +131,67 @@ Both modes support monthly savings with annual increases, BTC accumulation for p
 
   /**
    * Handle initial loan creation (Month 0)
-   * 
-   * Creates the first loan based on target LTV and returns investment decision.
+   *
+   * Creates the first loan based on maxLoanAmount parameter.
    * This is the same for both Dynamic LTV and Fixed Term modes.
+   *
+   * Uses CentralizedLoanCalculationService for consistent loan calculations.
+   *
+   * @param context - Strategy context with BTC price, amount, and parameters
+   * @returns StrategyDecision with investment multiplier and withdrawal settings
    */
   private handleInitialLoan(context: StrategyContext): StrategyDecision {
-    // TODO: Implement initial loan logic in Task 3
-    return {
-      allowInvestment: false,
-      investmentMultiplier: 0,
-      allowWithdrawal: false,
-      withdrawalAmount: 0,
-      reasoning: "Initial loan logic not yet implemented"
+    const { btcPrice, totalBtcAmount, params } = context
+
+    // Calculate collateral value
+    const collateralValue = totalBtcAmount * btcPrice
+
+    // Use maxLoanAmount as principal for initial loan
+    const principal = params.maxLoanAmount
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // STEP 1: Calculate complete loan details using centralized service
+    // ═══════════════════════════════════════════════════════════════════════
+    const loanDetails = centralizedLoanCalculationService.calculateLoanDetails(
+      principal,
+      collateralValue,
+      params
+    )
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // STEP 2: Calculate investment multiplier for BTC accumulation
+    // ═══════════════════════════════════════════════════════════════════════
+    const investmentMultiplier = centralizedLoanCalculationService.calculateInvestmentMultiplier(
+      loanDetails,
+      collateralValue
+    )
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // STEP 3: Format values for display
+    // ═══════════════════════════════════════════════════════════════════════
+    const formatted = centralizedLoanCalculationService.formatLoanCalculation(loanDetails)
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // STEP 4: Return decision based on accumulation mode
+    // ═══════════════════════════════════════════════════════════════════════
+    if (params.btcAccumulation) {
+      // BTC Accumulation Mode: Reinvest loan proceeds into more BTC
+      return {
+        allowInvestment: true,
+        investmentMultiplier,
+        allowWithdrawal: false,
+        withdrawalAmount: 0,
+        reasoning: `Taking initial loan: ${formatted.principalFormatted} principal + ${formatted.originationFeeFormatted} fee + ${formatted.totalInterestFormatted} interest = ${formatted.totalRepaymentFormatted} total (${loanDetails.ltv.toFixed(1)}% LTV)`
+      }
+    } else {
+      // Cash Generation Mode: Take loan proceeds as cash
+      return {
+        allowInvestment: true,
+        investmentMultiplier,
+        allowWithdrawal: true,
+        withdrawalAmount: principal * 0.8, // Take 80% as cash, keep 20% buffer
+        reasoning: `Taking initial loan: ${formatted.principalFormatted} principal + ${formatted.originationFeeFormatted} fee + ${formatted.totalInterestFormatted} interest = ${formatted.totalRepaymentFormatted} total (${loanDetails.ltv.toFixed(1)}% LTV)`
+      }
     }
   }
 
