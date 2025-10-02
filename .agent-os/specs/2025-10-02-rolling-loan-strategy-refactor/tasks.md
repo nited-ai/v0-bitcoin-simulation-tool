@@ -86,20 +86,20 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 6.11 Verify all tests pass (33/33)
   - [x] 6.12 Commit changes
 
-- [ ] 7. Integrate Monthly Savings in StrategyExecutionService
-  - [ ] 7.1 Write tests for monthly savings integration
-  - [ ] 7.2 Locate main simulation loop in StrategyExecutionService
-  - [ ] 7.3 Add monthly savings logic BEFORE strategy decision
-  - [ ] 7.4 Calculate years passed: `Math.floor(month / 12)`
-  - [ ] 7.5 Apply annual compound increase: `initial * Math.pow(1 + increase, years)`
-  - [ ] 7.6 Convert to BTC: `savingsAmount / currentPrice`
-  - [ ] 7.7 Update BTC holdings
-  - [ ] 7.8 Track monthlySavingsApplied in monthly result
-  - [ ] 7.9 Test with positive savings
-  - [ ] 7.10 Test with negative withdrawals
-  - [ ] 7.11 Test annual increase over multiple years
-  - [ ] 7.12 Verify all tests pass
-  - [ ] 7.13 Commit changes
+- [x] 7. Integrate Monthly Savings in StrategyExecutionService
+  - [x] 7.1 Write tests for monthly savings integration (6 new tests)
+  - [x] 7.2 Locate main simulation loop in StrategyExecutionService
+  - [x] 7.3 Add monthly savings logic BEFORE strategy decision
+  - [x] 7.4 Calculate years passed: `Math.floor(month / 12)`
+  - [x] 7.5 Apply annual compound increase: `initial * Math.pow(1 + increase, years)`
+  - [x] 7.6 Convert to BTC: `savingsAmount / currentPrice`
+  - [x] 7.7 Update BTC holdings (positive = add, negative = reduce)
+  - [x] 7.8 Track monthlySavingsApplied in monthly result
+  - [x] 7.9 Test with positive savings (adds BTC)
+  - [x] 7.10 Test with negative withdrawals (reduces BTC)
+  - [x] 7.11 Test annual increase over multiple years (compound growth)
+  - [x] 7.12 Verify all tests pass (18/18)
+  - [x] 7.13 Commit changes
 
 - [ ] 8. Track Strategy Execution Data in MonthlyResult
   - [ ] 8.1 Write tests for monthly result tracking

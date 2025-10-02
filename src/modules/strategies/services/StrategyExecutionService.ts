@@ -60,6 +60,29 @@ export class StrategyExecutionService {
       // CRITICAL FIX: Use initialBtcPrice for Month 0, projected price for subsequent months
       const btcPrice = month === 0 ? params.initialBtcPrice : pricePoint.price
 
+      // ═══════════════════════════════════════════════════════════════════════
+      // APPLY MONTHLY SAVINGS/WITHDRAWALS (BEFORE STRATEGY DECISION)
+      // ═══════════════════════════════════════════════════════════════════════
+      let monthlySavingsApplied: number | undefined = undefined
+
+      if (month > 0 && params.monthlyWithdrawalAmount !== 0) {
+        // Calculate years passed for annual compound increase
+        const yearsPassed = Math.floor(month / 12)
+        const annualIncrease = (params.annualSavingsIncrease || 0) / 100
+
+        // Apply compound increase: initial * (1 + increase)^years
+        const currentMonthlyFlow = params.monthlyWithdrawalAmount *
+          Math.pow(1 + annualIncrease, yearsPassed)
+
+        // Convert to BTC and apply to holdings
+        // Positive = savings (add BTC), Negative = withdrawals (reduce BTC)
+        const btcChange = currentMonthlyFlow / btcPrice
+        totalBtcAmount += btcChange
+
+        // Track for monthly result
+        monthlySavingsApplied = currentMonthlyFlow
+      }
+
       // Initialize monthly tracking
       const monthlyEvents: MonthlyEvent[] = []
       const collateralValue = totalBtcAmount * btcPrice
@@ -200,6 +223,7 @@ export class StrategyExecutionService {
         repaymentDue,
         highestLtv: Math.round(highestLtv),
         maxSafeDebt: decision.maxDebtOverride !== undefined ? Math.round(decision.maxDebtOverride) : undefined,
+        monthlySavingsApplied, // NEW: Track monthly savings/withdrawals
         events: monthlyEvents
       })
     }

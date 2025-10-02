@@ -243,5 +243,118 @@ describe('StrategyExecutionService', () => {
       })
     })
   })
+
+  describe('Monthly Savings Integration', () => {
+    test('should apply positive monthly savings (add BTC)', async () => {
+      const paramsWithSavings = {
+        ...mockParams,
+        monthlyWithdrawalAmount: 1000, // $1000 savings per month
+        annualSavingsIncrease: 0 // No increase for simplicity
+      }
+
+      const result = await service.executeStrategy(mockStrategy, paramsWithSavings, mockPriceProjection)
+
+      // Check that BTC amount increases due to savings
+      const month1 = result.monthlyResults[1]
+      expect(month1.monthlySavingsApplied).toBe(1000)
+      expect(month1.totalBtcAmount).toBeGreaterThan(mockParams.btcAmount)
+    })
+
+    test('should apply negative monthly withdrawals (reduce BTC)', async () => {
+      const paramsWithWithdrawals = {
+        ...mockParams,
+        monthlyWithdrawalAmount: -2500, // $2500 withdrawal per month
+        annualSavingsIncrease: 0
+      }
+
+      const result = await service.executeStrategy(mockStrategy, paramsWithWithdrawals, mockPriceProjection)
+
+      // Check that BTC amount decreases due to withdrawals
+      const month1 = result.monthlyResults[1]
+      expect(month1.monthlySavingsApplied).toBe(-2500)
+      expect(month1.totalBtcAmount).toBeLessThan(mockParams.btcAmount)
+    })
+
+    test('should apply annual compound increase to monthly savings', async () => {
+      const paramsWithIncrease = {
+        ...mockParams,
+        monthlyWithdrawalAmount: 1000, // $1000 initial
+        annualSavingsIncrease: 10, // 10% annual increase
+        simulationMonths: 36 // 3 years
+      }
+
+      const result = await service.executeStrategy(mockStrategy, paramsWithIncrease, mockPriceProjection)
+
+      // Year 0 (months 0-11): $1000
+      const month6 = result.monthlyResults[6]
+      expect(month6.monthlySavingsApplied).toBeCloseTo(1000, 0)
+
+      // Year 1 (months 12-23): $1100 (10% increase)
+      const month18 = result.monthlyResults[18]
+      expect(month18.monthlySavingsApplied).toBeCloseTo(1100, 0)
+
+      // Year 2 (months 24-35): $1210 (10% increase again)
+      const month30 = result.monthlyResults[30]
+      expect(month30.monthlySavingsApplied).toBeCloseTo(1210, 0)
+    })
+
+    test('should skip monthly savings when monthlyWithdrawalAmount is 0', async () => {
+      const paramsNoSavings = {
+        ...mockParams,
+        monthlyWithdrawalAmount: 0,
+        annualSavingsIncrease: 10
+      }
+
+      const result = await service.executeStrategy(mockStrategy, paramsNoSavings, mockPriceProjection)
+
+      // BTC amount should not change due to savings
+      const month1 = result.monthlyResults[1]
+      expect(month1.monthlySavingsApplied).toBeUndefined()
+    })
+
+    test('should apply monthly savings BEFORE strategy decision', async () => {
+      // Create a spy strategy that captures the BTC amount
+      let capturedBtcAmounts: number[] = []
+
+      class SpyStrategy extends MockStrategy {
+        makeDecision(context: StrategyContext): StrategyDecision {
+          capturedBtcAmounts.push(context.totalBtcAmount)
+          return super.makeDecision(context)
+        }
+      }
+
+      const paramsWithSavings = {
+        ...mockParams,
+        monthlyWithdrawalAmount: 1000,
+        annualSavingsIncrease: 0,
+        simulationMonths: 3
+      }
+
+      const spyStrategy = new SpyStrategy()
+      await service.executeStrategy(spyStrategy, paramsWithSavings, mockPriceProjection)
+
+      // Month 1 should have more BTC than Month 0 due to savings applied before strategy decision
+      expect(capturedBtcAmounts[1]).toBeGreaterThan(capturedBtcAmounts[0])
+    })
+
+    test('should track monthlySavingsApplied in monthly results', async () => {
+      const paramsWithSavings = {
+        ...mockParams,
+        monthlyWithdrawalAmount: 1500,
+        annualSavingsIncrease: 5,
+        simulationMonths: 24
+      }
+
+      const result = await service.executeStrategy(mockStrategy, paramsWithSavings, mockPriceProjection)
+
+      // Check that monthlySavingsApplied is tracked for all months
+      result.monthlyResults.forEach((monthResult, index) => {
+        if (index > 0) { // Skip Month 0
+          expect(monthResult.monthlySavingsApplied).toBeDefined()
+          expect(monthResult.monthlySavingsApplied).toBeGreaterThan(0)
+        }
+      })
+    })
+  })
 })
 
