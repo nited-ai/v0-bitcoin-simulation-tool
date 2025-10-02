@@ -162,8 +162,8 @@ export function BtcAccumulationCard() {
               <p className="text-muted-foreground text-xs">
                 Configure monthly cash flows in the <strong>Financial Flow</strong> card above.
                 {params.btcAccumulation
-                  ? ' Positive values (savings) will be converted to BTC and added to your stack. Negative values (withdrawals) will be funded by loans against your BTC collateral.'
-                  : ' Withdrawals will be funded by taking loans against your BTC stack as collateral (BTC remains intact).'}
+                  ? ' Positive values (savings) will be converted to BTC and added to your stack. Negative values (withdrawals) will be taken from your loans and will reduce the BTC Accumulation.'
+                  : ' Withdrawals will be funded by taking loans against your BTC stack as collateral (BTC remains intact). Monthly savings will be converted to BTC and no loans will be taken.'}
               </p>
             </div>
           </div>

@@ -114,10 +114,7 @@ export function FinancialFlowCard() {
                   Savings Mode
                 </h4>
                 <p className="text-sm text-muted-foreground mt-1">
-                  You're adding <strong>${Math.abs(params.monthlyWithdrawalAmount).toLocaleString()}</strong> per month to your investment.
-                  {params.btcAccumulation
-                    ? " These funds will be used to purchase additional Bitcoin."
-                    : " These funds will be held as cash reserves."}
+                  You're adding <strong>${Math.abs(params.monthlyWithdrawalAmount).toLocaleString()}</strong> per month to your investment. These funds will be used to purchase additional Bitcoin.
                   {params.annualSavingsIncrease && params.annualSavingsIncrease !== 0 && (
                     <span className={`block mt-1 ${params.annualSavingsIncrease > 0 ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>
                       {params.annualSavingsIncrease > 0 ? 'Growing' : 'Decreasing'} at <strong>{Math.abs(params.annualSavingsIncrease)}%</strong> annually (Year 10: ${Math.round(Math.abs(params.monthlyWithdrawalAmount) * Math.pow(1 + params.annualSavingsIncrease / 100, 9)).toLocaleString()}/month)
@@ -136,8 +133,7 @@ export function FinancialFlowCard() {
                   Withdrawal Mode
                 </h4>
                 <p className="text-sm text-muted-foreground mt-1">
-                  You're withdrawing <strong>${Math.abs(params.monthlyWithdrawalAmount).toLocaleString()}</strong> per month from your investment.
-                  This will reduce your available collateral over time.
+                  You're withdrawing <strong>${Math.abs(params.monthlyWithdrawalAmount).toLocaleString()}</strong> per month {params.btcAccumulation ? 'from your investment. This will reduce your investment in new BTC.' : 'using loans. This will accumulate debt over time and not adding any additional Bitcoin.'}
                   {params.annualSavingsIncrease && params.annualSavingsIncrease !== 0 && (
                     <span className={`block mt-1 ${params.annualSavingsIncrease > 0 ? 'text-orange-700 dark:text-orange-300' : 'text-green-700 dark:text-green-300'}`}>
                       {params.annualSavingsIncrease > 0 ? 'Increasing' : 'Decreasing'} at <strong>{Math.abs(params.annualSavingsIncrease)}%</strong> annually (Year 10: ${Math.round(Math.abs(params.monthlyWithdrawalAmount) * Math.pow(1 + params.annualSavingsIncrease / 100, 9)).toLocaleString()}/month)
@@ -169,9 +165,9 @@ export function FinancialFlowCard() {
             <Info className="w-4 h-4 text-blue-600 mt-0.5" />
             <div className="text-sm text-blue-900 dark:text-blue-100">
               <strong>Strategy Impact:</strong> This parameter works together with your BTC Accumulation mode.
-              {params.btcAccumulation 
-                ? " In accumulation mode, positive values increase your BTC holdings."
-                : " In cash generation mode, loan proceeds are kept as cash."}
+              {params.btcAccumulation
+                ? " In accumulation mode, positive values increase your BTC holdings, negative values decrease your reinvestment amount to buy additional BTC."
+                : " In cash generation mode, savings add BTC to stack without taking loans. Withdrawals are funded by loans against your BTC collateral."}
             </div>
           </div>
         </div>
