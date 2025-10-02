@@ -28,15 +28,15 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 1.8 Verify all tests pass
   - [x] 1.9 Commit changes
 
-- [ ] 2. Create DynamicRollingLoanStrategy - Initial Setup
-  - [ ] 2.1 Create new file `src/modules/strategies/implementations/DynamicRollingLoanStrategy.ts`
-  - [ ] 2.2 Implement class structure with InvestmentStrategyInterface
-  - [ ] 2.3 Implement getName() method: "Dynamic Rolling Loan"
-  - [ ] 2.4 Implement getDescription() method with mode explanation
-  - [ ] 2.5 Write basic structure tests
-  - [ ] 2.6 Verify TypeScript compilation succeeds
-  - [ ] 2.7 Verify all tests pass
-  - [ ] 2.8 Commit changes
+- [x] 2. Create DynamicRollingLoanStrategy - Initial Setup
+  - [x] 2.1 Create new file `src/modules/strategies/implementations/DynamicRollingLoanStrategy.ts`
+  - [x] 2.2 Implement class structure with InvestmentStrategyInterface
+  - [x] 2.3 Implement getName() method: "Dynamic Rolling Loan"
+  - [x] 2.4 Implement getDescription() method with mode explanation
+  - [x] 2.5 Write basic structure tests
+  - [x] 2.6 Verify TypeScript compilation succeeds
+  - [x] 2.7 Verify all tests pass
+  - [x] 2.8 Commit changes
 
 - [ ] 3. Implement Initial Loan Logic
   - [ ] 3.1 Write tests for initial loan calculation

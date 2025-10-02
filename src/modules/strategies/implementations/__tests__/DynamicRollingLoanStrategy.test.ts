@@ -1,0 +1,144 @@
+/**
+ * Tests for Dynamic Rolling Loan Strategy
+ * 
+ * Tests the new strategy implementation that automatically selects between
+ * Dynamic LTV mode (Infinity loan term) and Fixed Term mode (specific loan term)
+ */
+
+import { describe, it, expect, beforeEach } from 'vitest'
+import { DynamicRollingLoanStrategy } from '../DynamicRollingLoanStrategy'
+import type { StrategyContext, StrategyExecutionParams, Loan } from '../../types'
+
+describe('DynamicRollingLoanStrategy', () => {
+  let strategy: DynamicRollingLoanStrategy
+
+  beforeEach(() => {
+    strategy = new DynamicRollingLoanStrategy()
+  })
+
+  describe('Basic Structure', () => {
+    it('should implement InvestmentStrategyInterface', () => {
+      expect(strategy.getName).toBeDefined()
+      expect(strategy.getDescription).toBeDefined()
+      expect(strategy.getMetadata).toBeDefined()
+      expect(strategy.getDetailedDescription).toBeDefined()
+      expect(strategy.getFunctionality).toBeDefined()
+      expect(strategy.getSuitability).toBeDefined()
+      expect(strategy.makeDecision).toBeDefined()
+    })
+
+    it('should return correct name', () => {
+      expect(strategy.getName()).toBe('Dynamic Rolling Loan')
+    })
+
+    it('should return description mentioning automatic mode selection', () => {
+      const description = strategy.getDescription()
+      expect(description).toContain('automatic')
+      expect(description.toLowerCase()).toContain('mode')
+    })
+
+    it('should return detailed description', () => {
+      const detailed = strategy.getDetailedDescription()
+      expect(detailed.length).toBeGreaterThan(100)
+      expect(detailed.toLowerCase()).toContain('dynamic')
+      expect(detailed.toLowerCase()).toContain('fixed')
+    })
+
+    it('should return functionality description', () => {
+      const functionality = strategy.getFunctionality()
+      expect(functionality.length).toBeGreaterThan(20)
+    })
+
+    it('should return suitability description', () => {
+      const suitability = strategy.getSuitability()
+      expect(suitability.length).toBeGreaterThan(20)
+    })
+
+    it('should return metadata with appropriate ratings', () => {
+      const metadata = strategy.getMetadata()
+      
+      expect(metadata.securityRating).toBeGreaterThanOrEqual(1)
+      expect(metadata.securityRating).toBeLessThanOrEqual(5)
+      expect(metadata.complexityRating).toBeGreaterThanOrEqual(1)
+      expect(metadata.complexityRating).toBeLessThanOrEqual(5)
+      expect(Array.isArray(metadata.suitableFor)).toBe(true)
+      expect(Array.isArray(metadata.criteria)).toBe(true)
+    })
+  })
+
+  describe('makeDecision - Edge Cases', () => {
+    it('should handle zero BTC amount', () => {
+      const context = createMockContext({
+        totalBtcAmount: 0,
+        btcPrice: 100000
+      })
+
+      const decision = strategy.makeDecision(context)
+
+      expect(decision.allowInvestment).toBe(false)
+      expect(decision.investmentMultiplier).toBe(0)
+      expect(decision.reasoning).toContain('No BTC')
+    })
+
+    it('should handle negative BTC amount', () => {
+      const context = createMockContext({
+        totalBtcAmount: -1,
+        btcPrice: 100000
+      })
+
+      const decision = strategy.makeDecision(context)
+
+      expect(decision.allowInvestment).toBe(false)
+      expect(decision.investmentMultiplier).toBe(0)
+    })
+  })
+})
+
+/**
+ * Helper function to create mock strategy context
+ */
+function createMockContext(overrides: Partial<StrategyContext> = {}): StrategyContext {
+  const defaultParams: StrategyExecutionParams = {
+    btcAmount: 10,
+    initialBtcPrice: 100000,
+    monthlyWithdrawalAmount: 0,
+    annualInterestRate: 0.08,
+    loanOriginationFeePercent: 1,
+    loanTermMonths: Infinity, // Default to Dynamic LTV mode
+    simulationMonths: 120,
+    maxLoanAmount: 150000,
+    expectedAnnualInflation: 0.03,
+    btcAccumulation: true,
+    annualSavingsIncrease: 0,
+    riskManagement: {
+      targetLtv: 15,
+      liquidationLtv: 85,
+      maxLoanAmount: 150000,
+      liquidationFeePercent: 5,
+      annualInterestRate: 0.08
+    },
+    investmentStrategy: 'rollingLoan'
+  }
+
+  const defaultContext: StrategyContext = {
+    month: 0,
+    currentDate: new Date('2024-01-01'),
+    btcPrice: 100000,
+    totalBtcAmount: 10,
+    activeLoans: [],
+    collateralValue: 1000000,
+    debtCapacity: 150000,
+    historicalPriceData: [],
+    params: defaultParams
+  }
+
+  return {
+    ...defaultContext,
+    ...overrides,
+    params: {
+      ...defaultParams,
+      ...(overrides.params || {})
+    }
+  }
+}
+
