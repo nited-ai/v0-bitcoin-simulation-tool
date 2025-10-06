@@ -8,43 +8,42 @@ import { useSimulation } from "../../context/SimulationContext"
 import type { MonthlyResult } from "../../types/simulation"
 
 /**
- * Format currency in German locale with Euro symbol
+ * Format currency in US locale with Dollar symbol
  * @param value - The value to format
- * @returns Formatted string like "€95.234"
+ * @returns Formatted string like "$95,234"
  */
 function formatCurrency(value: number): string {
-  return `€${Math.round(value).toLocaleString("de-DE")}`
+  return `$${Math.round(value).toLocaleString("en-US")}`
 }
 
 /**
- * Format BTC amount with 4 decimal places
+ * Format BTC amount with 5 decimal places (matching HTML prototype)
  * @param value - The BTC amount to format
- * @returns Formatted string like "1.2345 BTC"
+ * @returns Formatted string like "1.23456 BTC"
  */
 function formatBtc(value: number): string {
-  return `${value.toFixed(4)} BTC`
+  return `${value.toFixed(5)} BTC`
 }
 
 /**
  * Format percentage with 2 decimal places
- * @param value - The percentage value (0-1 or 0-100)
+ * @param value - The percentage value as decimal (0-1)
  * @returns Formatted string like "15.75%"
  */
 function formatPercentage(value: number): string {
-  // Assume value is already in percentage form (0-100)
-  return `${value.toFixed(2)}%`
+  // Value is decimal (0-1), multiply by 100 for display
+  return `${(value * 100).toFixed(2)}%`
 }
 
 /**
- * Format date in MM/YYYY format
+ * Format date in short month + year format
  * @param dateString - The date string to format
- * @returns Formatted string like "01/2025"
+ * @returns Formatted string like "Jan 2025"
  */
 function formatDate(dateString: string): string {
   const date = new Date(dateString)
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const year = date.getFullYear()
-  return `${month}/${year}`
+  const formatter = new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'short' })
+  return formatter.format(date)
 }
 
 /**
@@ -113,12 +112,12 @@ export function ResultsTable() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Detailergebnisse</CardTitle>
-          <CardDescription>Monatliche Simulationsergebnisse</CardDescription>
+          <CardTitle>Detailed Results</CardTitle>
+          <CardDescription>Monthly simulation results in detail</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-muted-foreground">
-            Bitte starten Sie die Simulation.
+            Please start the simulation.
           </div>
         </CardContent>
       </Card>
@@ -134,8 +133,8 @@ export function ResultsTable() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Detailergebnisse</CardTitle>
-        <CardDescription>Monatliche Simulationsergebnisse im Detail</CardDescription>
+        <CardTitle>Detailed Results</CardTitle>
+        <CardDescription>Monthly simulation results in detail</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
@@ -143,15 +142,15 @@ export function ResultsTable() {
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-gray-700 z-10 text-xs text-gray-300 uppercase">
                 <tr>
-                  <th scope="col" className="px-4 py-3 text-left rounded-l-lg">Datum</th>
-                  <th scope="col" className="px-4 py-3 text-right">BTC Preis (€)</th>
-                  <th scope="col" className="px-4 py-3 text-right">BTC Bestand</th>
-                  <th scope="col" className="px-4 py-3 text-right">Wert (€)</th>
-                  <th scope="col" className="px-4 py-3 text-right">Gekaufte BTC</th>
-                  <th scope="col" className="px-4 py-3 text-right">Spar./Entn. d. Zyklus (€)</th>
-                  <th scope="col" className="px-4 py-3 text-right">Akt. LTV (%)</th>
-                  <th scope="col" className="px-4 py-3 text-right">Schulden (€)</th>
-                  <th scope="col" className="px-4 py-3 text-right rounded-r-lg">Netto BTC</th>
+                  <th scope="col" className="px-4 py-3 text-left rounded-l-lg">Date</th>
+                  <th scope="col" className="px-4 py-3 text-right">BTC Price ($)</th>
+                  <th scope="col" className="px-4 py-3 text-right">BTC Holdings</th>
+                  <th scope="col" className="px-4 py-3 text-right">Value ($)</th>
+                  <th scope="col" className="px-4 py-3 text-right">BTC Purchased</th>
+                  <th scope="col" className="px-4 py-3 text-right">Savings/Withdrawals ($)</th>
+                  <th scope="col" className="px-4 py-3 text-right">Current LTV (%)</th>
+                  <th scope="col" className="px-4 py-3 text-right">Debt ($)</th>
+                  <th scope="col" className="px-4 py-3 text-right rounded-r-lg">Net BTC</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-700">
@@ -216,9 +215,9 @@ export function ResultsTable() {
                           : formatCurrency(0)}
                       </td>
 
-                      {/* Column 7: Akt. LTV (%) */}
+                      {/* Column 7: Current LTV (%) */}
                       <td className="px-4 py-3 text-right">
-                        {formatPercentage(r.ltv * 100)}
+                        {formatPercentage(r.ltv)}
                       </td>
 
                       {/* Column 8: Schulden (€) */}
@@ -242,7 +241,7 @@ export function ResultsTable() {
         {displayResults.length > itemsPerPage && (
           <div className="flex items-center justify-between mt-4">
             <div className="text-sm text-muted-foreground">
-              Zeige Monate {startIndex + 1}-{endIndex} von {displayResults.length}
+              Showing months {startIndex + 1}-{endIndex} of {displayResults.length}
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -251,10 +250,10 @@ export function ResultsTable() {
                 onClick={() => setCurrentPage(Math.max(currentPage - 1, 1))}
                 disabled={currentPage === 1}
               >
-                Zurück
+                Previous
               </Button>
               <span className="text-sm text-muted-foreground">
-                Seite {currentPage} von {totalPages}
+                Page {currentPage} of {totalPages}
               </span>
               <Button
                 variant="outline"
@@ -262,7 +261,7 @@ export function ResultsTable() {
                 onClick={() => setCurrentPage(Math.min(currentPage + 1, totalPages))}
                 disabled={currentPage >= totalPages}
               >
-                Weiter
+                Next
               </Button>
             </div>
           </div>
