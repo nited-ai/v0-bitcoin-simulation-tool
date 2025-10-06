@@ -197,10 +197,20 @@ Both modes support monthly savings with annual increases, BTC accumulation for p
     // ═══════════════════════════════════════════════════════════════════════
     // STEP 2: Calculate investment multiplier for BTC accumulation
     // ═══════════════════════════════════════════════════════════════════════
-    const investmentMultiplier = centralizedLoanCalculationService.calculateInvestmentMultiplier(
-      loanDetails,
-      collateralValue
-    )
+    // CRITICAL FIX: For initial loan, investmentMultiplier should be 1.0
+    // The principal already represents the correct loan amount based on loanAmountPercent
+    // Using principal/collateralValue would apply the percentage TWICE!
+    //
+    // HTML Prototype Logic:
+    //   purchasedBtc = btcHoldings * targetLtv * (1 - loanFee)
+    //   This is equivalent to: purchasedBtc = principal / btcPrice
+    //   Where principal = collateralValue * targetLtv
+    //
+    // Our Logic Should Be:
+    //   investmentMultiplier = 1.0 (use full principal for BTC purchase)
+    //   btcPurchased = principal / btcPrice
+    //
+    const investmentMultiplier = 1.0  // Use full principal, don't apply percentage twice
 
     console.log('📊 Loan Details:', {
       principal: loanDetails.principal,
@@ -209,7 +219,7 @@ Both modes support monthly savings with annual increases, BTC accumulation for p
       totalRepayment: loanDetails.totalRepayment,
       ltv: loanDetails.ltv,
       investmentMultiplier,
-      expectedBtcPurchase: `${investmentMultiplier} * ${collateralValue} / ${btcPrice} = ${(investmentMultiplier * collateralValue / btcPrice).toFixed(5)} BTC`
+      expectedBtcPurchase: `${principal} / ${btcPrice} = ${(principal / btcPrice).toFixed(5)} BTC`
     })
 
     // ═══════════════════════════════════════════════════════════════════════

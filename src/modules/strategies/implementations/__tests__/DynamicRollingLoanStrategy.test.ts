@@ -139,11 +139,11 @@ describe('DynamicRollingLoanStrategy', () => {
 
       const decision = strategy.makeDecision(context)
 
-      // Investment multiplier should be principal / collateralValue
-      // With maxLoanAmount = 150000 and collateral = 1000000
-      // Expected multiplier ≈ 0.15 (15%)
-      expect(decision.investmentMultiplier).toBeGreaterThan(0.10)
-      expect(decision.investmentMultiplier).toBeLessThan(0.20)
+      // UPDATED: Investment multiplier is now 1.0 for initial loan
+      // The principal already represents the correct loan amount
+      // Using principal/collateralValue would apply the percentage TWICE
+      expect(decision.investmentMultiplier).toBe(1.0)
+      expect(decision.allowInvestment).toBe(true)
     })
 
     it('should support BTC accumulation mode for initial loan', () => {
