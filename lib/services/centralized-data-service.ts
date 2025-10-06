@@ -257,6 +257,17 @@ class CentralizedDataService {
    * Loads both historical data AND current price before notifying components
    */
   async initialize(): Promise<void> {
+    // Guard against multiple initializations
+    if (this.state.isInitializing) {
+      console.log('⚠️ Centralized Data Service is already initializing...')
+      return
+    }
+
+    if (this.state.isHistoricalDataLoaded && this.state.currentPrice) {
+      console.log('✅ Centralized Data Service already initialized')
+      return
+    }
+
     console.log('🚀 Initializing Centralized Data Service...')
 
     // Set initialization flag to prevent premature notifications

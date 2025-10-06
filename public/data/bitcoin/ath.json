@@ -1,14 +1,12 @@
 {
   "meta": {
-    "lastUpdated": "2025-10-06T08:21:38.556Z",
-    "source": "historical_backfill_service",
-    "version": "1.0.0",
-    "description": "Bitcoin All-Time High (ATH) data - automatically updated when new highs are detected"
+    "lastUpdated": "2025-10-06T09:27:44.954Z",
+    "source": "synthetic_interpolation",
+    "version": "1.0.0"
   },
   "ath": {
-    "value": 125360.89741769346,
+    "value": 125360.9,
     "date": "2025-10-05",
-    "timestamp": 1759622400000,
-    "source": "historical_backfill"
+    "timestamp": 1759622400000
   }
 }

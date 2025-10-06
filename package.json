@@ -13,7 +13,9 @@
     "test:ui": "vitest --ui",
     "test:modules": "vitest src/modules",
     "test:agent-os": "vitest __tests__/agent-os",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "populate-historical-data": "tsx scripts/populate-historical-data.ts",
+    "generate-historical-data": "tsx scripts/generate-synthetic-historical-data.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
