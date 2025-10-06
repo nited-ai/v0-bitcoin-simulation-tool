@@ -152,9 +152,24 @@ Both modes support monthly savings with annual increases, BTC accumulation for p
     // Use loanAmountPercent if available (user-configured percentage)
     // Otherwise fall back to old logic for backward compatibility
     let principal: number
+
+    console.log('🔍 DynamicRollingLoanStrategy.handleInitialLoan() - DEBUG:', {
+      totalBtcAmount,
+      btcPrice,
+      collateralValue,
+      loanAmountPercent: params.loanAmountPercent,
+      maxLoanAmount: params.maxLoanAmount,
+      targetLtv: params.riskManagement?.targetLtv
+    })
+
     if (params.loanAmountPercent !== undefined && params.loanAmountPercent > 0) {
       // Use user-configured percentage (e.g., 10% of collateral)
       principal = collateralValue * (params.loanAmountPercent / 100)
+      console.log('✅ Using loanAmountPercent:', {
+        loanAmountPercent: params.loanAmountPercent,
+        calculation: `${collateralValue} * (${params.loanAmountPercent} / 100)`,
+        principal
+      })
     } else {
       // Legacy fallback: use targetLtv and maxLoanAmount constraint
       const targetLtv = params.riskManagement?.targetLtv || 40
@@ -162,6 +177,12 @@ Both modes support monthly savings with annual increases, BTC accumulation for p
         params.maxLoanAmount,
         collateralValue * (targetLtv / 100)
       )
+      console.log('⚠️ Using legacy fallback:', {
+        targetLtv,
+        maxLoanAmount: params.maxLoanAmount,
+        calculation: `min(${params.maxLoanAmount}, ${collateralValue} * (${targetLtv} / 100))`,
+        principal
+      })
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -180,6 +201,16 @@ Both modes support monthly savings with annual increases, BTC accumulation for p
       loanDetails,
       collateralValue
     )
+
+    console.log('📊 Loan Details:', {
+      principal: loanDetails.principal,
+      originationFee: loanDetails.originationFee,
+      totalInterest: loanDetails.totalInterest,
+      totalRepayment: loanDetails.totalRepayment,
+      ltv: loanDetails.ltv,
+      investmentMultiplier,
+      expectedBtcPurchase: `${investmentMultiplier} * ${collateralValue} / ${btcPrice} = ${(investmentMultiplier * collateralValue / btcPrice).toFixed(5)} BTC`
+    })
 
     // ═══════════════════════════════════════════════════════════════════════
     // STEP 3: Format values for display

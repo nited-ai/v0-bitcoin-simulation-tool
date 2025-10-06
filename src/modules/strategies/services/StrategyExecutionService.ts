@@ -164,6 +164,19 @@ export class StrategyExecutionService {
         // Track BTC purchased if reinvesting
         if (principalForReinvestment > 0) {
           btcPurchased = principalForReinvestment / btcPrice
+
+          if (month === 0) {
+            console.log('💰 Month 0 BTC Purchase:', {
+              debtCapacity,
+              projectedDebtAfterNeeds,
+              remainingDebtCapacity,
+              investmentMultiplier: decision.investmentMultiplier,
+              principalForReinvestment,
+              btcPrice,
+              btcPurchased,
+              calculation: `${principalForReinvestment} / ${btcPrice} = ${btcPurchased.toFixed(5)} BTC`
+            })
+          }
         }
       } else if (projectedDebtAfterNeeds > debtCapacity) {
         // Handle debt capacity overflow
@@ -203,9 +216,22 @@ export class StrategyExecutionService {
         activeLoans.push(newLoan)
       }
 
-      // Handle BTC accumulation
+      // CRITICAL FIX: Add purchased BTC to total holdings
+      if (btcPurchased !== undefined && btcPurchased > 0) {
+        totalBtcAmount += btcPurchased
+
+        if (month === 0) {
+          console.log('✅ Updated totalBtcAmount after BTC purchase:', {
+            previousAmount: totalBtcAmount - btcPurchased,
+            btcPurchased,
+            newAmount: totalBtcAmount
+          })
+        }
+      }
+
+      // Handle BTC accumulation from monthly savings
       if (params.btcAccumulation && monthlyWithdrawal < 0) {
-        // Negative withdrawal means we're adding BTC
+        // Negative withdrawal means we're adding BTC from savings
         totalBtcAmount += Math.abs(monthlyWithdrawal) / btcPrice
       }
 
