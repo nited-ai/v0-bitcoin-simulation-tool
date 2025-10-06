@@ -88,6 +88,48 @@ export function ResultsTable() {
     })
   }, [results])
 
+  /**
+   * Filter results to show yearly summaries (matching HTML prototype behavior)
+   *
+   * Rules:
+   * 1. Always show Month 0 (initial loan)
+   * 2. For Dynamic LTV mode (loanTermMonths === Infinity): Show one row per year
+   * 3. For Fixed Term mode: Show rows at loan maturity dates (every loanTermMonths)
+   * 4. Always show final month
+   */
+  const yearlyResults = useMemo(() => {
+    if (enrichedResults.length === 0) return []
+
+    const filtered: typeof enrichedResults = []
+    let lastYearShown = -1
+
+    enrichedResults.forEach((r, index) => {
+      const date = new Date(r.date)
+      const currentYear = date.getFullYear()
+
+      // Always show Month 0 (initial loan)
+      if (r.month === 0) {
+        filtered.push(r)
+        lastYearShown = currentYear
+        return
+      }
+
+      // Always show final month
+      if (index === enrichedResults.length - 1) {
+        filtered.push(r)
+        return
+      }
+
+      // Show yearly summaries (when year changes)
+      if (currentYear > lastYearShown) {
+        filtered.push(r)
+        lastYearShown = currentYear
+      }
+    })
+
+    return filtered
+  }, [enrichedResults])
+
   // Check for liquidation events
   const hasLiquidation = useMemo(() => {
     return results.some(r => r.events.some(e => e.type === "liquidated"))
@@ -102,10 +144,10 @@ export function ResultsTable() {
   // Filter results up to liquidation if it occurred
   const displayResults = useMemo(() => {
     if (liquidationMonth !== undefined) {
-      return enrichedResults.filter(r => r.month <= liquidationMonth)
+      return yearlyResults.filter(r => r.month <= liquidationMonth)
     }
-    return enrichedResults
-  }, [enrichedResults, liquidationMonth])
+    return yearlyResults
+  }, [yearlyResults, liquidationMonth])
 
   // Don't render if no results
   if (results.length === 0) {
