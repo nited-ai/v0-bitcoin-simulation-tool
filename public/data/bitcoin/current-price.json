@@ -1,0 +1,13 @@
+{
+  "meta": {
+    "lastUpdated": "2025-10-06T08:47:19.824Z",
+    "source": "CoinGecko",
+    "version": "1.0.0"
+  },
+  "current": {
+    "price": 123713,
+    "timestamp": 1759740439803,
+    "date": "2025-10-06",
+    "source": "CoinGecko"
+  }
+}

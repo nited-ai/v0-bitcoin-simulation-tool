@@ -1,5 +1,8 @@
 /**
- * Tests for Bitcoin JSON Data Service
+ * Bitcoin JSON Data Service Tests
+ *
+ * Comprehensive tests for the Bitcoin JSON data service that loads price data from JSON files
+ * and provides fallback mechanisms when data is missing or stale.
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'

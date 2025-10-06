@@ -1,9 +1,7 @@
 /**
- * Enhanced Bitcoin Price API Service with Database Integration
- * Provides reliable OHLC data with gap detection and automatic updates
+ * Enhanced Bitcoin Price API Service
+ * Provides reliable OHLC data from external APIs
  */
-
-import { PrismaClient } from '../generated/prisma'
 
 export interface BitcoinPriceData {
   date: string // YYYY-MM-DD format
@@ -31,10 +29,9 @@ export interface GapDetectionResult {
 }
 
 /**
- * Enhanced Bitcoin API service with database integration and gap detection
+ * Enhanced Bitcoin API service for fetching data from external APIs
  */
 export class EnhancedBitcoinApiService {
-  private prisma: PrismaClient
   
   private readonly APIs = [
     {
@@ -64,132 +61,12 @@ export class EnhancedBitcoinApiService {
   private currentApiIndex = 0
 
   constructor() {
-    this.prisma = new PrismaClient()
+    // No initialization needed for API-only service
   }
 
-  /**
-   * Detect gaps in Bitcoin price data
-   */
-  async detectDataGaps(startDate?: string, endDate?: string): Promise<GapDetectionResult> {
-    const start = startDate || '2013-10-01'
-    const end = endDate || new Date().toISOString().split('T')[0]
 
-    console.log(`🔍 Detecting data gaps from ${start} to ${end}`)
 
-    // Get all existing dates from database
-    const existingRecords = await this.prisma.bitcoinPrice.findMany({
-      where: {
-        date: {
-          gte: start,
-          lte: end
-        }
-      },
-      select: { date: true },
-      orderBy: { date: 'asc' }
-    })
 
-    const existingDates = new Set(existingRecords.map(r => r.date))
-    const gaps: string[] = []
-
-    // Generate all dates in range and check for gaps
-    const startTime = new Date(start).getTime()
-    const endTime = new Date(end).getTime()
-    const oneDay = 24 * 60 * 60 * 1000
-
-    for (let time = startTime; time <= endTime; time += oneDay) {
-      const dateStr = new Date(time).toISOString().split('T')[0]
-      if (!existingDates.has(dateStr)) {
-        gaps.push(dateStr)
-      }
-    }
-
-    const latestRecord = await this.prisma.bitcoinPrice.findFirst({
-      orderBy: { date: 'desc' }
-    })
-
-    return {
-      gaps,
-      totalGaps: gaps.length,
-      latestDate: latestRecord?.date || start,
-      oldestGap: gaps[0],
-      newestGap: gaps[gaps.length - 1]
-    }
-  }
-
-  /**
-   * Fill data gaps by fetching missing Bitcoin price data
-   */
-  async fillDataGaps(maxGapsToFill: number = 100): Promise<{
-    success: boolean
-    gapsFilled: number
-    errors: string[]
-  }> {
-    console.log(`🔧 Starting gap filling process (max ${maxGapsToFill} gaps)`)
-
-    const gapDetection = await this.detectDataGaps()
-    
-    if (gapDetection.totalGaps === 0) {
-      console.log('✅ No gaps found, data is complete')
-      return { success: true, gapsFilled: 0, errors: [] }
-    }
-
-    console.log(`📊 Found ${gapDetection.totalGaps} gaps to fill`)
-    
-    const gapsToFill = gapDetection.gaps.slice(0, maxGapsToFill)
-    let gapsFilled = 0
-    const errors: string[] = []
-
-    // Group consecutive dates for batch fetching
-    const dateRanges = this.groupConsecutiveDates(gapsToFill)
-    
-    for (const range of dateRanges) {
-      try {
-        console.log(`📡 Fetching data for range: ${range.start} to ${range.end}`)
-        
-        const apiResponse = await this.fetchHistoricalData(range.start, range.end)
-        
-        if (apiResponse.success && apiResponse.data.length > 0) {
-          // Insert data into database
-          const insertedCount = await this.insertPriceData(apiResponse.data, apiResponse.source)
-          gapsFilled += insertedCount
-          
-          console.log(`✅ Filled ${insertedCount} gaps from ${apiResponse.source}`)
-        } else {
-          const error = `Failed to fetch data for ${range.start} to ${range.end}: ${apiResponse.error}`
-          errors.push(error)
-          console.error(`❌ ${error}`)
-        }
-
-        // Rate limiting
-        await this.respectRateLimit(1000)
-        
-      } catch (error) {
-        const errorMsg = `Error processing range ${range.start} to ${range.end}: ${error}`
-        errors.push(errorMsg)
-        console.error(`❌ ${errorMsg}`)
-      }
-    }
-
-    // Log the operation
-    await this.prisma.dataUpdate.create({
-      data: {
-        updateDate: new Date().toISOString().split('T')[0],
-        recordsAdded: gapsFilled,
-        recordsUpdated: 0,
-        source: 'GAP_FILL',
-        startDate: gapsToFill[0],
-        endDate: gapsToFill[gapsToFill.length - 1],
-        status: errors.length === 0 ? 'success' : 'partial',
-        errorMessage: errors.length > 0 ? errors.join('; ') : null
-      }
-    })
-
-    return {
-      success: errors.length === 0,
-      gapsFilled,
-      errors
-    }
-  }
 
   /**
    * Fetch historical Bitcoin price data with automatic API fallback
@@ -229,67 +106,8 @@ export class EnhancedBitcoinApiService {
     }
   }
 
-  /**
-   * Insert price data into database
-   */
-  private async insertPriceData(data: BitcoinPriceData[], source: string): Promise<number> {
-    let insertedCount = 0
-    
-    for (const record of data) {
-      try {
-        await this.prisma.bitcoinPrice.create({
-          data: {
-            date: record.date,
-            timestamp: record.timestamp,
-            open: record.open,
-            high: record.high,
-            low: record.low,
-            close: record.close,
-            volume: record.volume,
-            source
-          }
-        })
-        insertedCount++
-      } catch (error) {
-        // Skip duplicates or other errors
-        console.warn(`⚠️ Skipped record for ${record.date}:`, error)
-      }
-    }
-    
-    return insertedCount
-  }
 
-  /**
-   * Group consecutive dates into ranges for efficient batch fetching
-   */
-  private groupConsecutiveDates(dates: string[]): Array<{ start: string; end: string }> {
-    if (dates.length === 0) return []
-    
-    const ranges: Array<{ start: string; end: string }> = []
-    let rangeStart = dates[0]
-    let rangeEnd = dates[0]
-    
-    for (let i = 1; i < dates.length; i++) {
-      const currentDate = new Date(dates[i])
-      const previousDate = new Date(dates[i - 1])
-      const dayDiff = (currentDate.getTime() - previousDate.getTime()) / (24 * 60 * 60 * 1000)
-      
-      if (dayDiff === 1) {
-        // Consecutive date, extend current range
-        rangeEnd = dates[i]
-      } else {
-        // Gap found, close current range and start new one
-        ranges.push({ start: rangeStart, end: rangeEnd })
-        rangeStart = dates[i]
-        rangeEnd = dates[i]
-      }
-    }
-    
-    // Add the last range
-    ranges.push({ start: rangeStart, end: rangeEnd })
-    
-    return ranges
-  }
+
 
   /**
    * Rate limiting helper
@@ -525,12 +343,7 @@ export class EnhancedBitcoinApiService {
     }]
   }
 
-  /**
-   * Cleanup database connection
-   */
-  async disconnect(): Promise<void> {
-    await this.prisma.$disconnect()
-  }
+
 }
 
 // Export singleton instance
