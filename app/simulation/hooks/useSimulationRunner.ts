@@ -110,6 +110,7 @@ export function useSimulationRunner() {
       const convertedResults: MonthlyResult[] = strategyResults.map(strategyResult => ({
         month: strategyResult.month,
         dateString: strategyResult.date,
+        date: strategyResult.date, // Add date field for compatibility
         btcPrice: strategyResult.btcPrice,
         collateralValue: strategyResult.collateralValue,
         realCollateralValue: strategyResult.collateralValue, // Same as collateralValue
@@ -120,11 +121,18 @@ export function useSimulationRunner() {
         repaymentsDue: strategyResult.repaymentDue,
         reinvestment: strategyResult.principalForReinvestment,
         currentBtcAmount: strategyResult.totalBtcAmount,
+        totalBtcAmount: strategyResult.totalBtcAmount, // Add totalBtcAmount for compatibility
         freeBtc: strategyResult.totalBtcAmount - strategyResult.activeLoans.reduce((sum, loan) => sum + loan.lockedBtc, 0),
         lockedBtc: strategyResult.activeLoans.reduce((sum, loan) => sum + loan.lockedBtc, 0),
         loanCount: strategyResult.activeLoans.length,
         highestLtv: strategyResult.highestLtv,
+        ltv: strategyResult.ltv, // Add LTV as decimal (0-1)
         maxSafeDebt: strategyResult.maxSafeDebt,
+        // Rolling Loan Strategy tracking fields
+        btcPurchased: strategyResult.btcPurchased, // BTC purchased from loan proceeds
+        monthlySavingsApplied: strategyResult.monthlySavingsApplied, // Monthly savings/withdrawals
+        interestAccrued: strategyResult.interestAccrued, // Interest accrued (Dynamic LTV mode)
+        loanRollover: strategyResult.loanRollover, // Rollover details (Fixed Term mode)
         events: strategyResult.events
       }))
 
