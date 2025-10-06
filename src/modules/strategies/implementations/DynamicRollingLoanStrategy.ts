@@ -146,8 +146,23 @@ Both modes support monthly savings with annual increases, BTC accumulation for p
     // Calculate collateral value
     const collateralValue = totalBtcAmount * btcPrice
 
-    // Use maxLoanAmount as principal for initial loan
-    const principal = params.maxLoanAmount
+    // ═══════════════════════════════════════════════════════════════════════
+    // CRITICAL FIX: Calculate principal based on loanAmountPercent
+    // ═══════════════════════════════════════════════════════════════════════
+    // Use loanAmountPercent if available (user-configured percentage)
+    // Otherwise fall back to old logic for backward compatibility
+    let principal: number
+    if (params.loanAmountPercent !== undefined && params.loanAmountPercent > 0) {
+      // Use user-configured percentage (e.g., 10% of collateral)
+      principal = collateralValue * (params.loanAmountPercent / 100)
+    } else {
+      // Legacy fallback: use targetLtv and maxLoanAmount constraint
+      const targetLtv = params.riskManagement?.targetLtv || 40
+      principal = Math.min(
+        params.maxLoanAmount,
+        collateralValue * (targetLtv / 100)
+      )
+    }
 
     // ═══════════════════════════════════════════════════════════════════════
     // STEP 1: Calculate complete loan details using centralized service
