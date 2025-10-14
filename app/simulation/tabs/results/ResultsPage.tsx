@@ -167,15 +167,6 @@ export function ResultsPage() {
 
       </div>
 
-      {/* Strategy Results Chart - Full Width (shared calculations, pure presentation) */}
-      <StrategyResultsChart data={chartPoints} />
-
-      {/* Detailed Results Table (Rollover + Monthly) */}
-      <DetailedResultsTable />
-
-      {/* Loan Activity Table - Full Width */}
-      <LoanActivityTable />
-
       {/* New 6-Card Summary Row (single source of truth via useRollingLoanCalculations/chartPoints) */}
       {(() => {
         const last = chartPoints.length > 0 ? chartPoints[chartPoints.length - 1] : undefined
@@ -197,11 +188,16 @@ export function ResultsPage() {
         const totalFlowUsd = (monthlyResults || []).reduce((acc, m) => acc + (m.usdFlow || 0), 0)
         const totalBtcDelta = (monthlyResults || []).reduce((acc, m) => acc + (m.btcDelta || 0), 0)
 
-        const totalReturnUsd = Math.max(0, finalNetUsd - initialNetUsd) + Math.min(0, finalNetUsd - initialNetUsd)
         const totalReturnPct = initialNetUsd > 0 ? ((finalNetUsd - initialNetUsd) / initialNetUsd) * 100 : 0
-
         const perfBadge = totalReturnPct > 200 ? 'High' : totalReturnPct > 50 ? 'Moderate' : 'Low'
         const score = Math.max(0, Math.min(100, Math.round(totalReturnPct)))
+
+        const perfColor = perfBadge === 'High' ? 'bg-green-100 text-green-800' : perfBadge === 'Moderate' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
+        const scoreColor = score >= 70 ? 'bg-green-100 text-green-800' : score >= 40 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
+
+        const netBtcDelta = finalNetBtc - initialNetBtc
+        const netBtcDeltaSign = netBtcDelta > 0 ? '+' : ''
+        const netBtcDeltaClass = netBtcDelta > 0 ? 'text-green-600' : netBtcDelta < 0 ? 'text-red-600' : 'text-muted-foreground'
 
         return (
           <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4">
@@ -261,7 +257,7 @@ export function ResultsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{totalReturnPct.toFixed(1)}%</div>
-                <p className="text-xs text-muted-foreground">{usd(finalNetUsd - initialNetUsd)}</p>
+                <p className={`text-xs ${netBtcDeltaClass}`}>{netBtcDeltaSign}{btcFmt(netBtcDelta)} BTC</p>
               </CardContent>
             </Card>
 
@@ -272,15 +268,23 @@ export function ResultsPage() {
                 <Shield className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-foreground">Perf: {perfBadge}</span>
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-foreground">Score: {score}</span>
+                <div className="flex flex-col items-start gap-2">
+                  <span className={`text-sm px-3 py-1 rounded-full ${perfColor}`}>Perf: {perfBadge}</span>
+                  <span className={`text-sm px-3 py-1 rounded-full ${scoreColor}`}>Score: {score}</span>
                 </div>
               </CardContent>
             </Card>
           </div>
         )
       })()}
+
+      {/* Strategy Results Chart - Full Width (shared calculations, pure presentation) */}
+      <StrategyResultsChart data={chartPoints} />
+
+      {/* Detailed Results Table (Rollover + Monthly) */}
+      <DetailedResultsTable />
+
+
 
       {/* Core Charts (Portfolio Value Over Time removed; kept Debt/Collateral) */}
       <div className="grid grid-cols-1 gap-6">
@@ -292,6 +296,9 @@ export function ResultsPage() {
         <LTVProgressionChart />
         <CashFlowChart />
       </div>
+
+      {/* Loan Activity Table - Full Width (moved below analyses) */}
+      <LoanActivityTable />
 
       {/* Risk and Events Analysis */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
