@@ -173,6 +173,9 @@ export function ResultsPage() {
         const first = chartPoints.length > 0 ? chartPoints[0] : undefined
         const usd = (v: number) => v.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
         const btcFmt = (v: number) => v.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 })
+        // Aliases for consistency with DetailedResultsTable helper names
+        const formatUsd = usd
+        const formatBtc = btcFmt
 
         const finalPrice = last?.btcPrice ?? 0
         const finalBtc = last?.totalBtc ?? 0
@@ -210,8 +213,8 @@ export function ResultsPage() {
                 <Wallet className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{usd(finalColl)}</div>
-                <p className="text-xs text-muted-foreground">{btcFmt(finalBtc)} BTC</p>
+                <div className="text-2xl font-bold text-green-600" title={`Portfolio Value = Total BTC × BTC Price = ${formatBtc(finalBtc)} BTC × ${formatUsd(finalPrice)} = ${formatUsd(finalColl)}`}>{usd(finalColl)}</div>
+                <p className="text-xs text-muted-foreground" title={`Total BTC Holdings = ${formatBtc(finalBtc)} BTC`}>{btcFmt(finalBtc)} BTC</p>
               </CardContent>
             </Card>
 
@@ -219,11 +222,11 @@ export function ResultsPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium">Debt</CardTitle>
-                <CreditCard className="h-4 w-4 text-muted-foreground" />
+                <CreditCard className="h-4 w-4 text-green-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-red-600">{usd(finalDebt)}</div>
-                <p className="text-xs text-red-600">-{btcFmt(finalPrice > 0 ? (finalDebt / finalPrice) : 0)} BTC</p>
+                <div className="text-2xl font-bold text-red-600" title={`Total Debt = ${formatUsd(finalDebt)}`}>{usd(finalDebt)}</div>
+                <p className="text-xs text-red-600" title={`Debt in BTC = Total Debt / BTC Price = ${formatUsd(finalDebt)} / ${formatUsd(finalPrice)} = ${formatBtc(finalPrice > 0 ? (finalDebt / finalPrice) : 0)} BTC`}>-{btcFmt(finalPrice > 0 ? (finalDebt / finalPrice) : 0)} BTC</p>
               </CardContent>
             </Card>
 
@@ -234,8 +237,8 @@ export function ResultsPage() {
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{usd(finalNetUsd)}</div>
-                <p className="text-xs text-muted-foreground">{btcFmt(finalNetBtc)} BTC</p>
+                <div className="text-2xl font-bold" title={`Net Worth = Portfolio Value - Debt = ${formatUsd(finalColl)} - ${formatUsd(finalDebt)} = ${formatUsd(finalNetUsd)}`}>{usd(finalNetUsd)}</div>
+                <p className="text-xs text-muted-foreground" title={`Net BTC = Total BTC - (Debt / BTC Price) = ${formatBtc(finalBtc)} - (${formatUsd(finalDebt)} / ${formatUsd(finalPrice)}) = ${formatBtc(finalNetBtc)} BTC`}>{btcFmt(finalNetBtc)} BTC</p>
               </CardContent>
             </Card>
 
@@ -246,8 +249,8 @@ export function ResultsPage() {
                 <PiggyBank className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className={`text-2xl font-bold ${totalFlowUsd < 0 ? 'text-red-600' : ''}`}>{usd(totalFlowUsd)}</div>
-                <p className={`text-xs ${totalBtcDelta < 0 ? 'text-red-600' : 'text-muted-foreground'}`}>{totalBtcDelta < 0 ? '' : '+'}{btcFmt(totalBtcDelta)} BTC</p>
+                <div className={`text-2xl font-bold ${totalFlowUsd < 0 ? 'text-red-600' : ''}`} title={`Sum of Monthly USD Flows = Σ(monthly savings/withdrawals) = ${formatUsd(totalFlowUsd)}`}>{usd(totalFlowUsd)}</div>
+                <p className={`text-xs ${totalBtcDelta < 0 ? 'text-red-600' : 'text-muted-foreground'}`} title={`Σ monthly BTC Δ = ${formatBtc(totalBtcDelta)} BTC`}>{totalBtcDelta < 0 ? '' : '+'}{btcFmt(totalBtcDelta)} BTC</p>
               </CardContent>
             </Card>
 
@@ -258,8 +261,8 @@ export function ResultsPage() {
                 <Percent className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{totalReturnPct.toFixed(1)}%</div>
-                <p className={`text-xs ${netBtcDeltaClass}`}>{netBtcDeltaSign}{btcFmt(netBtcDelta)} BTC</p>
+                <div className="text-2xl font-bold" title={`Total Return % = (Final Net Worth - Initial Net Worth) / Initial Net Worth × 100% = (${formatUsd(finalNetUsd)} - ${formatUsd(initialNetUsd)}) / ${formatUsd(initialNetUsd)} × 100% = ${totalReturnPct.toFixed(1)}%`}>{totalReturnPct.toFixed(1)}%</div>
+                <p className={`text-xs ${netBtcDeltaClass}`} title={`BTC Δ = Final Net BTC - Initial BTC = ${formatBtc(finalNetBtc)} - ${formatBtc(initialBtcBaseline)} = ${formatBtc(netBtcDelta)} BTC`}>{netBtcDeltaSign}{btcFmt(netBtcDelta)} BTC</p>
               </CardContent>
             </Card>
 

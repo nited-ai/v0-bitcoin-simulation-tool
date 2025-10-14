@@ -7,6 +7,8 @@ import { centralizedLoanCalculationService } from "@/src/modules/strategies/serv
 import type { StrategyExecutionParams } from "@/src/modules/strategies/types"
 
 import { useRollingLoanCalculations } from "../../hooks/useRollingLoanCalculations"
+import { Calculator } from "lucide-react"
+
 
 /**
  * DetailedResultsTable
@@ -51,7 +53,7 @@ export function DetailedResultsTable() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Results Table</CardTitle>
+        <CardTitle className="flex items-center gap-2"><Calculator className="h-5 w-5 text-muted-foreground" /> Results Table</CardTitle>
         <CardDescription>
           Summary per (Start/Rollover) with formulas in tooltips; expandable monthly rows.
         </CardDescription>
