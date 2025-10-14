@@ -195,7 +195,9 @@ export function ResultsPage() {
         const perfColor = perfBadge === 'High' ? 'bg-green-100 text-green-800' : perfBadge === 'Moderate' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
         const scoreColor = score >= 70 ? 'bg-green-100 text-green-800' : score >= 40 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
 
-        const netBtcDelta = finalNetBtc - initialNetBtc
+        // BTC delta should be measured against initial total BTC (before any debt), not initial net BTC
+        const initialBtcBaseline = (params?.initialBtcAmount ?? (first?.totalBtc ?? 0))
+        const netBtcDelta = finalNetBtc - initialBtcBaseline
         const netBtcDeltaSign = netBtcDelta > 0 ? '+' : ''
         const netBtcDeltaClass = netBtcDelta > 0 ? 'text-green-600' : netBtcDelta < 0 ? 'text-red-600' : 'text-muted-foreground'
 
