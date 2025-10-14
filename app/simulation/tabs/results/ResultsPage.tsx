@@ -200,7 +200,8 @@ export function ResultsPage() {
         const perfBadge = totalReturnPct > 200 ? 'High' : totalReturnPct > 50 ? 'Moderate' : 'Low'
 
         const perfColor = perfBadge === 'High' ? 'bg-green-100 text-green-800' : perfBadge === 'Moderate' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
-        const scoreColor = riskScore >= 70 ? 'bg-green-100 text-green-800' : riskScore >= 40 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
+        // Risk score represents risk (higher = worse). Apply low risk (green) for <=30, moderate (yellow) for <=65, high (red) otherwise.
+        const scoreColor = riskScore <= 30 ? 'bg-green-100 text-green-800' : riskScore <= 65 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
 
         // BTC delta should be measured against initial total BTC (before any debt), not initial net BTC
         const initialBtcBaseline = (params?.initialBtcAmount ?? (first?.totalBtc ?? 0))
@@ -278,8 +279,8 @@ export function ResultsPage() {
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-center gap-2 h-full">
-                  <span className={`text-sm px-3 py-1 rounded-full ${scoreColor}`}>Risk: {riskScore}/100</span>
-                  <span className={`text-sm px-3 py-1 rounded-full ${perfColor}`}>Performance: {perfBadge}</span>
+                  <span className={`text-sm px-3 py-1 rounded-full ${scoreColor}`}>{riskScore}/100</span>
+                  <span className={`text-sm px-3 py-1 rounded-full ${perfColor}`}>{perfBadge}</span>
                 </div>
               </CardContent>
             </Card>

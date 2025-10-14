@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from "recharts"
 import { Shield, AlertTriangle } from "lucide-react"
 import { useSimulation } from "../../../context/SimulationContext"
-import type { MonthlyResult } from "../../../types/simulation"
+import { useRollingLoanCalculations } from "../../../hooks/useRollingLoanCalculations"
 
 interface ChartDataPoint {
   month: number
@@ -27,27 +27,34 @@ interface ChartDataPoint {
 export function DebtCollateralChart() {
   const { results, params } = useSimulation()
 
-  // Transform results data for chart display
-  const chartData: ChartDataPoint[] = useMemo(() => {
-    if (results.length === 0) return []
+  // Use unified chartPoints from useRollingLoanCalculations for 1:1 consistency
+  const { chartPoints } = useRollingLoanCalculations()
 
-    return results.map((result: MonthlyResult) => {
-      const ltv = result.collateralValue > 0 
-        ? (result.totalDebt / result.collateralValue) * 100 
-        : 0
+  const chartData: Array<ChartDataPoint & { timestamp: number }> = useMemo(() => {
+    if (!chartPoints || chartPoints.length === 0) return []
 
+    const sorted = chartPoints
+      .filter(p => typeof p.timestamp === 'number' && Number.isFinite(p.timestamp))
+      .slice()
+      .sort((a, b) => a.timestamp - b.timestamp)
+
+    return sorted.map((p, idx) => {
+      const coll = (p.collateralValue ?? 0)
+      const debt = (p.totalDebt ?? 0)
+      const ltv = coll > 0 ? (debt / coll) * 100 : 0
       return {
-        month: result.month,
-        date: result.dateString,
-        ltv: Math.min(ltv, 100), // Cap at 100% for display
-        collateralValue: result.collateralValue,
-        totalDebt: result.totalDebt,
-        loanCount: result.loanCount,
+        month: idx + 1,
+        date: new Date(p.timestamp).toISOString(),
+        timestamp: p.timestamp,
+        ltv: Math.min(ltv, 100),
+        collateralValue: coll,
+        totalDebt: debt,
+        loanCount: 0,
         targetLtv: params.riskManagement?.targetLtv || 50,
         liquidationLtv: params.riskManagement?.liquidationLtv || 85,
       }
     })
-  }, [results, params])
+  }, [chartPoints, params])
 
   // Calculate risk statistics
   const riskStats = useMemo(() => {
@@ -150,30 +157,51 @@ export function DebtCollateralChart() {
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
               
-              <XAxis 
-                dataKey="month"
-                tickFormatter={(month) => `M${month}`}
-                minTickGap={20}
+              <XAxis
+                dataKey="timestamp"
+                type="number"
+                scale="time"
+                domain={["dataMin", "dataMax"]}
+                tickFormatter={(ts) => new Date(ts as number).toLocaleDateString('de-DE', { year: 'numeric', month: 'short' })}
+                minTickGap={50}
+                angle={-45}
+                textAnchor="end"
+                height={60}
               />
-              
+
               <YAxis 
                 domain={[0, 100]}
                 tickFormatter={(value) => `${value}%`}
               />
               
-              <Tooltip 
-                formatter={(value: number, name: string) => [
-                  name === 'ltv' ? `${value.toFixed(1)}%` :
-                  name === 'loanCount' ? `${value} loans` :
-                  `${value.toFixed(1)}%`,
-                  name === 'ltv' ? 'Current LTV' :
-                  name === 'targetLtv' ? 'Target LTV' :
-                  name === 'liquidationLtv' ? 'Liquidation LTV' :
-                  name === 'loanCount' ? 'Active Loans' : name
-                ]}
-                labelFormatter={(month: number) => `Month ${month}`}
+              <Tooltip
+                content={({ active, payload, label }) => {
+                  if (!active || !payload || !payload.length) return null
+                  const d: any = payload[0]?.payload
+                  if (!d) return null
+                  const dateStr = new Date(label as number).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+                  return (
+                    <div className="bg-background/95 border border-border rounded-md p-3 shadow-lg backdrop-blur-sm">
+                      <p className="font-medium mb-2 text-foreground">Date: {dateStr}</p>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-foreground/90">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#3b82f6' }}></div>
+                          <span className="text-sm">Current LTV: <strong>{(d.ltv as number).toFixed(1)}%</strong></span>
+                        </div>
+                        <div className="flex items-center gap-2 text-foreground/90">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#22c55e' }}></div>
+                          <span className="text-sm">Target LTV: <strong>{(d.targetLtv as number).toFixed(0)}%</strong></span>
+                        </div>
+                        <div className="flex items-center gap-2 text-foreground/90">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#ef4444' }}></div>
+                          <span className="text-sm">Liquidation LTV: <strong>{(d.liquidationLtv as number).toFixed(0)}%</strong></span>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                }}
               />
-              
+
               <Legend />
               
               {/* Target LTV Reference Line */}
