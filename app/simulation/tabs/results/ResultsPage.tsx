@@ -13,6 +13,7 @@ import { CashFlowChart } from "./charts/CashFlowChart"
 import { StrategyResultsChart } from "./charts/StrategyResultsChart"
 import { LoanActivityTable } from "./charts/LoanActivityTable"
 import { useRollingLoanCalculations } from "../../hooks/useRollingLoanCalculations"
+import { useResultsAnalysis } from "../../hooks/useResultsAnalysis"
 
 import { RiskAssessment } from "./RiskAssessment"
 import { EventsAnalysis } from "./EventsAnalysis"
@@ -31,6 +32,10 @@ export function ResultsPage() {
 
   const { results, params, isLoading } = useSimulation()
   const { runSimulation, canRunSimulation, getSimulationStatus } = useSimulationRunner()
+
+  // Use the same analysis as RiskAssessment to retrieve the canonical risk score
+  const analysis = useResultsAnalysis(results, params)
+  const riskScore = analysis?.riskScore ?? 0
 
 
   // Auto-run simulation when Results page mounts and is ready but results are empty
@@ -193,10 +198,9 @@ export function ResultsPage() {
 
         const totalReturnPct = initialNetUsd > 0 ? ((finalNetUsd - initialNetUsd) / initialNetUsd) * 100 : 0
         const perfBadge = totalReturnPct > 200 ? 'High' : totalReturnPct > 50 ? 'Moderate' : 'Low'
-        const score = Math.max(0, Math.min(100, Math.round(totalReturnPct)))
 
         const perfColor = perfBadge === 'High' ? 'bg-green-100 text-green-800' : perfBadge === 'Moderate' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
-        const scoreColor = score >= 70 ? 'bg-green-100 text-green-800' : score >= 40 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
+        const scoreColor = riskScore >= 70 ? 'bg-green-100 text-green-800' : riskScore >= 40 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
 
         // BTC delta should be measured against initial total BTC (before any debt), not initial net BTC
         const initialBtcBaseline = (params?.initialBtcAmount ?? (first?.totalBtc ?? 0))
@@ -214,7 +218,7 @@ export function ResultsPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-green-600" title={`Portfolio Value = Total BTC × BTC Price = ${formatBtc(finalBtc)} BTC × ${formatUsd(finalPrice)} = ${formatUsd(finalColl)}`}>{usd(finalColl)}</div>
-                <p className="text-xs text-muted-foreground" title={`Total BTC Holdings = ${formatBtc(finalBtc)} BTC`}>{btcFmt(finalBtc)} BTC</p>
+                <p className="text-xs text-green-600" title={`Total BTC Holdings = ${formatBtc(finalBtc)} BTC`}>{btcFmt(finalBtc)} BTC</p>
               </CardContent>
             </Card>
 
@@ -222,7 +226,7 @@ export function ResultsPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium">Debt</CardTitle>
-                <CreditCard className="h-4 w-4 text-green-600" />
+                <CreditCard className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-red-600" title={`Total Debt = ${formatUsd(finalDebt)}`}>{usd(finalDebt)}</div>
@@ -261,7 +265,7 @@ export function ResultsPage() {
                 <Percent className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold" title={`Total Return % = (Final Net Worth - Initial Net Worth) / Initial Net Worth × 100% = (${formatUsd(finalNetUsd)} - ${formatUsd(initialNetUsd)}) / ${formatUsd(initialNetUsd)} × 100% = ${totalReturnPct.toFixed(1)}%`}>{totalReturnPct.toFixed(1)}%</div>
+                <div className="text-2xl font-bold" title={`Total Return % = (Final Net Worth - Initial Net Worth) / Initial Net Worth × 100% = (${formatUsd(finalNetUsd)} - ${formatUsd(initialNetUsd)}) / ${formatUsd(initialNetUsd)} × 100% = ${totalReturnPct.toFixed(1)}%`}>{totalReturnPct.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%</div>
                 <p className={`text-xs ${netBtcDeltaClass}`} title={`BTC Δ = Final Net BTC - Initial BTC = ${formatBtc(finalNetBtc)} - ${formatBtc(initialBtcBaseline)} = ${formatBtc(netBtcDelta)} BTC`}>{netBtcDeltaSign}{btcFmt(netBtcDelta)} BTC</p>
               </CardContent>
             </Card>
@@ -273,9 +277,9 @@ export function ResultsPage() {
                 <Shield className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="flex flex-col items-start gap-2">
-                  <span className={`text-sm px-3 py-1 rounded-full ${perfColor}`}>Perf: {perfBadge}</span>
-                  <span className={`text-sm px-3 py-1 rounded-full ${scoreColor}`}>Score: {score}</span>
+                <div className="flex items-center justify-center gap-2 h-full">
+                  <span className={`text-sm px-3 py-1 rounded-full ${scoreColor}`}>Risk: {riskScore}/100</span>
+                  <span className={`text-sm px-3 py-1 rounded-full ${perfColor}`}>Performance: {perfBadge}</span>
                 </div>
               </CardContent>
             </Card>
