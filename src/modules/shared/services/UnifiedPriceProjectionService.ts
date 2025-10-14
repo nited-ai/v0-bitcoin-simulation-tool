@@ -111,7 +111,13 @@ export class UnifiedPriceProjectionService {
         
       case 'powerLaw':
         if (legacyParams.powerLawSettings) {
-          modelSpecificParams.powerLawSettings = legacyParams.powerLawSettings
+          const pls = legacyParams.powerLawSettings as any
+          // Flatten Power Law settings to match PowerLawModel expectations
+          // The model reads these directly from modelSpecificParams
+          if (pls.prognosisLine) modelSpecificParams.prognosisLine = pls.prognosisLine
+          if (pls.cycleRepeatVolatility) modelSpecificParams.cycleRepeatVolatility = pls.cycleRepeatVolatility
+          if (pls.priceProjectionParams) modelSpecificParams.priceProjectionParams = pls.priceProjectionParams
+          // Keep other UI-specific controls (controlMode/unifiedSlope/individualParams) if needed later
         }
         break
         

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { DollarSign, Calendar, TrendingUp, AlertCircle } from "lucide-react"
 import { useSimulation } from "../../../context/SimulationContext"
 import type { MonthlyResult } from "../../../types/simulation"
+import { centralizedLoanCalculationService } from "@/src/modules/strategies/services/CentralizedLoanCalculationService"
 
 interface LoanActivity {
   loanId: number
@@ -27,7 +28,7 @@ interface LoanActivity {
  * including origination, maturity, amounts, and status.
  */
 export function LoanActivityTable() {
-  const { results } = useSimulation()
+  const { results, params } = useSimulation()
 
   // Extract loan activity from results
   const loanActivities: LoanActivity[] = useMemo(() => {
@@ -51,7 +52,11 @@ export function LoanActivityTable() {
           repaymentAmount: result.newLoanPrincipal * 1.065, // Approximate with interest
           maturityMonth: result.month + 6, // Assuming 6-month term
           maturityDate: new Date(new Date(result.dateString).setMonth(new Date(result.dateString).getMonth() + 6)).toISOString().split('T')[0],
-          lockedBtc: result.newLoanPrincipal / result.btcPrice,
+          lockedBtc: centralizedLoanCalculationService.lockedBTCUnderTargetLtv(
+            result.newLoanPrincipal,
+            result.btcPrice,
+            params.riskManagement?.targetLtv ?? 50
+          ),
           btcPriceAtOrigination: result.btcPrice,
           status: 'active'
         }

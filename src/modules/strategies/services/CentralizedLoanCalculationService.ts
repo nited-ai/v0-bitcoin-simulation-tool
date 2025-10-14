@@ -218,7 +218,7 @@ export class CentralizedLoanCalculationService {
   
   /**
    * Calculate investment multiplier for strategy execution
-   * 
+   *
    * The investment multiplier represents how much BTC can be purchased
    * with the loan proceeds after accounting for all costs.
    */
@@ -230,10 +230,28 @@ export class CentralizedLoanCalculationService {
     // The fees and interest are paid from the collateral or future proceeds
     return loanDetails.principal / collateralValue
   }
-  
+
+  /**
+   * Locked BTC required to satisfy platform target LTV at a given price.
+   * lockedBTC = (totalDebt / (targetLtv% / 100)) / price
+   */
+  lockedBTCUnderTargetLtv(totalDebt: number, btcPrice: number, targetLtvPercent: number): number {
+    if (btcPrice <= 0 || totalDebt <= 0 || targetLtvPercent <= 0) return 0
+    return (totalDebt / (targetLtvPercent / 100)) / btcPrice
+  }
+
+  /**
+   * Net BTC remaining after fully repaying debt at current price.
+   * netBTC = totalBtc - (totalDebt / price)
+   */
+  netBtcAfterPayoff(totalBtc: number, totalDebt: number, btcPrice: number): number {
+    if (btcPrice <= 0 || totalDebt <= 0) return totalBtc
+    return totalBtc - (totalDebt / btcPrice)
+  }
+
   /**
    * Calculate minimum loan needed to cover repayment
-   * 
+   *
    * When rolling over a loan, we need to borrow enough to cover:
    * 1. The previous loan repayment
    * 2. The origination fee on the new loan
@@ -246,10 +264,10 @@ export class CentralizedLoanCalculationService {
     const originationFeeDecimal = originationFeePercent / 100
     return repaymentDue / (1 - originationFeeDecimal)
   }
-  
+
   /**
    * Calculate loan repayment amount for a given principal
-   * 
+   *
    * This includes the principal plus all accrued interest over the loan term.
    * Origination fees are typically paid upfront and not included in repayment.
    */
@@ -259,19 +277,19 @@ export class CentralizedLoanCalculationService {
   ): number {
     const monthlyInterestRate = params.annualInterestRate / 100 / 12
     const termMonths = params.loanTermMonths
-    
+
     if (termMonths === Infinity || termMonths <= 0) {
       // Interest-only loan - repay principal plus one month of interest
       return principal * (1 + monthlyInterestRate)
     }
-    
+
     // Calculate total interest over the loan term
     const totalInterest = principal * monthlyInterestRate * termMonths
-    
+
     // Total repayment = principal + total interest
     return principal + totalInterest
   }
-  
+
   /**
    * Format loan calculation for display
    */
@@ -290,7 +308,7 @@ export class CentralizedLoanCalculationService {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     })
-    
+
     return {
       principalFormatted: formatter.format(loanDetails.principal),
       originationFeeFormatted: formatter.format(loanDetails.originationFee),
@@ -301,7 +319,7 @@ export class CentralizedLoanCalculationService {
       ltvFormatted: `${loanDetails.ltv.toFixed(1)}%`
     }
   }
-  
+
   /**
    * Validate loan calculation parameters
    */
@@ -311,31 +329,31 @@ export class CentralizedLoanCalculationService {
     params: StrategyExecutionParams
   ): { isValid: boolean; errors: string[] } {
     const errors: string[] = []
-    
+
     if (principal <= 0) {
       errors.push('Principal must be greater than 0')
     }
-    
+
     if (collateralValue <= 0) {
       errors.push('Collateral value must be greater than 0')
     }
-    
+
     if (principal > collateralValue) {
       errors.push('Principal cannot exceed collateral value')
     }
-    
+
     if (params.annualInterestRate < 0) {
       errors.push('Interest rate cannot be negative')
     }
-    
+
     if (params.loanOriginationFeePercent < 0) {
       errors.push('Origination fee cannot be negative')
     }
-    
+
     if (params.loanTermMonths <= 0 && params.loanTermMonths !== Infinity) {
       errors.push('Loan term must be positive or Infinity')
     }
-    
+
     return {
       isValid: errors.length === 0,
       errors

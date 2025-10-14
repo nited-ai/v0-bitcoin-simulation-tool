@@ -281,7 +281,7 @@ Both modes support monthly savings with annual increases, BTC accumulation for p
     // STEP 1: Accrue monthly interest on existing loan
     // ═══════════════════════════════════════════════════════════════════════
     if (activeLoans.length > 0) {
-      const monthlyRate = params.annualInterestRate / 12
+      const monthlyRate = (params.annualInterestRate / 100) / 12
       activeLoans[0].repaymentAmount *= (1 + monthlyRate)
     }
 

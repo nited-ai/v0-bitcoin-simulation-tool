@@ -10,6 +10,8 @@ import { useMemo, useCallback } from 'react'
 import { athService } from '@/lib/services/ath-service'
 import { getPlatformConfig as getMainPlatformConfig } from '../../constants/platformPresets'
 
+import { centralizedLoanCalculationService } from "@/src/modules/strategies/services/CentralizedLoanCalculationService"
+
 // ============================================================================
 // TYPE DEFINITIONS
 // ============================================================================
@@ -208,7 +210,7 @@ export interface CalculationResults {
 
 /**
  * Centralized service for all financial calculations
- * 
+ *
  * This class provides a single source of truth for all financial computations
  * used across parameter tab components, with comprehensive error handling,
  * performance optimization, and platform-agnostic design.
@@ -253,8 +255,12 @@ export class CalculationsService {
     // Use shared basic calculation method to eliminate redundancy
     const { totalStackValue, currentLoanAmount, originationFee, totalInterestPayment, totalLoanCost } = this.calculateBasicLoanValues(params)
 
-    // Calculate BTC locked as collateral for current loan
-    const btcLockedAsCollateral = totalLoanCost / (params.riskManagement.targetLtv / 100) / params.initialBtcPrice
+    // Calculate BTC locked as collateral for current loan (using centralized helper)
+    const btcLockedAsCollateral = centralizedLoanCalculationService.lockedBTCUnderTargetLtv(
+      totalLoanCost,
+      params.initialBtcPrice,
+      params.riskManagement.targetLtv
+    )
 
     // Calculate free BTC available for collateral top-up
     const freeBtcAmount = Math.max(0, params.initialBtcAmount - btcLockedAsCollateral)
@@ -316,9 +322,13 @@ export class CalculationsService {
     // Use shared basic calculation method to eliminate redundancy
     const { totalStackValue, currentLoanAmount, originationFee, totalInterestPayment, totalLoanCost } = this.calculateBasicLoanValues(params)
 
-    // Calculate BTC locked as collateral for current loan (exact formula from component)
+    // Calculate BTC locked as collateral for current loan (using centralized helper)
     const lockedCollateralBtc = params.initialBtcAmount > 0 && totalLoanCost > 0
-      ? totalLoanCost / (params.riskManagement.targetLtv / 100) / params.initialBtcPrice
+      ? centralizedLoanCalculationService.lockedBTCUnderTargetLtv(
+        totalLoanCost,
+        params.initialBtcPrice,
+        params.riskManagement.targetLtv
+      )
       : 0
 
     // Calculate free collateral (remaining BTC available)
@@ -595,7 +605,11 @@ export class CalculationsService {
     // Use shared basic calculation method to eliminate redundancy
     const { totalStackValue, currentLoanAmount, originationFee, totalInterestPayment, totalLoanCost } = this.calculateBasicLoanValues(params)
 
-    const requiredCollateralBtc = totalLoanCost / (params.riskManagement.targetLtv / 100) / params.initialBtcPrice
+    const requiredCollateralBtc = centralizedLoanCalculationService.lockedBTCUnderTargetLtv(
+      totalLoanCost,
+      params.initialBtcPrice,
+      params.riskManagement.targetLtv
+    )
     const availableCollateralBtc = params.initialBtcAmount
     const shortfallBtc = Math.max(0, requiredCollateralBtc - availableCollateralBtc)
     const shortfallUsd = shortfallBtc * params.initialBtcPrice

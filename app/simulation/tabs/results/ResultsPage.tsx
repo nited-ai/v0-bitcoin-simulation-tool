@@ -1,18 +1,21 @@
 "use client"
 
+import { useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useSimulation } from "../../context/SimulationContext"
 import { useSimulationRunner } from "../../hooks/useSimulationRunner"
 import { ResultsSummary } from "./ResultsSummary"
-import { ResultsTable } from "./ResultsTable"
+import { DetailedResultsTable } from "./DetailedResultsTable"
 import { PortfolioValueChart } from "./charts/PortfolioValueChart"
 import { DebtCollateralChart } from "./charts/DebtCollateralChart"
 import { LTVProgressionChart } from "./charts/LTVProgressionChart"
 import { CashFlowChart } from "./charts/CashFlowChart"
-import { BitcoinPriceChart } from "./charts/BitcoinPriceChart"
+import { StrategyResultsChart } from "./charts/StrategyResultsChart"
 import { LoanActivityTable } from "./charts/LoanActivityTable"
+import { useRollingLoanCalculations } from "../../hooks/useRollingLoanCalculations"
+
 import { RiskAssessment } from "./RiskAssessment"
 import { EventsAnalysis } from "./EventsAnalysis"
 import { ResultsExport } from "./ResultsExport"
@@ -20,15 +23,26 @@ import { AlertCircle, BarChart3, TrendingUp, DollarSign, Play, Loader2 } from "l
 
 /**
  * Main Results Page Component
- * 
+ *
  * This component serves as the main container for all results-related functionality.
  * It displays simulation results, analytics, and provides access to advanced features.
  */
 export function ResultsPage() {
   const { t } = useTranslation()
+  const { chartPoints } = useRollingLoanCalculations()
+
   const { results, params, isLoading } = useSimulation()
   const { runSimulation, canRunSimulation, getSimulationStatus } = useSimulationRunner()
 
+
+  // Auto-run simulation when Results page mounts and is ready but results are empty
+  useEffect(() => {
+    const status = getSimulationStatus()
+    if (results.length === 0 && status === 'ready') {
+      runSimulation()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   // Show loading state
   if (isLoading) {
     return (
@@ -44,6 +58,7 @@ export function ResultsPage() {
     )
   }
 
+
   // Get simulation status
   const simulationStatus = getSimulationStatus()
   const canRun = !canRunSimulation() // Note: canRunSimulation returns true when it CAN'T run (inverted logic)
@@ -56,6 +71,8 @@ export function ResultsPage() {
           <div>
             <h2 className="text-2xl font-bold">{t('Results.title', 'Results')}</h2>
             <p className="text-muted-foreground">{t('Results.description', 'View your simulation results and analysis.')}</p>
+
+
           </div>
 
           {/* Run Simulation Button */}
@@ -148,42 +165,21 @@ export function ResultsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">{t('Results.title', 'Results')}</h2>
-          <p className="text-muted-foreground">
-            {t('Results.simulationSummary', 'Simulation results for {{months}} months with {{btc}} BTC', {
-              months: results.length,
-              btc: params.initialBtcAmount
-            })}
-          </p>
-        </div>
+        <div />
 
-        {/* Re-run Simulation Button */}
-        <Button
-          onClick={runSimulation}
-          disabled={isLoading || !canRun}
-          variant="outline"
-          className="flex items-center gap-2"
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              {t('Results.rerunning', 'Re-running...')}
-            </>
-          ) : (
-            <>
-              <Play className="h-4 w-4" />
-              {t('Results.rerunSimulation', 'Re-run Simulation')}
-            </>
-          )}
-        </Button>
       </div>
+
+      {/* Strategy Results Chart - Full Width (shared calculations, pure presentation) */}
+      <StrategyResultsChart data={chartPoints} />
+
+      {/* Detailed Results Table (Rollover + Monthly) */}
+      <DetailedResultsTable />
+
+      {/* Loan Activity Table - Full Width */}
+      <LoanActivityTable />
 
       {/* Results Summary Cards */}
       <ResultsSummary />
-
-      {/* Bitcoin Price Chart - Full Width */}
-      <BitcoinPriceChart />
 
       {/* Core Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -197,9 +193,6 @@ export function ResultsPage() {
         <CashFlowChart />
       </div>
 
-      {/* Loan Activity Table - Full Width */}
-      <LoanActivityTable />
-
       {/* Risk and Events Analysis */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <RiskAssessment />
@@ -208,9 +201,6 @@ export function ResultsPage() {
 
       {/* Export Functionality */}
       <ResultsExport />
-
-      {/* Detailed Results Table */}
-      <ResultsTable />
 
       {/* Placeholder for Phase 5 features */}
       <Card>

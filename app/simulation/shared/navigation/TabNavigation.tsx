@@ -47,6 +47,9 @@ export function TabNavigation({ children }: TabNavigationProps) {
   const isMobile = useIsMobile()
   const { setTheme, theme } = useTheme()
 
+  // Environment flag to control dev-only features (build-time substituted)
+  const isDev = process.env.NODE_ENV !== 'production'
+
   // Tab configuration with icons and labels - using translation function
   const tabConfig: Record<TabValue, TabConfig> = {
     parameters: {
@@ -65,22 +68,20 @@ export function TabNavigation({ children }: TabNavigationProps) {
       label: t('Navigation.strategy.label'),
       shortLabel: t('Navigation.strategy.shortLabel'),
       icon: Target,
-      enabled: false,
-      badge: 'Coming Soon'
+      enabled: true
     },
     results: {
       label: t('Navigation.results.label'),
       shortLabel: t('Navigation.results.shortLabel'),
       icon: BarChart3,
-      enabled: false,
-      badge: 'Coming Soon'
+      enabled: true
     },
     debug: {
       label: 'Debug',
       shortLabel: 'Debug',
       icon: Bug,
-      enabled: true,
-      badge: 'Dev'
+      enabled: isDev, // Hide in production
+      badge: isDev ? 'Dev' : undefined
     }
   }
 
@@ -90,9 +91,13 @@ export function TabNavigation({ children }: TabNavigationProps) {
 
   // Get initial tab from URL, localStorage, or default to parameters
   const getInitialTab = (): TabValue => {
+    const allowedTabs: TabValue[] = isDev
+      ? ['parameters', 'price-projection', 'strategy', 'results', 'debug']
+      : ['parameters', 'price-projection', 'strategy', 'results']
+
     // First, try to get from URL parameters
     const urlTab = searchParams.get('tab') as TabValue
-    if (urlTab && ['parameters', 'price-projection', 'strategy', 'results', 'debug'].includes(urlTab)) {
+    if (urlTab && allowedTabs.includes(urlTab)) {
       return urlTab
     }
 
@@ -100,7 +105,7 @@ export function TabNavigation({ children }: TabNavigationProps) {
     if (typeof window !== 'undefined') {
       try {
         const savedTab = localStorage.getItem('bitcoin-sim-active-tab') as TabValue
-        if (savedTab && ['parameters', 'price-projection', 'strategy', 'results', 'debug'].includes(savedTab)) {
+        if (savedTab && allowedTabs.includes(savedTab)) {
           return savedTab
         }
       } catch (error) {
@@ -116,10 +121,14 @@ export function TabNavigation({ children }: TabNavigationProps) {
 
   // Update tab when URL changes
   useEffect(() => {
+    const allowedTabs: TabValue[] = isDev
+      ? ['parameters', 'price-projection', 'strategy', 'results', 'debug']
+      : ['parameters', 'price-projection', 'strategy', 'results']
+
     const tabParam = searchParams.get('tab') as TabValue
 
     // If URL has a valid tab parameter, use it
-    if (tabParam && ['parameters', 'price-projection', 'strategy', 'results', 'debug'].includes(tabParam)) {
+    if (tabParam && allowedTabs.includes(tabParam)) {
       setActiveTab(tabParam)
       // Save to localStorage for persistence
       if (typeof window !== 'undefined') {
@@ -139,14 +148,25 @@ export function TabNavigation({ children }: TabNavigationProps) {
       const params = new URLSearchParams(searchParams.toString())
       params.set('tab', initialTab)
       router.replace(`?${params.toString()}`)
+    } else if (tabParam && !allowedTabs.includes(tabParam)) {
+      // If an invalid/disabled tab is in the URL (e.g., debug in production), redirect to default
+      const fallback = 'parameters'
+      setActiveTab(fallback)
+      const params = new URLSearchParams(searchParams.toString())
+      params.set('tab', fallback)
+      router.replace(`?${params.toString()}`)
     }
-  }, [searchParams, router])
+  }, [searchParams, router, isDev])
 
   const handleTabChange = (value: string) => {
     const tabValue = value as TabValue
 
+    const allowedTabs: TabValue[] = isDev
+      ? ['parameters', 'price-projection', 'strategy', 'results', 'debug']
+      : ['parameters', 'price-projection', 'strategy', 'results']
+
     // Validate tab value
-    if (!['parameters', 'price-projection', 'strategy', 'results', 'debug'].includes(tabValue)) {
+    if (!allowedTabs.includes(tabValue)) {
       return
     }
 
@@ -459,9 +479,11 @@ export function TabNavigation({ children }: TabNavigationProps) {
           <ResultsPage />
         </TabsContent>
 
-        <TabsContent value="debug" className={`${isMobile ? 'mt-0 px-4' : 'mt-6'}`}>
-          <RollingLoanDebugPage />
-        </TabsContent>
+        {isDev && (
+          <TabsContent value="debug" className={`${isMobile ? 'mt-0 px-4' : 'mt-6'}`}>
+            <RollingLoanDebugPage />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   )

@@ -4,6 +4,8 @@ import { useMemo } from "react"
 import type { SimulationParams } from "../types/simulation"
 import { getPlatformConfig } from "../constants/platformPresets"
 
+import { centralizedLoanCalculationService } from "@/src/modules/strategies/services/CentralizedLoanCalculationService"
+
 export interface ValidationError {
   field: keyof SimulationParams | string
   message: string
@@ -19,7 +21,7 @@ export interface ValidationResult {
 
 /**
  * Hook for comprehensive parameter validation
- * 
+ *
  * Provides real-time validation of simulation parameters with detailed
  * error messages, warnings, and informational feedback.
  */
@@ -285,7 +287,11 @@ export function useParameterValidation(params: SimulationParams): ValidationResu
 
     // CORRECTED: Use total loan cost (principal + origination fee + total interest)
     const totalLoanCost = currentLoanAmount + originationFee + totalInterestPayment
-    const btcLockedAsCollateral = totalLoanCost / (params.riskManagement.targetLtv / 100) / params.initialBtcPrice
+    const btcLockedAsCollateral = centralizedLoanCalculationService.lockedBTCUnderTargetLtv(
+      totalLoanCost,
+      params.initialBtcPrice,
+      params.riskManagement.targetLtv
+    )
 
     if (btcLockedAsCollateral > params.initialBtcAmount) {
       const shortfall = btcLockedAsCollateral - params.initialBtcAmount
@@ -325,15 +331,15 @@ export function useParameterValidation(params: SimulationParams): ValidationResu
  */
 export function useValidationSummary(params: SimulationParams) {
   const validation = useParameterValidation(params)
-  
+
   return useMemo(() => ({
     hasErrors: validation.errors.length > 0,
     hasWarnings: validation.warnings.length > 0,
     hasInfos: validation.infos.length > 0,
     totalIssues: validation.errors.length + validation.warnings.length,
     canSimulate: validation.isValid,
-    summary: validation.isValid 
-      ? "Parameters are valid" 
+    summary: validation.isValid
+      ? "Parameters are valid"
       : `${validation.errors.length} error(s), ${validation.warnings.length} warning(s)`,
   }), [validation])
 }

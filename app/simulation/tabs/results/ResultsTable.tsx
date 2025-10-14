@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { useSimulation } from "../../context/SimulationContext"
 import type { MonthlyResult } from "../../types/simulation"
+import { centralizedLoanCalculationService } from "@/src/modules/strategies/services/CentralizedLoanCalculationService"
 
 /**
  * Format currency in US locale with Dollar symbol
@@ -77,13 +78,19 @@ export function ResultsTable() {
       // Calculate LTV if not provided
       const ltvValue = r.ltv ?? (btcAmount * r.btcPrice > 0 ? r.totalDebt / (btcAmount * r.btcPrice) : 0)
 
+      const nettoBtc = centralizedLoanCalculationService.netBtcAfterPayoff(
+        btcAmount,
+        r.totalDebt,
+        r.btcPrice
+      )
+
       return {
         ...r,
         totalBtcAmount: btcAmount,
         date: dateStr,
         ltv: ltvValue,
         portfolioValue: btcAmount * r.btcPrice,
-        nettoBtc: btcAmount - (r.totalDebt / r.btcPrice)
+        nettoBtc
       }
     })
   }, [results])
