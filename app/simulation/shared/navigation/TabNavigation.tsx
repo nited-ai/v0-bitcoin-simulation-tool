@@ -238,7 +238,7 @@ export function TabNavigation({ children }: TabNavigationProps) {
                 {/* Tab Navigation */}
                 <div className="flex flex-col gap-2">
                   <h3 className="text-sm font-medium text-muted-foreground px-3">Simulation Tabs</h3>
-                  {Object.entries(tabConfig).map(([key, config]) => {
+                  {Object.entries(tabConfig).filter(([, config]) => config.enabled).map(([key, config]) => {
                     const Icon = config.icon
                     const isActive = activeTab === key
                     const isEnabled = config.enabled
@@ -332,7 +332,7 @@ export function TabNavigation({ children }: TabNavigationProps) {
             h-auto p-1
             bg-muted/50
           ">
-            {Object.entries(tabConfig).map(([key, config]) => {
+            {Object.entries(tabConfig).filter(([, config]) => config.enabled).map(([key, config]) => {
               const Icon = config.icon
               const isEnabled = config.enabled
 

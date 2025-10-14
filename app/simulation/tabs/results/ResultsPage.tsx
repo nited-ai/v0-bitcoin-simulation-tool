@@ -6,9 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { useSimulation } from "../../context/SimulationContext"
 import { useSimulationRunner } from "../../hooks/useSimulationRunner"
-import { ResultsSummary } from "./ResultsSummary"
 import { DetailedResultsTable } from "./DetailedResultsTable"
-import { PortfolioValueChart } from "./charts/PortfolioValueChart"
 import { DebtCollateralChart } from "./charts/DebtCollateralChart"
 import { LTVProgressionChart } from "./charts/LTVProgressionChart"
 import { CashFlowChart } from "./charts/CashFlowChart"
@@ -19,7 +17,7 @@ import { useRollingLoanCalculations } from "../../hooks/useRollingLoanCalculatio
 import { RiskAssessment } from "./RiskAssessment"
 import { EventsAnalysis } from "./EventsAnalysis"
 import { ResultsExport } from "./ResultsExport"
-import { AlertCircle, BarChart3, TrendingUp, DollarSign, Play, Loader2 } from "lucide-react"
+import { AlertCircle, BarChart3, TrendingUp, DollarSign, Play, Loader2, Wallet, CreditCard, PiggyBank, Percent, Shield, Activity } from "lucide-react"
 
 /**
  * Main Results Page Component
@@ -29,7 +27,7 @@ import { AlertCircle, BarChart3, TrendingUp, DollarSign, Play, Loader2 } from "l
  */
 export function ResultsPage() {
   const { t } = useTranslation()
-  const { chartPoints } = useRollingLoanCalculations()
+  const { chartPoints, monthlyResults } = useRollingLoanCalculations()
 
   const { results, params, isLoading } = useSimulation()
   const { runSimulation, canRunSimulation, getSimulationStatus } = useSimulationRunner()
@@ -178,12 +176,114 @@ export function ResultsPage() {
       {/* Loan Activity Table - Full Width */}
       <LoanActivityTable />
 
-      {/* Results Summary Cards */}
-      <ResultsSummary />
+      {/* New 6-Card Summary Row (single source of truth via useRollingLoanCalculations/chartPoints) */}
+      {(() => {
+        const last = chartPoints.length > 0 ? chartPoints[chartPoints.length - 1] : undefined
+        const first = chartPoints.length > 0 ? chartPoints[0] : undefined
+        const usd = (v: number) => v.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
+        const btcFmt = (v: number) => v.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 })
 
-      {/* Core Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <PortfolioValueChart />
+        const finalPrice = last?.btcPrice ?? 0
+        const finalBtc = last?.totalBtc ?? 0
+        const finalDebt = last?.totalDebt ?? 0
+        const finalColl = last?.collateralValue ?? (finalBtc * finalPrice)
+        const finalNetBtc = last?.netBtc ?? finalBtc
+        const finalNetUsd = finalNetBtc * finalPrice
+
+        const initialPrice = first?.btcPrice ?? 0
+        const initialNetBtc = first?.netBtc ?? (first?.totalBtc ?? 0)
+        const initialNetUsd = initialNetBtc * initialPrice
+
+        const totalFlowUsd = (monthlyResults || []).reduce((acc, m) => acc + (m.usdFlow || 0), 0)
+        const totalBtcDelta = (monthlyResults || []).reduce((acc, m) => acc + (m.btcDelta || 0), 0)
+
+        const totalReturnUsd = Math.max(0, finalNetUsd - initialNetUsd) + Math.min(0, finalNetUsd - initialNetUsd)
+        const totalReturnPct = initialNetUsd > 0 ? ((finalNetUsd - initialNetUsd) / initialNetUsd) * 100 : 0
+
+        const perfBadge = totalReturnPct > 200 ? 'High' : totalReturnPct > 50 ? 'Moderate' : 'Low'
+        const score = Math.max(0, Math.min(100, Math.round(totalReturnPct)))
+
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4">
+            {/* 1. Portfolio Value */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Portfolio Value</CardTitle>
+                <Wallet className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{usd(finalColl)}</div>
+                <p className="text-xs text-muted-foreground">{btcFmt(finalBtc)} BTC</p>
+              </CardContent>
+            </Card>
+
+            {/* 2. Debt */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Debt</CardTitle>
+                <CreditCard className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-red-600">{usd(finalDebt)}</div>
+                <p className="text-xs text-red-600">-{btcFmt(finalPrice > 0 ? (finalDebt / finalPrice) : 0)} BTC</p>
+              </CardContent>
+            </Card>
+
+            {/* 3. Net Worth */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Net Worth</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{usd(finalNetUsd)}</div>
+                <p className="text-xs text-muted-foreground">{btcFmt(finalNetBtc)} BTC</p>
+              </CardContent>
+            </Card>
+
+            {/* 4. Savings / Withdrawals */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Savings / Withdrawals</CardTitle>
+                <PiggyBank className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className={`text-2xl font-bold ${totalFlowUsd < 0 ? 'text-red-600' : ''}`}>{usd(totalFlowUsd)}</div>
+                <p className={`text-xs ${totalBtcDelta < 0 ? 'text-red-600' : 'text-muted-foreground'}`}>{totalBtcDelta < 0 ? '' : '+'}{btcFmt(totalBtcDelta)} BTC</p>
+              </CardContent>
+            </Card>
+
+            {/* 5. Total Return */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Total Return</CardTitle>
+                <Percent className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{totalReturnPct.toFixed(1)}%</div>
+                <p className="text-xs text-muted-foreground">{usd(finalNetUsd - initialNetUsd)}</p>
+              </CardContent>
+            </Card>
+
+            {/* 6. Risk / Performance */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">Risk / Performance</CardTitle>
+                <Shield className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-foreground">Perf: {perfBadge}</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-foreground">Score: {score}</span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )
+      })()}
+
+      {/* Core Charts (Portfolio Value Over Time removed; kept Debt/Collateral) */}
+      <div className="grid grid-cols-1 gap-6">
         <DebtCollateralChart />
       </div>
 

@@ -186,7 +186,7 @@ export function DetailedResultsTable() {
                         </div>
                       </td>
 
-                      <td className={`py-2 pr-4 ${col.percent} ${topUpLtv <= 100 ? 'text-green-600' : (topUpLtv <= 110 ? 'text-yellow-600' : 'text-red-600')}`}
+                      <td className={`py-2 pr-4 ${col.percent} ${topUpLtv <= 50 ? 'text-green-600' : (topUpLtv <= 75 ? 'text-yellow-600' : 'text-red-600')}`}
                         title={`TopUp LTV = Total Debt / (Portfolio After Purchase × Platform Max LTV) = ${formatUsd(debt)} / (${formatUsd(collateralAfter)} × ${platformMaxLtv}%) = ${topUpLtv.toFixed(1)}%`}>
                         {topUpLtv.toFixed(1)}%
                       </td>
