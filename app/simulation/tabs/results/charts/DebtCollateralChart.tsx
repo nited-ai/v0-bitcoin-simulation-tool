@@ -39,15 +39,18 @@ export function DebtCollateralChart() {
       .sort((a, b) => a.timestamp - b.timestamp)
 
     return sorted.map((p, idx) => {
-      const coll = (p.collateralValue ?? 0)
       const debt = (p.totalDebt ?? 0)
-      const ltv = coll > 0 ? (debt / coll) * 100 : 0
+      const totalBtcAfter = (p.totalBtc ?? 0)
+      const btcPrice = (p.btcPrice ?? 0)
+      const platformMaxLtv = (params?.riskManagement as any)?.initialLtv ?? (params as any)?.platformMaxLtv ?? 50
+      const effCollAtPlatformMax = totalBtcAfter * btcPrice * (platformMaxLtv / 100)
+      const topUpLtv = effCollAtPlatformMax > 0 ? (debt / effCollAtPlatformMax) * 100 : 0
       return {
         month: idx + 1,
         date: new Date(p.timestamp).toISOString(),
         timestamp: p.timestamp,
-        ltv: Math.min(ltv, 100),
-        collateralValue: coll,
+        ltv: Math.min(topUpLtv, 100),
+        collateralValue: totalBtcAfter * btcPrice,
         totalDebt: debt,
         loanCount: 0,
         targetLtv: params.riskManagement?.targetLtv || 50,
@@ -193,6 +196,10 @@ export function DebtCollateralChart() {
                           <span className="text-sm">Target LTV: <strong>{(d.targetLtv as number).toFixed(0)}%</strong></span>
                         </div>
                         <div className="flex items-center gap-2 text-foreground/90">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#f59e0b' }}></div>
+                          <span className="text-sm">Danger Zone: <strong>70%</strong></span>
+                        </div>
+                        <div className="flex items-center gap-2 text-foreground/90">
                           <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#ef4444' }}></div>
                           <span className="text-sm">Liquidation LTV: <strong>{(d.liquidationLtv as number).toFixed(0)}%</strong></span>
                         </div>
@@ -220,14 +227,14 @@ export function DebtCollateralChart() {
                 label="Liquidation LTV"
               />
               
-              {/* Danger Zone (80% LTV) */}
-              <ReferenceLine 
-                y={80} 
-                stroke="#f59e0b" 
+              {/* Danger Zone (70% LTV) */}
+              <ReferenceLine
+                y={70}
+                stroke="#f59e0b"
                 strokeDasharray="3 3"
                 label="Danger Zone"
               />
-              
+
               {/* Current LTV Line */}
               <Line
                 type="monotone"
@@ -237,7 +244,7 @@ export function DebtCollateralChart() {
                 dot={(props) => {
                   const { cx, cy, payload } = props
                   const ltv = payload?.ltv || 0
-                  const color = ltv > 85 ? '#ef4444' : ltv > 80 ? '#f59e0b' : ltv > 60 ? '#eab308' : '#22c55e'
+                  const color = ltv > 85 ? '#ef4444' : ltv > 70 ? '#f59e0b' : ltv > 60 ? '#eab308' : '#22c55e'
                   return <circle cx={cx} cy={cy} r={3} fill={color} stroke={color} strokeWidth={2} />
                 }}
                 name="Current LTV"
