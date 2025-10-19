@@ -186,12 +186,27 @@ export function DetailedResultsTable() {
                       <td className={`py-2 pr-4 ${col.percent}`}
                         title={`Initial LTV = Total Debt / (Locked BTC × Price) = ${formatUsd(debt)} / (${formatBtc(Math.min(requiredLocked, totalBtcAfter))} × ${formatUsd(btcPrice)}) • Auto Top-Up Trigger: ${params.riskManagement?.topUpTriggerLtv ?? 70}% • Target After Top-Up: ${(params.riskManagement?.topUpTargetLtvRange?.min ?? 50)}%–${(params.riskManagement?.topUpTargetLtvRange?.max ?? 80)}%`}>
                         <div className="flex flex-col items-end">
-                          {(() => { const L = Math.min(requiredLocked, totalBtcAfter); const initialLtv = L>0 && btcPrice>0 ? (debt/(L*btcPrice))*100 : 0; const color = initialLtv<=50?'text-green-600':(initialLtv<=75?'text-yellow-600':'text-red-600'); return (<span className={color}>{initialLtv.toFixed(1)}%</span>) })()}
-                          {((row.btcSoldForRollover || 0) > 0 || (row.debtReducedByRolloverSale || 0) > 0) ? (
-                            <span className="text-xs text-blue-600 mt-0.5" title={`Rollover sale executed to enforce target Initial LTV`}>
-                              🔄 Rollover Sale: -{formatBtc(row.btcSoldForRollover || 0)} BTC, -{formatUsd(row.debtReducedByRolloverSale || 0)}
-                            </span>
-                          ) : null}
+                          {(() => {
+                            const L = Math.min(requiredLocked, totalBtcAfter);
+                            const initialLtvAfter = L>0 && btcPrice>0 ? (debt/(L*btcPrice))*100 : 0;
+                            const color = initialLtvAfter<=50?'text-green-600':(initialLtvAfter<=75?'text-yellow-600':'text-red-600');
+                            return (<span className={color}>{initialLtvAfter.toFixed(1)}%</span>)
+                          })()}
+                          {(() => {
+                            const snapRow = (monthlySnapshots || []).find(s => s.month === row.month)
+                            const hadRolloverSale = (row.btcSoldForRollover || 0) > 0 || (row.debtReducedByRolloverSale || 0) > 0
+                            if (!hadRolloverSale || !snapRow) return null
+                            const beforeLtv = typeof snapRow.initialLtvBefore === 'number' ? snapRow.initialLtvBefore! : 0
+                            const afterLtv = typeof snapRow.initialLtvAfter === 'number' ? snapRow.initialLtvAfter! : 0
+                            return (
+                              <span className="text-xs mt-0.5 text-red-600" title={`Rollover liquidation executed to reach target Initial LTV`}>
+                                <span className="text-yellow-600">⚠</span> Rollover Liquidation:<br></br>
+                                BTC: -{formatBtc(row.btcSoldForRollover || 0)} → {formatBtc(totalBtcAfter)}<br></br>
+                                Debt: -{formatUsd(row.debtReducedByRolloverSale || 0)} → {formatUsd(debt)}<br></br>
+                                LTV: {beforeLtv.toFixed(1)}% → {afterLtv.toFixed(1)}%
+                              </span>
+                            )
+                          })()}
                         </div>
                       </td>
                       <td className={`py-2 pr-4 ${col.percent}`}>
@@ -214,11 +229,6 @@ export function DetailedResultsTable() {
                       <td className={`py-2 pr-4 ${col.combined}`}>
                         <div className="flex flex-col items-end space-y-0.5">
                           <span className={`${purchased > 0 ? 'text-green-600' : purchased === 0 ? 'text-yellow-600' : 'text-red-600'}`} title={ttDelta}>{purchased > 0 ? '+' : ''}{formatBtc(purchased)} BTC</span>
-                          {(row.btcSoldForRollover || 0) > 0 && (
-                            <span className="text-xs text-blue-600" title={`BTC sold before rollover to reach target Initial LTV`}>
-                              -{formatBtc(row.btcSoldForRollover || 0)} BTC (Rollover sale)
-                            </span>
-                          )}
                           <span className="text-muted-foreground text-xs" title={ttBtcAfter}>{formatBtc(totalBtcAfter)} BTC</span>
                         </div>
                       </td>
