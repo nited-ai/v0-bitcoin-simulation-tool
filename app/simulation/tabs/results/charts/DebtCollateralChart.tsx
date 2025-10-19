@@ -5,12 +5,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from "recharts"
 import { Shield, AlertTriangle } from "lucide-react"
 import { useSimulation } from "../../../context/SimulationContext"
-import type { MonthlyResult } from "../../../types/simulation"
+import { useRollingLoanCalculations } from "../../../hooks/useRollingLoanCalculations"
 
 interface ChartDataPoint {
   month: number
   date: string
-  ltv: number
+  // Immediate LTV (After top-up if any)
+  immediateLtv: number
+  // Immediate LTV at start of month (Before top-up); null when no top-up change
+  immediateLtvBefore: number | null
   collateralValue: number
   totalDebt: number
   loanCount: number
@@ -27,36 +30,52 @@ interface ChartDataPoint {
 export function DebtCollateralChart() {
   const { results, params } = useSimulation()
 
-  // Transform results data for chart display
-  const chartData: ChartDataPoint[] = useMemo(() => {
-    if (results.length === 0) return []
+  // Use unified chartPoints and monthlySnapshots from useRollingLoanCalculations for 1:1 consistency
+  const { chartPoints, monthlySnapshots } = useRollingLoanCalculations()
 
-    return results.map((result: MonthlyResult) => {
-      const ltv = result.collateralValue > 0 
-        ? (result.totalDebt / result.collateralValue) * 100 
-        : 0
+  const chartData: Array<ChartDataPoint & { timestamp: number }> = useMemo(() => {
+    if (!chartPoints || chartPoints.length === 0) return []
+
+    const sorted = chartPoints
+      .filter(p => typeof p.timestamp === 'number' && Number.isFinite(p.timestamp))
+      .slice()
+      .sort((a, b) => a.timestamp - b.timestamp)
+
+    return sorted.map((p, idx) => {
+      const debt = (p.totalDebt ?? 0)
+      const totalBtcAfter = (p.totalBtc ?? 0)
+      const lockedBtc = (p.lockedBtc ?? 0)
+      const btcPrice = (p.btcPrice ?? 0)
+
+      // Prefer snapshot-provided Immediate LTV before/after if available
+      const snap: any = monthlySnapshots?.[idx] ?? null
+      const computedImmediate = (lockedBtc > 0 && btcPrice > 0) ? (debt / (lockedBtc * btcPrice)) * 100 : 0
+      const before = typeof snap?.initialLtvBefore === 'number' ? snap.initialLtvBefore : computedImmediate
+      const after = typeof snap?.initialLtvAfter === 'number' ? snap.initialLtvAfter : computedImmediate
 
       return {
-        month: result.month,
-        date: result.dateString,
-        ltv: Math.min(ltv, 100), // Cap at 100% for display
-        collateralValue: result.collateralValue,
-        totalDebt: result.totalDebt,
-        loanCount: result.loanCount,
+        month: idx + 1,
+        date: new Date(p.timestamp).toISOString(),
+        timestamp: p.timestamp,
+        immediateLtv: Math.min(after, 100),
+        immediateLtvBefore: before !== after ? Math.min(before, 100) : null,
+        collateralValue: totalBtcAfter * btcPrice,
+        totalDebt: debt,
+        loanCount: 0,
         targetLtv: params.riskManagement?.targetLtv || 50,
         liquidationLtv: params.riskManagement?.liquidationLtv || 85,
       }
     })
-  }, [results, params])
+  }, [chartPoints, params])
 
   // Calculate risk statistics
   const riskStats = useMemo(() => {
     if (chartData.length === 0) return null
 
-    const maxLtv = Math.max(...chartData.map(d => d.ltv))
-    const avgLtv = chartData.reduce((sum, d) => sum + d.ltv, 0) / chartData.length
-    const dangerousMonths = chartData.filter(d => d.ltv > 80).length
-    const liquidationMonths = chartData.filter(d => d.ltv >= 100).length
+    const maxLtv = Math.max(...chartData.map(d => d.immediateLtv))
+    const avgLtv = chartData.reduce((sum, d) => sum + d.immediateLtv, 0) / chartData.length
+    const dangerousMonths = chartData.filter(d => d.immediateLtv > 80).length
+    const liquidationMonths = chartData.filter(d => d.immediateLtv >= 100).length
     
     return {
       maxLtv,
@@ -150,30 +169,61 @@ export function DebtCollateralChart() {
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
               
-              <XAxis 
-                dataKey="month"
-                tickFormatter={(month) => `M${month}`}
-                minTickGap={20}
+              <XAxis
+                dataKey="timestamp"
+                type="number"
+                scale="time"
+                domain={["dataMin", "dataMax"]}
+                tickFormatter={(ts) => new Date(ts as number).toLocaleDateString('de-DE', { year: 'numeric', month: 'short' })}
+                minTickGap={50}
+                angle={-45}
+                textAnchor="end"
+                height={60}
               />
-              
+
               <YAxis 
                 domain={[0, 100]}
                 tickFormatter={(value) => `${value}%`}
               />
               
-              <Tooltip 
-                formatter={(value: number, name: string) => [
-                  name === 'ltv' ? `${value.toFixed(1)}%` :
-                  name === 'loanCount' ? `${value} loans` :
-                  `${value.toFixed(1)}%`,
-                  name === 'ltv' ? 'Current LTV' :
-                  name === 'targetLtv' ? 'Target LTV' :
-                  name === 'liquidationLtv' ? 'Liquidation LTV' :
-                  name === 'loanCount' ? 'Active Loans' : name
-                ]}
-                labelFormatter={(month: number) => `Month ${month}`}
+              <Tooltip
+                content={({ active, payload, label }) => {
+                  if (!active || !payload || !payload.length) return null
+                  const d: any = payload[0]?.payload
+                  if (!d) return null
+                  const dateStr = new Date(label as number).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+                  return (
+                    <div className="bg-background/95 border border-border rounded-md p-3 shadow-lg backdrop-blur-sm">
+                      <p className="font-medium mb-2 text-foreground">Date: {dateStr}</p>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-foreground/90">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#8b5cf6' }}></div>
+                          <span className="text-sm">Immediate LTV (After): <strong>{(d.immediateLtv as number).toFixed(1)}%</strong></span>
+                        </div>
+                        {typeof d.immediateLtvBefore === 'number' && d.immediateLtvBefore !== null && (
+                          <div className="flex items-center gap-2 text-foreground/90">
+                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#8b5cf6', opacity: 0.7 }}></div>
+                            <span className="text-sm">Immediate LTV (Before): <strong>{(d.immediateLtvBefore as number).toFixed(1)}%</strong></span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2 text-foreground/90">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#22c55e' }}></div>
+                          <span className="text-sm">Target LTV: <strong>{(d.targetLtv as number).toFixed(0)}%</strong></span>
+                        </div>
+                        <div className="flex items-center gap-2 text-foreground/90">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#f59e0b' }}></div>
+                          <span className="text-sm">Danger Zone: <strong>70%</strong></span>
+                        </div>
+                        <div className="flex items-center gap-2 text-foreground/90">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#ef4444' }}></div>
+                          <span className="text-sm">Liquidation LTV: <strong>{(d.liquidationLtv as number).toFixed(0)}%</strong></span>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                }}
               />
-              
+
               <Legend />
               
               {/* Target LTV Reference Line */}
@@ -192,27 +242,34 @@ export function DebtCollateralChart() {
                 label="Liquidation LTV"
               />
               
-              {/* Danger Zone (80% LTV) */}
-              <ReferenceLine 
-                y={80} 
-                stroke="#f59e0b" 
+              {/* Danger Zone (70% LTV) */}
+              <ReferenceLine
+                y={70}
+                stroke="#f59e0b"
                 strokeDasharray="3 3"
                 label="Danger Zone"
               />
-              
-              {/* Current LTV Line */}
+
+              {/* Immediate LTV (Before) - only shows when different from after */}
               <Line
                 type="monotone"
-                dataKey="ltv"
-                stroke="#3b82f6"
-                strokeWidth={3}
-                dot={(props) => {
-                  const { cx, cy, payload } = props
-                  const ltv = payload?.ltv || 0
-                  const color = ltv > 85 ? '#ef4444' : ltv > 80 ? '#f59e0b' : ltv > 60 ? '#eab308' : '#22c55e'
-                  return <circle cx={cx} cy={cy} r={3} fill={color} stroke={color} strokeWidth={2} />
-                }}
-                name="Current LTV"
+                dataKey="immediateLtvBefore"
+                stroke="#8b5cf6"
+                strokeDasharray="2 2"
+                strokeWidth={1}
+                dot={{ r: 3 }}
+                name="Immediate LTV (Before)"
+                connectNulls={false}
+              />
+
+              {/* Immediate LTV (After) */}
+              <Line
+                type="monotone"
+                dataKey="immediateLtv"
+                stroke="#8b5cf6"
+                strokeWidth={1}
+                dot={false}
+                name="Immediate LTV (After)"
               />
             </LineChart>
           </ResponsiveContainer>

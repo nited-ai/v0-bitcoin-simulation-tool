@@ -50,7 +50,7 @@ export function useSimulationRunner() {
     clearErrors()
 
     try {
-      // Calculate actual loan amount from percentage of BTC stack value
+      // Calculate actual loan amount from percentage of BTC stack value (for initial reference)
       const btcStackValue = params.initialBtcAmount * params.initialBtcPrice
       const calculatedLoanAmount = (params.loanAmountPercent / 100) * btcStackValue
 
@@ -63,7 +63,8 @@ export function useSimulationRunner() {
         loanOriginationFeePercent: params.originationFeePercent, // Updated field name for consistency
         loanTermMonths: params.loanTermMonths,
         simulationMonths: params.simulationMonths,
-        maxLoanAmount: calculatedLoanAmount, // Use calculated amount instead of params.maxLoanAmount
+        maxLoanAmount: calculatedLoanAmount, // Initial loan amount (for backward compatibility)
+        loanAmountPercent: params.loanAmountPercent, // CRITICAL: Pass percentage for dynamic calculation
         expectedAnnualInflation: 3.0, // Default 3% annual inflation
         btcAccumulation: (params as any).btcAccumulation ?? true, // Default to true if not set
         riskManagement: {
@@ -109,6 +110,7 @@ export function useSimulationRunner() {
       const convertedResults: MonthlyResult[] = strategyResults.map(strategyResult => ({
         month: strategyResult.month,
         dateString: strategyResult.date,
+        date: strategyResult.date, // Add date field for compatibility
         btcPrice: strategyResult.btcPrice,
         collateralValue: strategyResult.collateralValue,
         realCollateralValue: strategyResult.collateralValue, // Same as collateralValue
@@ -119,11 +121,18 @@ export function useSimulationRunner() {
         repaymentsDue: strategyResult.repaymentDue,
         reinvestment: strategyResult.principalForReinvestment,
         currentBtcAmount: strategyResult.totalBtcAmount,
+        totalBtcAmount: strategyResult.totalBtcAmount, // Add totalBtcAmount for compatibility
         freeBtc: strategyResult.totalBtcAmount - strategyResult.activeLoans.reduce((sum, loan) => sum + loan.lockedBtc, 0),
         lockedBtc: strategyResult.activeLoans.reduce((sum, loan) => sum + loan.lockedBtc, 0),
         loanCount: strategyResult.activeLoans.length,
         highestLtv: strategyResult.highestLtv,
+        ltv: strategyResult.ltv, // Add LTV as decimal (0-1)
         maxSafeDebt: strategyResult.maxSafeDebt,
+        // Rolling Loan Strategy tracking fields
+        btcPurchased: strategyResult.btcPurchased, // BTC purchased from loan proceeds
+        monthlySavingsApplied: strategyResult.monthlySavingsApplied, // Monthly savings/withdrawals
+        interestAccrued: strategyResult.interestAccrued, // Interest accrued (Dynamic LTV mode)
+        loanRollover: strategyResult.loanRollover, // Rollover details (Fixed Term mode)
         events: strategyResult.events
       }))
 

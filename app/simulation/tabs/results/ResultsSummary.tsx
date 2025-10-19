@@ -89,7 +89,7 @@ export function ResultsSummary() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${analysis.finalPortfolioValue.toLocaleString("en-US")}
+              ${Math.round(analysis.finalPortfolioValue).toLocaleString("en-US")}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Total BTC value at end
@@ -107,7 +107,7 @@ export function ResultsSummary() {
           </CardHeader>
           <CardContent>
             <div className={`text-2xl font-bold ${getValueColor(analysis.finalNetWorth)}`}>
-              ${analysis.finalNetWorth.toLocaleString("en-US")}
+              ${Math.round(analysis.finalNetWorth).toLocaleString("en-US")}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Portfolio value minus debt
@@ -183,6 +183,60 @@ export function ResultsSummary() {
           </CardContent>
         </Card>
 
+        {/* Total BTC Purchased */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Bitcoin className="h-4 w-4" />
+              BTC Purchased
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl font-bold text-green-600">
+              {(() => {
+                const totalBtcPurchased = results.reduce(
+                  (sum: number, month: any) => sum + (month.btcPurchased || 0),
+                  0
+                )
+                return totalBtcPurchased.toFixed(4)
+              })()} BTC
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              From loan proceeds
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Total Savings/Withdrawals */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <DollarSign className="h-4 w-4" />
+              Savings/Withdrawals
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className={`text-xl font-bold ${(() => {
+              const totalSavings = results.reduce(
+                (sum: number, month: any) => sum + (month.monthlySavingsApplied || 0),
+                0
+              )
+              return getValueColor(totalSavings)
+            })()}`}>
+              {(() => {
+                const totalSavings = results.reduce(
+                  (sum: number, month: any) => sum + (month.monthlySavingsApplied || 0),
+                  0
+                )
+                return `${totalSavings >= 0 ? '+' : ''}$${Math.round(Math.abs(totalSavings)).toLocaleString("en-US")}`
+              })()}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Net monthly flow
+            </p>
+          </CardContent>
+        </Card>
+
         {/* Max Drawdown */}
         <Card>
           <CardHeader className="pb-2">
@@ -196,7 +250,7 @@ export function ResultsSummary() {
               -{analysis.maxDrawdownPercent.toFixed(1)}%
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              ${analysis.maxDrawdown.toLocaleString("en-US")}
+              ${Math.round(analysis.maxDrawdown).toLocaleString("en-US")}
             </p>
           </CardContent>
         </Card>
@@ -218,6 +272,61 @@ export function ResultsSummary() {
                 ? `First: Month ${analysis.firstLiquidationMonth}`
                 : 'None occurred'
               }
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Total Interest Accrued (Dynamic LTV mode only) */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <DollarSign className="h-4 w-4" />
+              Interest Accrued
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl font-bold text-orange-600">
+              {(() => {
+                const totalInterest = results.reduce(
+                  (sum: number, month: any) => sum + (month.interestAccrued || 0),
+                  0
+                )
+                return totalInterest > 0
+                  ? `$${Math.round(totalInterest).toLocaleString("en-US")}`
+                  : 'N/A'
+              })()}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {(() => {
+                const hasInterest = results.some((m: any) => m.interestAccrued && m.interestAccrued > 0)
+                return hasInterest ? 'Dynamic LTV mode' : 'Fixed Term mode'
+              })()}
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Loan Rollover Count (Fixed Term mode only) */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" />
+              Loan Rollovers
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl font-bold text-blue-600">
+              {(() => {
+                const rolloverCount = results.filter(
+                  (month: any) => month.loanRollover !== undefined
+                ).length
+                return rolloverCount > 0 ? rolloverCount : 'N/A'
+              })()}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {(() => {
+                const hasRollovers = results.some((m: any) => m.loanRollover !== undefined)
+                return hasRollovers ? 'Fixed Term mode' : 'Dynamic LTV mode'
+              })()}
             </p>
           </CardContent>
         </Card>

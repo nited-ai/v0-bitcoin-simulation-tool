@@ -27,8 +27,9 @@ export function StrategySelectionCard() {
     return [
       { id: 'default', name: 'Default Strategy', description: 'Standard investment approach with no additional restrictions. Invests up to target LTV.', enabled: true },
       { id: 'rollingLoan', name: 'Rolling Loan Strategy', description: 'Automated loan rollover strategy with dual accumulation and income modes.', enabled: true },
+      { id: 'dynamicRollingLoan', name: 'Dynamic Rolling Loan', description: 'Automated loan management with Dynamic LTV (infinite term) or Fixed Term (specific months) modes.', enabled: true },
       { id: 'custom', name: 'Custom Strategy', description: 'User-defined strategy with custom parameters and logic.', enabled: false },
-      ...allStrategies.filter(s => !['default', 'rollingLoan', 'custom'].includes(s.id)).map(s => ({ ...s, enabled: false }))
+      ...allStrategies.filter(s => !['default', 'rollingLoan', 'dynamicRollingLoan', 'custom'].includes(s.id)).map(s => ({ ...s, enabled: false }))
     ]
   }, []) // Empty dependency array - only compute once on mount
 
@@ -59,6 +60,8 @@ export function StrategySelectionCard() {
   // Get strategy icon based on strategy type
   const getStrategyIcon = (strategyId: string) => {
     switch (strategyId) {
+      case 'dynamicRollingLoan':
+        return <Zap className="w-5 h-5 text-green-500" />
       case 'rollingLoan':
         return <Zap className="w-5 h-5 text-orange-500" />
       case 'athBased':
@@ -79,6 +82,8 @@ export function StrategySelectionCard() {
     }
 
     switch (strategy.id) {
+      case 'dynamicRollingLoan':
+        return <Badge variant="secondary" className="bg-green-100 text-green-800">New</Badge>
       case 'rollingLoan':
         return <Badge variant="secondary" className="bg-orange-100 text-orange-800">Automated</Badge>
       case 'default':

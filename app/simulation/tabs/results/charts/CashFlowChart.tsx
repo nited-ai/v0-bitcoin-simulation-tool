@@ -132,25 +132,25 @@ export function CashFlowChart() {
             <div className="text-center">
               <div className="text-sm text-muted-foreground">Total Withdrawals</div>
               <div className="text-lg font-semibold text-red-600">
-                -${cashFlowStats.totalWithdrawals.toLocaleString("en-US")}
+                -${Math.round(cashFlowStats.totalWithdrawals).toLocaleString("en-US")}
               </div>
             </div>
             <div className="text-center">
               <div className="text-sm text-muted-foreground">Total Reinvestments</div>
               <div className="text-lg font-semibold text-green-600">
-                +${cashFlowStats.totalReinvestments.toLocaleString("en-US")}
+                +${Math.round(cashFlowStats.totalReinvestments).toLocaleString("en-US")}
               </div>
             </div>
             <div className="text-center">
               <div className="text-sm text-muted-foreground">Total Loans</div>
               <div className="text-lg font-semibold text-blue-600">
-                +${cashFlowStats.totalNewLoans.toLocaleString("en-US")}
+                +${Math.round(cashFlowStats.totalNewLoans).toLocaleString("en-US")}
               </div>
             </div>
             <div className="text-center">
               <div className="text-sm text-muted-foreground">Net Cash Flow</div>
               <div className={`text-lg font-semibold ${cashFlowStats.netCashFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {cashFlowStats.netCashFlow >= 0 ? '+' : ''}${cashFlowStats.netCashFlow.toLocaleString("en-US")}
+                {cashFlowStats.netCashFlow >= 0 ? '+' : ''}${Math.round(cashFlowStats.netCashFlow).toLocaleString("en-US")}
               </div>
             </div>
           </div>
@@ -162,13 +162,13 @@ export function CashFlowChart() {
             <div className="text-center">
               <div className="text-sm text-muted-foreground">Avg Monthly Withdrawal</div>
               <div className="text-sm font-medium">
-                ${cashFlowStats.avgMonthlyWithdrawal.toLocaleString("en-US")}
+                ${Math.round(cashFlowStats.avgMonthlyWithdrawal).toLocaleString("en-US")}
               </div>
             </div>
             <div className="text-center">
               <div className="text-sm text-muted-foreground">Avg Monthly Reinvestment</div>
               <div className="text-sm font-medium">
-                ${cashFlowStats.avgMonthlyReinvestment.toLocaleString("en-US")}
+                ${Math.round(cashFlowStats.avgMonthlyReinvestment).toLocaleString("en-US")}
               </div>
             </div>
             <div className="text-center">
@@ -207,9 +207,9 @@ export function CashFlowChart() {
                 }}
               />
               
-              <Tooltip 
+              <Tooltip
                 formatter={(value: number, name: string) => [
-                  `$${Math.abs(value).toLocaleString('en-US')}`,
+                  `$${Math.round(Math.abs(value)).toLocaleString('en-US')}`,
                   name === 'withdrawals' ? 'Withdrawals' :
                   name === 'reinvestments' ? 'Reinvestments' :
                   name === 'newLoans' ? 'New Loans' :

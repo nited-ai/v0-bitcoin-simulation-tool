@@ -227,10 +227,34 @@ export const NumberInput = React.forwardRef<HTMLInputElement, NumberInputProps>(
 
       // Allow minus sign for negative numbers (only at beginning)
       if (e.keyCode === 189 || e.keyCode === 109) {
-        // Only allow at the beginning and if min allows negative values
-        if (displayValue.length > 0 || (min !== undefined && min >= 0)) {
+        // Block if min doesn't allow negative values
+        if (min !== undefined && min >= 0) {
           e.preventDefault()
+          return
         }
+
+        // Get selection info to check if user is replacing text
+        const target = e.target as HTMLInputElement
+        const selectionStart = target.selectionStart || 0
+        const selectionEnd = target.selectionEnd || 0
+        const hasSelection = selectionStart !== selectionEnd
+
+        // Allow minus if:
+        // 1. Field is empty, OR
+        // 2. User has selected text (they're replacing it), OR
+        // 3. Cursor is at position 0 and no minus exists yet
+        if (displayValue.length === 0 || hasSelection || (selectionStart === 0 && !displayValue.includes('-'))) {
+          return
+        }
+
+        // Block if minus already exists and user isn't replacing it
+        if (displayValue.includes('-')) {
+          e.preventDefault()
+          return
+        }
+
+        // Block if trying to insert minus in the middle without selection
+        e.preventDefault()
         return
       }
 

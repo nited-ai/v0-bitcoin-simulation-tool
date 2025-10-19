@@ -115,6 +115,10 @@ export function usePriceGeneration(enabled: boolean = false) {
     params.initialBtcPrice,
     params.simulationMonths,
     params.powerLawSettings?.prognosisLine,
+    params.powerLawSettings?.cycleRepeatVolatility?.enabled,
+    params.powerLawSettings?.cycleRepeatVolatility?.patternLengthMonths,
+    params.powerLawSettings?.cycleRepeatVolatility?.diminishingFactor,
+    JSON.stringify(params.powerLawSettings?.priceProjectionParams || {}),
     JSON.stringify(params.annualGrowthRates || []), // Stable string representation
     historicalPriceData.length,
     initialDataLoaded,

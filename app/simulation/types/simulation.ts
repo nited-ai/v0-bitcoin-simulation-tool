@@ -59,6 +59,7 @@ export interface Loan {
 export interface MonthlyResult {
   month: number
   dateString: string
+  date?: string // ISO date string for compatibility with strategy module
   btcPrice: number
   collateralValue: number
   realCollateralValue: number
@@ -69,12 +70,48 @@ export interface MonthlyResult {
   repaymentsDue: number
   reinvestment: number
   currentBtcAmount: number
+  totalBtcAmount?: number // Alias for currentBtcAmount for compatibility
   freeBtc: number
   lockedBtc: number
   loanCount: number
   highestLtv: number
+  ltv?: number // Current LTV as decimal (0-1)
   maxSafeDebt?: number // Maximum safe debt limit (for ATH-based strategies)
   events: MonthlyEvent[]
+
+  // Rolling Loan Strategy tracking fields
+  /**
+   * BTC purchased this month from loan proceeds
+   * @example 0.5 = 0.5 BTC purchased
+   */
+  btcPurchased?: number
+
+  /**
+   * Monthly savings or withdrawal amount applied this month
+   * @example 1000 = $1000 savings applied
+   * @example -2500 = $2500 withdrawal taken
+   */
+  monthlySavingsApplied?: number
+
+  /**
+   * Interest accrued this month (Dynamic LTV mode only)
+   * @example 1000 = $1000 interest accrued
+   * @note Only present when loan term is Infinity (Dynamic LTV mode)
+   */
+  interestAccrued?: number
+
+  /**
+   * Loan rollover details (Fixed Term mode only)
+   * @note Only present at loan maturity months in Fixed Term mode
+   */
+  loanRollover?: {
+    /** Previous loan amount before rollover */
+    oldLoanAmount: number
+    /** New loan amount after rollover */
+    newLoanAmount: number
+    /** Excess proceeds from rollover (can be negative if forced exceedance) */
+    excessProceeds: number
+  }
 }
 
 /**
@@ -136,12 +173,16 @@ export interface SimulationParams {
     annualInterestRate: number
     loanTermMonths: number | 'infinity'
     liquidationFeePercent: number
+    // New: Configurable auto top-up parameters
+    topUpTriggerLtv?: number
+    topUpTargetLtvRange?: { min: number; max: number }
   }
   // Additional parameters
   btcAccumulation: boolean
   riskLevel: RiskLevel
   platform: Platform
   loanAmountPercent: number // Percentage of BTC stack value
+  annualSavingsIncrease?: number // Annual compound increase for monthly savings/withdrawals (percentage)
   // Strategy parameters
   investmentStrategy: InvestmentStrategy
   athBasedParams: AthBasedStrategyParams
@@ -221,6 +262,9 @@ export const DEFAULT_PARAMS: SimulationParams = {
     annualInterestRate: 6.5,
     loanTermMonths: 12,
     liquidationFeePercent: 5.0,
+    // New defaults for auto top-up configuration
+    topUpTriggerLtv: 70,
+    topUpTargetLtvRange: { min: 50, max: 80 },
   },
   // Add BTC accumulation default
   btcAccumulation: true,

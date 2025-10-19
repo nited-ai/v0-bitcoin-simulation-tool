@@ -34,7 +34,8 @@ import {
   AthBasedStrategy,
   MovingAverageStrategy,
   AthCollateralStrategy,
-  RollingLoanStrategy
+  RollingLoanStrategy,
+  DynamicRollingLoanStrategy
 } from './implementations'
 
 /**
@@ -42,14 +43,20 @@ import {
  */
 function initializeStrategies() {
   console.log('🔧 Initializing strategy module...')
-  
+
   // Register all default strategies
   strategyRegistry.registerStrategy('default', new DefaultStrategy(), true, 100)
-  strategyRegistry.registerStrategy('rollingLoan', new RollingLoanStrategy(), true, 95) // High priority - automated strategy
+
+  // NEW: Dynamic Rolling Loan Strategy (highest priority for automated loan management)
+  strategyRegistry.registerStrategy('dynamicRollingLoan', new DynamicRollingLoanStrategy(), true, 98)
+
+  // Legacy Rolling Loan Strategy (kept for backward compatibility, lower priority)
+  strategyRegistry.registerStrategy('rollingLoan', new RollingLoanStrategy(), true, 95)
+
   strategyRegistry.registerStrategy('athBased', new AthBasedStrategy(), true, 90)
   strategyRegistry.registerStrategy('movingAverage', new MovingAverageStrategy(), true, 80)
   strategyRegistry.registerStrategy('athCollateral', new AthCollateralStrategy(), true, 70)
-  
+
   const stats = strategyRegistry.getStats()
   console.log(`✅ Strategy module initialized with ${stats.total} strategies (${stats.enabled} enabled)`)
 }

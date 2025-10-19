@@ -56,7 +56,7 @@ export function BtcAccumulationCard() {
             <div className="space-y-2 text-sm">
               <div className="flex items-center gap-2">
                 <ArrowRight className={`w-3 h-3 ${params.btcAccumulation ? 'text-green-500' : 'text-muted-foreground'}`} />
-                <span className={params.btcAccumulation ? '' : 'text-muted-foreground'}>Reinvest all loan proceeds into Bitcoin</span>
+                <span className={params.btcAccumulation ? '' : 'text-muted-foreground'}>Reinvest loan proceeds into Bitcoin</span>
               </div>
               <div className="flex items-center gap-2">
                 <ArrowRight className={`w-3 h-3 ${params.btcAccumulation ? 'text-green-500' : 'text-muted-foreground'}`} />
@@ -64,7 +64,7 @@ export function BtcAccumulationCard() {
               </div>
               <div className="flex items-center gap-2">
                 <ArrowRight className={`w-3 h-3 ${params.btcAccumulation ? 'text-green-500' : 'text-muted-foreground'}`} />
-                <span className={params.btcAccumulation ? '' : 'text-muted-foreground'}>No immediate cash flow</span>
+                <span className={params.btcAccumulation ? '' : 'text-muted-foreground'}>Monthly savings add to BTC stack</span>
               </div>
               <div className="flex items-center gap-2">
                 <ArrowRight className={`w-3 h-3 ${params.btcAccumulation ? 'text-green-500' : 'text-muted-foreground'}`} />
@@ -100,7 +100,11 @@ export function BtcAccumulationCard() {
             <div className="space-y-2 text-sm">
               <div className="flex items-center gap-2">
                 <ArrowRight className={`w-3 h-3 ${!params.btcAccumulation ? 'text-blue-500' : 'text-muted-foreground'}`} />
-                <span className={!params.btcAccumulation ? '' : 'text-muted-foreground'}>Take excess loan proceeds as cash</span>
+                <span className={!params.btcAccumulation ? '' : 'text-muted-foreground'}>Take loans to cover monthly withdrawals</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <ArrowRight className={`w-3 h-3 ${!params.btcAccumulation ? 'text-blue-500' : 'text-muted-foreground'}`} />
+                <span className={!params.btcAccumulation ? '' : 'text-muted-foreground'}>Loans taken against BTC collateral (BTC stays intact)</span>
               </div>
               <div className="flex items-center gap-2">
                 <ArrowRight className={`w-3 h-3 ${!params.btcAccumulation ? 'text-blue-500' : 'text-muted-foreground'}`} />
@@ -108,11 +112,7 @@ export function BtcAccumulationCard() {
               </div>
               <div className="flex items-center gap-2">
                 <ArrowRight className={`w-3 h-3 ${!params.btcAccumulation ? 'text-blue-500' : 'text-muted-foreground'}`} />
-                <span className={!params.btcAccumulation ? '' : 'text-muted-foreground'}>Maintain target loan percentage</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <ArrowRight className={`w-3 h-3 ${!params.btcAccumulation ? 'text-blue-500' : 'text-muted-foreground'}`} />
-                <span className={!params.btcAccumulation ? '' : 'text-muted-foreground'}>Preserve Bitcoin stack size</span>
+                <span className={!params.btcAccumulation ? '' : 'text-muted-foreground'}>May exceed target loan percentage - warning shown</span>
               </div>
             </div>
 
@@ -136,7 +136,7 @@ export function BtcAccumulationCard() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
             <div className="flex items-center gap-2">
               <div className={`w-2 h-2 rounded-full ${params.btcAccumulation ? 'bg-green-500' : 'bg-blue-500'}`}></div>
-              <span><strong>Loan Proceeds:</strong> {params.btcAccumulation ? 'Reinvested in BTC' : 'Taken as cash'}</span>
+              <span><strong>Loan Proceeds:</strong> {params.btcAccumulation ? 'Reinvested in BTC' : 'Used to fund withdrawals'}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className={`w-2 h-2 rounded-full ${params.btcAccumulation ? 'bg-green-500' : 'bg-blue-500'}`}></div>
@@ -144,11 +144,27 @@ export function BtcAccumulationCard() {
             </div>
             <div className="flex items-center gap-2">
               <div className={`w-2 h-2 rounded-full ${params.btcAccumulation ? 'bg-green-500' : 'bg-blue-500'}`}></div>
-              <span><strong>Cash Flow:</strong> {params.btcAccumulation ? 'None' : 'Regular income'}</span>
+              <span><strong>Cash Flow:</strong> {params.btcAccumulation ? 'From withdrawals (if configured)' : 'From loans (covering withdrawals)'}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className={`w-2 h-2 rounded-full ${params.btcAccumulation ? 'bg-green-500' : 'bg-blue-500'}`}></div>
-              <span><strong>Risk Profile:</strong> {params.btcAccumulation ? 'Higher leverage' : 'Stable leverage'}</span>
+              <span><strong>Risk Profile:</strong> {params.btcAccumulation ? 'Higher leverage' : 'Accumulating debt'}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Financial Flow Reference */}
+        <div className="p-3 rounded-lg bg-muted/50 border border-muted-foreground/20">
+          <div className="flex items-start gap-2 text-sm">
+            <Info className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="font-medium mb-1">Monthly Savings & Withdrawals</p>
+              <p className="text-muted-foreground text-xs">
+                Configure monthly cash flows in the <strong>Financial Flow</strong> card above.
+                {params.btcAccumulation
+                  ? ' Positive values (savings) will be converted to BTC and added to your stack. Negative values (withdrawals) will be taken from your loans and will reduce the BTC Accumulation.'
+                  : ' Withdrawals will be funded by taking loans against your BTC stack as collateral (BTC remains intact). Monthly savings will be converted to BTC and no loans will be taken.'}
+              </p>
             </div>
           </div>
         </div>

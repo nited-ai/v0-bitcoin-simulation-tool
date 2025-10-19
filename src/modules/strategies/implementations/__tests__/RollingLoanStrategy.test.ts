@@ -96,13 +96,16 @@ describe('RollingLoanStrategy', () => {
   describe('Initial Loan Decision - BTC Accumulation Disabled', () => {
     test('takes initial loan for cash generation when BTC accumulation disabled', () => {
       mockContext.params.btcAccumulation = false
-      
+
       const decision = strategy.makeDecision(mockContext)
-      
+
       expect(decision.allowInvestment).toBe(true)
       expect(decision.investmentMultiplier).toBeGreaterThan(0)
       expect(decision.allowWithdrawal).toBe(true) // Should allow withdrawal for cash
-      expect(decision.reasoning).toContain('cash generation')
+      expect(decision.withdrawalAmount).toBeGreaterThan(0) // Should have withdrawal amount
+      expect(decision.reasoning).toContain('principal') // Should show loan breakdown
+      expect(decision.reasoning).toContain('fee') // Should show fee
+      expect(decision.reasoning).toContain('interest') // Should show interest
     })
   })
 
