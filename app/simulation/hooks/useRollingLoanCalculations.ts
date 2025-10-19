@@ -625,6 +625,12 @@ export function useRollingLoanCalculations() {
             }
           }
 
+            // Recompute Initial LTV AFTER rollover (post-sale, post-new-loan, post-collateral reallocation)
+            _initialAfter = (lockedBtc > 0 && btcPrice > 0)
+              ? (currentTotalDebt / (lockedBtc * btcPrice)) * 100
+              : 0
+
+
           wasRollover = true
 
           rolloverResults.push({
