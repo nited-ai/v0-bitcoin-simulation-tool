@@ -10,7 +10,10 @@ import { useRollingLoanCalculations } from "../../../hooks/useRollingLoanCalcula
 interface ChartDataPoint {
   month: number
   date: string
+  // Top-up LTV (capacity metric used previously)
   ltv: number
+  // Immediate LTV = Total Debt / (Locked BTC × Current Price)
+  immediateLtv: number
   collateralValue: number
   totalDebt: number
   loanCount: number
@@ -41,15 +44,18 @@ export function DebtCollateralChart() {
     return sorted.map((p, idx) => {
       const debt = (p.totalDebt ?? 0)
       const totalBtcAfter = (p.totalBtc ?? 0)
+      const lockedBtc = (p.lockedBtc ?? 0)
       const btcPrice = (p.btcPrice ?? 0)
       const platformMaxLtv = (params?.riskManagement as any)?.initialLtv ?? (params as any)?.platformMaxLtv ?? 50
       const effCollAtPlatformMax = totalBtcAfter * btcPrice * (platformMaxLtv / 100)
       const topUpLtv = effCollAtPlatformMax > 0 ? (debt / effCollAtPlatformMax) * 100 : 0
+      const immediateLtv = (lockedBtc > 0 && btcPrice > 0) ? (debt / (lockedBtc * btcPrice)) * 100 : 0
       return {
         month: idx + 1,
         date: new Date(p.timestamp).toISOString(),
         timestamp: p.timestamp,
         ltv: Math.min(topUpLtv, 100),
+        immediateLtv: Math.min(immediateLtv, 100),
         collateralValue: totalBtcAfter * btcPrice,
         totalDebt: debt,
         loanCount: 0,
@@ -189,7 +195,11 @@ export function DebtCollateralChart() {
                       <div className="space-y-1">
                         <div className="flex items-center gap-2 text-foreground/90">
                           <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#3b82f6' }}></div>
-                          <span className="text-sm">Current LTV: <strong>{(d.ltv as number).toFixed(1)}%</strong></span>
+                          <span className="text-sm">TopUp LTV: <strong>{(d.ltv as number).toFixed(1)}%</strong></span>
+                        </div>
+                        <div className="flex items-center gap-2 text-foreground/90">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#8b5cf6' }}></div>
+                          <span className="text-sm">Immediate LTV: <strong>{(d.immediateLtv as number).toFixed(1)}%</strong></span>
                         </div>
                         <div className="flex items-center gap-2 text-foreground/90">
                           <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#22c55e' }}></div>
@@ -235,7 +245,7 @@ export function DebtCollateralChart() {
                 label="Danger Zone"
               />
 
-              {/* Current LTV Line */}
+              {/* TopUp LTV (Capacity) Line */}
               <Line
                 type="monotone"
                 dataKey="ltv"
@@ -247,7 +257,17 @@ export function DebtCollateralChart() {
                   const color = ltv > 85 ? '#ef4444' : ltv > 70 ? '#f59e0b' : ltv > 60 ? '#eab308' : '#22c55e'
                   return <circle cx={cx} cy={cy} r={3} fill={color} stroke={color} strokeWidth={2} />
                 }}
-                name="Current LTV"
+                name="TopUp LTV"
+              />
+
+              {/* Immediate LTV Line */}
+              <Line
+                type="monotone"
+                dataKey="immediateLtv"
+                stroke="#8b5cf6"
+                strokeWidth={1}
+                dot={false}
+                name="Immediate LTV"
               />
             </LineChart>
           </ResponsiveContainer>
