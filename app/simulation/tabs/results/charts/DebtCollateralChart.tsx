@@ -58,7 +58,7 @@ export function DebtCollateralChart() {
         date: new Date(p.timestamp).toISOString(),
         timestamp: p.timestamp,
         immediateLtv: Math.min(after, 100),
-        immediateLtvBefore: before !== after ? Math.min(before, 100) : null,
+        immediateLtvBefore: Math.min(before, 100),
         collateralValue: totalBtcAfter * btcPrice,
         totalDebt: debt,
         loanCount: 0,
@@ -200,12 +200,10 @@ export function DebtCollateralChart() {
                           <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#8b5cf6' }}></div>
                           <span className="text-sm">Immediate LTV (After): <strong>{(d.immediateLtv as number).toFixed(1)}%</strong></span>
                         </div>
-                        {typeof d.immediateLtvBefore === 'number' && d.immediateLtvBefore !== null && (
-                          <div className="flex items-center gap-2 text-foreground/90">
-                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#8b5cf6', opacity: 0.7 }}></div>
-                            <span className="text-sm">Immediate LTV (Before): <strong>{(d.immediateLtvBefore as number).toFixed(1)}%</strong></span>
-                          </div>
-                        )}
+                        <div className="flex items-center gap-2 text-foreground/90">
+                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#f59e0b' }}></div>
+                          <span className="text-sm">Immediate LTV (Before): <strong>{(d.immediateLtvBefore as number).toFixed(1)}%</strong></span>
+                        </div>
                         <div className="flex items-center gap-2 text-foreground/90">
                           <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#22c55e' }}></div>
                           <span className="text-sm">Target LTV: <strong>{(d.targetLtv as number).toFixed(0)}%</strong></span>
@@ -250,19 +248,19 @@ export function DebtCollateralChart() {
                 label="Danger Zone"
               />
 
-              {/* Immediate LTV (Before) - only shows when different from after */}
+              {/* Immediate LTV (Before) - continuous dashed orange */}
               <Line
                 type="monotone"
                 dataKey="immediateLtvBefore"
-                stroke="#8b5cf6"
-                strokeDasharray="2 2"
+                stroke="#f59e0b"
+                strokeDasharray="4 2"
                 strokeWidth={1}
-                dot={{ r: 3 }}
+                dot={false}
                 name="Immediate LTV (Before)"
-                connectNulls={false}
+                connectNulls={true}
               />
 
-              {/* Immediate LTV (After) */}
+              {/* Immediate LTV (After) - continuous solid purple */}
               <Line
                 type="monotone"
                 dataKey="immediateLtv"
