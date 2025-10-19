@@ -202,7 +202,7 @@ export function DetailedResultsTable() {
                               <span className="text-xs mt-0.5 text-red-600" title={`Rollover liquidation executed to reach target Initial LTV`}>
                                 <span className="text-yellow-600">⚠</span> Rollover Liquidation:<br></br>
                                 BTC: -{formatBtc(row.btcSoldForRollover || 0)} → {formatBtc(totalBtcAfter)}<br></br>
-                                Debt: -{formatUsd(row.debtReducedByRolloverSale || 0)} → {formatUsd(debt)}<br></br>
+                                Debt: -{formatUsd(row.debtReducedByRolloverSale || 0)} → {formatUsd(row.loanPrincipal)}<br></br>
                                 LTV: {beforeLtv.toFixed(1)}% → {afterLtv.toFixed(1)}%
                               </span>
                             )
