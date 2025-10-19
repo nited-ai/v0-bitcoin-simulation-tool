@@ -17,7 +17,7 @@ import { ProjectionParametersCard, UnifiedPriceChart, SimplifiedManualGrowthInte
 import { BasicParametersCard, ValidationSummary, RiskLevelSelector } from '../../tabs/parameters'
 
 import { CollateralVisualizationCard, LoanUsageVisualizationCard, PriceDropToleranceCard, LoanParametersCard, PlatformSelector } from '../../tabs/parameters'
-import { StrategySelectionCard, RollingLoanConfigCard, BtcAccumulationCard, FinancialFlowCard, StrategyPreviewCard } from '../../tabs/strategy'
+import { StrategySelectionCard, RollingLoanConfigCard, RollingLoanRiskManagementCard, BtcAccumulationCard, FinancialFlowCard, StrategyPreviewCard } from '../../tabs/strategy'
 import { ResultsPage } from '../../tabs/results'
 import { RollingLoanDebugPage } from '../../tabs/debug/RollingLoanDebugPage'
 import { useSimulation } from '../../context/SimulationContext'
@@ -466,6 +466,9 @@ export function TabNavigation({ children }: TabNavigationProps) {
 
             {/* Financial Flow Configuration */}
             <FinancialFlowCard />
+
+            {/* Risk Management & Top-Up Settings (conditional) */}
+            <RollingLoanRiskManagementCard />
 
             {/* Rolling Loan Strategy Configuration (conditional) */}
             <RollingLoanConfigCard />

@@ -173,6 +173,9 @@ export interface SimulationParams {
     annualInterestRate: number
     loanTermMonths: number | 'infinity'
     liquidationFeePercent: number
+    // New: Configurable auto top-up parameters
+    topUpTriggerLtv?: number
+    topUpTargetLtvRange?: { min: number; max: number }
   }
   // Additional parameters
   btcAccumulation: boolean
@@ -259,6 +262,9 @@ export const DEFAULT_PARAMS: SimulationParams = {
     annualInterestRate: 6.5,
     loanTermMonths: 12,
     liquidationFeePercent: 5.0,
+    // New defaults for auto top-up configuration
+    topUpTriggerLtv: 70,
+    topUpTargetLtvRange: { min: 50, max: 80 },
   },
   // Add BTC accumulation default
   btcAccumulation: true,
