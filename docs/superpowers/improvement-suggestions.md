@@ -6,6 +6,40 @@ Format: each item lists who flagged it, when, where, and a short description. Se
 
 ---
 
+## 2026-05-04 — Task 6: Type Extraction (no-op)
+
+### 🟡 MUST address before PR4: `DataServiceState` shape mismatch
+
+The two definitions of `DataServiceState` differ:
+- `lib/services/centralized-data-service.ts` (lines 37-48) has `ath`, `athData`, `isATHLoaded` — the runtime singleton uses these.
+- `src/modules/price-data/types/index.ts` (lines 191-199) is missing those three fields.
+
+When PR4 deletes `centralized-data-service.ts`, any consumer relying on the ATH fields will silently break (or break loudly with type errors). Before PR4: either reconcile the module-side definition to include ATH fields, OR migrate consumers off `DataServiceState` entirely (it's a service-internal type that arguably shouldn't have leaked in the first place).
+
+### Stale header comment on `HistoricalDataPoint` (Minor)
+
+Line 19-21 of `src/modules/price-data/types/index.ts` says "Compatible with centralized-data-service.ts interface". Once PR4 deletes that source, this comment is meaningless. Update during PR4 to reflect canonical status.
+
+### `ExtendedHistoricalDataPoint` redundantly declares `date` (Minor)
+
+`src/modules/price-data/types/index.ts:36` extends `HistoricalDataPoint` and then re-declares `date: string` — the parent already has it. Cleanup opportunity.
+
+---
+
+## 2026-05-04 — Task 5: Build Script
+
+### Redundant `build:*` scripts in `package.json` (Minor)
+
+After Task 5's `build` rewrite, the siblings `build:vercel`, `build:prisma`, `build:with-prisma` are obsolete (the new `build` covers all the cases they handled). Out of scope for PR1; remove in a follow-up.
+
+### Windows pnpm quirk: `$DATABASE_URL` not shell-expanded (Cosmetic)
+
+Flagged by Task 5 implementer. On Windows, `pnpm build` runs script values without POSIX-style env expansion — `test -n "$DATABASE_URL"` sees the literal string and always passes. `prisma migrate deploy` then fails on missing DIRECT_URL, gets caught by `||`, and `next build` runs. Net effect: build still succeeds, but Windows users see a scary-looking validation error in logs. Vercel (POSIX) is unaffected — both gating branches work as intended.
+
+If we want cross-platform fidelity later, options: (a) move logic into `scripts/build.mjs`, (b) use `cross-env` or similar wrapper. Not blocking — Vercel builds are what matter.
+
+---
+
 ## 2026-05-04 — Task 4: fetchedAt + SystemMeta Migration
 
 ### 🔴 MUST-FIX before PR2 deploys: backfill `fetched_at` for existing 4341 rows
