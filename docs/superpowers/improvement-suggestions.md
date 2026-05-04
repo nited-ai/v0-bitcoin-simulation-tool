@@ -6,6 +6,22 @@ Format: each item lists who flagged it, when, where, and a short description. Se
 
 ---
 
+## 2026-05-04 — Task 11: Live Gap-Fill
+
+### `system_meta.updated_at` vs `value` clock skew (Minor)
+
+Flagged by Task 11 implementer. After running gap-fill, `system_meta.lastSeedRunAt`'s `value` (written from JS `new Date().toISOString()`) and its `updated_at` column (Postgres `@updatedAt` from server) differ by ~2 hours due to local-vs-UTC clock semantics. Both are "recent" so no bug, but normalize to one source if anything ever depends on them matching.
+
+### Skip-path could log detected gap range (Minor)
+
+Flagged by Task 11 implementer. When `gapFillFromCoinGecko` skips, the message says "skipped: bitcoin_prices is up to date" but doesn't show what `latest` and `today` it computed. If a future run mysteriously skips, an extra debug line (`detected: latest=YYYY-MM-DD, today=YYYY-MM-DD, gap=none`) would speed triage.
+
+### Test for CoinGecko data lag (Minor)
+
+Flagged by Task 11 implementer. If CoinGecko's "today" row hasn't published yet, our request from-N to N-1-yields-N-1-days. Worth an explicit unit test for that case.
+
+---
+
 ## 2026-05-04 — Task 6: Type Extraction (no-op)
 
 ### 🟡 MUST address before PR4: `DataServiceState` shape mismatch
