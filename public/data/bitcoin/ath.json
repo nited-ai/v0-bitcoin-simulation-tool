@@ -1,14 +1,14 @@
 {
   "meta": {
-    "lastUpdated": "2025-08-18T16:06:26.679Z",
+    "lastUpdated": "2026-05-04T13:27:42.906Z",
     "source": "historical_analysis",
     "version": "1.0.0",
-    "description": "Bitcoin All-Time High (ATH) data - automatically updated when new highs are detected"
+    "description": "Bitcoin All-Time High (ATH) data - regenerated from Postgres"
   },
   "ath": {
-    "value": 124277.98,
-    "date": "2024-03-14",
-    "timestamp": 1710374400000,
+    "value": 124773.5082307443,
+    "date": "2025-10-07",
+    "timestamp": 1759795200000,
     "source": "historical_data"
   }
 }
