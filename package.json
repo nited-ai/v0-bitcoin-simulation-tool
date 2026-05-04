@@ -15,12 +15,12 @@
     "test:modules": "vitest src/modules",
     "test:agent-os": "vitest __tests__/agent-os",
     "type-check": "tsc --noEmit",
-    "db:seed": "tsx prisma/seed.ts",
+    "db:seed": "tsx scripts/gap-fill-prices.ts",
     "db:reset": "prisma migrate reset --force && pnpm db:seed",
     "postinstall": "prisma generate || echo 'Prisma generation skipped'"
   },
   "prisma": {
-    "seed": "tsx prisma/seed.ts"
+    "seed": "tsx scripts/gap-fill-prices.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
