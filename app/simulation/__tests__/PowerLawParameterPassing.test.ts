@@ -5,7 +5,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { PowerLawModel } from '../price-models/models/PowerLawModel'
 import type { PriceModelParams } from '../price-models/types'
-import type { HistoricalDataPoint } from '@/lib/services/centralized-data-service'
+import type { HistoricalDataPoint } from '@/src/modules/price-data/types'
 
 describe('Power Law Parameter Passing', () => {
   let model: PowerLawModel

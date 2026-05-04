@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { EnhancedCycleRepeatModel, DIMINISHING_RETURNS_PRESETS } from '../EnhancedCycleRepeatModel'
 import type { PriceModelParams } from '../../types'
-import type { HistoricalDataPoint } from '@/lib/services/centralized-data-service'
+import type { HistoricalDataPoint } from '@/src/modules/price-data/types'
 
 describe('EnhancedCycleRepeatModel', () => {
   let model: EnhancedCycleRepeatModel
