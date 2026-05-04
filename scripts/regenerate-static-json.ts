@@ -46,7 +46,7 @@ async function main() {
   console.log(`ATH: $${ath.high} on ${ath.date}`)
 
   // === daily.json ===
-  const daily = rows.map(r => [Number(r.timestamp), r.close])
+  const daily = rows.map(r => [Number(r.timestamp), round2(r.close)])
   await writeJson('daily.json', {
     meta: {
       startDate: rows[0].date,
@@ -68,7 +68,7 @@ async function main() {
     weeklyMap.set(yw, row)  // last row in iteration order wins (rows are date-ascending)
   }
   const weeklyRows = Array.from(weeklyMap.values()).sort((a, b) => a.date.localeCompare(b.date))
-  const weekly = weeklyRows.map(r => [Number(r.timestamp), r.close])
+  const weekly = weeklyRows.map(r => [Number(r.timestamp), round2(r.close)])
   await writeJson('weekly.json', {
     meta: {
       startDate: weeklyRows[0].date,
@@ -88,7 +88,7 @@ async function main() {
     monthlyMap.set(ym, row)
   }
   const monthlyRows = Array.from(monthlyMap.values()).sort((a, b) => a.date.localeCompare(b.date))
-  const monthly = monthlyRows.map(r => [Number(r.timestamp), r.close])
+  const monthly = monthlyRows.map(r => [Number(r.timestamp), round2(r.close)])
   await writeJson('monthly.json', {
     meta: {
       startDate: monthlyRows[0].date,
@@ -109,7 +109,7 @@ async function main() {
       description: 'Bitcoin All-Time High (ATH) data - regenerated from Postgres',
     },
     ath: {
-      value: ath.high,
+      value: round2(ath.high),
       date: ath.date,
       timestamp: Number(ath.timestamp),
       source: 'historical_data',
@@ -118,6 +118,11 @@ async function main() {
 
   await client.end()
   console.log('All 4 JSON files regenerated.')
+}
+
+/** Round to 2 decimals to match the existing JSON file format and keep payload size sane. */
+function round2(n: number): number {
+  return Math.round(n * 100) / 100
 }
 
 async function writeJson(filename: string, data: unknown) {
