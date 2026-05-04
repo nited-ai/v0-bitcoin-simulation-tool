@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "next build",
+    "build": "prisma generate && (test -n \"$DATABASE_URL\" && prisma migrate deploy || echo 'No DATABASE_URL — skipping migrate deploy') && next build",
     "build:vercel": "next build",
     "build:prisma": "prisma generate || echo 'Prisma generation skipped'",
     "build:with-prisma": "npm run build:prisma && next build",
