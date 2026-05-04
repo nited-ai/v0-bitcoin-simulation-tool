@@ -5,7 +5,7 @@
  * Provides standardized interfaces for all strategy implementations.
  */
 
-import type { HistoricalDataPoint } from "@/lib/services/centralized-data-service"
+import type { HistoricalDataPoint } from "@/src/modules/price-data/types"
 import type { PriceProjectionResult } from "../../../../app/simulation/price-models/types"
 
 /**

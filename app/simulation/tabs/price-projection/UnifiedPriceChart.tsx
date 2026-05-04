@@ -13,7 +13,7 @@ import { useCentralizedData } from '../../hooks/useCentralizedData'
 import { getPowerLawPrice, getDaysSinceGenesis } from '@/src/modules/price-data/models/powerLaw'
 import { useLiquidationCalculations } from '../../hooks/useCalculationsIntegration'
 import type { PriceProjectionResult, PriceModelParams } from '../../price-models/types'
-import type { HistoricalDataPoint } from '@/lib/services/centralized-data-service'
+import type { HistoricalDataPoint } from '@/src/modules/price-data/types'
 
 interface ChartDataPoint {
   date: string

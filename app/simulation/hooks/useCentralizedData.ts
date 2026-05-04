@@ -13,12 +13,11 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
-import { 
-  centralizedDataService, 
-  type DataServiceState, 
-  type HistoricalDataPoint,
-  type CurrentPriceData 
+import {
+  centralizedDataService,
+  type DataServiceState
 } from '@/lib/services/centralized-data-service'
+import type { HistoricalDataPoint, CurrentPriceData } from '@/src/modules/price-data/types'
 import { useSimulation } from '../context/SimulationContext'
 
 /**

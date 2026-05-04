@@ -11,7 +11,7 @@
  * - Cycles through historical patterns for future projections
  */
 
-import type { HistoricalDataPoint } from '@/lib/services/centralized-data-service'
+import type { HistoricalDataPoint } from '@/src/modules/price-data/types'
 
 export class VolatilityService {
   // Parameter validation ranges

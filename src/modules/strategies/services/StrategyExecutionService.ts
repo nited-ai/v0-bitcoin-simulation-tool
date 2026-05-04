@@ -15,7 +15,7 @@ import type {
   MonthlyEvent
 } from "../types"
 import type { PriceProjectionResult } from "../../../../app/simulation/price-models/types"
-import type { HistoricalDataPoint } from "@/lib/services/centralized-data-service"
+import type { HistoricalDataPoint } from "@/src/modules/price-data/types"
 
 /**
  * Strategy Execution Service Implementation

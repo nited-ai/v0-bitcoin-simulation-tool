@@ -10,7 +10,7 @@ import { priceModelRegistry } from "../../price-models/PriceModelRegistry"
 import { useHistoricalDataOnly } from "../../hooks/useCentralizedData"
 import { useLiquidationCalculations } from "../../hooks/useCalculationsIntegration"
 import type { PriceProjectionResult, PriceLineType, PriceModelParams } from "../../price-models/types"
-import type { HistoricalDataPoint } from "@/lib/services/centralized-data-service"
+import type { HistoricalDataPoint } from "@/src/modules/price-data/types"
 
 /**
  * Price Projection Chart Component
