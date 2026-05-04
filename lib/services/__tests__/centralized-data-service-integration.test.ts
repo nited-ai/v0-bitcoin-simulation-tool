@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { centralizedDataService } from '../centralized-data-service'
-import type { HistoricalDataPoint } from '../centralized-data-service'
+import type { HistoricalDataPoint } from '@/src/modules/price-data/types'
 
 // Mock the JSON data service
 vi.mock('../bitcoin-json-data-service', () => ({

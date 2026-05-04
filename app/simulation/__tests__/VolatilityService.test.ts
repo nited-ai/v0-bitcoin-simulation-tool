@@ -4,7 +4,7 @@
  */
 
 import { VolatilityService } from '../price-models/services/VolatilityService'
-import type { HistoricalDataPoint } from '@/lib/services/centralized-data-service'
+import type { HistoricalDataPoint } from '@/src/modules/price-data/types'
 
 // Mock Power Law calculation function
 const mockGetPowerLawPrice = (date: Date, prognosisLine: 'fit' | 'support' | 'resistance'): number => {

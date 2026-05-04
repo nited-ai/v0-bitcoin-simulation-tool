@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { LogarithmicCurveRepeatModel } from '../LogarithmicCurveRepeatModel'
 import type { PriceModelParams } from '../../types'
-import type { HistoricalDataPoint } from '@/lib/services/centralized-data-service'
+import type { HistoricalDataPoint } from '@/src/modules/price-data/types'
 
 describe('LogarithmicCurveRepeatModel', () => {
   let model: LogarithmicCurveRepeatModel

@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { BitcoinJsonDataService } from '../bitcoin-json-data-service'
-import type { HistoricalDataPoint } from '../centralized-data-service'
+import type { HistoricalDataPoint } from '@/src/modules/price-data/types'
 
 // Mock fetch globally
 const mockFetch = vi.fn()

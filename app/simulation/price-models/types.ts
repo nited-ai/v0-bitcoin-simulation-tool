@@ -5,7 +5,7 @@
  * Provides standardized interfaces for all price models.
  */
 
-import type { HistoricalDataPoint } from "@/lib/services/centralized-data-service"
+import type { HistoricalDataPoint } from "@/src/modules/price-data/types"
 
 /**
  * Price line types for strategy selection

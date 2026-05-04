@@ -7,8 +7,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // Main table for Bitcoin price history
@@ -24,11 +25,13 @@ model BitcoinPrice {
   source    String   @default("unknown") @db.VarChar(50) // Data source (CSV, CoinGecko, Binance, etc.)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+  fetchedAt DateTime @default(now()) @map("fetched_at") // When this row was last refreshed from external API
 
   // Indexes for performance
   @@index([date])
   @@index([timestamp])
   @@index([source])
+  @@index([fetchedAt])
   @@map("bitcoin_prices")
 }
 
@@ -68,4 +71,14 @@ model ApiUsage {
   @@index([apiName, lastRequestAt])
   @@index([apiName, rateLimitResetAt])
   @@map("api_usage")
+}
+
+// Singleton key-value store for system-level state (cron heartbeat, seed timestamps, etc.)
+// Spec §4.2 — bootstrapped with `lastSuccessfulCronAt = '1970-01-01T00:00:00.000Z'` in the migration.
+model SystemMeta {
+  key       String   @id @db.VarChar(50)
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("system_meta")
 }
