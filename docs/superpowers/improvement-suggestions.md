@@ -6,6 +6,27 @@ Format: each item lists who flagged it, when, where, and a short description. Se
 
 ---
 
+## 2026-05-04 — Final PR1 Code Review
+
+### Plan deviation: docker-compose.yml skipped (Documentation)
+
+Spec D17 designated docker-compose as the local dev path. During Task 1 the user picked Option D (skip Docker, use Vercel Postgres for both local and prod via `vercel env pull`). The deviation is intentional and documented in `.env.example` (lines 3-5), but it overrides D17. PR2+ contributors should know:
+
+- No `docker-compose.yml` exists. Local dev uses `vercel env pull .env.local` to get the live DATABASE_URL.
+- This means local dev hits the same DB as production. For PR1 this is safe (additive migrations, idempotent seed). For larger schema experiments later, consider Neon's branch-per-PR feature.
+
+If we ever need to revert to local Docker, the original D17 plan in `2026-05-03-bitcoin-price-data-pr1-foundation.md` Task 1 has the docker-compose.yml content.
+
+### Consider deleting one-shot scripts in PR5 (Defer)
+
+Flagged by final code review. `scripts/copy-old-to-new.ts` and `scripts/inspect-db.ts` served their one-shot purpose during the OLD → NEW DB migration. They lack unit tests and `copy-old-to-new.ts` has known re-runnability issues (no idempotency precheck for `data_updates`, no per-table transactions). Options for PR5:
+- Delete both
+- Or move to `scripts/archive/` with a CONFIRM=yes env-var gate to prevent accidental re-runs
+
+`scripts/gap-fill-prices.ts` stays — it's the canonical seed/gap-fill going forward, with full test coverage.
+
+---
+
 ## 2026-05-04 — Task 11: Live Gap-Fill
 
 ### `system_meta.updated_at` vs `value` clock skew (Minor)
