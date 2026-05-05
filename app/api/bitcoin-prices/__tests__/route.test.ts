@@ -41,7 +41,9 @@ beforeEach(() => {
   })
   mockStoreInstance.getRange.mockResolvedValue([])
   mockStoreInstance.getATH.mockResolvedValue(124773.51)
-  mockStoreInstance.getMeta.mockResolvedValue('2026-05-04T00:05:00.000Z')
+  mockStoreInstance.getMeta.mockResolvedValue(
+    new Date(Date.now() - 60 * 60 * 1000).toISOString()  // 1 hour ago, well under 25h staleness threshold
+  )
   mockUpdater.updateCurrent.mockResolvedValue({ skipped: true })
 })
 

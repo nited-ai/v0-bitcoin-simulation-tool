@@ -7,8 +7,11 @@ vi.mock('@/lib/generated/prisma', () => ({
     $disconnect: vi.fn().mockResolvedValue(undefined),
   })),
 }))
+const mockStoreInstance: any = {
+  setMeta: vi.fn().mockResolvedValue(undefined),
+}
 vi.mock('@/src/modules/price-data/services/PriceStore', () => ({
-  createPriceStore: vi.fn(() => ({})),
+  createPriceStore: vi.fn(() => mockStoreInstance),
 }))
 vi.mock('@/src/modules/price-data/services/PriceSource', () => ({
   fetchCurrentWithFallback: vi.fn(),
@@ -65,5 +68,14 @@ describe('POST /api/cron/update-prices behavior', () => {
     const body = await res.json()
     expect(body).toHaveProperty('fillGaps')
     expect(body).toHaveProperty('updateCurrent')
+  })
+
+  it('writes lastSuccessfulCronAt heartbeat after successful updateCurrent', async () => {
+    const res = await callRoute({ Authorization: 'Bearer test-secret-12345' })
+    expect(res.status).toBe(200)
+    expect(mockStoreInstance.setMeta).toHaveBeenCalledWith(
+      'lastSuccessfulCronAt',
+      expect.any(String),
+    )
   })
 })

@@ -44,6 +44,11 @@ export async function POST(request: Request) {
 
     const updateResult = await updater.updateCurrent(true)  // force=true: cron always refreshes
 
+    // Write the cron heartbeat so the read endpoint's isStale flag works.
+    // Without this, lastSuccessfulCronAt sits at bootstrap 1970-01-01 forever
+    // and isStale would be permanently true once UI consumes the read endpoint (PR3/PR4).
+    await store.setMeta('lastSuccessfulCronAt', new Date().toISOString())
+
     return NextResponse.json({
       ok: true,
       updateCurrent: updateResult,
