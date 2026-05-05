@@ -7,7 +7,6 @@
  */
 
 import { useMemo, useCallback } from 'react'
-import { athService } from '@/lib/services/ath-service'
 import { getPlatformConfig as getMainPlatformConfig } from '../../constants/platformPresets'
 
 // ============================================================================
@@ -226,25 +225,15 @@ export class CalculationsService {
   }
 
   /**
-   * Calculate liquidation metrics with dynamic ATH from service
-   * This is the main public method that fetches ATH and calls the calculation method
-   */
-  async calculateLiquidationMetricsWithATH(params: SimulationParams): Promise<LiquidationMetrics> {
-    try {
-      const currentATH = await athService.getCurrentATH()
-      return this.calculateLiquidationMetrics(params, currentATH)
-    } catch (error) {
-      console.warn('⚠️ Failed to fetch ATH for calculations, using fallback:', error)
-      return this.calculateLiquidationMetrics(params) // Will use fallback ATH
-    }
-  }
-
-  /**
    * Calculate liquidation metrics including immediate and true liquidation scenarios
    * This method exactly matches the logic from PriceDropToleranceCard component
+   *
+   * @param athPrice - All-time high price (required). Callers obtain this from
+   *   `usePriceData()` and pass it explicitly. No internal fallback — pass a
+   *   sensible sentinel (e.g. `currentPrice`) if ATH is not yet loaded.
    */
-  calculateLiquidationMetrics(params: SimulationParams, athPrice?: number): LiquidationMetrics {
-    const finalAthPrice = athPrice ?? 124277.98
+  calculateLiquidationMetrics(params: SimulationParams, athPrice: number): LiquidationMetrics {
+    const finalAthPrice = athPrice
     const cacheKey = `liquidation-${JSON.stringify(params)}-ath-${finalAthPrice}`
     if (this.calculationCache.has(cacheKey)) {
       return this.calculationCache.get(cacheKey)
@@ -486,8 +475,11 @@ export class CalculationsService {
 
   /**
    * Calculate all metrics in a single call
+   *
+   * @param athPrice - All-time high price (required). Pass from `usePriceData()`
+   *   in the calling component, or use `params.initialBtcPrice` as a sentinel.
    */
-  calculateAll(params: SimulationParams): CalculationResults {
+  calculateAll(params: SimulationParams, athPrice: number): CalculationResults {
     const validation = this.validateParameters(params)
 
     if (!validation.isValid) {
@@ -495,7 +487,7 @@ export class CalculationsService {
     }
 
     return {
-      liquidation: this.calculateLiquidationMetrics(params),
+      liquidation: this.calculateLiquidationMetrics(params, athPrice),
       collateral: this.calculateCollateralMetrics(params),
       loan: this.calculateLoanMetrics(params),
       platform: this.applyPlatformConfig(params),
@@ -687,20 +679,6 @@ export class CalculationsService {
   }
 
   /**
-   * Calculate ATH distance metrics with dynamic ATH from service
-   * Convenience method that fetches ATH and calculates distance
-   */
-  async calculateATHDistanceWithService(currentPrice: number): Promise<ATHDistanceMetrics> {
-    try {
-      const currentATH = await athService.getCurrentATH()
-      return this.calculateATHDistance(currentPrice, currentATH)
-    } catch (error) {
-      console.warn('⚠️ Failed to fetch ATH for distance calculation, using fallback:', error)
-      return this.calculateATHDistance(currentPrice, 124277.98) // Fallback ATH
-    }
-  }
-
-  /**
    * Calculate ATH-based liquidation metrics (private helper)
    * Matches the ATH calculation logic from PriceDropToleranceCard
    */
@@ -812,8 +790,15 @@ export function useCalculations(params: SimulationParams): CalculationResults | 
     }
 
     try {
-      // Calculate individual metrics with error handling for each
-      const liquidation = service.calculateLiquidationMetrics(params)
+      // Calculate individual metrics with error handling for each.
+      // PR4 Task 2: athPrice is now a required parameter on calculateLiquidationMetrics.
+      // This hook does not yet receive ATH from usePriceData() — using
+      // params.initialBtcPrice as a placeholder until useCalculations is migrated
+      // in a later PR4 task. Distance/drop-from-ATH metrics will collapse to 0%
+      // here, but the components that surface those (e.g. ATHAlert) call the
+      // service directly with the real ATH from usePriceData().
+      const athPlaceholder = params.initialBtcPrice
+      const liquidation = service.calculateLiquidationMetrics(params, athPlaceholder)
       const collateral = service.calculateCollateralMetrics(params)
       const loan = service.calculateLoanMetrics(params)
       const platform = service.applyPlatformConfig(params)

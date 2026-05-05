@@ -1,13 +1,12 @@
 "use client"
 
-import React, { useMemo, useEffect } from "react"
+import React, { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { CheckCircle2, AlertTriangle, AlertOctagon } from "lucide-react"
-import { useATH } from "../../hooks/useATH"
+import { usePriceData } from "@/src/modules/price-data/hooks/usePriceData"
 import { CalculationsService } from "./calculationsService"
 import { useLocaleNumberFormat } from "@/shared/utils/localeNumberFormat"
-import { useCentralizedData } from "../../hooks/useCentralizedData"
 
 interface ATHAlertProps {
   className?: string
@@ -20,23 +19,21 @@ interface ATHAlertProps {
  * Shows risk-based color coding and appropriate messaging for loan decisions.
  * Placed above the risk level selector cards.
  *
- * **Note**: This component now relies on DataServiceProvider for data initialization.
- * The provider ensures current price data is available before this component renders.
+ * **Note**: Reads price + ATH data from PR3's usePriceData() SWR hook directly.
+ * The hook handles loading/error states; no provider wrapping needed.
  */
 export function ATHAlert({ className = "" }: ATHAlertProps) {
   const { t } = useTranslation()
-  const { ath: currentATH, loading: athLoading, error: athError } = useATH()
-  // Get current price from provider-initialized data service
-  // No need to pass 'true' - provider handles initialization
-  const { currentPrice: currentPriceData } = useCentralizedData(false)
+  const { ath, currentPrice: currentPriceData, isLoading, error } = usePriceData()
+  const currentATH = ath?.value ?? 0
+  const athLoading = isLoading
+  const athError = error
   const calculationsService = useMemo(() => new CalculationsService(), [])
   const { formatCurrency, formatNumber } = useLocaleNumberFormat()
 
-  // Get actual current Bitcoin price from centralized data service
-  // Use realistic fallback if data not yet available
-  const currentPrice = currentPriceData?.price || 114209
-
-  // Calculate ATH distance metrics
+  // Calculate ATH distance metrics — guarded by early returns below
+  // (currentPriceData is non-null past those guards).
+  const currentPrice = currentPriceData?.value ?? 0
   const athDistanceMetrics = useMemo(() => {
     return calculationsService.calculateATHDistance(currentPrice, currentATH)
   }, [calculationsService, currentPrice, currentATH])
@@ -82,63 +79,28 @@ export function ATHAlert({ className = "" }: ATHAlertProps) {
     }
   }
 
-  // Handle loading and error states
-  if (athLoading) {
+  // Handle error and loading states.
+  // Render loading until both ATH and current price are available — no
+  // silent-wrong-number fallbacks per spec.
+  if (athError) {
+    return (
+      <Alert className={`bg-transparent border-border ${className}`}>
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>{t('ATHAlert.errorTitle', 'Could not load ATH data')}</AlertTitle>
+        <AlertDescription>
+          {t('ATHAlert.errorDescription', 'Try refreshing the page. The cron heartbeat is checking for updates.')}
+        </AlertDescription>
+      </Alert>
+    )
+  }
+
+  if (athLoading || !currentPriceData || currentATH === 0) {
     return (
       <Alert className={`bg-transparent border-border ${className}`}>
         <AlertTriangle className="h-4 w-4" />
         <AlertTitle>{t('ATHAlert.loadingTitle', 'Loading ATH data...')}</AlertTitle>
         <AlertDescription>
           {t('ATHAlert.loadingDescription', 'Fetching current All-Time High information')}
-        </AlertDescription>
-      </Alert>
-    )
-  }
-
-  if (athError) {
-    return (
-      <Alert className={`bg-transparent border-border ${className}`}>
-        <AlertTriangle className="h-4 w-4" />
-        <AlertTitle>
-          <span style={{ color: athDistanceMetrics.riskColor, fontWeight: 'medium' }}>
-            {getRiskLabel()}:
-          </span>{' '}
-          {t('ATHAlert.currentPriceIs', 'Current price is')}{' '}
-          {(() => {
-            const fallbackATH = 124277.98
-            const actualDistancePercent = fallbackATH > 0 ? ((fallbackATH - currentPrice) / fallbackATH) * 100 : 0
-            if (actualDistancePercent <= 0) {
-              // At or above ATH - show as new ATH
-              return (
-                <>
-                  {getATHRelationship()}{' '}
-                  <span style={{ color: athDistanceMetrics.riskColor }}>
-                    {formatCurrency(currentPrice)}
-                  </span>
-                </>
-              )
-            } else {
-              // Below ATH - show distance
-              return (
-                <>
-                  <span style={{ color: athDistanceMetrics.riskColor }}>
-                    {formatNumber(athDistanceMetrics.distancePercent, { decimals: 1 })}%
-                  </span>
-                  {' '}/{' '}
-                  <span style={{ color: athDistanceMetrics.riskColor }}>
-                    {formatCurrency(athDistanceMetrics.distanceUSD)}
-                  </span>
-                  {' '}{getATHRelationship()}{' '}
-                  <span style={{ color: athDistanceMetrics.riskColor }}>
-                    {formatCurrency(fallbackATH)}
-                  </span>
-                </>
-              )
-            }
-          })()}
-        </AlertTitle>
-        <AlertDescription>
-          {t('ATHAlert.fallbackDataNotice', 'Using fallback ATH data.')} {t(`ATHAlert.riskDescriptions.${athDistanceMetrics.riskLevel}`, athDistanceMetrics.riskDescription)}
         </AlertDescription>
       </Alert>
     )

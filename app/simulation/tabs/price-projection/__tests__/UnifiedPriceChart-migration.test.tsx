@@ -37,14 +37,18 @@ vi.mock('../../../context/SimulationContext', () => ({
   })
 }))
 
-vi.mock('../../../hooks/useCentralizedData', () => ({
-  useCentralizedData: () => ({
-    historicalData: [
-      { time: 1704067200, close: 42500, open: 42000, high: 43000, low: 41000, volume: 1000, date: '2024-01-01', source: 'json' }
+vi.mock('@/src/modules/price-data/hooks/usePriceData', () => ({
+  usePriceData: () => ({
+    prices: [
+      { date: '2024-01-01', close: 42500, open: 42000, high: 43000, low: 41000 }
     ],
-    isHistoricalDataLoaded: true,
-    isLoadingHistoricalData: false,
-    refreshHistoricalData: vi.fn()
+    currentPrice: { value: 42500, fetchedAt: '2024-01-01T00:00:00Z' },
+    ath: { value: 124773.51 },
+    lastUpdated: '2024-01-01T00:00:00Z',
+    isStale: false,
+    isLoading: false,
+    error: undefined,
+    refresh: vi.fn(),
   })
 }))
 

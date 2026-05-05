@@ -95,7 +95,7 @@ describe('CalculationsService', () => {
     }
 
     it('should calculate liquidation metrics correctly', () => {
-      const result = service.calculateLiquidationMetrics(testParams)
+      const result = service.calculateLiquidationMetrics(testParams, 125000)
 
       expect(result).toBeDefined()
       expect(typeof result.initialImmediateLiquidationPrice).toBe('number')
@@ -107,7 +107,7 @@ describe('CalculationsService', () => {
     })
 
     it('should calculate immediate liquidation price correctly', () => {
-      const result = service.calculateLiquidationMetrics(testParams)
+      const result = service.calculateLiquidationMetrics(testParams, 125000)
 
       // Manual calculation for verification:
       // Total loan cost = $10,000 + ($10,000 * 1.5%) = $10,150
@@ -117,7 +117,7 @@ describe('CalculationsService', () => {
     })
 
     it('should calculate true liquidation price with free collateral', () => {
-      const result = service.calculateLiquidationMetrics(testParams)
+      const result = service.calculateLiquidationMetrics(testParams, 125000)
 
       // Manual calculation for verification:
       // True liquidation price = $10,150 / (95% / 100) / 1 BTC = $11,026.32 (actual calculation)
@@ -127,7 +127,7 @@ describe('CalculationsService', () => {
     })
 
     it('should calculate price drop percentages correctly', () => {
-      const result = service.calculateLiquidationMetrics(testParams)
+      const result = service.calculateLiquidationMetrics(testParams, 125000)
 
       // Immediate price drop: (100,000 - 52,631.58) / 100,000 * 100 = 47.37%
       expect(result.initialImmediatePriceDropPercentage).toBeCloseTo(47.37, 2)
@@ -156,9 +156,9 @@ describe('CalculationsService', () => {
         }
       }
 
-      const firefishResult = service.calculateLiquidationMetrics(testParams)
-      const strikeResult = service.calculateLiquidationMetrics(strikeParams)
-      const customResult = service.calculateLiquidationMetrics(customParams)
+      const firefishResult = service.calculateLiquidationMetrics(testParams, 125000)
+      const strikeResult = service.calculateLiquidationMetrics(strikeParams, 125000)
+      const customResult = service.calculateLiquidationMetrics(customParams, 125000)
 
       // Strike has 85% liquidation LTV (lower than Firefish 95%) = Higher liquidation price
       expect(strikeResult.initialImmediateLiquidationPrice).toBeGreaterThan(firefishResult.initialImmediateLiquidationPrice)
@@ -171,7 +171,7 @@ describe('CalculationsService', () => {
 
     it('should handle zero loan amount', () => {
       const zeroLoanParams = { ...testParams, loanAmountPercent: 0 }
-      const result = service.calculateLiquidationMetrics(zeroLoanParams)
+      const result = service.calculateLiquidationMetrics(zeroLoanParams, 125000)
 
       expect(result.initialImmediateLiquidationPrice).toBe(0)
       expect(result.initialTrueLiquidationPrice).toBe(0)
@@ -191,7 +191,7 @@ describe('CalculationsService', () => {
           targetLtv: 95 // Use 95% of collateral value
         }
       }
-      const result = service.calculateLiquidationMetrics(highLoanParams)
+      const result = service.calculateLiquidationMetrics(highLoanParams, 125000)
 
       // When no free collateral, immediate and true liquidation should be the same
       expect(result.initialImmediateLiquidationPrice).toBeCloseTo(result.initialTrueLiquidationPrice, 2)
@@ -201,7 +201,7 @@ describe('CalculationsService', () => {
     })
 
     it('should include ATH calculations when provided', () => {
-      const result = service.calculateLiquidationMetrics(testParams)
+      const result = service.calculateLiquidationMetrics(testParams, 125000)
 
       // ATH calculations should be included in the result
       expect(result.athPrice).toBeDefined()
@@ -216,7 +216,7 @@ describe('CalculationsService', () => {
     })
 
     it('should match PriceDropToleranceCard calculations exactly', () => {
-      const result = service.calculateLiquidationMetrics(testParams)
+      const result = service.calculateLiquidationMetrics(testParams, 125000)
 
       // These values should match the existing PriceDropToleranceCard component calculations
       // Based on the component analysis:
@@ -506,7 +506,7 @@ describe('CalculationsService', () => {
     it('should complete calculations within 16ms', () => {
       const startTime = performance.now()
       
-      service.calculateLiquidationMetrics(testParams)
+      service.calculateLiquidationMetrics(testParams, 125000)
       service.calculateCollateralMetrics(testParams)
       service.calculateLoanMetrics(testParams)
       
@@ -538,7 +538,7 @@ describe('CalculationsService', () => {
         }
       }
 
-      expect(() => service.calculateLiquidationMetrics(zeroLoanParams)).not.toThrow()
+      expect(() => service.calculateLiquidationMetrics(zeroLoanParams, 125000)).not.toThrow()
       expect(() => service.calculateCollateralMetrics(zeroLoanParams)).not.toThrow()
       expect(() => service.calculateLoanMetrics(zeroLoanParams)).not.toThrow()
     })
@@ -563,7 +563,7 @@ describe('CalculationsService', () => {
         }
       }
 
-      const result = service.calculateLiquidationMetrics(smallBtcParams)
+      const result = service.calculateLiquidationMetrics(smallBtcParams, 125000)
       expect(result.initialImmediateLiquidationPrice).toBeGreaterThan(0)
       expect(isFinite(result.initialImmediateLiquidationPrice)).toBe(true)
     })

@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from "recharts"
 import { useSimulation } from "../../context/SimulationContext"
 import { priceModelRegistry } from "../../price-models/PriceModelRegistry"
-import { useHistoricalDataOnly } from "../../hooks/useCentralizedData"
+import { usePriceData } from "@/src/modules/price-data/hooks/usePriceData"
 import { useLiquidationCalculations } from "../../hooks/useCalculationsIntegration"
 import type { PriceProjectionResult, PriceLineType, PriceModelParams } from "../../price-models/types"
 import type { HistoricalDataPoint } from "@/src/modules/price-data/types"
@@ -20,7 +20,24 @@ import type { HistoricalDataPoint } from "@/src/modules/price-data/types"
  */
 export function PriceProjectionChart() {
   const { params } = useSimulation()
-  const { historicalData, isLoaded } = useHistoricalDataOnly()
+  const { prices, isLoading: isLoadingHistoricalData } = usePriceData()
+  const isLoaded = !isLoadingHistoricalData
+  // Adapter: map new shape to legacy HistoricalDataPoint shape that downstream code expects.
+  // PR5 will simplify by deleting the legacy HistoricalDataPoint type.
+  const historicalData: HistoricalDataPoint[] = useMemo(
+    () =>
+      prices.map(p => ({
+        time: Math.floor(new Date(p.date + 'T00:00:00Z').getTime() / 1000),
+        date: p.date,
+        open: p.open,
+        high: p.high,
+        low: p.low,
+        close: p.close,
+        volume: 0,         // PR2's API endpoint doesn't return volume yet
+        source: 'api',     // Single source identifier
+      })),
+    [prices]
+  )
   const liquidationData = useLiquidationCalculations()
   const [projection, setProjection] = useState<PriceProjectionResult | null>(null)
   const [isLoading, setIsLoading] = useState(false)
