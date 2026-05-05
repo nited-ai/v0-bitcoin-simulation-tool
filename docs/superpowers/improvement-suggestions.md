@@ -6,6 +6,57 @@ Format: each item lists who flagged it, when, where, and a short description. Se
 
 ---
 
+## 2026-05-05 — PR4 Findings (UI cut-over)
+
+### 🟡 Important: `refresh()` doesn't bypass 5-min cooldown (spec divergence)
+
+`BasicParametersCard.handleLoadCurrentPrice` calls SWR's `refresh()` (= `mutate()`), which re-fetches `/api/bitcoin-prices` but does NOT pass `?refresh=force`. Server-side will return cached value if within the 5-min cooldown. Plan called for `?refresh=force`. Not a regression (matches old behavior) but UX nit: button looks like it does nothing if clicked twice quickly.
+
+**Fix options:**
+- Add a `forceRefresh` action to `usePriceData` hook that fetches `/api/bitcoin-prices?refresh=force` then mutates the SWR cache key
+- Or: make BasicParametersCard do a direct `fetch('/api/bitcoin-prices?refresh=force')` then `refresh()`
+
+Either approach is ~5 lines. Defer to fast-follow PR or PR5.
+
+### Three stale-fallback magic numbers still in production code (Minor)
+
+PR4 removed 3 of 4 hardcoded `$124,277.98` fallbacks. There are still:
+- `app/simulation/hooks/useATH.ts:28` — `useState<number>(124277.98)` — file is dead code (PR5 deletes it), but until then technically reachable if someone re-imports `useATH`
+- `app/simulation/tabs/parameters/ATHAlert.tsx:36` — `currentPriceData?.value || 114209` — same anti-pattern, different magic number, applies to currentPrice
+- `app/simulation/tabs/parameters/PriceDropToleranceCard.tsx:100` — `125000` ATH placeholder during loading
+
+PR4's premise was "no silent wrong numbers." Replace these with skeletons/loading states. Easy follow-up.
+
+### Adapter duplication 3x (PR5 cleanup)
+
+`PricePoint → HistoricalDataPoint` adapter is byte-identical in three files (SimulationPage, UnifiedPriceChart, PriceProjectionChart). PR5 either deletes the legacy `HistoricalDataPoint` type and removes the adapters, or extracts a shared utility.
+
+### Unused `useEffect` import in ATHAlert.tsx (Trivial)
+
+Line 3 imports `useEffect` but never uses it post-migration. Trivial cleanup.
+
+### Stale JSDoc in ATHAlert.tsx (Trivial)
+
+Lines 22-23 say "This component now relies on DataServiceProvider for data initialization" — no longer accurate (DataServiceProvider is now a pass-through, this component reads from `usePriceData()` directly). Update during PR5 docs sweep.
+
+### `useCalculations` ATH placeholder (Defer)
+
+`calculationsService.ts:800` still uses `params.initialBtcPrice` as ATH placeholder. Anywhere a component reads `liquidationData.athMetrics` from `useCalculations()` rather than calling the service directly with real ATH gets the wrong value (collapses to 0% drop). ATHAlert + PriceDropToleranceCard already bypass this hook for ATH; if any future component uses it for ATH-derived metrics, threading `usePriceData().ath` through `useCalculationsIntegration` is the right fix.
+
+### Dead `chart-integration.test.tsx` in src/components/__tests__/ (Trivial)
+
+Reviewer noted: imports `app/simulation/components/charts/*` paths that don't exist in this repo. The file is dead — it'll never run. Delete during PR5 cleanup.
+
+### Bridge co-location (Defer)
+
+`<PriceDataBridge />` is render-positional inside `SimulationPage.tsx`. Easy to drop accidentally. Consider lifting into a dedicated `<SimulationContextSync>` next to the SWR setup so accidental tree changes don't silently disable the bridge.
+
+### `act()` warnings in UnifiedPriceChart-migration.test.tsx (Trivial)
+
+State updates inside `useEffect` during initial render cause non-fatal warnings. Tests still pass; wrap rerenders in `act()` for cleanliness.
+
+---
+
 ## 2026-05-05 — PR3 Findings
 
 ### 🟡 MUST address in PR4 or PR5: `ATHData` interface duplicated
