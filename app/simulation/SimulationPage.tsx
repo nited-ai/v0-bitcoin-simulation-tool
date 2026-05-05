@@ -1,20 +1,101 @@
 "use client"
 
 
+import { useEffect, useMemo } from "react"
 import { DataServiceProvider } from "./providers/DataServiceProvider"
-import { SimulationProvider } from "./context/SimulationContext"
+import { SimulationProvider, useSimulation } from "./context/SimulationContext"
 import { SimulationHeader, TabNavigation } from "./shared"
+import { usePriceData } from "@/src/modules/price-data/hooks/usePriceData"
+import type { HistoricalDataPoint } from "@/src/modules/price-data/types"
+
+/**
+ * Bridge: PR4 cut-over orchestration.
+ *
+ * The legacy `useCentralizedData(true)` hook used to subscribe to
+ * centralizedDataService and write its state into SimulationContext as a
+ * side-effect (historicalPriceData, initialDataLoaded, isLoading, errors,
+ * initial BTC price). PR3's usePriceData() returns the same data via SWR but
+ * does NOT touch SimulationContext. This component re-implements the bridge:
+ * it lives once at the top of the tree (inside SimulationProvider) and keeps
+ * SimulationContext in sync with the SWR cache so existing context consumers
+ * (BasicParametersCard, useSimulationRunner, usePriceGeneration, etc.) keep
+ * working unchanged.
+ */
+function PriceDataBridge() {
+  const { prices, currentPrice, isLoading, error } = usePriceData()
+  const {
+    setHistoricalPriceData,
+    setInitialDataLoaded,
+    setIsLoading,
+    setErrors,
+    setParams,
+  } = useSimulation()
+
+  // Adapt PR3's PricePoint[] to the legacy HistoricalDataPoint[] shape that
+  // SimulationContext consumers (chart, price engine, etc.) expect.
+  const historicalData = useMemo<HistoricalDataPoint[]>(
+    () =>
+      prices.map((p) => ({
+        time: Math.floor(new Date(p.date + "T00:00:00Z").getTime() / 1000),
+        date: p.date,
+        open: p.open,
+        high: p.high,
+        low: p.low,
+        close: p.close,
+        volume: 0,
+        source: "api",
+      })),
+    [prices],
+  )
+
+  // Push historical data into context once it arrives.
+  useEffect(() => {
+    if (historicalData.length > 0) {
+      setHistoricalPriceData(historicalData)
+      setInitialDataLoaded(true)
+
+      // Mirror legacy behaviour: seed initialBtcPrice from current price (preferred)
+      // or latest historical close, but only if it actually changed (prevents
+      // clobbering user edits via render loops).
+      const latestClose = historicalData[historicalData.length - 1]?.close
+      const initialPrice = currentPrice?.value ?? latestClose
+      if (initialPrice) {
+        setParams((prev) =>
+          prev.initialBtcPrice !== initialPrice
+            ? { ...prev, initialBtcPrice: initialPrice }
+            : prev,
+        )
+      }
+    }
+  }, [historicalData, currentPrice?.value, setHistoricalPriceData, setInitialDataLoaded, setParams])
+
+  // Mirror loading state.
+  useEffect(() => {
+    setIsLoading(isLoading)
+  }, [isLoading, setIsLoading])
+
+  // Mirror error state.
+  useEffect(() => {
+    if (error) {
+      setErrors([error.message ?? String(error)])
+    } else {
+      setErrors([])
+    }
+  }, [error, setErrors])
+
+  return null
+}
 
 /**
  * Internal component that uses business logic hooks
  */
 function SimulationContent() {
-  // Remove unconditional data loading - now handled by individual components that need it
-  // Historical data and price generation are now lazy-loaded when needed
-
   return (
     <div className="w-full">
       <div className="container mx-auto p-4">
+        {/* PR4 cut-over: keeps SimulationContext in sync with SWR cache */}
+        <PriceDataBridge />
+
         {/* Header with title and controls */}
         <SimulationHeader />
 
