@@ -186,13 +186,36 @@ export interface CurrentPriceData {
 }
 
 /**
+ * Bitcoin All-Time High data — matches the legacy public/data/bitcoin/ath.json shape
+ * for compatibility with old consumers (PR4 will simplify to just `value` + `date` once
+ * those consumers migrate).
+ */
+export interface ATHData {
+  meta: {
+    lastUpdated: string
+    source: string
+    version: string
+    description?: string
+  }
+  ath: {
+    value: number
+    date: string
+    timestamp: number
+    source: string
+  }
+}
+
+/**
  * Data service state for centralized management.
  */
 export interface DataServiceState {
   historicalData: HistoricalDataPoint[]
   currentPrice: CurrentPriceData | null
+  ath: number | null
+  athData: ATHData | null
   isHistoricalDataLoaded: boolean
   isLoadingHistoricalData: boolean
+  isATHLoaded: boolean
   lastHistoricalDataLoad: number
   errors: string[]
   isInitializing: boolean
