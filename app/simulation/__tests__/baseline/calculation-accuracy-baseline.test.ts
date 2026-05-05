@@ -126,7 +126,7 @@ describe('Baseline Calculation Accuracy Tests', () => {
       ]
 
       testCases.forEach((testCase) => {
-        const result = calculationsService.calculateLiquidationMetrics(testCase.input)
+        const result = calculationsService.calculateLiquidationMetrics(testCase.input, 125000)
 
         // Use actual function interface properties
         expect(result.initialImmediateLiquidationPrice).toBeCloseTo(testCase.expected.liquidationPrice, 2)
@@ -317,7 +317,7 @@ describe('Baseline Calculation Accuracy Tests', () => {
         }
       }
       
-      const result = calculationsService.calculateAll(parameters)
+      const result = calculationsService.calculateAll(parameters, 125000)
       
       const endTime = performance.now()
       const executionTime = endTime - startTime

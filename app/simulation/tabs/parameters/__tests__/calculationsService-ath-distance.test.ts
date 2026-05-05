@@ -7,14 +7,9 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { CalculationsService } from '../calculationsService'
-import { athService } from '../../../../../lib/services/ath-service'
-
-// Mock ATH service
-vi.mock('../../../../../lib/services/ath-service')
 
 describe('CalculationsService ATH Distance Calculations', () => {
   let calculationsService: CalculationsService
-  const mockAthService = athService as any
 
   beforeEach(() => {
     calculationsService = new CalculationsService()
@@ -104,34 +99,6 @@ describe('CalculationsService ATH Distance Calculations', () => {
       // Should handle negative current price
       expect(result.distanceUSD).toBeGreaterThanOrEqual(0)
       expect(result.distancePercent).toBeGreaterThanOrEqual(0)
-    })
-  })
-
-  describe('calculateATHDistanceWithService', () => {
-    it('should use ATH service to get current ATH', async () => {
-      const currentPrice = 100000
-      const mockATH = 124277.98
-      
-      mockAthService.getCurrentATH = vi.fn().mockResolvedValue(mockATH)
-      
-      const result = await calculationsService.calculateATHDistanceWithService(currentPrice)
-      
-      expect(mockAthService.getCurrentATH).toHaveBeenCalled()
-      expect(result.athPrice).toBe(mockATH)
-      expect(result.currentPrice).toBe(currentPrice)
-      expect(result.distancePercent).toBeCloseTo(19.5, 1) // Approximately 19.5%
-    })
-
-    it('should use fallback ATH when service fails', async () => {
-      const currentPrice = 100000
-      
-      mockAthService.getCurrentATH = vi.fn().mockRejectedValue(new Error('Service error'))
-      
-      const result = await calculationsService.calculateATHDistanceWithService(currentPrice)
-      
-      expect(mockAthService.getCurrentATH).toHaveBeenCalled()
-      expect(result.athPrice).toBe(124277.98) // Fallback value
-      expect(result.currentPrice).toBe(currentPrice)
     })
   })
 

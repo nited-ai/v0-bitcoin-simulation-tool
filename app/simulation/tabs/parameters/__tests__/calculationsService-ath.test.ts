@@ -7,14 +7,9 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { CalculationsService } from '../calculationsService'
-import { athService } from '../../../../../lib/services/ath-service'
-
-// Mock ATH service
-vi.mock('../../../../../lib/services/ath-service')
 
 describe('CalculationsService ATH Integration', () => {
   let calculationsService: CalculationsService
-  const mockAthService = athService as any
 
   const mockParams = {
     initialBtcAmount: 1,
@@ -43,52 +38,12 @@ describe('CalculationsService ATH Integration', () => {
     vi.clearAllMocks()
   })
 
-  describe('calculateLiquidationMetricsWithATH', () => {
-    it('should use dynamic ATH from service', async () => {
-      mockAthService.getCurrentATH = vi.fn().mockResolvedValue(124277.98)
-
-      const result = await calculationsService.calculateLiquidationMetricsWithATH(mockParams)
-
-      expect(mockAthService.getCurrentATH).toHaveBeenCalled()
-      expect(result.athPrice).toBe(124277.98)
-      expect(result.athMetrics).toBeDefined()
-    })
-
-    it('should use fallback ATH when service fails', async () => {
-      mockAthService.getCurrentATH = vi.fn().mockRejectedValue(new Error('Service error'))
-
-      const result = await calculationsService.calculateLiquidationMetricsWithATH(mockParams)
-
-      expect(mockAthService.getCurrentATH).toHaveBeenCalled()
-      expect(result.athPrice).toBe(124277.98) // Fallback value
-      expect(result.athMetrics).toBeDefined()
-    })
-
-    it('should calculate ATH metrics correctly with dynamic ATH', async () => {
-      const customATH = 130000
-      mockAthService.getCurrentATH = vi.fn().mockResolvedValue(customATH)
-
-      const result = await calculationsService.calculateLiquidationMetricsWithATH(mockParams)
-
-      expect(result.athPrice).toBe(customATH)
-      expect(result.athMetrics!.priceDropPercentage).toBeGreaterThanOrEqual(0)
-      expect(result.athMetrics!.truePriceDropPercentage).toBeGreaterThanOrEqual(0)
-    })
-  })
-
   describe('calculateLiquidationMetrics with ATH parameter', () => {
     it('should use provided ATH value', () => {
       const customATH = 130000
       const result = calculationsService.calculateLiquidationMetrics(mockParams, customATH)
 
       expect(result.athPrice).toBe(customATH)
-      expect(result.athMetrics).toBeDefined()
-    })
-
-    it('should use fallback ATH when no parameter provided', () => {
-      const result = calculationsService.calculateLiquidationMetrics(mockParams)
-
-      expect(result.athPrice).toBe(124277.98) // Fallback value
       expect(result.athMetrics).toBeDefined()
     })
 
