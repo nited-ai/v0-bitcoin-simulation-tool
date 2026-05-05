@@ -67,7 +67,9 @@ describe('ATHAlert', () => {
     })
   })
 
-  it('should use realistic fallback when price data not available', async () => {
+  it('should render loading state when current price is not yet available', async () => {
+    // No silent-wrong-number fallback: if currentPrice is null we render
+    // the loading alert until SWR delivers real data.
     mockedUsePriceData.mockReturnValue({
       ...defaultMockReturn,
       currentPrice: null,
@@ -76,7 +78,7 @@ describe('ATHAlert', () => {
     render(<ATHAlert />)
 
     await waitFor(() => {
-      expect(screen.getByText(/currentPriceIs/i)).toBeInTheDocument()
+      expect(screen.getByText(/loadingTitle/i)).toBeInTheDocument()
     })
   })
 

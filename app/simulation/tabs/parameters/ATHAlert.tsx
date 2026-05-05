@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useMemo, useEffect } from "react"
+import React, { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { CheckCircle2, AlertTriangle, AlertOctagon } from "lucide-react"
@@ -19,8 +19,8 @@ interface ATHAlertProps {
  * Shows risk-based color coding and appropriate messaging for loan decisions.
  * Placed above the risk level selector cards.
  *
- * **Note**: This component now relies on DataServiceProvider for data initialization.
- * The provider ensures current price data is available before this component renders.
+ * **Note**: Reads price + ATH data from PR3's usePriceData() SWR hook directly.
+ * The hook handles loading/error states; no provider wrapping needed.
  */
 export function ATHAlert({ className = "" }: ATHAlertProps) {
   const { t } = useTranslation()
@@ -31,11 +31,9 @@ export function ATHAlert({ className = "" }: ATHAlertProps) {
   const calculationsService = useMemo(() => new CalculationsService(), [])
   const { formatCurrency, formatNumber } = useLocaleNumberFormat()
 
-  // Get actual current Bitcoin price from centralized data service
-  // Use realistic fallback if data not yet available
-  const currentPrice = currentPriceData?.value || 114209
-
-  // Calculate ATH distance metrics
+  // Calculate ATH distance metrics — guarded by early returns below
+  // (currentPriceData is non-null past those guards).
+  const currentPrice = currentPriceData?.value ?? 0
   const athDistanceMetrics = useMemo(() => {
     return calculationsService.calculateATHDistance(currentPrice, currentATH)
   }, [calculationsService, currentPrice, currentATH])
@@ -81,19 +79,9 @@ export function ATHAlert({ className = "" }: ATHAlertProps) {
     }
   }
 
-  // Handle loading and error states
-  if (athLoading) {
-    return (
-      <Alert className={`bg-transparent border-border ${className}`}>
-        <AlertTriangle className="h-4 w-4" />
-        <AlertTitle>{t('ATHAlert.loadingTitle', 'Loading ATH data...')}</AlertTitle>
-        <AlertDescription>
-          {t('ATHAlert.loadingDescription', 'Fetching current All-Time High information')}
-        </AlertDescription>
-      </Alert>
-    )
-  }
-
+  // Handle error and loading states.
+  // Render loading until both ATH and current price are available — no
+  // silent-wrong-number fallbacks per spec.
   if (athError) {
     return (
       <Alert className={`bg-transparent border-border ${className}`}>
@@ -101,6 +89,18 @@ export function ATHAlert({ className = "" }: ATHAlertProps) {
         <AlertTitle>{t('ATHAlert.errorTitle', 'Could not load ATH data')}</AlertTitle>
         <AlertDescription>
           {t('ATHAlert.errorDescription', 'Try refreshing the page. The cron heartbeat is checking for updates.')}
+        </AlertDescription>
+      </Alert>
+    )
+  }
+
+  if (athLoading || !currentPriceData || currentATH === 0) {
+    return (
+      <Alert className={`bg-transparent border-border ${className}`}>
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>{t('ATHAlert.loadingTitle', 'Loading ATH data...')}</AlertTitle>
+        <AlertDescription>
+          {t('ATHAlert.loadingDescription', 'Fetching current All-Time High information')}
         </AlertDescription>
       </Alert>
     )

@@ -53,18 +53,21 @@ export const BasicParametersCard = React.memo(function BasicParametersCard() {
   // Investment mode description function moved to Strategy tab
 
   /**
-   * Refresh current BTC price via SWR.
+   * Refresh current BTC price.
    *
-   * SWR refresh() triggers /api/bitcoin-prices revalidation, which on the
-   * server side calls fetchCurrentWithFallback + upserts to DB via lazy refresh.
-   * After the new price arrives in `currentPriceData`, the effect below syncs
-   * it into params (gated on `isRefreshing` so unrelated SWR revalidations
-   * don't clobber user-edited values).
+   * Hits /api/bitcoin-prices?refresh=force first to bypass the server-side
+   * 5-minute cooldown and force an upstream re-fetch + DB upsert. Then calls
+   * SWR refresh() to revalidate the cache so `currentPriceData` updates.
+   * The effect below then syncs the new value into params (gated on
+   * `isRefreshing` so unrelated SWR revalidations don't clobber user edits).
    */
   const handleLoadCurrentPrice = useCallback(async () => {
     setLoadingBtcPrice(true)
     setIsRefreshing(true)
     try {
+      // Force server-side upstream refresh (bypasses 5-min cooldown)
+      await fetch('/api/bitcoin-prices?refresh=force')
+      // Then revalidate SWR cache so the new currentPrice arrives
       await refreshPriceData()
     } catch (error) {
       console.error("Failed to refresh current BTC price:", error)

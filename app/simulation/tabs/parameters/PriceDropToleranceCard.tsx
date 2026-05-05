@@ -96,8 +96,9 @@ export function PriceDropToleranceCard() {
   // Enhanced ATH metrics calculation using centralized service
   const athMetrics = useMemo(() => {
     if (!liquidationData?.athPrice || !liquidationData?.athMetrics) {
-      // Use dynamic ATH from service with fallback
-      const athPrice = athLoading || currentATH === null ? 125000 : currentATH
+      // Use dynamic ATH from SWR. Early return above (in render) ensures
+      // currentATH is non-null here — no silent-wrong-number fallbacks.
+      const athPrice = currentATH ?? 0
       return {
         athPrice,
         liquidationPrice: metrics.liquidationPrice,
@@ -481,6 +482,28 @@ export function PriceDropToleranceCard() {
           {t('PriceDropTolerance.trueTopUp', 'True (Top-up)')}
         </text>
       </g>
+    )
+  }
+
+  // Render loading state until ATH SWR data arrives — no magic-number fallbacks
+  // per spec's "no silent wrong numbers" principle.
+  if (athLoading || currentATH === null) {
+    return (
+      <CalculationsErrorBoundary>
+        <Card className="border-0">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="w-5 h-5 text-primary" />
+              {t('PriceDropTolerance.title', 'Price Drop Tolerance')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              {t('PriceDropTolerance.loadingATH', 'Loading ATH...')}
+            </p>
+          </CardContent>
+        </Card>
+      </CalculationsErrorBoundary>
     )
   }
 
