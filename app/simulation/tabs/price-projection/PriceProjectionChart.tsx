@@ -8,6 +8,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useSimulation } from "../../context/SimulationContext"
 import { priceModelRegistry } from "../../price-models/PriceModelRegistry"
 import { usePriceData } from "@/src/modules/price-data/hooks/usePriceData"
+import { adaptManyToHistoricalDataPoints } from "@/src/modules/price-data/utils/adaptToHistoricalDataPoint"
 import { useLiquidationCalculations } from "../../hooks/useCalculationsIntegration"
 import type { PriceProjectionResult, PriceLineType, PriceModelParams } from "../../price-models/types"
 import type { HistoricalDataPoint } from "@/src/modules/price-data/types"
@@ -23,19 +24,8 @@ export function PriceProjectionChart() {
   const { prices, isLoading: isLoadingHistoricalData } = usePriceData()
   const isLoaded = !isLoadingHistoricalData
   // Adapter: map new shape to legacy HistoricalDataPoint shape that downstream code expects.
-  // PR5 will simplify by deleting the legacy HistoricalDataPoint type.
   const historicalData: HistoricalDataPoint[] = useMemo(
-    () =>
-      prices.map(p => ({
-        time: Math.floor(new Date(p.date + 'T00:00:00Z').getTime() / 1000),
-        date: p.date,
-        open: p.open,
-        high: p.high,
-        low: p.low,
-        close: p.close,
-        volume: 0,         // PR2's API endpoint doesn't return volume yet
-        source: 'api',     // Single source identifier
-      })),
+    () => adaptManyToHistoricalDataPoints(prices),
     [prices]
   )
   const liquidationData = useLiquidationCalculations()
