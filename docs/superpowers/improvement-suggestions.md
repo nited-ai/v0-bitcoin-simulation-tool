@@ -6,6 +6,48 @@ Format: each item lists who flagged it, when, where, and a short description. Se
 
 ---
 
+## 2026-05-05 — PR3 Findings
+
+### 🟡 MUST address in PR4 or PR5: `ATHData` interface duplicated
+
+PR3 added `ATHData` to `src/modules/price-data/types/index.ts` to satisfy the DataServiceState reconciliation. The legacy definition in `lib/services/ath-service.ts` is byte-identical. PR5 deletes the legacy file; until then, consider re-exporting one from the other or adding cross-link TODO comments to make divergence visible. Drift risk is low (the shape is stable) but real.
+
+### 🟡 PR4 migration is NOT a pure import-path swap (clarify in PR4 plan)
+
+The new `usePriceData()` returns:
+- `ath: { value: number } | null` — no nested `meta`/`ath` structure
+- `currentPrice: { value: number; fetchedAt: string } | null` — not a number, not legacy `CurrentPriceData`
+- `prices: PricePoint[]` — not `historicalData`; no `time` (unix seconds), no `volume`, no `source` fields
+
+ATHAlert / BasicParametersCard / UnifiedPriceChart / HistoricalDataChart will need real code changes (destructuring + property access), not just import-path edits. Reviewers should expect more than a 30-line PR4 diff. Worth flagging in the PR4 plan.
+
+### Stale JSDoc + comment (Minor)
+
+- `src/modules/price-data/index.ts:20` shows the pre-PR3 hook return shape (`{historicalData, currentPrice, isLoading}`). Update during PR4.
+- `src/modules/__tests__/phase-2-integration.test.ts:74-76` has a stale `// Note: usePriceData hook test removed due to infinite loop in test environment` comment — that bug is exactly what PR3's SWR rewrite fixed. Re-add a smoke test or delete the comment.
+
+### `README.md` and `API.md` inside `src/modules/price-data/` likely document old hook (Minor)
+
+Not touched in PR3. Will mislead PR4 implementers if they describe the 200-line class-wrapper hook return shape. Sweep + update during PR4 consumer migration.
+
+### `getCurrentPrice` ignores the `ath` field of the response (Defer)
+
+The unified API response includes `ath`, but `PriceDataService.getCurrentPrice()` only returns `currentPrice.value`. No consumer needs it post-PR4 (consumers go through the SWR hook), but the asymmetry is worth noting if a non-React server-side caller ever needs ATH from the service.
+
+### `prisma migrate deploy` runs against prod even on local builds (Minor)
+
+Flagged by Task 8 implementer. The build script gates on `DATABASE_URL` being set, but `.env.local` (pulled from Vercel) sets it to the prod URL. Result: `pnpm build` locally hits prod. Consider gating to only run in CI or behind an explicit flag — local builds shouldn't touch prod migrations.
+
+### Vercel SSO blocks programmatic preview smoke-tests (Defer)
+
+Every preview deployment returns HTTP 401 from Vercel SSO. This makes `curl`-based verification of `/api/*` and `/simulation` impossible without SSO bypass tokens. Same trap hit PR1+PR2. Either disable Deployment Protection on previews or document the bypass header for future smoke tests.
+
+### Production-grade emoji console logs (Defer)
+
+`PriceDataService.ts` has emoji-prefixed `console.log` calls (📊, 📡, ✅, 💰, ❌) that fire in browser + server logs without an env gate. Pre-existing from earlier work, not introduced by PR3, but worth a project-wide logging-policy pass.
+
+---
+
 ## 2026-05-05 — PR2 Findings
 
 ### 🔴 MUST FIX before next PR: promote DATABASE_URL/DIRECT_URL to all-preview-branches scope

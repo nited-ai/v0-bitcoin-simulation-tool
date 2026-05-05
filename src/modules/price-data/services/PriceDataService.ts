@@ -32,32 +32,51 @@ import { PerformanceMonitor } from './PerformanceMonitor'
 // Phase 1 Migration: Import UnifiedPriceProjectionService
 import { unifiedPriceProjectionService, PriceProjectionAdapter } from '../../shared'
 
-// Temporary mock services for migration phase
-// These will be replaced with internal implementations in Phase 7
-const centralizedDataService = {
-  loadHistoricalData: async (): Promise<HistoricalDataPoint[]> => {
-    // Mock implementation - returns empty array for now
-    console.warn('Using mock centralized data service')
-    return []
-  },
-  getCurrentPrice: async () => ({
-    price: 50000,
-    timestamp: Date.now() / 1000,
-    source: 'mock',
-    lastUpdated: new Date().toISOString()
-  }),
-  isInitialized: () => true,
-  initialize: async () => {}
+// === API client functions (replacing PR1/2's inline mocks) ===
+
+interface PriceApiResponse {
+  prices: Array<{ date: string; close: number; high: number; low: number; open: number }>
+  currentPrice: { value: number; fetchedAt: string } | null
+  ath: { value: number } | null
+  lastUpdated: string | null
+  isStale: boolean
 }
 
-const enhancedBitcoinApiService = {
-  getCurrentPrice: async (): Promise<number> => {
-    // Mock implementation - returns fixed price for now
-    console.warn('Using mock bitcoin API service')
-    return 50000
-  },
-  getHistoricalData: async (): Promise<HistoricalDataPoint[]> => [],
-  isHealthy: async () => true
+/**
+ * Determine the API base URL.
+ * - Browser: relative path (same-origin) works
+ * - Server-side: must be absolute. Use NEXT_PUBLIC_API_BASE or VERCEL_URL or fall back to localhost.
+ *
+ * For tests: vi.stubGlobal('fetch') intercepts before the URL is resolved anyway.
+ */
+function getApiBase(): string {
+  if (typeof window !== 'undefined') return ''
+  if (process.env.NEXT_PUBLIC_API_BASE) return process.env.NEXT_PUBLIC_API_BASE
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`
+  return 'http://localhost:3000'
+}
+
+async function fetchPriceData(
+  params: { from?: string; to?: string; refresh?: 'force' } = {},
+): Promise<PriceApiResponse> {
+  const base = getApiBase()
+  const url = new URL('/api/bitcoin-prices', base || 'http://localhost:3000')
+  if (params.from) url.searchParams.set('from', params.from)
+  if (params.to) url.searchParams.set('to', params.to)
+  if (params.refresh) url.searchParams.set('refresh', params.refresh)
+
+  // For browser, use just pathname+search (relative); for server, use absolute
+  const fetchUrl = base
+    ? url.toString()
+    : typeof window !== 'undefined'
+      ? `/api/bitcoin-prices${url.search}`
+      : url.toString()
+
+  const res = await fetch(fetchUrl)
+  if (!res.ok) {
+    throw new Error(`Price API: HTTP ${res.status} ${res.statusText}`)
+  }
+  return res.json()
 }
 
 /**
@@ -112,11 +131,18 @@ export class PriceDataService implements IPriceDataService {
         }
       }
 
-      // Load from centralized data service
-      console.log('📡 Loading historical data from centralized service...')
-      const data = await centralizedDataService.loadHistoricalData()
+      console.log('📡 Loading historical data from /api/bitcoin-prices...')
+      const apiResponse = await fetchPriceData()
+      // Convert API row shape -> HistoricalDataPoint shape
+      const data: HistoricalDataPoint[] = apiResponse.prices.map((p) => ({
+        time: Math.floor(new Date(p.date).getTime() / 1000), // unix seconds
+        date: p.date,
+        open: p.open,
+        high: p.high,
+        low: p.low,
+        close: p.close,
+      }))
 
-      // Cache the result
       if (options.useCache !== false) {
         this.cache.set(cacheKey, data, options.maxAge)
       }
@@ -151,23 +177,23 @@ export class PriceDataService implements IPriceDataService {
         }
       }
 
-      // Fetch current price
-      console.log('💰 Fetching current Bitcoin price...')
-      const priceData = await enhancedBitcoinApiService.getCurrentPrice()
-      
-      if (!priceData || typeof priceData !== 'number') {
-        throw new Error('Invalid price data received')
+      console.log('💰 Fetching current price from /api/bitcoin-prices...')
+      const apiResponse = await fetchPriceData(
+        options.preferLive ? { refresh: 'force' } : {},
+      )
+      const price = apiResponse.currentPrice?.value
+      if (typeof price !== 'number') {
+        throw new Error('PriceDataService: API returned no currentPrice')
       }
 
-      // Cache the result (short cache for current price)
       if (options.useCache !== false) {
-        this.cache.set(cacheKey, priceData, 5 * 60 * 1000) // 5 minutes cache
+        this.cache.set(cacheKey, price, 5 * 60 * 1000) // 5 minutes
       }
 
       this.performanceMonitor.recordOperation('current-price-fetch', performance.now() - startTime, true, false)
-      console.log(`✅ Current Bitcoin price: $${priceData}`)
-      
-      return priceData
+      console.log(`✅ Current price: $${price}`)
+
+      return price
 
     } catch (error) {
       this.performanceMonitor.recordOperation('current-price-fetch', performance.now() - startTime, false, false)
