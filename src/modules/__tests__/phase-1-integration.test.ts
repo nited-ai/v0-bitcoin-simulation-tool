@@ -6,7 +6,7 @@
  * to ensure backward compatibility and correct format handling.
  */
 
-import { describe, it, expect, beforeAll } from 'vitest'
+import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest'
 import { PriceDataService } from '../price-data/services/PriceDataService'
 import {
   unifiedPriceProjectionService,
@@ -18,6 +18,30 @@ import {
 } from '../shared'
 import type { PriceEngineParams } from '../price-data/types'
 
+// Empty-but-valid PriceApiResponse so loadHistoricalData() doesn't throw in
+// jsdom (no real fetch + relative URLs are unparseable). Task 4 wired the
+// service to GET /api/bitcoin-prices, so any test that triggers it without
+// providing historical data needs this stub.
+const EMPTY_API_RESPONSE = {
+  prices: [],
+  currentPrice: null,
+  ath: null,
+  lastUpdated: null,
+  isStale: false,
+}
+
+function stubFetchWith(body: any, status = 200) {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({
+      ok: status >= 200 && status < 300,
+      status,
+      statusText: status === 200 ? 'OK' : 'Error',
+      json: () => Promise.resolve(body),
+    }),
+  )
+}
+
 describe('Phase 1 Integration Tests', () => {
   let priceDataService: PriceDataService
 
@@ -28,6 +52,15 @@ describe('Phase 1 Integration Tests', () => {
       MigrationPhase.PHASE_1_FOUNDATION,
       'Starting integration test suite'
     )
+  })
+
+  beforeEach(() => {
+    vi.unstubAllGlobals()
+    vi.clearAllMocks()
+    // Reset singleton + recreate so each test gets a clean cache + fresh fetch.
+    ;(PriceDataService as any).instance = null
+    stubFetchWith(EMPTY_API_RESPONSE)
+    priceDataService = PriceDataService.getInstance()
   })
 
   // Helper function to create valid PriceEngineParams
