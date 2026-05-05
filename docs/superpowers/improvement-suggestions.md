@@ -6,6 +6,38 @@ Format: each item lists who flagged it, when, where, and a short description. Se
 
 ---
 
+## 2026-05-05 — PR2 Findings
+
+### 🔴 MUST FIX before next PR: promote DATABASE_URL/DIRECT_URL to all-preview-branches scope
+
+Bit us TWICE now — PR1 build failed because env vars were branch-scoped to a non-existent branch; PR2 build failed because the env vars were scoped only to `feature/pr1-foundation` and didn't inherit. Each new feature branch will hit this until the env vars are added with the "all preview branches" scope (no branch parameter).
+
+**Action:** in Vercel dashboard → Project Settings → Environment Variables → for each of `DATABASE_URL`, `DIRECT_URL`, `CRON_SECRET`, `COINCAP_API_KEY`, `COINDESK_API_KEY`: ensure they're set for `Preview` without a specific git-branch filter. Existing branch-scoped entries can stay or be deleted.
+
+This needs to happen BEFORE PR3's first push or that build will fail too.
+
+### `experimental.after` flag is no longer needed in Next.js 15.5+
+
+Both PR2's build log and dev log warn:
+```
+The experimental.after option is now stable and the experimental flag is no longer needed.
+```
+Set in `next.config.mjs` during Task 1 (`633d120`). Remove in PR3 cleanup. (Spec D12 was correct for older Next.js but the project is now on 15.5.15 where it's automatic.)
+
+### Old `/api/bitcoin-prices/*` routes instantiate Prisma at module load
+
+Already flagged in PR1 (build failed for the same reason). The 7 nested old routes (current/historical/stats/update/daily-update/comprehensive-gap-fill/regenerate-json) all do `new PrismaClient()` at module top, so any preview build without `DATABASE_URL` scoped to that branch crashes during "Collecting page data". PR5 deletes them; in the meantime, the env-var scoping fix above is the workaround.
+
+### `vercel curl` + protection-bypass for POST is broken (Minor)
+
+PR2's deployed cron endpoint couldn't be smoke-tested via `vercel curl --deployment ... -X POST` — the auto-bypass cookie isn't forwarded for POST. Local 200/401 behavior confirmed. Vercel's internal cron scheduler bypasses the protection layer separately, so production cron firing isn't affected. If we ever need to manually exercise protected previews via POST, set `x-vercel-protection-bypass` header explicitly.
+
+### Test count drift +1 (Minor)
+
+Test suite shows 1074 passing / 123 failing vs expected 1075/122. Slight delta below tolerance; likely a flaky timing-sensitive test. Not blocking. Worth a clean re-run if precise parity matters.
+
+---
+
 ## 2026-05-04 — Final PR1 Code Review
 
 ### Plan deviation: docker-compose.yml skipped (Documentation)
