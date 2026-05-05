@@ -8,7 +8,7 @@ import { useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useSimulation } from "../../context/SimulationContext"
 import { useLiquidationCalculations } from "../../hooks/useCalculationsIntegration"
-import { useATH } from "../../hooks/useATH"
+import { usePriceData } from "@/src/modules/price-data/hooks/usePriceData"
 import { CalculationsErrorBoundary } from "./CalculationsErrorBoundary"
 import { HybridTooltip, HybridTooltipContent, HybridTooltipTrigger } from "@/components/ui/hybrid-tooltip"
 
@@ -49,7 +49,9 @@ export function PriceDropToleranceCard() {
   const { t } = useTranslation()
   const { params } = useSimulation()
   const liquidationData = useLiquidationCalculations()
-  const { ath: currentATH, loading: athLoading } = useATH()
+  // PR4: SWR-backed ATH (replaces useATH)
+  const { ath, isLoading: athLoading } = usePriceData()
+  const currentATH = ath?.value ?? null
 
   // Toggle state for view selection (default to "From Current Price")
   const [viewMode, setViewMode] = useState<'current' | 'ath'>('current')
@@ -95,7 +97,7 @@ export function PriceDropToleranceCard() {
   const athMetrics = useMemo(() => {
     if (!liquidationData?.athPrice || !liquidationData?.athMetrics) {
       // Use dynamic ATH from service with fallback
-      const athPrice = athLoading ? 125000 : currentATH
+      const athPrice = athLoading || currentATH === null ? 125000 : currentATH
       return {
         athPrice,
         liquidationPrice: metrics.liquidationPrice,

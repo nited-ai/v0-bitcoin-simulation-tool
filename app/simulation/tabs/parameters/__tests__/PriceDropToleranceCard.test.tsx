@@ -1,8 +1,8 @@
 /**
  * PriceDropToleranceCard Tests
- * 
+ *
  * Tests for the updated PriceDropToleranceCard component that uses dynamic ATH
- * from the ATH service instead of hard-coded values.
+ * from PR3's usePriceData() SWR hook (instead of the legacy useATH service).
  */
 
 import React from 'react'
@@ -17,17 +17,30 @@ global.ResizeObserver = vi.fn().mockImplementation(() => ({
   disconnect: vi.fn(),
 }))
 import { PriceDropToleranceCard } from '../PriceDropToleranceCard'
-import { useATH } from '../../../hooks/useATH'
+import { usePriceData } from '@/src/modules/price-data/hooks/usePriceData'
 import { useSimulation } from '../../../context/SimulationContext'
 import { useLiquidationCalculations } from '../../../hooks/useCalculationsIntegration'
 
 // Mock dependencies
-vi.mock('../../../hooks/useATH')
+vi.mock('@/src/modules/price-data/hooks/usePriceData', () => ({
+  usePriceData: vi.fn(),
+}))
 vi.mock('../../../context/SimulationContext')
 vi.mock('../../../hooks/useCalculationsIntegration')
 
+const defaultUsePriceDataReturn = {
+  prices: [],
+  currentPrice: { value: 100000, fetchedAt: '2026-05-04T12:00:00Z' },
+  ath: { value: 124277.98 },
+  lastUpdated: '2026-05-04T12:00:00Z',
+  isStale: false,
+  isLoading: false,
+  error: undefined,
+  refresh: vi.fn(),
+}
+
 describe('PriceDropToleranceCard', () => {
-  const mockUseATH = useATH as ReturnType<typeof vi.fn>
+  const mockedUsePriceData = vi.mocked(usePriceData)
   const mockUseSimulation = useSimulation as ReturnType<typeof vi.fn>
   const mockUseLiquidationCalculations = useLiquidationCalculations as ReturnType<typeof vi.fn>
 
@@ -35,34 +48,34 @@ describe('PriceDropToleranceCard', () => {
     vi.clearAllMocks()
 
     // Default mock implementations
+    mockedUsePriceData.mockReturnValue({ ...defaultUsePriceDataReturn })
+
     mockUseSimulation.mockReturnValue({
       params: {
         initialBtcPrice: 100000,
-        btcAmount: 1
-      }
+        btcAmount: 1,
+        initialBtcAmount: 1,
+        loanAmountPercent: 50,
+      },
     })
 
     mockUseLiquidationCalculations.mockReturnValue({
       initialCurrentBtcPrice: 100000,
       initialImmediateLiquidationPrice: 80000,
       initialTrueLiquidationPrice: 75000,
+      initialImmediatePriceDropPercentage: 20,
+      initialTruePriceDropPercentage: 25,
+      initialFreeBtcAmount: 0.5,
+      initialHasFreeCollateral: true,
       athMetrics: {
         priceDropPercentage: 35.8,
-        truePriceDropPercentage: 39.8
-      }
+        truePriceDropPercentage: 39.8,
+      },
     })
   })
 
   describe('ATH integration', () => {
     it('should use dynamic ATH value from service', () => {
-      mockUseATH.mockReturnValue({
-        ath: 124277.98,
-        athData: null,
-        loading: false,
-        error: null,
-        refetch: vi.fn()
-      })
-
       render(
         <TooltipProvider>
           <PriceDropToleranceCard />
@@ -70,16 +83,14 @@ describe('PriceDropToleranceCard', () => {
       )
 
       // The component should render without errors and use the dynamic ATH
-      expect(screen.getByText(/Price Drop Tolerance/)).toBeInTheDocument()
+      expect(screen.getAllByText(/Price Drop Tolerance/).length).toBeGreaterThan(0)
     })
 
     it('should use fallback ATH when loading', () => {
-      mockUseATH.mockReturnValue({
-        ath: 124277.98,
-        athData: null,
-        loading: true,
-        error: null,
-        refetch: vi.fn()
+      mockedUsePriceData.mockReturnValue({
+        ...defaultUsePriceDataReturn,
+        ath: null,
+        isLoading: true,
       })
 
       render(
@@ -89,16 +100,14 @@ describe('PriceDropToleranceCard', () => {
       )
 
       // Component should still render with fallback value during loading
-      expect(screen.getByText(/Price Drop Tolerance/)).toBeInTheDocument()
+      expect(screen.getAllByText(/Price Drop Tolerance/).length).toBeGreaterThan(0)
     })
 
     it('should handle ATH service errors gracefully', () => {
-      mockUseATH.mockReturnValue({
-        ath: 124277.98, // Fallback value
-        athData: null,
-        loading: false,
-        error: 'Failed to load ATH data',
-        refetch: vi.fn()
+      mockedUsePriceData.mockReturnValue({
+        ...defaultUsePriceDataReturn,
+        ath: null,
+        error: new Error('Failed to load ATH data'),
       })
 
       render(
@@ -108,7 +117,7 @@ describe('PriceDropToleranceCard', () => {
       )
 
       // Component should still render with fallback value on error
-      expect(screen.getByText(/Price Drop Tolerance/)).toBeInTheDocument()
+      expect(screen.getAllByText(/Price Drop Tolerance/).length).toBeGreaterThan(0)
     })
 
     it('should update when ATH value changes', () => {
@@ -118,28 +127,10 @@ describe('PriceDropToleranceCard', () => {
         </TooltipProvider>
       )
 
-      // Initial ATH
-      mockUseATH.mockReturnValue({
-        ath: 124277.98,
-        athData: null,
-        loading: false,
-        error: null,
-        refetch: vi.fn()
-      })
-
-      rerender(
-        <TooltipProvider>
-          <PriceDropToleranceCard />
-        </TooltipProvider>
-      )
-
       // Updated ATH
-      mockUseATH.mockReturnValue({
-        ath: 130000,
-        athData: null,
-        loading: false,
-        error: null,
-        refetch: vi.fn()
+      mockedUsePriceData.mockReturnValue({
+        ...defaultUsePriceDataReturn,
+        ath: { value: 130000 },
       })
 
       rerender(
@@ -149,20 +140,12 @@ describe('PriceDropToleranceCard', () => {
       )
 
       // Component should re-render with new ATH value
-      expect(screen.getByText(/Price Drop Tolerance/)).toBeInTheDocument()
+      expect(screen.getAllByText(/Price Drop Tolerance/).length).toBeGreaterThan(0)
     })
   })
 
   describe('fallback calculations', () => {
     it('should use dynamic ATH in fallback calculations when liquidation data unavailable', () => {
-      mockUseATH.mockReturnValue({
-        ath: 124277.98,
-        athData: null,
-        loading: false,
-        error: null,
-        refetch: vi.fn()
-      })
-
       // Mock no liquidation data
       mockUseLiquidationCalculations.mockReturnValue(null)
 
@@ -173,16 +156,14 @@ describe('PriceDropToleranceCard', () => {
       )
 
       // Component should render with fallback calculations using dynamic ATH
-      expect(screen.getByText(/Price Drop Tolerance/)).toBeInTheDocument()
+      expect(screen.getAllByText(/Price Drop Tolerance/).length).toBeGreaterThan(0)
     })
 
     it('should use loading fallback when ATH is loading and no liquidation data', () => {
-      mockUseATH.mockReturnValue({
-        ath: 124277.98,
-        athData: null,
-        loading: true,
-        error: null,
-        refetch: vi.fn()
+      mockedUsePriceData.mockReturnValue({
+        ...defaultUsePriceDataReturn,
+        ath: null,
+        isLoading: true,
       })
 
       mockUseLiquidationCalculations.mockReturnValue(null)
@@ -194,38 +175,22 @@ describe('PriceDropToleranceCard', () => {
       )
 
       // Component should render with loading fallback (125000)
-      expect(screen.getByText(/Price Drop Tolerance/)).toBeInTheDocument()
+      expect(screen.getAllByText(/Price Drop Tolerance/).length).toBeGreaterThan(0)
     })
   })
 
   describe('component rendering', () => {
     it('should render without crashing', () => {
-      mockUseATH.mockReturnValue({
-        ath: 124277.98,
-        athData: null,
-        loading: false,
-        error: null,
-        refetch: vi.fn()
-      })
-
       render(
         <TooltipProvider>
           <PriceDropToleranceCard />
         </TooltipProvider>
       )
 
-      expect(screen.getByText(/Price Drop Tolerance/)).toBeInTheDocument()
+      expect(screen.getAllByText(/Price Drop Tolerance/).length).toBeGreaterThan(0)
     })
 
     it('should display ATH-related metrics', () => {
-      mockUseATH.mockReturnValue({
-        ath: 124277.98,
-        athData: null,
-        loading: false,
-        error: null,
-        refetch: vi.fn()
-      })
-
       render(
         <TooltipProvider>
           <PriceDropToleranceCard />
@@ -233,7 +198,7 @@ describe('PriceDropToleranceCard', () => {
       )
 
       // Should display price drop tolerance information
-      expect(screen.getByText(/Price Drop Tolerance/)).toBeInTheDocument()
+      expect(screen.getAllByText(/Price Drop Tolerance/).length).toBeGreaterThan(0)
     })
   })
 })

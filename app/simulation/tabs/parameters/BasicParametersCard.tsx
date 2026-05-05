@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useMemo, useCallback } from "react"
+import React, { useMemo, useCallback, useState, useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { HybridTooltip, HybridTooltipTrigger, HybridTooltipContent } from "@/components/ui/hybrid-tooltip"
 import { RefreshCw, Info, Bitcoin, DollarSign, Banknote, CreditCard } from "lucide-react"
 import { useSimulation } from "../../context/SimulationContext"
-import { centralizedDataService } from "@/lib/services/centralized-data-service"
+import { usePriceData } from "@/src/modules/price-data/hooks/usePriceData"
 import { NumberInput } from "../../../../shared/ui/forms/NumberInput"
 import { CollateralSummaryCard } from "./CollateralSummaryCard"
 import { useLoanCalculations } from "../../hooks/useCalculationsIntegration"
@@ -31,6 +31,10 @@ export const BasicParametersCard = React.memo(function BasicParametersCard() {
   } = useSimulation()
   const { formatCurrency } = useLocaleNumberFormat()
 
+  // PR4: SWR-backed current price (replaces useCentralizedData / centralizedDataService)
+  const { currentPrice: currentPriceData, refresh: refreshPriceData } = usePriceData()
+  const [isRefreshing, setIsRefreshing] = useState(false)
+
   // Use centralized loan calculations through integration hook
   const loanData = useLoanCalculations()
 
@@ -49,23 +53,34 @@ export const BasicParametersCard = React.memo(function BasicParametersCard() {
   // Investment mode description function moved to Strategy tab
 
   /**
-   * Refresh current BTC price from external APIs
+   * Refresh current BTC price via SWR.
+   *
+   * SWR refresh() triggers /api/bitcoin-prices revalidation, which on the
+   * server side calls fetchCurrentWithFallback + upserts to DB via lazy refresh.
+   * After the new price arrives in `currentPriceData`, the effect below syncs
+   * it into params (gated on `isRefreshing` so unrelated SWR revalidations
+   * don't clobber user-edited values).
    */
   const handleLoadCurrentPrice = useCallback(async () => {
     setLoadingBtcPrice(true)
+    setIsRefreshing(true)
     try {
-      // Use centralized data service to refresh current price
-      const currentPrice = await centralizedDataService.getCurrentPrice()
-      if (currentPrice) {
-        setParams((p) => ({ ...p, initialBtcPrice: currentPrice.price }))
-        console.log(`💰 Refreshed BTC price: $${currentPrice.price}`)
-      }
+      await refreshPriceData()
     } catch (error) {
       console.error("Failed to refresh current BTC price:", error)
     } finally {
       setLoadingBtcPrice(false)
     }
-  }, [setParams, setLoadingBtcPrice])
+  }, [refreshPriceData, setLoadingBtcPrice])
+
+  // After refresh completes and currentPriceData updates, sync the param
+  useEffect(() => {
+    if (isRefreshing && currentPriceData?.value) {
+      setParams((p) => ({ ...p, initialBtcPrice: currentPriceData.value }))
+      console.log(`💰 Refreshed BTC price: $${currentPriceData.value}`)
+      setIsRefreshing(false)
+    }
+  }, [isRefreshing, currentPriceData?.value, setParams])
 
   return (
     <CalculationsErrorBoundary>
