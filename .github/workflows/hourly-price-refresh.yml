@@ -1,0 +1,28 @@
+name: Hourly BTC Price Refresh
+
+on:
+  schedule:
+    # Every hour at minute 7 (offset from Vercel cron at 00:05 to avoid clashing)
+    - cron: '7 * * * *'
+  workflow_dispatch:  # allow manual runs from the Actions tab
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hit /api/cron/update-prices
+        env:
+          PROD_URL: ${{ secrets.PROD_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$PROD_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "::error::PROD_URL or CRON_SECRET secret not configured"
+            exit 1
+          fi
+          response=$(curl -s -o /tmp/body -w "%{http_code}" \
+            -X POST "$PROD_URL/api/cron/update-prices" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            --max-time 60)
+          echo "HTTP $response"
+          cat /tmp/body
+          test "$response" = "200"
