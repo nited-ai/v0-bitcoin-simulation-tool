@@ -10,6 +10,7 @@ import { useSimulation } from '../../context/SimulationContext'
 import { useTheme } from 'next-themes'
 import { priceModelRegistry } from '../../price-models/PriceModelRegistry'
 import { usePriceData } from '@/src/modules/price-data/hooks/usePriceData'
+import { adaptManyToHistoricalDataPoints } from '@/src/modules/price-data/utils/adaptToHistoricalDataPoint'
 import { getPowerLawPrice, getDaysSinceGenesis } from '@/src/modules/price-data/models/powerLaw'
 import { useLiquidationCalculations } from '../../hooks/useCalculationsIntegration'
 import type { PriceProjectionResult, PriceModelParams } from '../../price-models/types'
@@ -108,19 +109,8 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
   const { prices, isLoading } = usePriceData()
   const isLoaded = !isLoading
   // Adapter: map new shape to legacy HistoricalDataPoint shape that downstream code expects.
-  // PR5 will simplify by deleting the legacy HistoricalDataPoint type.
   const historicalData: HistoricalDataPoint[] = useMemo(
-    () =>
-      prices.map(p => ({
-        time: Math.floor(new Date(p.date + 'T00:00:00Z').getTime() / 1000),
-        date: p.date,
-        open: p.open,
-        high: p.high,
-        low: p.low,
-        close: p.close,
-        volume: 0,         // PR2's API endpoint doesn't return volume yet
-        source: 'api',     // Single source identifier
-      })),
+    () => adaptManyToHistoricalDataPoints(prices),
     [prices]
   )
   const liquidationData = useLiquidationCalculations()
