@@ -6,6 +6,7 @@ import { DataServiceProvider } from "./providers/DataServiceProvider"
 import { SimulationProvider, useSimulation } from "./context/SimulationContext"
 import { SimulationHeader, TabNavigation } from "./shared"
 import { usePriceData } from "@/src/modules/price-data/hooks/usePriceData"
+import { adaptManyToHistoricalDataPoints } from "@/src/modules/price-data/utils/adaptToHistoricalDataPoint"
 import type { HistoricalDataPoint } from "@/src/modules/price-data/types"
 
 /**
@@ -34,17 +35,7 @@ function PriceDataBridge() {
   // Adapt PR3's PricePoint[] to the legacy HistoricalDataPoint[] shape that
   // SimulationContext consumers (chart, price engine, etc.) expect.
   const historicalData = useMemo<HistoricalDataPoint[]>(
-    () =>
-      prices.map((p) => ({
-        time: Math.floor(new Date(p.date + "T00:00:00Z").getTime() / 1000),
-        date: p.date,
-        open: p.open,
-        high: p.high,
-        low: p.low,
-        close: p.close,
-        volume: 0,
-        source: "api",
-      })),
+    () => adaptManyToHistoricalDataPoints(prices),
     [prices],
   )
 
