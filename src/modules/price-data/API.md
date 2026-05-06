@@ -152,39 +152,42 @@ Manually removes expired entries, returns number of entries removed.
 
 ### usePriceData
 
-Main React hook for price data management.
+Main React hook for price data management. PR3 SWR-backed; reads from
+`GET /api/bitcoin-prices`.
 
 #### Signature
 
 ```typescript
 function usePriceData(options?: {
-  autoRefresh?: boolean
-  refreshInterval?: number
-  useCache?: boolean
+  from?: string  // YYYY-MM-DD
+  to?: string    // YYYY-MM-DD
 }): {
-  historicalData: HistoricalDataPoint[]
-  currentPrice: number | null
+  prices: PricePoint[]
+  currentPrice: { value: number; fetchedAt: string } | null
+  ath: { value: number } | null
+  lastUpdated: string | null
+  isStale: boolean
   isLoading: boolean
-  error: Error | null
-  refreshData: () => Promise<void>
-  clearCache: () => void
+  error: Error | undefined
+  refresh: () => Promise<void>
 }
 ```
 
 #### Parameters
 
-- `options.autoRefresh?: boolean` - Enable automatic data refresh (default: false)
-- `options.refreshInterval?: number` - Refresh interval in milliseconds (default: 60000)
-- `options.useCache?: boolean` - Use cached data when available (default: true)
+- `options.from?: string` - Filter prices from this date (YYYY-MM-DD)
+- `options.to?: string` - Filter prices to this date (YYYY-MM-DD)
 
 #### Returns
 
-- `historicalData: HistoricalDataPoint[]` - Historical price data
-- `currentPrice: number | null` - Current Bitcoin price
+- `prices: PricePoint[]` - Historical price points (`date`, `close`, `high`, `low`, `open`)
+- `currentPrice: { value, fetchedAt } | null` - Current Bitcoin price
+- `ath: { value } | null` - All-time high
+- `lastUpdated: string | null` - ISO timestamp of last data refresh
+- `isStale: boolean` - Whether server-side data is past freshness threshold
 - `isLoading: boolean` - Loading state
-- `error: Error | null` - Error state
-- `refreshData: () => Promise<void>` - Manual refresh function
-- `clearCache: () => void` - Clear cache function
+- `error: Error | undefined` - Error state
+- `refresh: () => Promise<void>` - SWR revalidation trigger
 
 ---
 

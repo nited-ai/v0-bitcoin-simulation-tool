@@ -31,7 +31,7 @@ export const BasicParametersCard = React.memo(function BasicParametersCard() {
   } = useSimulation()
   const { formatCurrency } = useLocaleNumberFormat()
 
-  // PR4: SWR-backed current price (replaces useCentralizedData / centralizedDataService)
+  // Reads current price via PR3's usePriceData() SWR hook.
   const { currentPrice: currentPriceData, refresh: refreshPriceData } = usePriceData()
   const [isRefreshing, setIsRefreshing] = useState(false)
 
@@ -45,10 +45,8 @@ export const BasicParametersCard = React.memo(function BasicParametersCard() {
 
   // BTC accumulation state and handlers moved to Strategy tab
 
-  /**
-   * The current BTC price is now loaded by the centralized data service during app initialization
-   * No need to load it separately here - it will be set automatically via useCentralizedData hook
-   */
+  // Current BTC price is loaded by PR3's usePriceData() SWR hook above; no
+  // separate load is needed here.
 
   // Investment mode description function moved to Strategy tab
 
