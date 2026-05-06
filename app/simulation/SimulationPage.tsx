@@ -2,7 +2,6 @@
 
 
 import { useEffect, useMemo } from "react"
-import { DataServiceProvider } from "./providers/DataServiceProvider"
 import { SimulationProvider, useSimulation } from "./context/SimulationContext"
 import { SimulationHeader, TabNavigation } from "./shared"
 import { usePriceData } from "@/src/modules/price-data/hooks/usePriceData"
@@ -115,11 +114,9 @@ function SimulationContent() {
  */
 export default function SimulationPage() {
   return (
-    <DataServiceProvider>
-      <SimulationProvider>
-        <SimulationContent />
-      </SimulationProvider>
-    </DataServiceProvider>
+    <SimulationProvider>
+      <SimulationContent />
+    </SimulationProvider>
   )
 }
 
