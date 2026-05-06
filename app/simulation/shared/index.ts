@@ -11,6 +11,3 @@ export { SimulationHeader } from './layout/SimulationHeader'
 
 // Content components
 export { HowItWorksContent } from './HowItWorksContent'
-
-// Admin components
-export { CsvUpdatePanel } from './CsvUpdatePanel'
