@@ -17,7 +17,6 @@ export type PriceModel = "manual" | "powerLaw" | "cycleRepeat" | "enhancedCycleR
 
 /**
  * Standardized format for a single point of historical price data.
- * Compatible with centralized-data-service.ts interface.
  */
 export interface HistoricalDataPoint {
   time: number        // Unix timestamp in seconds (for chart compatibility)

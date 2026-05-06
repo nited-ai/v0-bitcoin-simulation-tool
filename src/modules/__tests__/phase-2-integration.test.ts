@@ -8,7 +8,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { renderHook, waitFor, act } from '@testing-library/react'
 import { usePriceProjection, useProjectionComparison } from '../price-data/hooks/usePriceProjection'
-import { usePriceData } from '../price-data/hooks/usePriceData'
 import { priceDataService } from '../price-data/services/PriceDataService'
 import type { PriceEngineParams, HistoricalDataPoint } from '../price-data/types'
 
@@ -70,10 +69,6 @@ describe('Phase 2 Integration Tests', () => {
         expect(result.current.error).toBeNull()
       })
     })
-
-    // Note: usePriceData hook test removed due to infinite loop in test environment
-    // The hook has useEffect that automatically loads data, causing issues in testing
-    // The hook works correctly in production as verified by Phase 1 migration
 
     it('should integrate useProjectionComparison with priceDataService', async () => {
       const mockManualData = [

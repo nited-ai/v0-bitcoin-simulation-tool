@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { PriceModelChart } from "@/components/price-model-chart"
-import { PowerLawEducationalPanel } from "../../components/PowerLawEducationalPanel"
+import { PowerLawEducationalPanel } from "./PowerLawEducationalPanel"
 import { useSimulation } from "../../context/SimulationContext"
 import type { PriceModel, PowerLawLine } from "@/src/modules/price-data"
 

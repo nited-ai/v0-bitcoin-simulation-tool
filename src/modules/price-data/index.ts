@@ -16,8 +16,17 @@
  * const data = await priceDataService.loadHistoricalData()
  * const price = await priceDataService.getCurrentPrice()
  *
- * // React hook usage
- * const { historicalData, currentPrice, isLoading } = usePriceData()
+ * // React hook usage (PR3 SWR-backed shape)
+ * const {
+ *   prices,         // PricePoint[]
+ *   currentPrice,   // { value: number; fetchedAt: string } | null
+ *   ath,            // { value: number } | null
+ *   lastUpdated,    // string | null
+ *   isStale,        // boolean
+ *   isLoading,      // boolean
+ *   error,          // Error | undefined
+ *   refresh,        // () => Promise<void>
+ * } = usePriceData()
  * ```
  *
  * @see {@link ./README.md} for comprehensive documentation

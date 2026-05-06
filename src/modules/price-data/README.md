@@ -174,20 +174,23 @@ const powerLawCycleParams = {
 
 ### usePriceData
 
-Main hook for price data management.
+Main hook for price data management. PR3 SWR-backed; reads from
+`GET /api/bitcoin-prices`.
 
 ```typescript
 const {
-  historicalData,
-  currentPrice,
-  isLoading,
-  error,
-  refreshData,
-  clearCache
+  prices,         // PricePoint[]  (date, close, high, low, open)
+  currentPrice,   // { value: number; fetchedAt: string } | null
+  ath,            // { value: number } | null
+  lastUpdated,    // string | null
+  isStale,        // boolean
+  isLoading,      // boolean
+  error,          // Error | undefined
+  refresh,        // () => Promise<void>
 } = usePriceData({
-  autoRefresh: true,
-  refreshInterval: 60000, // 1 minute
-  useCache: true
+  // Optional date-range filter
+  from: '2024-01-01',
+  to: '2025-01-01',
 })
 ```
 

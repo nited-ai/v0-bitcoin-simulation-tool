@@ -49,7 +49,7 @@ export function PriceDropToleranceCard() {
   const { t } = useTranslation()
   const { params } = useSimulation()
   const liquidationData = useLiquidationCalculations()
-  // PR4: SWR-backed ATH (replaces useATH)
+  // Reads ATH via PR3's usePriceData() SWR hook.
   const { ath, isLoading: athLoading } = usePriceData()
   const currentATH = ath?.value ?? null
 
