@@ -190,7 +190,12 @@ export class EnhancedCycleRepeatModel implements PriceProjectionModel {
   }
 
   /**
-   * Generate projection using cycle repeat methodology with weekly processing
+   * Generate projection using cycle repeat methodology with daily processing
+   *
+   * Iterates one historical daily ratio per simulated day so the full 4-year
+   * window of ratios is consumed (and re-cycled) across the projection horizon.
+   * Output points are emitted on a monthly cadence (every ~30 days) for chart
+   * density.
    */
   private generateCycleRepeatProjection(
     percentageMovements: number[],
@@ -203,11 +208,12 @@ export class EnhancedCycleRepeatModel implements PriceProjectionModel {
       return []
     }
 
-    // Calculate total weeks needed for projection
-    const totalWeeksNeeded = Math.ceil(projectionMonths * 4.33) // ~4.33 weeks per month
-    const totalCycles = Math.ceil(totalWeeksNeeded / percentageMovements.length)
+    // Calculate total days needed for projection (~30.4 days per month)
+    const totalDaysNeeded = Math.ceil(projectionMonths * 30.4)
+    const totalCycles = Math.ceil(totalDaysNeeded / percentageMovements.length)
+    const OUTPUT_CADENCE_DAYS = 30 // emit one projection point per ~month
 
-    console.log(`🔄 Starting projection loop: ${totalWeeksNeeded} weeks to process (repeating ${percentageMovements.length} historical movements)`)
+    console.log(`🔄 Starting projection loop: ${totalDaysNeeded} days to process (repeating ${percentageMovements.length} historical movements)`)
 
     const allProjectionPoints: ProjectionPoint[] = []
     const startDate = new Date()
@@ -222,7 +228,7 @@ export class EnhancedCycleRepeatModel implements PriceProjectionModel {
       resistance: Math.round(startPrice * (1 + volatilityBand)),
       confidence: 1.0,
       metadata: {
-        weekIndex: 0,
+        dayIndex: 0,
         movementIndex: 0,
         cycleNumber: 1,
         originalMovement: 1.0,
@@ -237,12 +243,14 @@ export class EnhancedCycleRepeatModel implements PriceProjectionModel {
       }
     })
 
-    // Process week by week, applying historical movements sequentially
-    for (let weekIndex = 0; weekIndex < totalWeeksNeeded; weekIndex++) {
+    // Process day by day, applying historical daily movements sequentially.
+    // The historical ratios are daily, so iterating daily naturally cycles
+    // through the full 4-year window every `percentageMovements.length` days.
+    for (let dayIndex = 0; dayIndex < totalDaysNeeded; dayIndex++) {
       // Cycle through historical movements using modulo
-      const movementIndex = weekIndex % percentageMovements.length
+      const movementIndex = dayIndex % percentageMovements.length
       const movement = percentageMovements[movementIndex]
-      const cycleNumber = Math.floor(weekIndex / percentageMovements.length) + 1
+      const cycleNumber = Math.floor(dayIndex / percentageMovements.length) + 1
 
       // Apply diminishing returns if enabled
       let adjustedMovement = movement
@@ -261,10 +269,10 @@ export class EnhancedCycleRepeatModel implements PriceProjectionModel {
       // Apply movement to current price
       currentPrice *= adjustedMovement
 
-      // Generate monthly points (every ~4.33 weeks)
-      if (weekIndex % Math.round(4.33) === 0 || weekIndex === totalWeeksNeeded - 1) {
+      // Emit a projection point on monthly cadence (and at the final day).
+      if (dayIndex % OUTPUT_CADENCE_DAYS === 0 || dayIndex === totalDaysNeeded - 1) {
         const currentDate = new Date(startDate)
-        currentDate.setDate(currentDate.getDate() + (weekIndex * 7))
+        currentDate.setDate(startDate.getDate() + dayIndex)
 
         // Calculate support and resistance bands
         const volatilityBand = 0.15 // 15% bands
@@ -272,7 +280,7 @@ export class EnhancedCycleRepeatModel implements PriceProjectionModel {
         const resistance = currentPrice * (1 + volatilityBand)
 
         // Calculate confidence (decreases over time)
-        const confidence = Math.max(0.1, 1 - (weekIndex / totalWeeksNeeded) * 0.5)
+        const confidence = Math.max(0.1, 1 - (dayIndex / totalDaysNeeded) * 0.5)
 
         allProjectionPoints.push({
           timestamp: currentDate.getTime(),
@@ -281,7 +289,7 @@ export class EnhancedCycleRepeatModel implements PriceProjectionModel {
           resistance: Math.round(resistance),
           confidence,
           metadata: {
-            weekIndex,
+            dayIndex,
             movementIndex,
             cycleNumber,
             originalMovement: movement,
@@ -299,7 +307,7 @@ export class EnhancedCycleRepeatModel implements PriceProjectionModel {
     }
 
     console.log(`✅ Projection loop complete: Generated ${allProjectionPoints.length} points over ${totalCycles} cycles`)
-    console.log(`   📊 Projection period: ${totalWeeksNeeded} weeks (${(totalWeeksNeeded / 52).toFixed(1)} years)`)
+    console.log(`   📊 Projection period: ${totalDaysNeeded} days (${(totalDaysNeeded / 365.25).toFixed(1)} years)`)
     console.log(`   🔄 Repeated 4-year pattern ${totalCycles} times`)
 
     return allProjectionPoints

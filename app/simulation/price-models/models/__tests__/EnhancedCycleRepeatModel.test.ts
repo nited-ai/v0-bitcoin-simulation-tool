@@ -218,10 +218,155 @@ describe('EnhancedCycleRepeatModel', () => {
 
     it('should handle insufficient historical data gracefully', async () => {
       const insufficientData = mockHistoricalData.slice(0, 1) // Only 1 data point
-      
+
       await expect(
         model.generateProjection(insufficientData, baseParams)
       ).rejects.toThrow('Enhanced Cycle Repeat Model: Unable to extract percentage movements from historical data')
+    })
+
+    it('should span the full projection horizon on the timeline (12y forecast covers ~12y)', async () => {
+      // Build a large historical window so the 4-year filter (today - 4y) catches enough data.
+      const today = new Date()
+      const longHistory: HistoricalDataPoint[] = []
+      const fiveYearsAgo = new Date(today)
+      fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5)
+      const totalDays = Math.ceil((today.getTime() - fiveYearsAgo.getTime()) / (24 * 60 * 60 * 1000))
+      const basePrice = 30000
+      for (let i = 0; i < totalDays; i++) {
+        const d = new Date(fiveYearsAgo)
+        d.setDate(d.getDate() + i)
+        const trend = 1 + (i / totalDays) * 1.5
+        const volatility = 1 + Math.sin(i / 30) * 0.15
+        const price = basePrice * trend * volatility
+        longHistory.push({
+          time: Math.floor(d.getTime() / 1000),
+          close: price,
+          high: price * 1.05,
+          low: price * 0.95,
+          open: price,
+          volume: 1000000,
+        })
+      }
+
+      const longParams: PriceModelParams = {
+        ...baseParams,
+        projectionMonths: 144, // 12 years
+      }
+
+      const result = await model.generateProjection(longHistory, longParams)
+
+      const firstTs = result.projectionPoints[0].timestamp
+      const lastTs = result.projectionPoints[result.projectionPoints.length - 1].timestamp
+      const spanMs = lastTs - firstTs
+      const spanYears = spanMs / (365.25 * 24 * 60 * 60 * 1000)
+
+      // Should span roughly 12 years (allow a tolerance window 11.5–12.5)
+      expect(spanYears).toBeGreaterThan(11.5)
+      expect(spanYears).toBeLessThan(12.5)
+    })
+
+    it('should produce forecast amplitude comparable to past 4y amplitude', async () => {
+      const today = new Date()
+      const longHistory: HistoricalDataPoint[] = []
+      const fourYearsAgo = new Date(today)
+      fourYearsAgo.setFullYear(fourYearsAgo.getFullYear() - 4)
+      const totalDays = Math.ceil((today.getTime() - fourYearsAgo.getTime()) / (24 * 60 * 60 * 1000))
+      const basePrice = 30000
+      // Monotonic 3x climb across the full 4-year history.
+      // With the bug, the forecast loop only consumes the first ~624 of ~1460
+      // daily ratios — i.e. roughly the first 1.7 years' worth — so the forecast
+      // never reaches the upper portion of the climb. With the fix, all ratios
+      // are consumed (and re-cycled), so the forecast reaches and exceeds the
+      // past peak.
+      for (let i = 0; i < totalDays; i++) {
+        const d = new Date(fourYearsAgo)
+        d.setDate(d.getDate() + i)
+        const trend = 1 + (i / totalDays) * 2 // 1x → 3x linear climb
+        const price = basePrice * trend
+        longHistory.push({
+          time: Math.floor(d.getTime() / 1000),
+          close: price,
+          high: price * 1.02,
+          low: price * 0.98,
+          open: price,
+          volume: 1000000,
+        })
+      }
+
+      const pastMax = Math.max(...longHistory.map(p => p.close))
+      const pastMin = Math.min(...longHistory.map(p => p.close))
+      const pastAmplitude = pastMax - pastMin
+
+      // Use minimal diminishing returns so amplitude isn't dampened away
+      const params: PriceModelParams = {
+        ...baseParams,
+        startPrice: basePrice,
+        projectionMonths: 144,
+        modelSpecificParams: {
+          diminishingReturns: {
+            ...DIMINISHING_RETURNS_PRESETS.optimistic.params,
+            diminishingFactor: 0,
+            cycleDegradation: 0,
+          },
+        },
+      }
+
+      const result = await model.generateProjection(longHistory, params)
+      const prices = result.projectionPoints.map(p => p.price)
+      const forecastAmplitude = Math.max(...prices) - Math.min(...prices)
+
+      // Forecast amplitude should be at least 50% of past amplitude
+      expect(forecastAmplitude).toBeGreaterThanOrEqual(pastAmplitude * 0.5)
+    })
+
+    it('should cycle back near startPrice after one full 4y replay (48-month projection)', async () => {
+      const today = new Date()
+      const fourYearsAgo = new Date(today)
+      fourYearsAgo.setFullYear(fourYearsAgo.getFullYear() - 4)
+      const totalDays = Math.ceil((today.getTime() - fourYearsAgo.getTime()) / (24 * 60 * 60 * 1000))
+      const longHistory: HistoricalDataPoint[] = []
+      const basePrice = 30000
+      for (let i = 0; i < totalDays; i++) {
+        const d = new Date(fourYearsAgo)
+        d.setDate(d.getDate() + i)
+        const trend = 1 + (i / totalDays) * 1.0
+        const volatility = 1 + Math.sin(i / 30) * 0.1
+        const price = basePrice * trend * volatility
+        longHistory.push({
+          time: Math.floor(d.getTime() / 1000),
+          close: price,
+          high: price * 1.02,
+          low: price * 0.98,
+          open: price,
+          volume: 1000000,
+        })
+      }
+
+      // After replaying ALL ratios, cumulative product = lastClose / firstClose ~ 2.0 here
+      const firstClose = longHistory[0].close
+      const lastClose = longHistory[longHistory.length - 1].close
+      const expectedRatio = lastClose / firstClose
+
+      const params: PriceModelParams = {
+        ...baseParams,
+        startPrice: basePrice,
+        projectionMonths: 48,
+        modelSpecificParams: {
+          diminishingReturns: {
+            ...DIMINISHING_RETURNS_PRESETS.optimistic.params,
+            diminishingFactor: 0,
+            cycleDegradation: 0,
+          },
+        },
+      }
+
+      const result = await model.generateProjection(longHistory, params)
+      const finalPrice = result.projectionPoints[result.projectionPoints.length - 1].price
+      const actualRatio = finalPrice / basePrice
+
+      // Should mirror the historical ratio across the cycle (within 20% tolerance for diminishing-returns floor effects)
+      expect(actualRatio).toBeGreaterThan(expectedRatio * 0.7)
+      expect(actualRatio).toBeLessThan(expectedRatio * 1.3)
     })
   })
 
@@ -504,15 +649,19 @@ describe('EnhancedCycleRepeatModel', () => {
       })
 
       it('should handle extreme angle adjustment scenarios', async () => {
-        // Test with very aggressive diminishing returns
+        // Test with very aggressive diminishing returns.
+        // NOTE: applyDiminishingReturns dampens gains only when they exceed
+        // `cycleDegradation * 100` percent. The mock data has tiny daily moves
+        // (~1%), so we use a low cycleDegradation to ensure the dampening
+        // pathway is exercised.
         const extremeParams = {
           ...baseParams,
           projectionMonths: 12,
           modelSpecificParams: {
             diminishingReturns: {
-              diminishingFactor: 0.95, // Very aggressive
-              maturityThreshold: 500_000_000_000, // Low threshold
-              cycleDegradation: 0.8,
+              diminishingFactor: 0.95, // Very aggressive dampening of excess
+              maturityThreshold: 500_000_000_000,
+              cycleDegradation: 0.001, // ~0.1% threshold so any daily gain above 0.1% gets dampened
               adoptionCurveType: 'logarithmic' as const,
               institutionalSaturation: 0.9,
               regulatoryMaturity: 0.9,
@@ -522,18 +671,36 @@ describe('EnhancedCycleRepeatModel', () => {
           }
         }
 
-        const result = await model.generateProjection(mockHistoricalData, extremeParams)
+        const baselineParams = {
+          ...baseParams,
+          projectionMonths: 12,
+          modelSpecificParams: {
+            diminishingReturns: {
+              ...DIMINISHING_RETURNS_PRESETS.optimistic.params,
+              diminishingFactor: 0,
+              cycleDegradation: 0.001,
+              institutionalSaturation: 0,
+            }
+          }
+        }
+
+        const extremeResult = await model.generateProjection(mockHistoricalData, extremeParams)
+        const baselineResult = await model.generateProjection(mockHistoricalData, baselineParams)
 
         // Should still generate valid projection
-        expect(result.projectionPoints.length).toBeGreaterThanOrEqual(12)
-        expect(result.projectionPoints.length).toBeLessThanOrEqual(15)
-        expect(result.projectionPoints[0].price).toBe(baseParams.startPrice)
+        expect(extremeResult.projectionPoints.length).toBeGreaterThanOrEqual(12)
+        expect(extremeResult.projectionPoints.length).toBeLessThanOrEqual(15)
+        expect(extremeResult.projectionPoints[0].price).toBe(baseParams.startPrice)
 
         // Final price should be constrained due to extreme diminishing returns
-        const finalPrice = result.projectionPoints[result.projectionPoints.length - 1].price
-        expect(finalPrice).toBeGreaterThan(0) // Should still be positive
-        // With extreme diminishing returns, growth should be very limited (less than 10% over 12 months)
-        expect(finalPrice).toBeLessThan(baseParams.startPrice * 1.1)
+        const extremeFinal = extremeResult.projectionPoints[extremeResult.projectionPoints.length - 1].price
+        const baselineFinal = baselineResult.projectionPoints[baselineResult.projectionPoints.length - 1].price
+        expect(extremeFinal).toBeGreaterThan(0)
+        // Extreme diminishing returns should dampen growth relative to no-dampening baseline.
+        // (Previous absolute threshold of `startPrice * 1.1` was tuned to a bug where the
+        // loop only consumed ~52 weekly steps in 12 months; the daily-iteration fix now
+        // correctly applies 365 daily ratios, so growth scales with the historical pattern.)
+        expect(extremeFinal).toBeLessThan(baselineFinal)
       })
 
       it('should provide smooth trajectory adjustment over time', async () => {
