@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
@@ -63,6 +63,13 @@ export function DiminishingReturnsControls({ className }: DiminishingReturnsCont
   const [showPreview, setShowPreview] = useState(false)
   const [hasUnappliedChanges, setHasUnappliedChanges] = useState(false)
 
+  // Synchronous mirror of customParams for handlers that fire before
+  // React flushes state (e.g. slider drag → onValueChange queues setState,
+  // pointerup → onValueCommit fires before the queued state is applied).
+  // Reading from this ref avoids the stale-closure bug where applyParameters
+  // would persist the previous render's customParams to sessionStorage.
+  const draftParamsRef = useRef<DiminishingReturnsParams>(PRESETS.moderate.params)
+
   // Load saved state from sessionStorage
   useEffect(() => {
     const savedPreset = sessionStorage.getItem(STORAGE_KEYS.selectedPreset)
@@ -77,6 +84,7 @@ export function DiminishingReturnsControls({ className }: DiminishingReturnsCont
       try {
         const parsed = JSON.parse(savedParams)
         setCustomParams(parsed)
+        draftParamsRef.current = parsed
       } catch (error) {
         console.warn('Failed to parse saved diminishing returns params:', error)
       }
@@ -102,8 +110,11 @@ export function DiminishingReturnsControls({ className }: DiminishingReturnsCont
   // Handle preset selection
   const handlePresetSelect = (presetKey: string) => {
     if (presetKey in PRESETS) {
-      setSelectedPreset(presetKey)
       const preset = PRESETS[presetKey as keyof typeof PRESETS]
+      setSelectedPreset(presetKey)
+      // Synchronous ref update so applyParameters can read the new params
+      // immediately, even though setCustomParams's re-render is async.
+      draftParamsRef.current = preset.params
       setCustomParams(preset.params)
       setHasUnappliedChanges(false) // Presets are auto-applied
 
@@ -119,10 +130,13 @@ export function DiminishingReturnsControls({ className }: DiminishingReturnsCont
   // Handle parameter changes
   const handleParamChange = (key: keyof DiminishingReturnsParams, value: any) => {
     const newParams = {
-      ...customParams,
+      ...draftParamsRef.current,
       [key]: value
     }
 
+    // Synchronous — available to applyParameters immediately on slider commit,
+    // even if React hasn't flushed the queued setCustomParams yet.
+    draftParamsRef.current = newParams
     setCustomParams(newParams)
     setHasUnappliedChanges(true)
 
@@ -133,11 +147,12 @@ export function DiminishingReturnsControls({ className }: DiminishingReturnsCont
   }
 
   // Apply current parameters and trigger recalculation.
-  // Accepts an optional override so callers from preset-click handlers can
-  // pass the new params directly without waiting for setCustomParams's
-  // asynchronous re-render (which caused stale-closure bugs on rapid clicks).
+  // Reads from draftParamsRef so callers don't have to pass an override and
+  // so slider onValueCommit (which fires before React flushes the pending
+  // setCustomParams) reads the correct latest dragged value rather than the
+  // previous render's stale closure value.
   const applyParameters = (paramsOverride?: DiminishingReturnsParams) => {
-    const paramsToApply = paramsOverride ?? customParams
+    const paramsToApply = paramsOverride ?? draftParamsRef.current
 
     // Save current parameters to sessionStorage for the chart to pick up
     sessionStorage.setItem(STORAGE_KEYS.customParams, JSON.stringify(paramsToApply))
@@ -158,6 +173,7 @@ export function DiminishingReturnsControls({ className }: DiminishingReturnsCont
   // Reset to defaults
   const resetToDefaults = () => {
     setSelectedPreset('moderate')
+    draftParamsRef.current = PRESETS.moderate.params
     setCustomParams(PRESETS.moderate.params)
   }
 

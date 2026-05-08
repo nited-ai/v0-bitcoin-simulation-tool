@@ -191,4 +191,74 @@ describe('DiminishingReturnsControls — slider preset semantics & commit behavi
     // applyParameters() writes to setParams — confirm it was triggered.
     expect(mockSimulationContext.setParams).toHaveBeenCalled()
   })
+
+  it('Slider commit applies LATEST dragged value (stale-closure regression)', () => {
+    // Reproduces the production bug: during a slider drag, onValueChange
+    // fires (queueing async setCustomParams). When the user releases,
+    // onValueCommit fires BEFORE React flushes — applyParameters reads
+    // customParams from the LAST RENDER's closure (stale) and writes
+    // STALE params to sessionStorage. Subsequently setParams fires and
+    // the chart reads stale sessionStorage → no visible change.
+    //
+    // The bug is masked at end-of-test by a separate saveToStorage
+    // useEffect that overwrites with fresh state on the next render. So
+    // we must inspect sessionStorage AT THE MOMENT setParams is called
+    // (mid-applyParameters, before any re-render). We do that by reading
+    // sessionStorage inside the setParams mock.
+    //
+    // We capture the actual onValueChange / onValueCommit props passed
+    // to the first Slider via the React fiber, then call them in the
+    // same synchronous batch — mirroring a real drag-release where
+    // pointermove queues onValueChange and pointerup fires onValueCommit
+    // before React flushes the queued setCustomParams.
+    renderControls()
+
+    sessionStorage.clear()
+
+    // Capture sessionStorage value at the instant setParams is invoked.
+    let storageAtSetParams: string | null = null
+    mockSimulationContext.setParams.mockImplementation(() => {
+      storageAtSetParams = sessionStorage.getItem(STORAGE_KEY)
+    })
+
+    // Reach into the React fiber to grab the slider's onValueChange /
+    // onValueCommit props directly.
+    const sliderRoot = document.querySelector('[role="slider"]')?.closest(
+      '[data-orientation]'
+    ) as HTMLElement | null
+    expect(sliderRoot).toBeTruthy()
+
+    const fiberKey = Object.keys(sliderRoot!).find((k) =>
+      k.startsWith('__reactFiber') || k.startsWith('__reactInternalInstance')
+    )
+    expect(fiberKey).toBeTruthy()
+    let fiber: any = (sliderRoot as any)[fiberKey as string]
+    let onValueChange: ((v: number[]) => void) | undefined
+    let onValueCommit: ((v: number[]) => void) | undefined
+    while (fiber) {
+      const props = fiber.memoizedProps || fiber.pendingProps
+      if (props?.onValueChange && props?.onValueCommit) {
+        onValueChange = props.onValueChange
+        onValueCommit = props.onValueCommit
+        break
+      }
+      fiber = fiber.return
+    }
+    expect(onValueChange).toBeDefined()
+    expect(onValueCommit).toBeDefined()
+
+    // Simulate drag-release in a single synchronous tick — no flush between.
+    // First slider is "Diminishing Returns Strength": value=[diminishingFactor*100].
+    // Initial 50 (moderate=0.5). Drag to 75 → onValueCommit must persist 0.75.
+    act(() => {
+      onValueChange!([75])
+      onValueCommit!([75])
+    })
+
+    // Inspect sessionStorage AT THE MOMENT setParams was called.
+    // The buggy code wrote 0.5 (stale closure); the fixed code writes 0.75.
+    expect(storageAtSetParams).toBeTruthy()
+    const parsed = JSON.parse(storageAtSetParams as unknown as string)
+    expect(parsed.diminishingFactor).toBeCloseTo(0.75, 5)
+  })
 })
