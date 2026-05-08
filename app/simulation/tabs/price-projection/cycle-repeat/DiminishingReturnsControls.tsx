@@ -136,10 +136,12 @@ export function DiminishingReturnsControls({ className }: DiminishingReturnsCont
       setCustomParams(preset.params)
       setHasUnappliedChanges(false) // Presets are auto-applied
 
-      // Auto-apply preset parameters
-      setTimeout(() => {
-        applyParameters()
-      }, 100) // Small delay to ensure state is updated
+      // Auto-apply preset parameters synchronously. Pass the preset params
+      // directly so we don't depend on setCustomParams's async re-render —
+      // previously a setTimeout(100) tried to "let state settle" but the
+      // captured closure still held the OLD customParams, which produced
+      // non-deterministic final state on rapid preset clicks.
+      applyParameters(preset.params)
     }
   }
 
@@ -159,10 +161,15 @@ export function DiminishingReturnsControls({ className }: DiminishingReturnsCont
     }
   }
 
-  // Apply current parameters and trigger recalculation
-  const applyParameters = () => {
+  // Apply current parameters and trigger recalculation.
+  // Accepts an optional override so callers from preset-click handlers can
+  // pass the new params directly without waiting for setCustomParams's
+  // asynchronous re-render (which caused stale-closure bugs on rapid clicks).
+  const applyParameters = (paramsOverride?: DiminishingReturnsParams) => {
+    const paramsToApply = paramsOverride ?? customParams
+
     // Save current parameters to sessionStorage for the chart to pick up
-    sessionStorage.setItem(STORAGE_KEYS.customParams, JSON.stringify(customParams))
+    sessionStorage.setItem(STORAGE_KEYS.customParams, JSON.stringify(paramsToApply))
 
     // Clear the unapplied changes flag
     setHasUnappliedChanges(false)
@@ -292,7 +299,7 @@ export function DiminishingReturnsControls({ className }: DiminishingReturnsCont
               </div>
               <div className="flex items-center gap-2">
                 <Button
-                  onClick={applyParameters}
+                  onClick={() => applyParameters()}
                   className={hasUnappliedChanges
                     ? "bg-orange-600 hover:bg-orange-700 animate-pulse"
                     : "bg-primary hover:bg-primary/90"
