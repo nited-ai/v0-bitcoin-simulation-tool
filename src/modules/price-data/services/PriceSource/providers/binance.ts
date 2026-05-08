@@ -65,17 +65,21 @@ export async function fetchHistoricalKlines(
 export const binance: PriceProvider = {
   name: 'binance',
   async fetchCurrent(): Promise<NormalizedPricePoint> {
-    const res = await fetch(`${BINANCE_BASE}/api/v3/ticker/price?symbol=BTCUSDT`)
+    const res = await fetch(`${BINANCE_BASE}/api/v3/klines?symbol=BTCUSDT&interval=1d&limit=1`)
     if (!res.ok) throw new Error(`binance: HTTP ${res.status} ${res.statusText}`)
-    const json = (await res.json()) as { symbol?: string; price?: string }
-    if (typeof json.price !== 'string') throw new Error('binance: malformed response (price missing)')
-    const close = parseFloat(json.price)
+    const json = (await res.json()) as unknown
+    const parsed = parseKlinesResponse(json as unknown[])
+    if (parsed.length === 0) throw new Error('binance: empty klines response')
+    const k = parsed[0]
     const now = new Date()
     return {
-      date: now.toISOString().slice(0, 10),
-      timestamp: now.getTime(),
-      close, high: close, low: close, open: close,
-      volume: null,
+      date: k.date,
+      timestamp: k.openTime,
+      open: k.open,
+      high: k.high,
+      low: k.low,
+      close: k.close,
+      volume: k.volume,
       source: 'binance',
       fetchedAt: now,
     }

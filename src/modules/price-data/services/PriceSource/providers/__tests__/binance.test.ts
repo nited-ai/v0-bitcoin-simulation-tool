@@ -151,3 +151,79 @@ describe('fetchHistoricalKlines', () => {
     expect(captured[0]).toContain('endTime=1503014400000')
   })
 })
+
+import { binance } from '../binance'
+
+describe('binance.fetchCurrent (klines-based)', () => {
+  const todayKline = [
+    Date.UTC(2026, 4, 8, 0, 0, 0),  // 2026-05-08T00:00:00Z
+    '85000.00', '88000.00', '83000.00', '87500.00',
+    '1234.567', Date.UTC(2026, 4, 8, 23, 59, 59, 999),
+    '0', 0, '0', '0', '0',
+  ]
+
+  it('uses /klines endpoint and returns real OHLC from today candle', async () => {
+    let capturedUrl = ''
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = (async (url: string) => {
+      capturedUrl = url
+      return { ok: true, async json() { return [todayKline] } }
+    }) as unknown as typeof fetch
+
+    try {
+      const result = await binance.fetchCurrent()
+      expect(capturedUrl).toContain('/klines')
+      expect(capturedUrl).toContain('limit=1')
+      expect(result.open).toBeCloseTo(85000, 2)
+      expect(result.high).toBeCloseTo(88000, 2)
+      expect(result.low).toBeCloseTo(83000, 2)
+      expect(result.close).toBeCloseTo(87500, 2)
+      // open/high/low NOT all equal — real OHLC
+      expect(result.high).not.toBe(result.close)
+      expect(result.low).not.toBe(result.close)
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  it('preserves source=binance and date=YYYY-MM-DD UTC', async () => {
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = (async () => ({
+      ok: true,
+      async json() { return [todayKline] },
+    })) as unknown as typeof fetch
+
+    try {
+      const result = await binance.fetchCurrent()
+      expect(result.source).toBe('binance')
+      expect(result.date).toBe('2026-05-08')
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  it('throws on HTTP failure', async () => {
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = (async () => ({
+      ok: false, status: 503, statusText: 'Service Unavailable',
+    })) as unknown as typeof fetch
+    try {
+      await expect(binance.fetchCurrent()).rejects.toThrow(/503/)
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+
+  it('throws on empty klines response (no candle for today)', async () => {
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = (async () => ({
+      ok: true,
+      async json() { return [] },
+    })) as unknown as typeof fetch
+    try {
+      await expect(binance.fetchCurrent()).rejects.toThrow(/empty/i)
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  })
+})
