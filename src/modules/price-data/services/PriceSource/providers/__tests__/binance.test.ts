@@ -97,10 +97,10 @@ describe('fetchHistoricalKlines', () => {
   })
 
   it('paginates across multiple pages', async () => {
-    // Page 1: 1500 rows (full)
-    const page1 = Array.from({ length: 1500 }, (_, i) => k(1502928000000 + i * 86_400_000, 1000 + i))
+    // Page 1: 1000 rows (full — Binance hard cap)
+    const page1 = Array.from({ length: 1000 }, (_, i) => k(1502928000000 + i * 86_400_000, 1000 + i))
     // Page 2: 50 rows (partial → terminate)
-    const page2Start = 1502928000000 + 1500 * 86_400_000
+    const page2Start = 1502928000000 + 1000 * 86_400_000
     const page2 = Array.from({ length: 50 }, (_, i) => k(page2Start + i * 86_400_000, 2500 + i))
     const f = makeFetch([page1, page2])
     const result = await fetchHistoricalKlines(
@@ -108,11 +108,11 @@ describe('fetchHistoricalKlines', () => {
       new Date('2024-01-01T00:00:00Z'),
       f as typeof fetch,
     )
-    expect(result).toHaveLength(1550)
+    expect(result).toHaveLength(1050)
     // Order preserved
     expect(result[0].close).toBeCloseTo(1000, 2)
-    expect(result[1499].close).toBeCloseTo(2499, 2)
-    expect(result[1549].close).toBeCloseTo(2549, 2)
+    expect(result[999].close).toBeCloseTo(1999, 2)
+    expect(result[1049].close).toBeCloseTo(2549, 2)
   })
 
   it('terminates on empty response', async () => {

@@ -29,7 +29,7 @@ export function parseKlinesResponse(klines: unknown[]): DailyOHLC[] {
   })
 }
 
-const KLINES_LIMIT = 1500
+const KLINES_LIMIT = 1000  // Binance silently caps spot klines at 1000 even when limit=1500 is requested
 const ONE_DAY_MS = 86_400_000
 
 /**
