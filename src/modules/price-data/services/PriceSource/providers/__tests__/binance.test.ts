@@ -61,3 +61,93 @@ describe('parseKlinesResponse', () => {
     expect(result[1].date).toBe('2017-08-18')
   })
 })
+
+import { fetchHistoricalKlines } from '../binance'
+
+describe('fetchHistoricalKlines', () => {
+  // Build a stub Binance kline tuple
+  const k = (openTimeMs: number, close: number) => [
+    openTimeMs, String(close), String(close + 100), String(close - 100),
+    String(close), '1000', openTimeMs + 86_399_999,
+    '0', 0, '0', '0', '0',
+  ]
+
+  function makeFetch(pages: unknown[][]) {
+    let call = 0
+    return async (_url: string) => {
+      const body = pages[call] ?? []
+      call++
+      return {
+        ok: true,
+        async json() { return body },
+      } as Response
+    }
+  }
+
+  it('returns parsed klines for a single page', async () => {
+    const page = [k(1502928000000, 4285)]  // 2017-08-17
+    const f = makeFetch([page])
+    const result = await fetchHistoricalKlines(
+      new Date('2017-08-17T00:00:00Z'),
+      new Date('2017-08-17T23:59:59Z'),
+      f as typeof fetch,
+    )
+    expect(result).toHaveLength(1)
+    expect(result[0].date).toBe('2017-08-17')
+  })
+
+  it('paginates across multiple pages', async () => {
+    // Page 1: 1500 rows (full)
+    const page1 = Array.from({ length: 1500 }, (_, i) => k(1502928000000 + i * 86_400_000, 1000 + i))
+    // Page 2: 50 rows (partial → terminate)
+    const page2Start = 1502928000000 + 1500 * 86_400_000
+    const page2 = Array.from({ length: 50 }, (_, i) => k(page2Start + i * 86_400_000, 2500 + i))
+    const f = makeFetch([page1, page2])
+    const result = await fetchHistoricalKlines(
+      new Date('2017-08-17T00:00:00Z'),
+      new Date('2024-01-01T00:00:00Z'),
+      f as typeof fetch,
+    )
+    expect(result).toHaveLength(1550)
+    // Order preserved
+    expect(result[0].close).toBeCloseTo(1000, 2)
+    expect(result[1499].close).toBeCloseTo(2499, 2)
+    expect(result[1549].close).toBeCloseTo(2549, 2)
+  })
+
+  it('terminates on empty response', async () => {
+    const f = makeFetch([[]])
+    const result = await fetchHistoricalKlines(
+      new Date('2017-08-17T00:00:00Z'),
+      new Date('2017-08-18T00:00:00Z'),
+      f as typeof fetch,
+    )
+    expect(result).toEqual([])
+  })
+
+  it('throws on non-OK HTTP response', async () => {
+    const f = (async () => ({ ok: false, status: 429, statusText: 'Too Many Requests' })) as unknown as typeof fetch
+    await expect(
+      fetchHistoricalKlines(
+        new Date('2017-08-17T00:00:00Z'),
+        new Date('2017-08-18T00:00:00Z'),
+        f,
+      ),
+    ).rejects.toThrow(/429/)
+  })
+
+  it('uses milliseconds for startTime and endTime in URL', async () => {
+    const captured: string[] = []
+    const f = (async (url: string) => {
+      captured.push(url)
+      return { ok: true, async json() { return [] } }
+    }) as unknown as typeof fetch
+    await fetchHistoricalKlines(
+      new Date('2017-08-17T00:00:00Z'),
+      new Date('2017-08-18T00:00:00Z'),
+      f,
+    )
+    expect(captured[0]).toContain('startTime=1502928000000')
+    expect(captured[0]).toContain('endTime=1503014400000')
+  })
+})
