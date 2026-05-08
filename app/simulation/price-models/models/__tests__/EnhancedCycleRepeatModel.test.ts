@@ -396,23 +396,84 @@ describe('EnhancedCycleRepeatModel', () => {
           diminishingReturns: DIMINISHING_RETURNS_PRESETS.conservative.params
         }
       }
-      
+
       const optimisticParams = {
         ...baseParams,
         modelSpecificParams: {
           diminishingReturns: DIMINISHING_RETURNS_PRESETS.optimistic.params
         }
       }
-      
+
       const conservativeResult = await model.generateProjection(mockHistoricalData, conservativeParams)
       const optimisticResult = await model.generateProjection(mockHistoricalData, optimisticParams)
-      
+
       // Conservative should have lower final price than optimistic
       const conservativeFinalPrice = conservativeResult.projectionPoints[conservativeResult.projectionPoints.length - 1].price
       const optimisticFinalPrice = optimisticResult.projectionPoints[optimisticResult.projectionPoints.length - 1].price
-      
+
       // Conservative should have lower or equal final price than optimistic
       expect(conservativeFinalPrice).toBeLessThanOrEqual(optimisticFinalPrice)
+    })
+
+    it('Conservative preset produces strictly lower forecast than Optimistic (semantic naming)', async () => {
+      // Build realistic 4-year history with daily ratios that actually
+      // exceed the diminishing-returns thresholds (Conservative=5%, Optimistic=30%).
+      // We use a bullish trend plus sharp pump days (every 10th day = +8% spike,
+      // every 11th day = -5% correction) so Conservative's 5% threshold catches
+      // many days but Optimistic's 30% threshold catches almost none.
+      const today = new Date()
+      const fourYearsAgo = new Date(today)
+      fourYearsAgo.setFullYear(fourYearsAgo.getFullYear() - 4)
+      const totalDays = Math.ceil((today.getTime() - fourYearsAgo.getTime()) / (24 * 60 * 60 * 1000))
+      const history: HistoricalDataPoint[] = []
+      const basePrice = 30000
+      let price = basePrice
+      for (let i = 0; i < totalDays; i++) {
+        const d = new Date(fourYearsAgo)
+        d.setDate(d.getDate() + i)
+        // Daily ratio: slight uptrend baseline, with periodic large pump days.
+        let dailyRatio: number
+        if (i % 10 === 0) {
+          dailyRatio = 1.08 // +8% pump (above Conservative's 5% threshold, below Optimistic's 30%)
+        } else if (i % 11 === 0) {
+          dailyRatio = 0.97 // -3% correction (preserved by both — losses pass through)
+        } else {
+          dailyRatio = 1.001 + Math.sin(i / 7) * 0.005 // ±0.5% noise
+        }
+        if (i > 0) price *= dailyRatio
+        history.push({
+          time: Math.floor(d.getTime() / 1000),
+          close: price,
+          high: price * 1.05,
+          low: price * 0.95,
+          open: price,
+          volume: 1_000_000,
+        })
+      }
+
+      const conservativeParams: PriceModelParams = {
+        startPrice: basePrice,
+        projectionMonths: 60, // 5 years — long enough to amplify dampening differences
+        modelSpecificParams: {
+          diminishingReturns: DIMINISHING_RETURNS_PRESETS.conservative.params,
+        },
+      }
+      const optimisticParams: PriceModelParams = {
+        ...conservativeParams,
+        modelSpecificParams: {
+          diminishingReturns: DIMINISHING_RETURNS_PRESETS.optimistic.params,
+        },
+      }
+
+      const conservativeResult = await model.generateProjection(history, conservativeParams)
+      const optimisticResult = await model.generateProjection(history, optimisticParams)
+
+      const conservativeFinal = conservativeResult.projectionPoints[conservativeResult.projectionPoints.length - 1].price
+      const optimisticFinal = optimisticResult.projectionPoints[optimisticResult.projectionPoints.length - 1].price
+
+      // STRICT inequality: Conservative MUST produce lower forecast than Optimistic
+      // (this is the user-facing semantic contract — labels match outcomes).
+      expect(conservativeFinal).toBeLessThan(optimisticFinal)
     })
   })
 

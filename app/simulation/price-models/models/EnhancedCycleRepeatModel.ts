@@ -31,14 +31,26 @@ export interface DiminishingReturnsParams {
 /**
  * Preset configurations for different economic scenarios
  */
+/**
+ * Preset values are designed so the user-perceived label matches the forecast outcome:
+ *
+ *   Conservative → LOW forecast (heavy dampening): high diminishingFactor, LOW
+ *     cycleDegradation threshold so most daily gains get dampened.
+ *   Optimistic   → HIGH forecast (minimal dampening): low diminishingFactor, HIGH
+ *     cycleDegradation threshold so few daily gains get dampened.
+ *
+ * NOTE on `cycleDegradation`: in `applyDiminishingReturns` it is used as a
+ * percentage THRESHOLD (gainPercentage <= threshold → no dampening). Higher
+ * threshold = LESS dampening overall.
+ */
 export const DIMINISHING_RETURNS_PRESETS = {
   conservative: {
     name: 'Conservative',
     description: 'Strong diminishing returns with high market maturity assumptions',
     params: {
-      diminishingFactor: 0.4, // Reduced from 0.8 to scale down impact
+      diminishingFactor: 0.8, // High = heavy dampening of excess gains
       maturityThreshold: 1_000_000_000_000,
-      cycleDegradation: 0.3,
+      cycleDegradation: 0.05, // Low threshold → most daily gains caught
       adoptionCurveType: 'logarithmic' as const,
       institutionalSaturation: 0.7,
       regulatoryMaturity: 0.8,
@@ -50,7 +62,7 @@ export const DIMINISHING_RETURNS_PRESETS = {
     name: 'Moderate',
     description: 'Balanced diminishing returns reflecting gradual market evolution',
     params: {
-      diminishingFactor: 0.25, // Reduced from 0.5 to scale down impact
+      diminishingFactor: 0.5,
       maturityThreshold: 2_000_000_000_000,
       cycleDegradation: 0.15,
       adoptionCurveType: 'sigmoid' as const,
@@ -64,9 +76,9 @@ export const DIMINISHING_RETURNS_PRESETS = {
     name: 'Optimistic',
     description: 'Minimal diminishing returns with continued growth potential',
     params: {
-      diminishingFactor: 0.1, // Reduced from 0.2 to scale down impact
+      diminishingFactor: 0.2, // Low = light dampening
       maturityThreshold: 5_000_000_000_000,
-      cycleDegradation: 0.05,
+      cycleDegradation: 0.30, // High threshold → few daily gains caught
       adoptionCurveType: 'linear' as const,
       institutionalSaturation: 0.2,
       regulatoryMaturity: 0.3,

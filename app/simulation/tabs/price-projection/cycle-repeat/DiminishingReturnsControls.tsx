@@ -22,59 +22,30 @@ import {
   RotateCcw
 } from 'lucide-react'
 import { useSimulation } from '../../../context/SimulationContext'
-import type { DiminishingReturnsParams, DIMINISHING_RETURNS_PRESETS } from '../../../price-models/models/EnhancedCycleRepeatModel'
+import type { DiminishingReturnsParams } from '../../../price-models/models/EnhancedCycleRepeatModel'
+import { DIMINISHING_RETURNS_PRESETS } from '../../../price-models/models/EnhancedCycleRepeatModel'
 
 interface DiminishingReturnsControlsProps {
   className?: string
 }
 
-// Import presets (we'll need to make them available)
+// PRESETS source of truth lives in EnhancedCycleRepeatModel.ts
+// (DIMINISHING_RETURNS_PRESETS). This component layers on UI-only
+// metadata (icons) and exposes the conservative/moderate/optimistic
+// trio used by the preset cards.
 const PRESETS = {
   conservative: {
-    name: 'Conservative',
-    description: 'Strong diminishing returns with high market maturity assumptions',
+    ...DIMINISHING_RETURNS_PRESETS.conservative,
     icon: TrendingDown,
-    params: {
-      diminishingFactor: 0.8,
-      maturityThreshold: 1_000_000_000_000,
-      cycleDegradation: 0.3,
-      adoptionCurveType: 'logarithmic' as const,
-      institutionalSaturation: 0.7,
-      regulatoryMaturity: 0.8,
-      liquidityConstraint: 0.6,
-      competitionFactor: 0.5
-    }
   },
   moderate: {
-    name: 'Moderate',
-    description: 'Balanced diminishing returns reflecting gradual market evolution',
+    ...DIMINISHING_RETURNS_PRESETS.moderate,
     icon: Target,
-    params: {
-      diminishingFactor: 0.5,
-      maturityThreshold: 2_000_000_000_000,
-      cycleDegradation: 0.15,
-      adoptionCurveType: 'sigmoid' as const,
-      institutionalSaturation: 0.4,
-      regulatoryMaturity: 0.5,
-      liquidityConstraint: 0.4,
-      competitionFactor: 0.3
-    }
   },
   optimistic: {
-    name: 'Optimistic',
-    description: 'Minimal diminishing returns with continued growth potential',
+    ...DIMINISHING_RETURNS_PRESETS.optimistic,
     icon: Zap,
-    params: {
-      diminishingFactor: 0.2,
-      maturityThreshold: 5_000_000_000_000,
-      cycleDegradation: 0.05,
-      adoptionCurveType: 'linear' as const,
-      institutionalSaturation: 0.2,
-      regulatoryMaturity: 0.3,
-      liquidityConstraint: 0.2,
-      competitionFactor: 0.1
-    }
-  }
+  },
 } as const
 
 // SessionStorage keys
@@ -340,6 +311,7 @@ export function DiminishingReturnsControls({ className }: DiminishingReturnsCont
                 <Slider
                   value={[customParams.diminishingFactor * 100]}
                   onValueChange={(value) => handleParamChange('diminishingFactor', value[0] / 100)}
+                  onValueCommit={() => applyParameters()}
                   min={0}
                   max={100}
                   step={5}
@@ -373,6 +345,7 @@ export function DiminishingReturnsControls({ className }: DiminishingReturnsCont
                 <Slider
                   value={[customParams.maturityThreshold / 1_000_000_000_000]}
                   onValueChange={(value) => handleParamChange('maturityThreshold', value[0] * 1_000_000_000_000)}
+                  onValueCommit={() => applyParameters()}
                   min={0.5}
                   max={10}
                   step={0.5}
@@ -406,6 +379,7 @@ export function DiminishingReturnsControls({ className }: DiminishingReturnsCont
                 <Slider
                   value={[customParams.cycleDegradation * 100]}
                   onValueChange={(value) => handleParamChange('cycleDegradation', value[0] / 100)}
+                  onValueCommit={() => applyParameters()}
                   min={0}
                   max={50}
                   step={2.5}
@@ -439,6 +413,7 @@ export function DiminishingReturnsControls({ className }: DiminishingReturnsCont
                 <Slider
                   value={[customParams.institutionalSaturation * 100]}
                   onValueChange={(value) => handleParamChange('institutionalSaturation', value[0] / 100)}
+                  onValueCommit={() => applyParameters()}
                   min={0}
                   max={100}
                   step={5}
@@ -525,6 +500,7 @@ export function DiminishingReturnsControls({ className }: DiminishingReturnsCont
                   <Slider
                     value={[customParams.regulatoryMaturity * 100]}
                     onValueChange={(value) => handleParamChange('regulatoryMaturity', value[0] / 100)}
+                    onValueCommit={() => applyParameters()}
                     min={0}
                     max={100}
                     step={5}
@@ -558,6 +534,7 @@ export function DiminishingReturnsControls({ className }: DiminishingReturnsCont
                   <Slider
                     value={[customParams.liquidityConstraint * 100]}
                     onValueChange={(value) => handleParamChange('liquidityConstraint', value[0] / 100)}
+                    onValueCommit={() => applyParameters()}
                     min={0}
                     max={100}
                     step={5}
@@ -591,6 +568,7 @@ export function DiminishingReturnsControls({ className }: DiminishingReturnsCont
                   <Slider
                     value={[customParams.competitionFactor * 100]}
                     onValueChange={(value) => handleParamChange('competitionFactor', value[0] / 100)}
+                    onValueCommit={() => applyParameters()}
                     min={0}
                     max={100}
                     step={5}

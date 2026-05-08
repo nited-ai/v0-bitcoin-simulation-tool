@@ -135,3 +135,60 @@ describe('DiminishingReturnsControls — preset selection (stale-closure regress
     expect(result.lastUpdated).toEqual(expect.any(Number))
   })
 })
+
+describe('DiminishingReturnsControls — slider preset semantics & commit behavior', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    sessionStorage.clear()
+  })
+
+  it('Conservative preset stores diminishingFactor=0.8 and cycleDegradation=0.05 (LOW threshold = heavy dampening)', () => {
+    renderControls()
+    fireEvent.click(getPresetCard('Conservative'))
+
+    const stored = sessionStorage.getItem(STORAGE_KEY)
+    expect(stored).toBeTruthy()
+    const parsed = JSON.parse(stored as string)
+    expect(parsed.diminishingFactor).toBe(0.8)
+    expect(parsed.cycleDegradation).toBe(0.05)
+  })
+
+  it('Optimistic preset stores diminishingFactor=0.2 and cycleDegradation=0.30 (HIGH threshold = light dampening)', () => {
+    renderControls()
+    fireEvent.click(getPresetCard('Optimistic'))
+
+    const stored = sessionStorage.getItem(STORAGE_KEY)
+    expect(stored).toBeTruthy()
+    const parsed = JSON.parse(stored as string)
+    expect(parsed.diminishingFactor).toBe(0.2)
+    expect(parsed.cycleDegradation).toBe(0.30)
+  })
+
+  it('Slider release (onValueCommit) auto-applies parameters via setParams', () => {
+    renderControls()
+
+    // Find a slider via its Radix role
+    const sliders = document.querySelectorAll('[role="slider"]')
+    expect(sliders.length).toBeGreaterThan(0)
+
+    mockSimulationContext.setParams.mockClear()
+
+    // Simulate a parameter change first (sets hasUnappliedChanges)
+    // and then a commit. We trigger the commit via the underlying Radix
+    // pointerup which fires onValueCommit. Since jsdom can't drag, we
+    // exercise the same code path the UI does on release: keyboard nav
+    // also triggers onValueCommit on keyup. Use a keydown+keyup sequence.
+    const firstSlider = sliders[0] as HTMLElement
+    firstSlider.focus()
+    fireEvent.keyDown(firstSlider, { key: 'ArrowRight' })
+    fireEvent.keyUp(firstSlider, { key: 'ArrowRight' })
+
+    // After keyup, Radix calls onValueCommit which calls applyParameters,
+    // which calls setParams. sessionStorage must reflect the committed value.
+    const stored = sessionStorage.getItem(STORAGE_KEY)
+    expect(stored).toBeTruthy()
+
+    // applyParameters() writes to setParams — confirm it was triggered.
+    expect(mockSimulationContext.setParams).toHaveBeenCalled()
+  })
+})
