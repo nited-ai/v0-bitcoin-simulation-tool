@@ -286,3 +286,83 @@ export async function runRestore(deps: RestoreDeps): Promise<{ deleted: number; 
   const { count: inserted } = await deps.prisma.bitcoinPrice.createMany({ data: dataForCreate })
   return { deleted, inserted }
 }
+
+// === CLI entry ===
+
+async function main(): Promise<void> {
+  const { PrismaClient } = await import('@/lib/generated/prisma')
+  const { writeFile, readFile } = await import('node:fs/promises')
+  const { fetchHistoricalKlines } = await import(
+    '../src/modules/price-data/services/PriceSource/providers/binance'
+  )
+
+  const args = parseCliArgs(process.argv.slice(2))
+  const prisma = new PrismaClient()
+  try {
+    if (args.mode === 'restore') {
+      console.log(`Restoring from snapshot: ${args.restoreFile}`)
+      const { deleted, inserted } = await runRestore({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        prisma: prisma as any,
+        readFile: (p) => readFile(p, 'utf8'),
+        restoreFile: args.restoreFile!,
+      })
+      console.log(`Restore complete: deleted ${deleted} rows, inserted ${inserted}`)
+      return
+    }
+
+    // For --full and incremental, snapshot first if writing
+    if (args.mode === 'full' && !args.dryRun) {
+      const path = await dumpSnapshot({
+        prisma,
+        writeFile: (p, c) => writeFile(p, c),
+        now: () => new Date(),
+      })
+      console.log(`Snapshot written: ${path}`)
+    }
+
+    // After the early return above, args.mode is 'incremental' | 'full'
+    const backfillMode: 'incremental' | 'full' =
+      args.mode === 'full' ? 'full' : 'incremental'
+    const result = await runBackfill({
+      mode: backfillMode,
+      dryRun: args.dryRun,
+      prisma,
+      fetchKlines: fetchHistoricalKlines,
+      now: () => new Date(),
+      from: args.from,
+      to: args.to,
+    })
+
+    if (args.dryRun) {
+      console.log(`DRY RUN — no writes`)
+      console.log(`Fetched ${result.fetchedRows} rows`)
+      console.log(`Old ATH: ${result.oldAth}`)
+      console.log(`New ATH (after merge): ${result.newAth}`)
+      console.log(`ATH delta: +${(result.newAth - result.oldAth).toFixed(2)}`)
+      const top = (result.deltas ?? [])
+        .filter((d) => d.deltaHigh > 0)
+        .sort((a, b) => b.deltaHigh - a.deltaHigh)
+        .slice(0, 50)
+      console.log(`Top 50 high-deltas:`)
+      for (const d of top) {
+        console.log(`  ${d.date}: ${d.oldHigh} -> ${d.newHigh} (+${d.deltaHigh.toFixed(2)})`)
+      }
+    } else {
+      console.log(`Inserted: ${result.inserted}`)
+      console.log(`Updated:  ${result.updated}`)
+      console.log(`Old ATH: ${result.oldAth}`)
+      console.log(`New ATH: ${result.newAth}`)
+      console.log(`ATH delta: +${(result.newAth - result.oldAth).toFixed(2)}`)
+    }
+  } catch (err) {
+    console.error('backfill-and-seed-prices failed:', err)
+    process.exit(1)
+  } finally {
+    await prisma.$disconnect()
+  }
+}
+
+if (require.main === module) {
+  main()
+}
