@@ -23,15 +23,22 @@ function mockFetchOnce(jsonBody: any, status = 200) {
 }
 
 describe('binance.fetchCurrent', () => {
-  it('parses { symbol, price } shape and normalizes', async () => {
-    mockFetchOnce({ symbol: 'BTCUSDT', price: '100123.45' })
+  it('parses klines response shape and normalizes', async () => {
+    // Binance klines tuple: [openTime, open, high, low, close, volume, closeTime, ...]
+    const kline = [
+      Date.UTC(2026, 4, 8, 0, 0, 0),
+      '99000.00', '101000.00', '98500.00', '100123.45',
+      '1500.50', Date.UTC(2026, 4, 8, 23, 59, 59, 999),
+      '0', 0, '0', '0', '0',
+    ]
+    mockFetchOnce([kline])
     const p = await binance.fetchCurrent()
     expect(p.source).toBe('binance')
+    expect(p.open).toBe(99000)
+    expect(p.high).toBe(101000)
+    expect(p.low).toBe(98500)
     expect(p.close).toBe(100123.45)
-    expect(p.open).toBe(100123.45)
-    expect(p.high).toBe(100123.45)
-    expect(p.low).toBe(100123.45)
-    expect(p.volume).toBeNull()
+    expect(p.volume).toBeCloseTo(1500.5, 2)
     expect(p.date).toMatch(/^\d{4}-\d{2}-\d{2}$/)
   })
 

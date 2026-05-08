@@ -118,3 +118,6 @@ temp/
 *.orig
 
 /lib/generated/prisma
+
+# PR6 backfill snapshots (do not commit DB dumps)
+bitcoin_prices_pre_pr6_*.json
