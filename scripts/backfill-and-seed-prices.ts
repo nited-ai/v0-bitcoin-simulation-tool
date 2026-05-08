@@ -110,3 +110,179 @@ export function parseCliArgs(argv: string[]): CliArgs {
   }
   return args
 }
+
+// === Orchestration ===
+
+export interface BackfillDeps {
+  mode: 'incremental' | 'full'
+  dryRun: boolean
+  prisma: {
+    bitcoinPrice: {
+      findMany(): Promise<Array<{ date: string; high: number; low: number; open: number; close: number }>>
+      upsert(args: {
+        where: { date: string }
+        create: {
+          date: string; timestamp: bigint
+          open: number; high: number; low: number; close: number
+          volume: number | null; source: string
+        }
+        update: {
+          open: number; high: number; low: number; close: number
+          volume: number | null; source: string
+        }
+      }): Promise<unknown>
+    }
+  }
+  fetchKlines: (from: Date, to: Date) => Promise<DailyOHLC[]>
+  now: () => Date
+  from?: string  // YYYY-MM-DD override
+  to?: string    // YYYY-MM-DD override
+}
+
+export interface BackfillResult {
+  inserted: number
+  updated: number
+  oldAth: number
+  newAth: number
+  deltas?: DryRunDelta[]
+  fetchedRows: number
+}
+
+function utcMidnight(date: Date): Date {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
+}
+
+function dateStringToUtcMidnight(s: string): Date {
+  return new Date(s + 'T00:00:00.000Z')
+}
+
+export async function runBackfill(deps: BackfillDeps): Promise<BackfillResult> {
+  const { mode, dryRun, prisma, fetchKlines, now } = deps
+
+  // Compute fetch range
+  let fromDate: Date
+  let toDate: Date
+
+  if (deps.from) {
+    fromDate = dateStringToUtcMidnight(deps.from)
+  } else if (mode === 'incremental') {
+    const all = await prisma.bitcoinPrice.findMany()
+    const maxDate = all.reduce<string | null>((m, r) => (m === null || r.date > m ? r.date : m), null)
+    if (maxDate === null) {
+      fromDate = dateStringToUtcMidnight(BINANCE_FIRST_DATE)
+    } else {
+      const next = new Date(maxDate + 'T00:00:00.000Z')
+      next.setUTCDate(next.getUTCDate() + 1)
+      fromDate = next
+    }
+  } else {
+    // full
+    fromDate = dateStringToUtcMidnight(BINANCE_FIRST_DATE)
+  }
+
+  if (deps.to) {
+    toDate = dateStringToUtcMidnight(deps.to)
+    toDate.setUTCHours(23, 59, 59, 999)
+  } else {
+    // default: yesterday UTC end-of-day (avoid partial today candle)
+    const yesterday = utcMidnight(now())
+    yesterday.setUTCDate(yesterday.getUTCDate() - 1)
+    yesterday.setUTCHours(23, 59, 59, 999)
+    toDate = yesterday
+  }
+
+  // Fetch
+  const fetched = await fetchKlines(fromDate, toDate)
+
+  // Sanity validate ALL rows BEFORE any write
+  for (const r of fetched) sanityValidate(r)
+
+  // Snapshot of existing rows for diff/comparison
+  const allExisting = await prisma.bitcoinPrice.findMany()
+  const existingMap = new Map(
+    allExisting.map((r) => [r.date, { high: r.high, low: r.low, open: r.open, close: r.close }]),
+  )
+  const oldAth = allExisting.reduce((m, r) => Math.max(m, r.high), 0)
+
+  if (dryRun) {
+    const deltas = computeDryRunDiff(fetched, existingMap)
+    const newAthFromFetch = fetched.reduce((m, r) => Math.max(m, r.high), oldAth)
+    return { inserted: 0, updated: 0, oldAth, newAth: newAthFromFetch, deltas, fetchedRows: fetched.length }
+  }
+
+  // Upsert
+  let inserted = 0
+  let updated = 0
+  for (const r of fetched) {
+    const exists = existingMap.has(r.date)
+    await prisma.bitcoinPrice.upsert({
+      where: { date: r.date },
+      create: {
+        date: r.date,
+        timestamp: BigInt(r.openTime),
+        open: r.open, high: r.high, low: r.low, close: r.close,
+        volume: r.volume, source: 'binance-klines-1d',
+      },
+      update: {
+        open: r.open, high: r.high, low: r.low, close: r.close,
+        volume: r.volume, source: 'binance-klines-1d',
+      },
+    })
+    if (exists) updated++
+    else inserted++
+  }
+
+  const allAfter = await prisma.bitcoinPrice.findMany()
+  const newAth = allAfter.reduce((m, r) => Math.max(m, r.high), 0)
+
+  return { inserted, updated, oldAth, newAth, fetchedRows: fetched.length }
+}
+
+// === Snapshot + restore ===
+
+export interface DumpSnapshotDeps {
+  prisma: {
+    bitcoinPrice: { findMany(): Promise<unknown[]> }
+  }
+  writeFile: (path: string, content: string) => Promise<void>
+  now: () => Date
+}
+
+export async function dumpSnapshot(deps: DumpSnapshotDeps): Promise<string> {
+  const rows = await deps.prisma.bitcoinPrice.findMany()
+  const ts = deps.now().toISOString().replace(/[:.]/g, '-')
+  const path = `bitcoin_prices_pre_pr6_${ts}.json`
+  // Custom JSON to handle BigInt → string
+  const json = JSON.stringify(rows, (_key, value) =>
+    typeof value === 'bigint' ? value.toString() : value,
+  )
+  await deps.writeFile(path, json)
+  return path
+}
+
+export interface RestoreDeps {
+  prisma: {
+    bitcoinPrice: {
+      deleteMany(): Promise<{ count: number }>
+      createMany(args: { data: unknown[] }): Promise<{ count: number }>
+    }
+  }
+  readFile: (path: string) => Promise<string>
+  restoreFile: string
+}
+
+export async function runRestore(deps: RestoreDeps): Promise<{ deleted: number; inserted: number }> {
+  const json = await deps.readFile(deps.restoreFile)
+  const rows = JSON.parse(json) as Array<Record<string, unknown>>
+  if (!Array.isArray(rows)) throw new Error('restore: snapshot file does not contain an array')
+
+  // Coerce timestamp string back to BigInt
+  const dataForCreate = rows.map((r) => ({
+    ...r,
+    timestamp: typeof r.timestamp === 'string' ? BigInt(r.timestamp) : r.timestamp,
+  }))
+
+  const { count: deleted } = await deps.prisma.bitcoinPrice.deleteMany()
+  const { count: inserted } = await deps.prisma.bitcoinPrice.createMany({ data: dataForCreate })
+  return { deleted, inserted }
+}

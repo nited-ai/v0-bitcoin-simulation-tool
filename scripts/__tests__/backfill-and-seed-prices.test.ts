@@ -104,3 +104,231 @@ describe('BINANCE_FIRST_DATE', () => {
     expect(BINANCE_FIRST_DATE).toBe('2017-08-17')
   })
 })
+
+import {
+  runBackfill,
+  runRestore,
+  dumpSnapshot,
+} from '../backfill-and-seed-prices'
+
+interface FakeRow {
+  date: string
+  open: number
+  high: number
+  low: number
+  close: number
+  source: string
+}
+
+function makeFakePrisma(initialRows: FakeRow[] = []) {
+  const table = new Map<string, FakeRow>(initialRows.map((r) => [r.date, r]))
+  return {
+    table,
+    bitcoinPrice: {
+      async findMany() {
+        return [...table.values()]
+      },
+      async upsert(args: {
+        where: { date: string }
+        create: FakeRow & { timestamp: bigint; volume: number | null }
+        update: Partial<FakeRow>
+      }) {
+        const existing = table.get(args.where.date)
+        if (existing) {
+          table.set(args.where.date, { ...existing, ...args.update })
+        } else {
+          table.set(args.where.date, args.create)
+        }
+        return table.get(args.where.date)
+      },
+      async deleteMany() {
+        const count = table.size
+        table.clear()
+        return { count }
+      },
+      async createMany({ data }: { data: FakeRow[] }) {
+        for (const r of data) table.set(r.date, r)
+        return { count: data.length }
+      },
+    },
+  }
+}
+
+describe('runBackfill — happy path', () => {
+  it('upserts new rows when DB is empty', async () => {
+    const prisma = makeFakePrisma([])
+    const fetched: DailyOHLC[] = [
+      { date: '2025-10-07', openTime: 1, open: 124_000, high: 126_272, low: 123_500, close: 124_500, volume: 100 },
+    ]
+    const result = await runBackfill({
+      mode: 'full',
+      dryRun: false,
+      prisma: prisma as any,
+      fetchKlines: async () => fetched,
+      now: () => new Date('2026-05-08T12:00:00Z'),
+    })
+    expect(result.inserted).toBe(1)
+    expect(result.updated).toBe(0)
+    expect(prisma.table.get('2025-10-07')?.high).toBe(126_272)
+    expect(prisma.table.get('2025-10-07')?.source).toBe('binance-klines-1d')
+  })
+
+  it('updates fake-OHLC rows in place with real OHLC', async () => {
+    const prisma = makeFakePrisma([
+      { date: '2025-10-07', open: 124_773, high: 124_773, low: 124_773, close: 124_773, source: 'coingecko' },
+    ])
+    const fetched: DailyOHLC[] = [
+      { date: '2025-10-07', openTime: 1, open: 124_000, high: 126_272, low: 123_500, close: 124_500, volume: 100 },
+    ]
+    const result = await runBackfill({
+      mode: 'full',
+      dryRun: false,
+      prisma: prisma as any,
+      fetchKlines: async () => fetched,
+      now: () => new Date('2026-05-08T12:00:00Z'),
+    })
+    expect(result.inserted).toBe(0)
+    expect(result.updated).toBe(1)
+    expect(prisma.table.get('2025-10-07')?.high).toBe(126_272)
+    expect(prisma.table.get('2025-10-07')?.source).toBe('binance-klines-1d')
+  })
+
+  it('reports oldAth and newAth in result', async () => {
+    const prisma = makeFakePrisma([
+      { date: '2025-10-07', open: 124_773, high: 124_773, low: 124_773, close: 124_773, source: 'coingecko' },
+    ])
+    const fetched: DailyOHLC[] = [
+      { date: '2025-10-07', openTime: 1, open: 124_000, high: 126_272, low: 123_500, close: 124_500, volume: 100 },
+    ]
+    const result = await runBackfill({
+      mode: 'full',
+      dryRun: false,
+      prisma: prisma as any,
+      fetchKlines: async () => fetched,
+      now: () => new Date('2026-05-08T12:00:00Z'),
+    })
+    expect(result.oldAth).toBe(124_773)
+    expect(result.newAth).toBe(126_272)
+  })
+})
+
+describe('runBackfill — dry-run', () => {
+  it('writes nothing and returns deltas', async () => {
+    const prisma = makeFakePrisma([
+      { date: '2025-10-07', open: 124_773, high: 124_773, low: 124_773, close: 124_773, source: 'coingecko' },
+    ])
+    const fetched: DailyOHLC[] = [
+      { date: '2025-10-07', openTime: 1, open: 124_000, high: 126_272, low: 123_500, close: 124_500, volume: 100 },
+    ]
+    const result = await runBackfill({
+      mode: 'full',
+      dryRun: true,
+      prisma: prisma as any,
+      fetchKlines: async () => fetched,
+      now: () => new Date('2026-05-08T12:00:00Z'),
+    })
+    expect(result.inserted).toBe(0)
+    expect(result.updated).toBe(0)
+    expect(result.deltas?.[0].deltaHigh).toBe(126_272 - 124_773)
+    expect(prisma.table.get('2025-10-07')?.high).toBe(124_773)  // untouched
+  })
+})
+
+describe('runBackfill — sanity check rejection', () => {
+  it('throws and writes nothing if any row fails sanityValidate', async () => {
+    const prisma = makeFakePrisma([])
+    const bad: DailyOHLC[] = [
+      { date: '2025-10-07', openTime: 1, open: 100, high: 50, low: 200, close: 100, volume: 1 },
+    ]
+    await expect(
+      runBackfill({
+        mode: 'full',
+        dryRun: false,
+        prisma: prisma as any,
+        fetchKlines: async () => bad,
+        now: () => new Date('2026-05-08T12:00:00Z'),
+      }),
+    ).rejects.toThrow(/sanityValidate/)
+    expect(prisma.table.size).toBe(0)
+  })
+})
+
+describe('runBackfill — endTime cutoff in --full mode', () => {
+  it('passes endTime = yesterday UTC midnight to fetchKlines', async () => {
+    const prisma = makeFakePrisma([])
+    let captured: { from: Date; to: Date } | null = null
+    await runBackfill({
+      mode: 'full',
+      dryRun: false,
+      prisma: prisma as any,
+      fetchKlines: async (from, to) => {
+        captured = { from, to }
+        return []
+      },
+      now: () => new Date('2026-05-08T12:00:00Z'),
+    })
+    // yesterday UTC = 2026-05-07T23:59:59.999Z (approx)
+    expect(captured!.to.toISOString().slice(0, 10)).toBe('2026-05-07')
+    expect(captured!.from.toISOString().slice(0, 10)).toBe('2017-08-17')
+  })
+})
+
+describe('runBackfill — incremental mode', () => {
+  it('starts from MAX(date)+1', async () => {
+    const prisma = makeFakePrisma([
+      { date: '2026-05-05', open: 80000, high: 80000, low: 80000, close: 80000, source: 'binance' },
+      { date: '2026-05-06', open: 81000, high: 81000, low: 81000, close: 81000, source: 'binance' },
+    ])
+    let captured: Date | null = null
+    await runBackfill({
+      mode: 'incremental',
+      dryRun: false,
+      prisma: prisma as any,
+      fetchKlines: async (from, _to) => {
+        captured = from
+        return []
+      },
+      now: () => new Date('2026-05-08T12:00:00Z'),
+    })
+    expect(captured!.toISOString().slice(0, 10)).toBe('2026-05-07')
+  })
+})
+
+describe('dumpSnapshot', () => {
+  it('writes a JSON file containing every row', async () => {
+    const prisma = makeFakePrisma([
+      { date: '2025-10-07', open: 124_773, high: 124_773, low: 124_773, close: 124_773, source: 'coingecko' },
+    ])
+    let written: { path: string; content: string } | null = null
+    const path = await dumpSnapshot({
+      prisma: prisma as any,
+      writeFile: async (p, c) => { written = { path: p, content: String(c) } },
+      now: () => new Date('2026-05-08T12:00:00Z'),
+    })
+    expect(path).toMatch(/bitcoin_prices_pre_pr6_.*\.json$/)
+    expect(written!.path).toBe(path)
+    const parsed = JSON.parse(written!.content)
+    expect(parsed).toHaveLength(1)
+    expect(parsed[0].date).toBe('2025-10-07')
+  })
+})
+
+describe('runRestore', () => {
+  it('clears table and reinstates rows from snapshot', async () => {
+    const prisma = makeFakePrisma([
+      { date: '2025-10-07', open: 999, high: 999, low: 999, close: 999, source: 'wrong' },
+    ])
+    const snapshot = JSON.stringify([
+      { date: '2025-10-07', timestamp: '1759795200000', open: 124_773, high: 124_773, low: 124_773, close: 124_773, volume: null, source: 'coingecko' },
+    ])
+    const result = await runRestore({
+      prisma: prisma as any,
+      readFile: async () => snapshot,
+      restoreFile: 'fake.json',
+    })
+    expect(result.deleted).toBe(1)
+    expect(result.inserted).toBe(1)
+    expect(prisma.table.get('2025-10-07')?.high).toBe(124_773)
+    expect(prisma.table.get('2025-10-07')?.source).toBe('coingecko')
+  })
+})
