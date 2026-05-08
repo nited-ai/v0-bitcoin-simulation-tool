@@ -14,3 +14,18 @@ export interface PriceProvider {
   name: string
   fetchCurrent(): Promise<NormalizedPricePoint>
 }
+
+/**
+ * Real daily OHLC parsed from a Binance Klines response.
+ * Used by historical backfill (scripts/backfill-and-seed-prices.ts)
+ * and by the live fetchCurrent() in binance.ts.
+ */
+export interface DailyOHLC {
+  date: string         // YYYY-MM-DD (UTC day boundary)
+  openTime: number     // Unix ms (Binance openTime field)
+  open: number         // USD
+  high: number         // USD
+  low: number          // USD
+  close: number        // USD
+  volume: number       // BTC (Binance returns base-asset volume)
+}
