@@ -127,7 +127,7 @@ export interface BackfillDeps {
           volume: number | null; source: string
         }
         update: {
-          open: number; high: number; low: number; close: number
+          open: number; high: number; low: number; close?: number
           volume: number | null; source: string
         }
       }): Promise<unknown>
@@ -220,11 +220,20 @@ export async function runBackfill(deps: BackfillDeps): Promise<BackfillResult> {
       create: {
         date: r.date,
         timestamp: BigInt(r.openTime),
+        // For NEW rows (fresh install), use Binance close as canonical close.
         open: r.open, high: r.high, low: r.low, close: r.close,
         volume: r.volume, source: 'binance-klines-1d',
       },
       update: {
-        open: r.open, high: r.high, low: r.low, close: r.close,
+        // For EXISTING rows, preserve the existing close value.
+        // Binance's close (end-of-day 23:59:59 UTC) and CoinGecko's old close
+        // (00:00 UTC start-of-day) follow different timezone conventions that
+        // varied across CoinGecko's free-tier history. Overwriting close with
+        // Binance values causes downstream models (e.g., EnhancedCycleRepeatModel)
+        // to diverge from their historically-trained behavior. Only update the
+        // OHLC extremes (high/low/open) which the original CoinGecko data
+        // didn't have — those give us correct ATH and chart wicks.
+        open: r.open, high: r.high, low: r.low,
         volume: r.volume, source: 'binance-klines-1d',
       },
     })
