@@ -14,6 +14,7 @@ import type {
 } from "../types"
 import { LoanRolloverCalculationService } from '../services/LoanRolloverCalculationService'
 import { PlatformFeeIntegrationService } from '../services/PlatformFeeIntegrationService'
+import { centralizedLoanCalculationService } from '../services/CentralizedLoanCalculationService'
 import type { LoanRolloverParams, PlatformFeeConfig } from '../services/types'
 
 /**
@@ -90,11 +91,21 @@ The strategy automatically handles loan rollovers at maturity, calculates minimu
     }
 
     const collateralValue = totalBtcAmount * btcPrice
-    const targetLtv = params.riskManagement.targetLtv
-    const maxLoanAmount = Math.min(
-      params.maxLoanAmount,
-      collateralValue * (targetLtv / 100)
-    )
+
+    // CRITICAL FIX: Use loanAmountPercent if available (user-configured percentage)
+    // Otherwise fall back to old logic for backward compatibility
+    let maxLoanAmount: number
+    if (params.loanAmountPercent !== undefined && params.loanAmountPercent > 0) {
+      // Use user-configured percentage (e.g., 10% of collateral)
+      maxLoanAmount = collateralValue * (params.loanAmountPercent / 100)
+    } else {
+      // Legacy fallback: use targetLtv and maxLoanAmount constraint
+      const targetLtv = params.riskManagement.targetLtv
+      maxLoanAmount = Math.min(
+        params.maxLoanAmount,
+        collateralValue * (targetLtv / 100)
+      )
+    }
 
     // Get maturing loans for this month
     const maturingLoans = activeLoans.filter(loan => loan.maturityMonth === month)
@@ -126,14 +137,69 @@ The strategy automatically handles loan rollovers at maturity, calculates minimu
     }
   }
 
+  /**
+   * Handle initial loan creation (Month 0)
+   *
+   * ⚠️ IMPORTANT: This method demonstrates the CORRECT way to create loans.
+   *
+   * Steps:
+   * 1. Calculate loan details using CentralizedLoanCalculationService
+   * 2. Get investment multiplier from the service
+   * 3. Format values for display
+   * 4. Return strategy decision with complete loan breakdown
+   *
+   * DO NOT calculate loan amounts manually. Always use the centralized service.
+   *
+   * @see docs/DEVELOPER_GUIDE_LOAN_CALCULATIONS.md for detailed usage guide
+   */
   private handleInitialLoan(
     context: StrategyContext,
     collateralValue: number,
     maxLoanAmount: number
   ): StrategyDecision {
     const { params } = context
-    const loanAmount = maxLoanAmount
-    const investmentMultiplier = loanAmount / collateralValue
+    const principal = maxLoanAmount
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // STEP 1: Calculate complete loan details using centralized service
+    // ═══════════════════════════════════════════════════════════════════════
+    //
+    // ⚠️ CRITICAL: ALWAYS use centralizedLoanCalculationService for loan calculations
+    //
+    // This ensures:
+    // - Accurate cost breakdown (principal + fees + interest)
+    // - Consistent calculations across the application
+    // - Proper rounding (no decimals)
+    // - Clear distinction between principal (received) and repayment (owed)
+    //
+    // DO NOT calculate loan amounts manually!
+    // ═══════════════════════════════════════════════════════════════════════
+    const loanDetails = centralizedLoanCalculationService.calculateLoanDetails(
+      principal,
+      collateralValue,
+      params
+    )
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // STEP 2: Investment multiplier — set to 1.0 (full principal)
+    // ═══════════════════════════════════════════════════════════════════════
+    //
+    // CRITICAL FIX (mirrors c0cc098 for DynamicRollingLoanStrategy):
+    // StrategyExecutionService applies `principalForReinvestment =
+    // remainingDebtCapacity * investmentMultiplier`. With debtCapacity already
+    // computed as `collateralValue * loanAmountPercent/100`, the multiplier
+    // must NOT be `principal/collateralValue` (= loanAmountPercent/100), or
+    // we apply the percentage TWICE (factor-10 error for 10% LTV scenarios).
+    //
+    // The loan principal already encodes the user's loanAmountPercent; we
+    // tell the executor to use all of it.
+    // ═══════════════════════════════════════════════════════════════════════
+    const investmentMultiplier = 1.0
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // STEP 3: Format values for display
+    // ═══════════════════════════════════════════════════════════════════════
+    const formatted = centralizedLoanCalculationService.formatLoanCalculation(loanDetails)
 
     if (params.btcAccumulation) {
       // BTC Accumulation Mode: Reinvest loan proceeds into more BTC
@@ -142,7 +208,7 @@ The strategy automatically handles loan rollovers at maturity, calculates minimu
         investmentMultiplier,
         allowWithdrawal: false,
         withdrawalAmount: 0,
-        reasoning: `Taking initial loan of $${Math.round(loanAmount)} for BTC accumulation (${params.riskManagement.targetLtv}% LTV)`
+        reasoning: `Taking initial loan: ${formatted.principalFormatted} principal + ${formatted.originationFeeFormatted} fee + ${formatted.totalInterestFormatted} interest = ${formatted.totalRepaymentFormatted} total (${loanDetails.ltv.toFixed(1)}% LTV)`
       }
     } else {
       // Cash Generation Mode: Take loan proceeds as cash
@@ -150,8 +216,8 @@ The strategy automatically handles loan rollovers at maturity, calculates minimu
         allowInvestment: true,
         investmentMultiplier,
         allowWithdrawal: true,
-        withdrawalAmount: loanAmount * 0.8, // Take most as cash, keep some buffer
-        reasoning: `Taking initial loan of $${Math.round(loanAmount)} for cash generation (${params.riskManagement.targetLtv}% LTV)`
+        withdrawalAmount: principal * 0.8, // Take most as cash, keep some buffer
+        reasoning: `Taking initial loan: ${formatted.principalFormatted} principal + ${formatted.originationFeeFormatted} fee + ${formatted.totalInterestFormatted} interest = ${formatted.totalRepaymentFormatted} total (${loanDetails.ltv.toFixed(1)}% LTV)`
       }
     }
   }
@@ -173,6 +239,11 @@ The strategy automatically handles loan rollovers at maturity, calculates minimu
     // TODO: Add platform information to StrategyContext or StrategyExecutionParams
     const platformFeeConfig: PlatformFeeConfig = this.getPlatformFeeConfigFromParams(params)
 
+    // CRITICAL FIX: Use loanAmountPercent if available, otherwise fall back to targetLtv
+    const targetLtvPercent = params.loanAmountPercent !== undefined && params.loanAmountPercent > 0
+      ? params.loanAmountPercent
+      : params.riskManagement.targetLtv
+
     // Prepare loan rollover parameters
     const rolloverParams: LoanRolloverParams = {
       previousLoanPrincipal: totalPrincipal,
@@ -181,7 +252,7 @@ The strategy automatically handles loan rollovers at maturity, calculates minimu
       loanOriginationFeePercent: params.loanOriginationFeePercent,
       loanTermMonths: params.loanTermMonths,
       btcStackValue: collateralValue,
-      targetLtvPercent: params.riskManagement.targetLtv,
+      targetLtvPercent, // Use user-configured percentage or fall back to targetLtv
       liquidationLtvPercent: params.riskManagement.liquidationLtv
     }
 
@@ -199,8 +270,12 @@ The strategy automatically handles loan rollovers at maturity, calculates minimu
       }
     }
 
-    // Calculate investment multiplier and target LTV override
-    const investmentMultiplier = rolloverResult.actualLoanAmount / collateralValue
+    // Investment multiplier = 1.0 (use full new principal). Same reason as
+    // handleInitialLoan: StrategyExecutionService already sized debtCapacity
+    // via loanAmountPercent, so the principal IS the intended loan size.
+    // The forced_exceedance case overrides debtCapacity via targetLtvOverride
+    // below, so multiplier still semantically means "take all of capacity".
+    const investmentMultiplier = 1.0
     const targetLtvOverride = rolloverResult.conflictResolution === 'forced_exceedance'
       ? (rolloverResult.actualLoanAmount / collateralValue) * 100
       : undefined

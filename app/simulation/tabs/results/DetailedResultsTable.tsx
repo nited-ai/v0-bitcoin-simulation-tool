@@ -264,12 +264,11 @@ export function DetailedResultsTable() {
                                 ? snap.lockedBtc!
                                 : centralizedLoanCalculationService.lockedBTCUnderTargetLtv(snap.totalDebt, m.btcPrice, targetLtv)
                               const locked = Math.min(lockedRaw, snap.totalBtc ?? 0)
-                              const showEvent = (snap.liquidationTriggered || (snap.btcTopUpForCollateral || 0) > 0)
-                              if (!showEvent) {
-                                return (<div className="flex flex-col"><span>-</span><span className="text-muted-foreground">-</span></div>)
-                              }
-                              const debtCls = snap.liquidationTriggered ? 'text-red-600' : 'text-blue-600'
-                              const debtTitle = snap.liquidationTriggered ? `Total Debt after liquidation in ${mLabel}` : `Total Debt (unchanged) in ${mLabel}`
+                              const hadEvent = (snap.liquidationTriggered || (snap.btcTopUpForCollateral || 0) > 0)
+                              const debtCls = snap.liquidationTriggered ? 'text-red-600' : (hadEvent ? 'text-blue-600' : '')
+                              const debtTitle = snap.liquidationTriggered
+                                ? `Total Debt after liquidation in ${mLabel}`
+                                : (hadEvent ? `Total Debt after top-up in ${mLabel}` : `Total Debt carried forward in ${mLabel}`)
                               return (
                                 <div className="flex flex-col items-end space-y-0.5">
                                   <span className={debtCls} title={debtTitle}>{formatUsd(snap.totalDebt)}</span>

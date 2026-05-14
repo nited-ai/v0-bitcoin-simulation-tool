@@ -16,6 +16,7 @@ import type {
 } from "../types"
 import type { PriceProjectionResult } from "../../../../app/simulation/price-models/types"
 import type { HistoricalDataPoint } from "@/src/modules/price-data/types"
+import { centralizedLoanCalculationService } from "./CentralizedLoanCalculationService"
 
 /**
  * Strategy Execution Service Implementation
@@ -52,15 +53,51 @@ export class StrategyExecutionService {
     for (let month = 0; month < params.simulationMonths; month++) {
       const currentDate = new Date()
       currentDate.setMonth(currentDate.getMonth() + month)
-      
+
       // Get BTC price for this month
       const pricePoint = priceChartData[month] || priceChartData[priceChartData.length - 1]
-      const btcPrice = pricePoint.price
+
+      // CRITICAL FIX: Use initialBtcPrice for Month 0, projected price for subsequent months
+      const btcPrice = month === 0 ? params.initialBtcPrice : pricePoint.price
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // APPLY MONTHLY SAVINGS/WITHDRAWALS (BEFORE STRATEGY DECISION)
+      // ═══════════════════════════════════════════════════════════════════════
+      let monthlySavingsApplied: number | undefined = undefined
+
+      if (month > 0 && params.monthlyWithdrawalAmount !== 0) {
+        // Calculate years passed for annual compound increase
+        const yearsPassed = Math.floor(month / 12)
+        const annualIncrease = (params.annualSavingsIncrease || 0) / 100
+
+        // Apply compound increase: initial * (1 + increase)^years
+        const currentMonthlyFlow = params.monthlyWithdrawalAmount *
+          Math.pow(1 + annualIncrease, yearsPassed)
+
+        // Convert to BTC and apply to holdings
+        // Positive = savings (add BTC), Negative = withdrawals (reduce BTC)
+        const btcChange = currentMonthlyFlow / btcPrice
+        totalBtcAmount += btcChange
+
+        // Track for monthly result
+        monthlySavingsApplied = currentMonthlyFlow
+      }
 
       // Initialize monthly tracking
       const monthlyEvents: MonthlyEvent[] = []
       const collateralValue = totalBtcAmount * btcPrice
-      let debtCapacity = collateralValue * (params.riskManagement.targetLtv / 100)
+
+      // CRITICAL FIX: Calculate debt capacity dynamically based on user-configured percentage
+      // If loanAmountPercent is provided, use it to calculate debt capacity that scales with BTC price
+      // Otherwise, fall back to fixed maxLoanAmount (for backward compatibility)
+      let debtCapacity: number
+      if (params.loanAmountPercent !== undefined && params.loanAmountPercent > 0) {
+        // Use percentage-based calculation (scales with collateral value)
+        debtCapacity = collateralValue * (params.loanAmountPercent / 100)
+      } else {
+        // Fall back to fixed amount (legacy behavior)
+        debtCapacity = params.maxLoanAmount
+      }
 
       // Create strategy context
       const strategyContext: StrategyContext = {
@@ -116,18 +153,39 @@ export class StrategyExecutionService {
       // Calculate projected debt after covering needs
       const projectedDebtAfterNeeds = debtFromOngoingLoans + principalForNeeds
 
+      // Track BTC purchased from loan proceeds
+      let btcPurchased: number | undefined = undefined
+
       // Apply strategy decision for investment
       if (decision.allowInvestment && projectedDebtAfterNeeds <= debtCapacity) {
         const remainingDebtCapacity = debtCapacity - projectedDebtAfterNeeds
         principalForReinvestment = remainingDebtCapacity * decision.investmentMultiplier
+
+        // Track BTC purchased if reinvesting
+        if (principalForReinvestment > 0) {
+          btcPurchased = principalForReinvestment / btcPrice
+
+          if (month === 0) {
+            console.log('💰 Month 0 BTC Purchase:', {
+              debtCapacity,
+              projectedDebtAfterNeeds,
+              remainingDebtCapacity,
+              investmentMultiplier: decision.investmentMultiplier,
+              principalForReinvestment,
+              btcPrice,
+              btcPurchased,
+              calculation: `${principalForReinvestment} / ${btcPrice} = ${btcPurchased.toFixed(5)} BTC`
+            })
+          }
+        }
       } else if (projectedDebtAfterNeeds > debtCapacity) {
         // Handle debt capacity overflow
         principalForReinvestment = 0
-        
+
         // Check if we can at least cover repayments
         principalForNeeds = repaymentDue / (1 - params.loanOriginationFeePercent / 100)
         const projectedDebtForRepaymentOnly = debtFromOngoingLoans + principalForNeeds
-        
+
         if (projectedDebtForRepaymentOnly > debtCapacity) {
           // Emergency: Skip withdrawal to prioritize loan repayments
           monthlyWithdrawal = 0
@@ -139,20 +197,41 @@ export class StrategyExecutionService {
       // Create new loans if needed
       const totalPrincipal = principalForNeeds + principalForReinvestment
       if (totalPrincipal > 0) {
+        // CRITICAL: Use centralized calculation service for accurate loan details
+        const principal = Math.round(totalPrincipal)
+        const loanDetails = centralizedLoanCalculationService.calculateLoanDetails(
+          principal,
+          collateralValue,
+          params
+        )
+
         const newLoan: Loan = {
           id: loanIdCounter++,
           month,
-          principal: totalPrincipal,
+          principal: loanDetails.principal,
           maturityMonth: month + params.loanTermMonths,
-          repaymentAmount: this.calculateRepaymentAmount(totalPrincipal, params),
-          lockedBtc: totalPrincipal / btcPrice
+          repaymentAmount: loanDetails.totalRepayment,  // Now includes fees + interest
+          lockedBtc: loanDetails.principal / btcPrice
         }
         activeLoans.push(newLoan)
       }
 
-      // Handle BTC accumulation
+      // CRITICAL FIX: Add purchased BTC to total holdings
+      if (btcPurchased !== undefined && btcPurchased > 0) {
+        totalBtcAmount += btcPurchased
+
+        if (month === 0) {
+          console.log('✅ Updated totalBtcAmount after BTC purchase:', {
+            previousAmount: totalBtcAmount - btcPurchased,
+            btcPurchased,
+            newAmount: totalBtcAmount
+          })
+        }
+      }
+
+      // Handle BTC accumulation from monthly savings
       if (params.btcAccumulation && monthlyWithdrawal < 0) {
-        // Negative withdrawal means we're adding BTC
+        // Negative withdrawal means we're adding BTC from savings
         totalBtcAmount += Math.abs(monthlyWithdrawal) / btcPrice
       }
 
@@ -178,6 +257,8 @@ export class StrategyExecutionService {
         repaymentDue,
         highestLtv: Math.round(highestLtv),
         maxSafeDebt: decision.maxDebtOverride !== undefined ? Math.round(decision.maxDebtOverride) : undefined,
+        monthlySavingsApplied, // Track monthly savings/withdrawals
+        btcPurchased, // Track BTC purchased from loan proceeds
         events: monthlyEvents
       })
     }
@@ -202,25 +283,7 @@ export class StrategyExecutionService {
     return result
   }
 
-  /**
-   * Calculate loan repayment amount including interest and fees
-   */
-  private calculateRepaymentAmount(principal: number, params: StrategyExecutionParams): number {
-    const monthlyInterestRate = params.annualInterestRate / 100 / 12
-    const termMonths = params.loanTermMonths
-    
-    if (termMonths === Infinity || termMonths <= 0) {
-      // Interest-only loan
-      return principal * (1 + monthlyInterestRate)
-    }
-    
-    // Standard amortizing loan
-    const monthlyPayment = principal * 
-      (monthlyInterestRate * Math.pow(1 + monthlyInterestRate, termMonths)) /
-      (Math.pow(1 + monthlyInterestRate, termMonths) - 1)
-    
-    return monthlyPayment * termMonths
-  }
+
 
   /**
    * Validate strategy execution parameters

@@ -66,6 +66,9 @@ export function useSimulationRunner() {
         maxLoanAmount: calculatedLoanAmount, // Use calculated amount instead of params.maxLoanAmount
         expectedAnnualInflation: 3.0, // Default 3% annual inflation
         btcAccumulation: (params as any).btcAccumulation ?? true, // Default to true if not set
+        // Pass through Rolling-Loan-specific fields so StrategyExecutionService can use them
+        loanAmountPercent: params.loanAmountPercent,
+        annualSavingsIncrease: params.annualSavingsIncrease,
         riskManagement: {
           targetLtv: params.riskManagement.targetLtv,
           liquidationLtv: params.riskManagement.liquidationLtv,

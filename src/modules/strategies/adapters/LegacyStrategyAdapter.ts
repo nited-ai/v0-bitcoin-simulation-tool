@@ -26,7 +26,11 @@ interface LegacySimulationParams {
   expectedAnnualInflation: number
   btcAccumulation?: boolean
   investmentStrategy: string
-  
+
+  // Rolling Loan Strategy parameters (optional, backward-compatible)
+  loanAmountPercent?: number
+  annualSavingsIncrease?: number
+
   // Risk management (may be nested or flat)
   riskManagement?: {
     targetLtv: number
@@ -83,6 +87,8 @@ export class LegacyStrategyAdapter {
       maxLoanAmount: legacyParams.maxLoanAmount,
       expectedAnnualInflation: legacyParams.expectedAnnualInflation,
       btcAccumulation: legacyParams.btcAccumulation ?? true,
+      loanAmountPercent: legacyParams.loanAmountPercent,
+      annualSavingsIncrease: legacyParams.annualSavingsIncrease,
       investmentStrategy: legacyParams.investmentStrategy as InvestmentStrategy,
       riskManagement,
       athBasedParams: legacyParams.athBasedParams,
