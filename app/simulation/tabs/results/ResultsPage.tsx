@@ -7,6 +7,7 @@ import { useSimulation } from "../../context/SimulationContext"
 import { useSimulationRunner } from "../../hooks/useSimulationRunner"
 import { ResultsSummary } from "./ResultsSummary"
 import { ResultsTable } from "./ResultsTable"
+import { DetailedResultsTable } from "./DetailedResultsTable"
 import { PortfolioValueChart } from "./charts/PortfolioValueChart"
 import { DebtCollateralChart } from "./charts/DebtCollateralChart"
 import { LTVProgressionChart } from "./charts/LTVProgressionChart"
@@ -201,7 +202,10 @@ export function ResultsPage() {
       {/* Export Functionality */}
       <ResultsExport />
 
-      {/* Detailed Results Table */}
+      {/* Detailed Rollover Table (with expandable monthly rows) */}
+      <DetailedResultsTable />
+
+      {/* Legacy summary table */}
       <ResultsTable />
 
       {/* Placeholder for Phase 5 features */}

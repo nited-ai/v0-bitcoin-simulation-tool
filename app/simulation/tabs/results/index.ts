@@ -7,6 +7,7 @@
 export { ResultsPage } from './ResultsPage'
 export { ResultsSummary } from './ResultsSummary'
 export { ResultsTable } from './ResultsTable'
+export { DetailedResultsTable } from './DetailedResultsTable'
 export { RiskAssessment } from './RiskAssessment'
 export { EventsAnalysis } from './EventsAnalysis'
 export { ResultsExport } from './ResultsExport'
