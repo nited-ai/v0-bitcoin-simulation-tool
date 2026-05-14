@@ -52,9 +52,16 @@ export interface RolloverPolicyInput {
   /** Platform liquidation threshold (e.g. 80%) — for diagnostic only */
   liquidationLtv: number
   /**
-   * User's preferred loan size as % of collateral (e.g. 15 → take 15% loan).
-   * If set, drives the *target* new principal; cap still applies.
-   * If unset, principal defaults to repaymentDue (pure refinance).
+   * Optional user-set cap on the new loan size (as % of collateral). If set
+   * AND less than `targetLtv`, it caps the refinance from above (more
+   * conservative leverage at rollover than the strategic target). If
+   * unset or higher than targetLtv, `targetLtv` drives the aim.
+   *
+   * Why: `targetLtv` is the strategic LTV the rolling-loan strategy aims
+   * to maintain; `loanAmountPercent` exists as a UI-level cap for users who
+   * want less leverage than the strategic target during refinance. At
+   * rollover we never EXCEED what the user asked for, but we will EXCEED
+   * `targetLtv` if the old debt forces it (up to rolloverMaxLtv).
    */
   loanAmountPercent?: number
 }
@@ -122,20 +129,30 @@ export function decideRolloverAction(input: RolloverPolicyInput): RolloverPolicy
     : 0
 
   // ─── Case A: Refinance only ─────────────────────────────────────────────
+  // Target principal: aim for `targetLtv` (the strategic LTV goal). Only when
+  // the old debt won't fit at targetLtv do we exceed it — and even then only
+  // up to `principalCap` (= rolloverMaxLtv). The optional `loanAmountPercent`
+  // is honored as a SMALLER ceiling: if the user wants conservative leverage
+  // at rollover (e.g. 15% LTV target), we cap there even if targetLtv would
+  // allow more.
   if (repaymentDue <= principalCap) {
-    // Target principal: user's loanAmountPercent if set, else just cover old debt
-    let targetPrincipal: number
-    if (loanAmountPercent !== undefined && loanAmountPercent > 0) {
-      // Interpret loanAmountPercent as desired LTV after this new loan settles.
-      // principal × costFactor / collateral ≈ loanAmountPercent/100 → solve for principal.
-      targetPrincipal = (collateralUsd * (loanAmountPercent / 100)) / costFactor
-    } else {
-      targetPrincipal = repaymentDue
-    }
+    // Principal that would land us exactly at targetLtv
+    const principalAtTargetLtv = (collateralUsd * (targetLtv / 100)) / costFactor
 
-    // Take at least repaymentDue (must refinance) and at most principalCap
+    // Principal that would land us exactly at loanAmountPercent (if specified).
+    // Treated as a conservative upper bound on the *new loan size* the user
+    // wants to carry at rollover, not as the target itself.
+    const principalAtUserCap =
+      loanAmountPercent !== undefined && loanAmountPercent > 0
+        ? (collateralUsd * (loanAmountPercent / 100)) / costFactor
+        : Infinity
+
+    // Aim for targetLtv, but never exceed loanAmountPercent if user set it,
+    // and always cover at least the old repayment (must roll the debt).
+    // Then cap the whole thing at the rollover hard cap.
+    const aimed = Math.min(principalAtTargetLtv, principalAtUserCap)
     const newPrincipal = Math.min(
-      Math.max(repaymentDue, targetPrincipal),
+      Math.max(repaymentDue, aimed),
       principalCap
     )
 
@@ -143,6 +160,8 @@ export function decideRolloverAction(input: RolloverPolicyInput): RolloverPolicy
     const resultingLtv = collateralUsd > 0 ? (newRepayment / collateralUsd) * 100 : 0
 
     const hasExcess = newPrincipal > repaymentDue
+    // We "had to" exceed targetLtv if the old debt forced us above it
+    const exceededTarget = resultingLtv > targetLtv + 0.5 // tolerance for FP
     return {
       btcSold: 0,
       usdRecovered: 0,
@@ -154,8 +173,10 @@ export function decideRolloverAction(input: RolloverPolicyInput): RolloverPolicy
       forcedSale: false,
       outcome: hasExcess ? 'refinance-with-excess' : 'refinance-only',
       reasoning: hasExcess
-        ? `Refinancing $${round(repaymentDue)} → $${round(newPrincipal)} at ${resultingLtv.toFixed(1)}% LTV (within ${rolloverMaxLtv}% cap); $${round(newPrincipal - repaymentDue)} excess proceeds`
-        : `Refinancing old debt $${round(repaymentDue)} at ${resultingLtv.toFixed(1)}% LTV (within ${rolloverMaxLtv}% cap)`,
+        ? `Refinancing $${round(repaymentDue)} → $${round(newPrincipal)} at ${resultingLtv.toFixed(1)}% LTV (target ${targetLtv}%); $${round(newPrincipal - repaymentDue)} excess proceeds`
+        : exceededTarget
+          ? `Refinancing old debt $${round(repaymentDue)} at ${resultingLtv.toFixed(1)}% LTV (exceeds target ${targetLtv}% but within rollover cap ${rolloverMaxLtv}%)`
+          : `Refinancing old debt $${round(repaymentDue)} at ${resultingLtv.toFixed(1)}% LTV (at or below target ${targetLtv}%)`,
     }
   }
 
@@ -169,8 +190,12 @@ export function decideRolloverAction(input: RolloverPolicyInput): RolloverPolicy
   //   sale × (1 - r) = debt - collateral × r
   //   sale = (debt - collateral × r) / (1 - r)
   const r = rolloverLtvDec / costFactor
-  const saleUsd = Math.max(0, (repaymentDue - collateralUsd * r) / (1 - r))
-  const btcSold = saleUsd / btcPrice
+  const rawSaleUsd = (1 - r) > 0
+    ? Math.max(0, (repaymentDue - collateralUsd * r) / (1 - r))
+    : collateralUsd
+  // Can't sell more BTC than the investor actually holds.
+  const saleUsd = Math.min(collateralUsd, rawSaleUsd)
+  const btcSold = btcPrice > 0 ? saleUsd / btcPrice : 0
   const newCollateral = Math.max(0, collateralUsd - saleUsd)
   const remainingDebt = Math.max(0, repaymentDue - saleUsd)
 
@@ -179,9 +204,10 @@ export function decideRolloverAction(input: RolloverPolicyInput): RolloverPolicy
   const newRepayment = newPrincipal * costFactor
   const resultingLtv = newCollateral > 0 ? (newRepayment / newCollateral) * 100 : 0
 
-  // Diagnostic: is the resulting LTV still above liquidation? Means the
-  // sale was insufficient (shouldn't happen by the math, but mark it).
-  const inLiquidationZone = resultingLtv > liquidationLtv
+  // Diagnostic: is the resulting LTV still above liquidation OR did we need
+  // to sell more than we have? Either means the debt has overwhelmed the
+  // collateral — true insolvency at this rollover.
+  const inLiquidationZone = resultingLtv > liquidationLtv || rawSaleUsd > collateralUsd + 0.5
 
   return {
     btcSold,

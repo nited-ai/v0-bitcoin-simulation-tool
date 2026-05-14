@@ -37,23 +37,44 @@ const baseInput = (overrides: Partial<RolloverPolicyInput> = {}): RolloverPolicy
   ...overrides,
 })
 
-describe('RolloverPolicyService: refinance-only path', () => {
-  it('refinances without selling when debt easily fits under rollover cap', () => {
-    // 1 BTC at $100k = $100k collateral. costFactor ≈ 1.08. Cap at 68% LTV.
-    // principalCap ≈ 100,000 × 0.68 / 1.08 ≈ 62,963.
-    // Old debt is $10k — well under the cap. Should refinance, no sale.
+describe('RolloverPolicyService: refinance-only path (aim for targetLtv)', () => {
+  it('refinances UP to targetLtv when old debt is below target (takes excess to buy BTC)', () => {
+    // 1 BTC at $100k = $100k collateral. costFactor ≈ 1.08. targetLtv = 40%.
+    // principalAtTargetLtv ≈ 100,000 × 0.40 / 1.08 ≈ $37,037.
+    // Old debt $10k < $37k target → refinance UP to $37k, excess ≈ $27k.
+    // This is the "rolling-loan accumulation" mechanic: at rollover the
+    // strategy takes a bigger loan (back to targetLtv) and buys more BTC
+    // with the excess proceeds.
     const out = decideRolloverAction(baseInput({ repaymentDue: 10_000 }))
 
     expect(out.forcedSale).toBe(false)
     expect(out.btcSold).toBe(0)
-    expect(out.outcome).toBe('refinance-only')
-    expect(out.newPrincipal).toBe(10_000) // pure refinance, no extra
-    expect(out.newCollateral).toBe(100_000)
+    expect(out.outcome).toBe('refinance-with-excess')
+    expect(out.newPrincipal).toBeGreaterThan(36_000)
+    expect(out.newPrincipal).toBeLessThan(38_000)
+    expect(out.resultingLtv).toBeCloseTo(40, 0) // aim is met exactly
+    expect(out.excessProceeds).toBeGreaterThan(26_000) // bulk to buy BTC
   })
 
-  it('uses loanAmountPercent to size the new loan and emits excess proceeds', () => {
-    // User wants 15% loan on $100k collateral → ~$13,889 principal (15/108).
-    // Old debt $10k → take new $13,889, excess $3,889.
+  it('refinances at the old debt size (above target) when forced by carried debt', () => {
+    // Old debt $50k on $100k collateral. principalAtTargetLtv = $37k < $50k.
+    // We MUST cover the old debt. Don't sell since $50k fits within
+    // principalCap@68% = $62.9k. Refinance at $50k → LTV ≈ 54% (above
+    // target but below rollover cap). Per user principle: this is OK.
+    const out = decideRolloverAction(baseInput({ repaymentDue: 50_000 }))
+
+    expect(out.forcedSale).toBe(false)
+    expect(out.btcSold).toBe(0)
+    expect(out.newPrincipal).toBe(50_000)
+    expect(out.resultingLtv).toBeGreaterThan(40)
+    expect(out.resultingLtv).toBeLessThan(68)
+    expect(out.excessProceeds).toBe(0) // no enlargement when forced over target
+  })
+
+  it('honors loanAmountPercent as a SMALLER cap (more conservative than targetLtv)', () => {
+    // User configures 15% loan size — wants less leverage than the 40%
+    // strategic target. Policy caps at 15%, doesn't take it back up to 40%.
+    // Old debt $10k → new principal = max($10k, $13.8k @ 15%) ≈ $13.8k.
     const out = decideRolloverAction(baseInput({
       repaymentDue: 10_000,
       loanAmountPercent: 15,
@@ -62,21 +83,20 @@ describe('RolloverPolicyService: refinance-only path', () => {
     expect(out.forcedSale).toBe(false)
     expect(out.outcome).toBe('refinance-with-excess')
     expect(out.newPrincipal).toBeGreaterThan(13_500)
-    expect(out.newPrincipal).toBeLessThan(14_000)
-    expect(out.excessProceeds).toBeGreaterThan(3_500)
+    expect(out.newPrincipal).toBeLessThan(14_500)
+    expect(out.resultingLtv).toBeCloseTo(15, 0)
   })
 
-  it('caps loanAmountPercent at rolloverMaxLtv (prevents over-borrowing)', () => {
-    // User asks for 80% loan but rollover cap is 68%. Should refinance at 68%.
+  it('ignores loanAmountPercent when it exceeds targetLtv (target wins)', () => {
+    // User sets loanAmountPercent = 80% but targetLtv = 40%. The strategy
+    // sticks with 40% as the aim — never EXCEEDS target by choice. Only
+    // the old debt could force us above (and there's no old debt here).
     const out = decideRolloverAction(baseInput({
       repaymentDue: 10_000,
       loanAmountPercent: 80,
-      rolloverMaxLtv: 68,
     }))
 
-    // resultingLtv = newPrincipal * costFactor / collateral
-    // Should land at exactly 68% (the cap)
-    expect(out.resultingLtv).toBeCloseTo(68, 0)
+    expect(out.resultingLtv).toBeCloseTo(40, 0)
     expect(out.forcedSale).toBe(false)
   })
 })
