@@ -107,6 +107,7 @@ export function decideRolloverAction(input: RolloverPolicyInput): RolloverPolicy
     unlockedBtc,
     btcPrice,
     costFactor,
+    targetLtv,
     rolloverMaxLtv,
     liquidationLtv,
     loanAmountPercent,
