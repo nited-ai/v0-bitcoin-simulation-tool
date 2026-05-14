@@ -3,6 +3,11 @@
 import { useMemo } from "react"
 import { useSimulation } from "../context/SimulationContext"
 import { centralizedLoanCalculationService } from "@/src/modules/strategies/services/CentralizedLoanCalculationService"
+import {
+  decideRolloverAction,
+  computeCostFactor,
+  defaultRolloverMaxLtv,
+} from "@/src/modules/strategies/services/RolloverPolicyService"
 
 // Table-aligned result structures
 export interface RolloverResult {
@@ -473,78 +478,57 @@ export function useRollingLoanCalculations() {
         if (maturingLoan) {
           let repaymentDue = maturingLoan.repaymentAmount
           const totalBtcBefore = currentBtc
-          // Start with current collateral and enforce target Initial LTV via pre-sale if needed
           const targetLtv = params.riskManagement?.targetLtv ?? 50
-          const targetLtvDec = Math.max(0.0001, targetLtv / 100)
-          let collateral = currentBtc * btcPrice
+          const liquidationLtv = params.riskManagement?.liquidationLtv ?? 80
+          // rolloverMaxLtv: configurable cap for rollover refinance. Encodes the
+          // project-owner principle "don't sell as long as a top-up is possible".
+          // Defaults to ~68% with target=40/liquidation=80.
+          const rolloverMaxLtv = (params.riskManagement as any)?.rolloverMaxLtv
+            ?? defaultRolloverMaxLtv(targetLtv, liquidationLtv)
+          const costFactor = computeCostFactor(
+            params.originationFeePercent || 0,
+            params.annualInterestRate || 0,
+            params.loanTermMonths || 12
+          )
 
-          // Step 1: Only sell BTC if old debt cannot be refinanced at target Initial LTV (principalCap)
-          {
-            const feePct = params.originationFeePercent || 0
-            const monthlyRate = (params.annualInterestRate || 0) / 100 / 12
-            const termMonths = params.loanTermMonths === Infinity ? 12 : (params.loanTermMonths || 0)
-            const totalCostFactor = 1 + (feePct / 100) + (monthlyRate * termMonths)
-            const principalCapNow = totalCostFactor > 0
-              ? Math.floor((collateral * targetLtvDec) / totalCostFactor)
-              : Math.floor(collateral * targetLtvDec)
+          // Single decision point: refinance vs sell. The policy service owns
+          // the math; we just apply its output.
+          const policy = decideRolloverAction({
+            repaymentDue,
+            lockedBtc,
+            unlockedBtc,
+            btcPrice,
+            costFactor,
+            targetLtv,
+            rolloverMaxLtv,
+            liquidationLtv,
+            loanAmountPercent: (params as any).loanAmountPercent,
+          })
 
-            if (repaymentDue > principalCapNow && btcPrice > 0) {
-              // Solve X from: (repaymentDue - X) = ((collateral - X) * targetLtvDec) / totalCostFactor
-              const numerator = (totalCostFactor * repaymentDue) - (targetLtvDec * collateral)
-              const denominator = Math.max(1e-9, (totalCostFactor - targetLtvDec))
-              const amountToSellUsd = Math.max(0, numerator / denominator)
-              let btcToSell = amountToSellUsd / btcPrice
-              if (btcToSell > 0) {
-                let soldThisStepBtc = 0
-                // sell from unlocked first
-                const sellFromUnlocked = Math.min(unlockedBtc, btcToSell)
-                if (sellFromUnlocked > 0) {
-                  unlockedBtc -= sellFromUnlocked
-                  currentBtc -= sellFromUnlocked
-                  _rolloverBtcSold += sellFromUnlocked
-                  soldThisStepBtc += sellFromUnlocked
-                  btcToSell -= sellFromUnlocked
-                }
-                // then from locked if necessary
-                if (btcToSell > 0) {
-                  const sellFromLocked = Math.min(lockedBtc, btcToSell)
-                  if (sellFromLocked > 0) {
-                    lockedBtc -= sellFromLocked
-                    currentBtc -= sellFromLocked
-                    _rolloverBtcSold += sellFromLocked
-                    soldThisStepBtc += sellFromLocked
-                    btcToSell -= sellFromLocked
-                  }
-                }
-                const usdSold = soldThisStepBtc * btcPrice
-                if (usdSold > 0) {
-                  repaymentDue = Math.max(0, repaymentDue - usdSold)
-                  _rolloverDebtReduced += usdSold
-                }
-                // Recompute collateral after sale
-                collateral = currentBtc * btcPrice
+          // Apply forced sale (if any) — sell from unlocked first, then locked
+          if (policy.forcedSale && policy.btcSold > 0) {
+            let btcToSell = policy.btcSold
+            const sellFromUnlocked = Math.min(unlockedBtc, btcToSell)
+            if (sellFromUnlocked > 0) {
+              unlockedBtc -= sellFromUnlocked
+              currentBtc -= sellFromUnlocked
+              _rolloverBtcSold += sellFromUnlocked
+              btcToSell -= sellFromUnlocked
+            }
+            if (btcToSell > 0) {
+              const sellFromLocked = Math.min(lockedBtc, btcToSell)
+              if (sellFromLocked > 0) {
+                lockedBtc -= sellFromLocked
+                currentBtc -= sellFromLocked
+                _rolloverBtcSold += sellFromLocked
               }
             }
+            _rolloverDebtReduced += policy.usdRecovered
+            repaymentDue = policy.remainingDebt
           }
 
-          // Step 2: Choose principal to fully refinance old debt if possible at target Initial LTV.
-          // Preference: at least loanAmountPercent * collateral; but ignore the 30% limit if it blocks full refinancing.
-          const feePct = params.originationFeePercent || 0
-          const monthlyRate = (params.annualInterestRate || 0) / 100 / 12
-          const termMonths = params.loanTermMonths === Infinity ? 12 : (params.loanTermMonths || 0)
-          const totalCostFactor = 1 + (feePct / 100) + (monthlyRate * termMonths)
-          const principalCap = totalCostFactor > 0
-            ? Math.floor((collateral * targetLtvDec) / totalCostFactor)
-            : Math.floor(collateral * targetLtvDec)
-
-          const willUseLoanAmountPercent = (params as any).loanAmountPercent !== undefined && (params as any).loanAmountPercent > 0
-          const loanPctDec = willUseLoanAmountPercent ? Math.max(0, Math.min(1, ((params as any).loanAmountPercent as number) / 100)) : 0
-          const loanPercentValue = willUseLoanAmountPercent ? Math.round(collateral * loanPctDec) : 0
-
-          // If oldDebt can be refinanced within the LTV cap, prefer max(oldDebt, 30% value) up to the cap.
-          // Otherwise, Step 1 already sold to make repaymentDue <= principalCap.
-          const desired = Math.max(Math.round(repaymentDue), loanPercentValue)
-          const actualPrincipal = Math.min(Math.max(0, desired), Math.max(0, principalCap))
+          let collateral = currentBtc * btcPrice
+          const actualPrincipal = Math.round(policy.newPrincipal)
 
           const newLoan = centralizedLoanCalculationService.calculateLoanDetails(
             actualPrincipal,

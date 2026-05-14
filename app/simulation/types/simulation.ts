@@ -176,6 +176,14 @@ export interface SimulationParams {
     // New: Configurable auto top-up parameters
     topUpTriggerLtv?: number
     topUpTargetLtvRange?: { min: number; max: number }
+    /**
+     * Maximum LTV permitted at rollover refinance, between targetLtv and
+     * liquidationLtv. Above this, BTC is force-sold to bring debt back
+     * under the cap. Encodes the project-owner principle "don't liquidate
+     * as long as a top-up is possible". Defaults via
+     * defaultRolloverMaxLtv() ≈ target + (liquidation - target) * 0.7.
+     */
+    rolloverMaxLtv?: number
   }
   // Additional parameters
   btcAccumulation: boolean
