@@ -69,15 +69,13 @@ export function TabNavigation({ children }: TabNavigationProps) {
       label: t('Navigation.strategy.label'),
       shortLabel: t('Navigation.strategy.shortLabel'),
       icon: Target,
-      enabled: false,
-      badge: 'Coming Soon'
+      enabled: true
     },
     results: {
       label: t('Navigation.results.label'),
       shortLabel: t('Navigation.results.shortLabel'),
       icon: TrendingDown,
-      enabled: false,
-      badge: 'Coming Soon'
+      enabled: true
     }
   }
 
