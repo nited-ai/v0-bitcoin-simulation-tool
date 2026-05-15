@@ -132,25 +132,25 @@ export function CashFlowChart() {
             <div className="text-center">
               <div className="text-sm text-muted-foreground">Total Withdrawals</div>
               <div className="text-lg font-semibold text-red-600">
-                -${cashFlowStats.totalWithdrawals.toLocaleString("en-US")}
+                -${cashFlowStats.totalWithdrawals.toLocaleString("en-US", { maximumFractionDigits: 0 })}
               </div>
             </div>
             <div className="text-center">
               <div className="text-sm text-muted-foreground">Total Reinvestments</div>
               <div className="text-lg font-semibold text-green-600">
-                +${cashFlowStats.totalReinvestments.toLocaleString("en-US")}
+                +${cashFlowStats.totalReinvestments.toLocaleString("en-US", { maximumFractionDigits: 0 })}
               </div>
             </div>
             <div className="text-center">
               <div className="text-sm text-muted-foreground">Total Loans</div>
               <div className="text-lg font-semibold text-blue-600">
-                +${cashFlowStats.totalNewLoans.toLocaleString("en-US")}
+                +${cashFlowStats.totalNewLoans.toLocaleString("en-US", { maximumFractionDigits: 0 })}
               </div>
             </div>
             <div className="text-center">
               <div className="text-sm text-muted-foreground">Net Cash Flow</div>
               <div className={`text-lg font-semibold ${cashFlowStats.netCashFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {cashFlowStats.netCashFlow >= 0 ? '+' : ''}${cashFlowStats.netCashFlow.toLocaleString("en-US")}
+                {cashFlowStats.netCashFlow >= 0 ? '+' : ''}${cashFlowStats.netCashFlow.toLocaleString("en-US", { maximumFractionDigits: 0 })}
               </div>
             </div>
           </div>
@@ -162,13 +162,13 @@ export function CashFlowChart() {
             <div className="text-center">
               <div className="text-sm text-muted-foreground">Avg Monthly Withdrawal</div>
               <div className="text-sm font-medium">
-                ${cashFlowStats.avgMonthlyWithdrawal.toLocaleString("en-US")}
+                ${cashFlowStats.avgMonthlyWithdrawal.toLocaleString("en-US", { maximumFractionDigits: 0 })}
               </div>
             </div>
             <div className="text-center">
               <div className="text-sm text-muted-foreground">Avg Monthly Reinvestment</div>
               <div className="text-sm font-medium">
-                ${cashFlowStats.avgMonthlyReinvestment.toLocaleString("en-US")}
+                ${cashFlowStats.avgMonthlyReinvestment.toLocaleString("en-US", { maximumFractionDigits: 0 })}
               </div>
             </div>
             <div className="text-center">

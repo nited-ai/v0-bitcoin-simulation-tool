@@ -104,13 +104,13 @@ export function PortfolioValueChart() {
             <div className="text-center">
               <div className="text-sm text-muted-foreground">Final Portfolio</div>
               <div className="text-lg font-semibold">
-                ${stats.finalValue.toLocaleString("en-US")}
+                ${stats.finalValue.toLocaleString("en-US", { maximumFractionDigits: 0 })}
               </div>
             </div>
             <div className="text-center">
               <div className="text-sm text-muted-foreground">Final Net Worth</div>
               <div className={`text-lg font-semibold ${stats.finalNetWorth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                ${stats.finalNetWorth.toLocaleString("en-US")}
+                ${stats.finalNetWorth.toLocaleString("en-US", { maximumFractionDigits: 0 })}
               </div>
             </div>
             <div className="text-center">

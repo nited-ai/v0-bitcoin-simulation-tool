@@ -195,9 +195,9 @@ export function EventsAnalysis() {
                       {formatEventDetails(eventContext.event)}
                     </p>
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <span>BTC: ${eventContext.btcPrice.toLocaleString()}</span>
+                      <span>BTC: ${eventContext.btcPrice.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>
                       <span>LTV: {eventContext.ltv.toFixed(1)}%</span>
-                      <span>Debt: ${eventContext.totalDebt.toLocaleString()}</span>
+                      <span>Debt: ${eventContext.totalDebt.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>
                     </div>
                   </div>
                 </div>
@@ -303,9 +303,9 @@ function formatEventDetails(event: MonthlyEvent): string {
     case 'liquidated':
       return `Loan ID ${(event as any).id} was liquidated`
     case 'deleveraged':
-      return `Deleveraged by $${(event as any).amount?.toLocaleString() || 'N/A'}`
+      return `Deleveraged by $${(event as any).amount?.toLocaleString("en-US", { maximumFractionDigits: 0 }) || 'N/A'}`
     case 'collateral_topped_up':
-      return `Added $${(event as any).amount?.toLocaleString() || 'N/A'} to loan ${(event as any).loanId}`
+      return `Added $${(event as any).amount?.toLocaleString("en-US", { maximumFractionDigits: 0 }) || 'N/A'} to loan ${(event as any).loanId}`
     case 'withdrawal_skipped':
       return 'Monthly withdrawal was skipped'
     default:
