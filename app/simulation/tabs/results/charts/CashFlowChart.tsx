@@ -189,7 +189,9 @@ export function CashFlowChart() {
             </div>
             <div className="text-center">
               <div className="text-sm text-muted-foreground">Negative Months</div>
-              <div className="text-sm font-medium text-red-600">
+              <div
+                className={`text-sm font-medium ${cashFlowStats.negativeCashFlowMonths > 0 ? 'text-red-600' : 'text-muted-foreground'}`}
+              >
                 {cashFlowStats.negativeCashFlowMonths}
               </div>
             </div>

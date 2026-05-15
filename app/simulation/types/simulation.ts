@@ -279,7 +279,13 @@ export const DEFAULT_PARAMS: SimulationParams = {
   riskLevel: "optimistic",
   platform: "firefish",
   loanAmountPercent: 15, // 15% of BTC stack value
-  investmentStrategy: "default",
+  // FIRE HODL's default strategy is "rollingLoan" — the whole simulator is
+  // built around it (it's what useRollingLoanCalculations renders, what the
+  // DetailedResultsTable shows, what the HeadlineComparison evaluates).
+  // The old "default" value let RiskAssessment label the strategy "Using
+  // default strategy" while everything below was actually running rolling
+  // loan math, which was confusing.
+  investmentStrategy: "rollingLoan",
   athBasedParams: {
     athThresholdPercent: 80,
     investmentMultiplier: 1.0,

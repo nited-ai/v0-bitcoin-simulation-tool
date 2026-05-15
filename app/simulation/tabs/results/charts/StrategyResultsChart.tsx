@@ -229,7 +229,7 @@ export function StrategyResultsChart({ className, data }: StrategyResultsChartPr
                 scale="linear"
                 type="number"
                 domain={btcDomain as any}
-                tickFormatter={(v) => `${Math.round(Number(v))} BTC`}
+                tickFormatter={(v) => `${Number(v).toFixed(2)} BTC`}
                 allowDecimals
               />
 
