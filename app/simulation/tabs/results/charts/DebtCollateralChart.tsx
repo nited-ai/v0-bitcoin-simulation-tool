@@ -3,6 +3,7 @@
 import { useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from "recharts"
+import { monthAxisProps, formatMonthAsDateFull } from "./chartFormatters"
 import { Shield, AlertTriangle } from "lucide-react"
 import { useSimulation } from "../../../context/SimulationContext"
 import type { MonthlyResult } from "../../../types/simulation"
@@ -150,11 +151,7 @@ export function DebtCollateralChart() {
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
               
-              <XAxis 
-                dataKey="month"
-                tickFormatter={(month) => `M${month}`}
-                minTickGap={20}
-              />
+              <XAxis dataKey="month" {...monthAxisProps} />
               
               <YAxis 
                 domain={[0, 100]}
@@ -171,9 +168,9 @@ export function DebtCollateralChart() {
                   name === 'liquidationLtv' ? 'Liquidation LTV' :
                   name === 'loanCount' ? 'Active Loans' : name
                 ]}
-                labelFormatter={(month: number) => `Month ${month}`}
+                labelFormatter={(month: number) => formatMonthAsDateFull(month)}
               />
-              
+
               <Legend />
               
               {/* Target LTV Reference Line */}

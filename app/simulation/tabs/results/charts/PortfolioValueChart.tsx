@@ -7,6 +7,7 @@ import { Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 import { TrendingUp, DollarSign } from "lucide-react"
 import { useSimulation } from "../../../context/SimulationContext"
 import type { MonthlyResult } from "../../../types/simulation"
+import { monthAxisProps, formatMonthAsDateFull } from "./chartFormatters"
 
 interface ChartDataPoint {
   month: number
@@ -135,11 +136,7 @@ export function PortfolioValueChart() {
             <ComposedChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
               
-              <XAxis 
-                dataKey="month"
-                tickFormatter={(month) => `M${month}`}
-                minTickGap={20}
-              />
+              <XAxis dataKey="month" {...monthAxisProps} />
               
               <YAxis 
                 tickFormatter={(value) => {
@@ -149,17 +146,15 @@ export function PortfolioValueChart() {
                 }}
               />
               
-              <Tooltip 
+              <Tooltip
                 formatter={(value: number, name: string) => [
-                  `$${value.toLocaleString('en-US')}`,
+                  `$${value.toLocaleString('en-US', { maximumFractionDigits: 0 })}`,
                   name === 'portfolioValue' ? 'Portfolio Value' :
                   name === 'netWorth' ? 'Net Worth' :
-                  name === 'totalDebt' ? 'Total Debt' : name
+                  name === 'totalDebt' ? 'Total Debt' : name,
                 ]}
-                labelFormatter={(month: number) => `Month ${month}`}
+                labelFormatter={(month: number) => formatMonthAsDateFull(month)}
               />
-              
-              <Legend />
               
               {/* Portfolio Value Area */}
               <Area
@@ -196,23 +191,6 @@ export function PortfolioValueChart() {
           </ResponsiveContainer>
         </div>
         
-        {/* Chart Legend */}
-        <div className="mt-4 text-sm text-muted-foreground">
-          <div className="flex flex-wrap gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-orange-500 rounded"></div>
-              <span>Portfolio Value (Total BTC value)</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-red-500 rounded"></div>
-              <span>Total Debt (Outstanding loans)</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-green-500 rounded"></div>
-              <span>Net Worth (Portfolio - Debt)</span>
-            </div>
-          </div>
-        </div>
       </CardContent>
     </Card>
   )

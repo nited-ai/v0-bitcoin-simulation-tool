@@ -141,7 +141,10 @@ export function ResultsSummary() {
         {/* Risk Assessment */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <CardTitle
+              className="text-sm font-medium flex items-center gap-2"
+              title="How risky was this strategy? Weighted average of liquidation risk, volatility (drawdown), debt exposure, concentration in BTC, and the strategy type. 0 = safe, 100 = extreme. Same number as shown on the Risk Assessment panel below."
+            >
               <Shield className="h-4 w-4" />
               Risk Level
             </CardTitle>
@@ -247,7 +250,10 @@ export function ResultsSummary() {
         {/* Performance Rating */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">
+            <CardTitle
+              className="text-sm font-medium"
+              title="How well did this strategy perform financially? Combines annualized return, stability (low drawdown), and efficiency (avoiding liquidations). 0 = poor, 100 = excellent. Separate axis from the Risk Score above — a high-risk strategy can still post good performance if it paid off."
+            >
               Performance
             </CardTitle>
           </CardHeader>

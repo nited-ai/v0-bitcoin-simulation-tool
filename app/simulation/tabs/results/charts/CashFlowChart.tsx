@@ -3,6 +3,7 @@
 import { useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from "recharts"
+import { monthAxisProps, formatMonthAsDateFull } from "./chartFormatters"
 import { DollarSign, TrendingDown, TrendingUp, ArrowUpDown } from "lucide-react"
 import { useSimulation } from "../../../context/SimulationContext"
 import type { MonthlyResult } from "../../../types/simulation"
@@ -202,11 +203,7 @@ export function CashFlowChart() {
             <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
               
-              <XAxis 
-                dataKey="month"
-                tickFormatter={(month) => `M${month}`}
-                minTickGap={20}
-              />
+              <XAxis dataKey="month" {...monthAxisProps} />
               
               <YAxis 
                 tickFormatter={(value) => {
@@ -216,82 +213,61 @@ export function CashFlowChart() {
                 }}
               />
               
-              <Tooltip 
+              <Tooltip
                 formatter={(value: number, name: string) => [
-                  `$${Math.abs(value).toLocaleString('en-US')}`,
-                  name === 'withdrawals' ? 'Withdrawals' :
-                  name === 'reinvestments' ? 'Reinvestments' :
-                  name === 'newLoans' ? 'New Loans' :
-                  name === 'repayments' ? 'Repayments' :
-                  name === 'netCashFlow' ? 'Net Cash Flow' : name
+                  `$${Math.abs(value).toLocaleString('en-US', { maximumFractionDigits: 0 })}`,
+                  name,
                 ]}
-                labelFormatter={(month: number) => `Month ${month}`}
+                labelFormatter={(month: number) => formatMonthAsDateFull(month)}
                 contentStyle={{
                   backgroundColor: 'rgba(255, 255, 255, 0.95)',
                   border: '1px solid #ccc',
                   borderRadius: '6px',
                 }}
               />
-              
+
               <Legend />
-              
+
               {/* Zero reference line */}
               <ReferenceLine y={0} stroke="#666" strokeDasharray="2 2" />
-              
-              {/* Cash Flow Bars */}
+
+              {/* Cash Flow Bars (names are user-facing — also drive the
+                  legend, so they include the Money In / Out hint that
+                  used to live in a separate custom legend below). */}
               <Bar
                 dataKey="withdrawals"
                 fill="#ef4444"
-                name="Withdrawals"
+                name="Withdrawals (Money Out)"
                 radius={[2, 2, 0, 0]}
               />
-              
+
               <Bar
                 dataKey="repayments"
                 fill="#f97316"
-                name="Repayments"
+                name="Loan Repayments (Money Out)"
                 radius={[2, 2, 0, 0]}
               />
-              
+
               <Bar
                 dataKey="newLoans"
                 fill="#3b82f6"
-                name="New Loans"
+                name="New Loans (Money In)"
                 radius={[0, 0, 2, 2]}
               />
-              
+
               <Bar
                 dataKey="reinvestments"
                 fill="#22c55e"
-                name="Reinvestments"
+                name="Reinvestments (Money In)"
                 radius={[0, 0, 2, 2]}
               />
             </BarChart>
           </ResponsiveContainer>
         </div>
         
-        {/* Cash Flow Legend */}
+        {/* Cash Flow Insights (legend is rendered by recharts above
+            with the same labels we used to duplicate here) */}
         <div className="mt-4 space-y-2">
-          <div className="flex flex-wrap gap-4 text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-red-500 rounded"></div>
-              <span>Withdrawals (Money Out)</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-orange-500 rounded"></div>
-              <span>Loan Repayments (Money Out)</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-blue-500 rounded"></div>
-              <span>New Loans (Money In)</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-green-500 rounded"></div>
-              <span>Reinvestments (Money In)</span>
-            </div>
-          </div>
-          
-          {/* Cash Flow Insights */}
           {cashFlowStats && (
             <div className="text-sm text-muted-foreground">
               <p>

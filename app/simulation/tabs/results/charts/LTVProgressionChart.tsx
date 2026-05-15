@@ -3,7 +3,8 @@
 import { useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine, Area, AreaChart } from "recharts"
+import { Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine, Area, ComposedChart } from "recharts"
+import { monthAxisProps, formatMonthAsDateFull } from "./chartFormatters"
 import { TrendingUp, AlertTriangle, Shield, Target } from "lucide-react"
 import { useSimulation } from "../../../context/SimulationContext"
 import type { MonthlyResult } from "../../../types/simulation"
@@ -190,14 +191,10 @@ export function LTVProgressionChart() {
       <CardContent>
         <div className="h-96">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData}>
+            <ComposedChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
-              
-              <XAxis 
-                dataKey="month"
-                tickFormatter={(month) => `M${month}`}
-                minTickGap={20}
-              />
+
+              <XAxis dataKey="month" {...monthAxisProps} />
               
               <YAxis 
                 domain={[0, 100]}
@@ -214,7 +211,7 @@ export function LTVProgressionChart() {
                   name === 'targetLtv' ? 'Target LTV' :
                   name === 'liquidationLtv' ? 'Liquidation LTV' : name
                 ]}
-                labelFormatter={(month: number) => `Month ${month}`}
+                labelFormatter={(month: number) => formatMonthAsDateFull(month)}
                 contentStyle={{
                   backgroundColor: 'rgba(255, 255, 255, 0.95)',
                   border: '1px solid #ccc',
@@ -296,7 +293,7 @@ export function LTVProgressionChart() {
                 }}
                 name="Current LTV"
               />
-            </AreaChart>
+            </ComposedChart>
           </ResponsiveContainer>
         </div>
         
