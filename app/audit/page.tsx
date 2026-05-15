@@ -239,20 +239,23 @@ function auditScenario(
       }
     }
 
-    // 6. After liquidation tier breach (initialLtvBefore >= liquidationLtv),
-    // expect either liquidationTriggered or sale-already-not-possible
+    // 6. After all risk-management actions, if initialLtvAfter still
+    // breaches liquidationLtv, the sim should either have triggered a
+    // liquidation OR be in a genuinely unrecoverable state (no btc left,
+    // denom <= 0). This is the meaningful check — pre-action LTV can be
+    // above threshold and still be saved by tier-1 top-up before tier-2.
     if (
       i > 0 &&
-      (s.initialLtvBefore ?? 0) >= liquidationLtv &&
+      (s.initialLtvAfter ?? 0) >= liquidationLtv + 0.01 &&
       !s.liquidationTriggered
     ) {
-      // Tolerate: if there's no unlocked AND no locked sale path, sim may
-      // legitimately skip (denom <= 0). Flag as warn only.
+      const recoverable =
+        (s.unlockedBtc ?? 0) > 1e-6 || (s.lockedBtc ?? 0) > 1e-6
       push(
         m,
-        "warn",
-        "liquidation_not_triggered_on_breach",
-        `initialLtvBefore=${(s.initialLtvBefore || 0).toFixed(2)} >= ${liquidationLtv}`,
+        recoverable ? "error" : "warn",
+        "post_action_ltv_still_breached",
+        `initialLtvAfter=${(s.initialLtvAfter || 0).toFixed(2)} liqLtv=${liquidationLtv} recoverable=${recoverable}`,
       )
     }
 
@@ -301,6 +304,35 @@ function auditScenario(
         "withdrawalSuspended_without_withdrawal_intent",
         `monthlyAmount=${params.monthlyWithdrawalAmount}`,
       )
+    }
+
+    // 11. topUpLtv vs initialLtv: topUpLtv is total-stack basis, initialLtv
+    //     is locked-only basis. So topUpLtv <= initialLtv always.
+    if (
+      s.topUpLtv !== undefined &&
+      s.initialLtvAfter !== undefined &&
+      s.initialLtvAfter > 0 &&
+      s.topUpLtv > s.initialLtvAfter + 0.5
+    ) {
+      push(
+        m,
+        "warn",
+        "topUpLtv_gt_initialLtv",
+        `topUp=${s.topUpLtv.toFixed(2)} init=${s.initialLtvAfter.toFixed(2)}`,
+      )
+    }
+
+    // 12. Liquidation only ever reduces debt + BTC (never grows them).
+    if (s.liquidationTriggered && i > 0) {
+      const prev = snaps[i - 1]
+      if (s.totalDebt > prev.totalDebt + 1e-3) {
+        push(
+          m,
+          "error",
+          "liquidation_grew_debt",
+          `prev=${prev.totalDebt.toFixed(2)} now=${s.totalDebt.toFixed(2)}`,
+        )
+      }
     }
   }
 

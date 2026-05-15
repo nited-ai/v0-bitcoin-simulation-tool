@@ -218,6 +218,11 @@ export function simulateRollingLoan(
   if (params.btcAccumulation && month0Price > 0) {
     month0BtcPurchased = month0Loan.principal / month0Price
     currentBtc += month0BtcPurchased
+    // BTC bought with loan proceeds is unencumbered (not collateral).
+    // Without this, the month-0 snapshot reports locked+unlocked < total
+    // by exactly month0BtcPurchased — visible whenever no monthly cash-flow
+    // block runs to recompute unlocked (i.e. monthlyWithdrawalAmount=0).
+    unlockedBtc += month0BtcPurchased
   }
 
   rolloverResults.push({
