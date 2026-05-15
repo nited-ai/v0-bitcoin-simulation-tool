@@ -7,6 +7,7 @@ import { useSimulation } from "../../context/SimulationContext"
 import { useSimulationRunner } from "../../hooks/useSimulationRunner"
 import { ResultsSummary } from "./ResultsSummary"
 import { DetailedResultsTable } from "./DetailedResultsTable"
+import { HeadlineComparison } from "./HeadlineComparison"
 import { PortfolioValueChart } from "./charts/PortfolioValueChart"
 import { DebtCollateralChart } from "./charts/DebtCollateralChart"
 import { LTVProgressionChart } from "./charts/LTVProgressionChart"
@@ -176,6 +177,9 @@ export function ResultsPage() {
           )}
         </Button>
       </div>
+
+      {/* Headline KPI — strategy vs. HODL */}
+      <HeadlineComparison />
 
       {/* Results Summary Cards */}
       <ResultsSummary />
