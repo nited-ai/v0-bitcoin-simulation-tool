@@ -3,7 +3,7 @@
 import { useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Area, AreaChart } from "recharts"
+import { Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Area, ComposedChart } from "recharts"
 import { TrendingUp, DollarSign } from "lucide-react"
 import { useSimulation } from "../../../context/SimulationContext"
 import type { MonthlyResult } from "../../../types/simulation"
@@ -132,7 +132,7 @@ export function PortfolioValueChart() {
       <CardContent>
         <div className="h-96">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData}>
+            <ComposedChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} />
               
               <XAxis 
@@ -192,7 +192,7 @@ export function PortfolioValueChart() {
                 dot={false}
                 name={t('PortfolioValueChart.netWorth', 'Net Worth')}
               />
-            </AreaChart>
+            </ComposedChart>
           </ResponsiveContainer>
         </div>
         

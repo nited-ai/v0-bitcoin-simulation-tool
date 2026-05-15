@@ -126,9 +126,12 @@ export function CashFlowChart() {
           Monthly cash flows and cumulative analysis over {chartData.length} months
         </CardDescription>
         
-        {/* Cash Flow Statistics */}
+        {/* Cash Flow Statistics — five tiles so Net Cash Flow visibly
+            adds up (Loans + Reinvestments − Withdrawals − Repayments).
+            Previously Total Repayments was computed but hidden, leaving
+            the user unable to reconcile the Net value. */}
         {cashFlowStats && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-4">
             <div className="text-center">
               <div className="text-sm text-muted-foreground">Total Withdrawals</div>
               <div className="text-lg font-semibold text-red-600">
@@ -148,7 +151,13 @@ export function CashFlowChart() {
               </div>
             </div>
             <div className="text-center">
-              <div className="text-sm text-muted-foreground">Net Cash Flow</div>
+              <div className="text-sm text-muted-foreground">Total Repayments</div>
+              <div className="text-lg font-semibold text-red-600">
+                -${cashFlowStats.totalRepayments.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-sm text-muted-foreground" title="Loans + Reinvestments − Withdrawals − Repayments">Net Cash Flow</div>
               <div className={`text-lg font-semibold ${cashFlowStats.netCashFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                 {cashFlowStats.netCashFlow >= 0 ? '+' : ''}${cashFlowStats.netCashFlow.toLocaleString("en-US", { maximumFractionDigits: 0 })}
               </div>
