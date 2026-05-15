@@ -290,6 +290,13 @@ export class StrategyExecutionService {
             primaryLoan.repaymentAmount += additionalPrincipal * topUpCostFactor
             // Reinvest the additional principal into BTC (accumulation mode)
             totalBtcAmount += additionalPrincipal / btcPrice
+            // Also surface the top-up as reinvestment activity for the
+            // CashFlowChart / MonthlyResult-driven analyses. Without this,
+            // Total Reinvestments and the cash-flow bars only reflect
+            // rollover-month excess and miss the bulk of accumulation.
+            principalForReinvestment += additionalPrincipal
+            totalPrincipal += additionalPrincipal
+            btcPurchased = (btcPurchased ?? 0) + additionalPrincipal / btcPrice
           }
         }
       }
