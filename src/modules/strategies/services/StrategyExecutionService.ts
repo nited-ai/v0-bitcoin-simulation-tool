@@ -17,6 +17,10 @@ import type {
 import type { PriceProjectionResult } from "../../../../app/simulation/price-models/types"
 import type { HistoricalDataPoint } from "@/src/modules/price-data/types"
 import { centralizedLoanCalculationService } from "./CentralizedLoanCalculationService"
+import {
+  computeCostFactor,
+  solvePrincipalForPostPurchaseLtv,
+} from "./RolloverPolicyService"
 
 /**
  * Strategy Execution Service Implementation
@@ -100,13 +104,30 @@ export class StrategyExecutionService {
       const monthlyEvents: MonthlyEvent[] = []
       const collateralValue = totalBtcAmount * btcPrice
 
-      // CRITICAL FIX: Calculate debt capacity dynamically based on user-configured percentage
-      // If loanAmountPercent is provided, use it to calculate debt capacity that scales with BTC price
-      // Otherwise, fall back to fixed maxLoanAmount (for backward compatibility)
+      // Debt capacity sized to land at the configured leverage target
+      // POST-PURCHASE (after the loan proceeds buy more BTC and grow the
+      // collateral denominator). Matches the formula used by
+      // useRollingLoanCalculations + RolloverPolicyService, so charts and
+      // summary cards stay consistent with the DetailedResultsTable.
       let debtCapacity: number
       if (params.loanAmountPercent !== undefined && params.loanAmountPercent > 0) {
-        // Use percentage-based calculation (scales with collateral value)
-        debtCapacity = collateralValue * (params.loanAmountPercent / 100)
+        const costFactor = computeCostFactor(
+          params.loanOriginationFeePercent || 0,
+          params.annualInterestRate || 0,
+          params.loanTermMonths || 12,
+        )
+        // Carried debt for the post-purchase formula = currently outstanding
+        // (ongoing) loans. For month 0 this is 0.
+        const carriedDebt = activeLoans.reduce((sum, l) => sum + l.repaymentAmount, 0)
+        const postPurchase = solvePrincipalForPostPurchaseLtv(
+          params.loanAmountPercent,
+          collateralValue,
+          carriedDebt,
+          costFactor,
+        )
+        debtCapacity = postPurchase > 0
+          ? postPurchase
+          : collateralValue * (params.loanAmountPercent / 100)
       } else {
         // Fall back to fixed amount (legacy behavior)
         debtCapacity = params.maxLoanAmount
