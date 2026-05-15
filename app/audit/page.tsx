@@ -14,12 +14,12 @@
 
 import { useMemo, useState } from "react"
 import { simulateRollingLoan } from "@/src/modules/strategies/services/simulateRollingLoan"
-import { DEFAULT_PARAMS } from "@/app/simulation/types/simulation"
-import type { SimulationParams } from "@/app/simulation/types/simulation"
+import { DEFAULT_PARAMS } from "../simulation/types/simulation"
+import type { SimulationParams } from "../simulation/types/simulation"
 import type {
   PriceProjectionResult,
   ProjectionPoint,
-} from "@/app/simulation/price-models/types"
+} from "../simulation/price-models/types"
 
 // ─── Synthetic price-projection generators ────────────────────────────────
 
