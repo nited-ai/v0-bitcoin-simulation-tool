@@ -7,6 +7,8 @@ import { SimulationHeader, TabNavigation } from "./shared"
 import { usePriceData } from "@/src/modules/price-data/hooks/usePriceData"
 import { adaptManyToHistoricalDataPoints } from "@/src/modules/price-data/utils/adaptToHistoricalDataPoint"
 import type { HistoricalDataPoint } from "@/src/modules/price-data/types"
+import { useRollingLoanCalculations } from "./hooks/useRollingLoanCalculations"
+import { toLegacyMonthlyResults } from "@/src/modules/strategies/services/simulateRollingLoan"
 
 /**
  * Bridge: keeps SimulationContext in sync with the SWR cache.
@@ -74,6 +76,44 @@ function PriceDataBridge() {
 }
 
 /**
+ * Bridge: keeps `context.results` (legacy `MonthlyResult[]`) in sync with the
+ * reactive `useRollingLoanCalculations` hook output for the rollingLoan strategy.
+ *
+ * Before PR6, two pipelines ran in parallel: the hook (driving DetailedResultsTable
+ * / HeadlineComparison / StrategyResultsChart) and the imperative
+ * `useSimulationRunner.runSimulation` (driving Summary cards / per-aspect charts
+ * via context.results). Both already called the same `simulateRollingLoan`
+ * function — but the simulation was executed TWICE per parameter change and a
+ * "Run Simulation" click was required to refresh `results`.
+ *
+ * This bridge collapses that: for rollingLoan, the hook's memoized output is
+ * projected into `context.results` via `toLegacyMonthlyResults`. Sim runs once,
+ * all consumers update reactively, no button-click needed.
+ *
+ * Non-rollingLoan strategies (default / ATH / movingAverage / athCollateral)
+ * still use the imperative `useSimulationRunner` → `LegacyStrategyAdapter`
+ * path; this bridge is a no-op for them.
+ */
+function SimulationDataBridge() {
+  const { params, setResults } = useSimulation()
+  const sim = useRollingLoanCalculations()
+
+  const legacyResults = useMemo(
+    () =>
+      params.investmentStrategy === "rollingLoan"
+        ? toLegacyMonthlyResults(sim, params)
+        : null,
+    [sim, params],
+  )
+
+  useEffect(() => {
+    if (legacyResults) setResults(legacyResults)
+  }, [legacyResults, setResults])
+
+  return null
+}
+
+/**
  * Internal component that uses business logic hooks
  */
 function SimulationContent() {
@@ -82,6 +122,9 @@ function SimulationContent() {
       <div className="container mx-auto p-4">
         {/* PR4 cut-over: keeps SimulationContext in sync with SWR cache */}
         <PriceDataBridge />
+
+        {/* PR6: keeps context.results in sync with the unified rollingLoan sim */}
+        <SimulationDataBridge />
 
         {/* Header with title and controls */}
         <SimulationHeader />

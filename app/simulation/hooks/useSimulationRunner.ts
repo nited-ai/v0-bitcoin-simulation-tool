@@ -6,10 +6,6 @@ import type { StrategyEngineParams, MonthlyResult as StrategyMonthlyResult } fro
 import type { MonthlyResult } from "../types/simulation"
 import { useSimulation } from "../context/SimulationContext"
 import { usePriceGeneration } from "./usePriceGeneration"
-import {
-  simulateRollingLoan,
-  toLegacyMonthlyResults,
-} from "@/src/modules/strategies/services/simulateRollingLoan"
 
 /**
  * Hook for running strategy simulations
@@ -101,16 +97,12 @@ export function useSimulationRunner() {
         modelName: priceProjection.modelName
       })
 
-      // Rolling Loan: route to the unified `simulateRollingLoan` service so
-      // the Summary cards (which read MonthlyResult[]) and the
-      // DetailedResultsTable / HeadlineComparison / StrategyResultsChart
-      // (which read from useRollingLoanCalculations) come from THE SAME
-      // computation. Numbers match by construction; no more "the table says
-      // 1.79 BTC but the card says 1.76 BTC" divergence.
+      // Rolling Loan: handled reactively by <SimulationDataBridge> in
+      // SimulationPage, which projects `useRollingLoanCalculations` output
+      // into context.results. No imperative work needed here — the bridge
+      // already keeps Summary cards in sync with the table. Early-return
+      // so the legacy adapter doesn't double-run the simulation.
       if (params.investmentStrategy === "rollingLoan") {
-        const sim = simulateRollingLoan(params, priceProjection)
-        const unified = toLegacyMonthlyResults(sim, params)
-        setResults(unified)
         return
       }
 
