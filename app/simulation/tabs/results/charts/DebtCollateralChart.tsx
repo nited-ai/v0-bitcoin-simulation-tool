@@ -50,7 +50,9 @@ export function DebtCollateralChart() {
     })
   }, [results, params])
 
-  // Calculate risk statistics
+  // Calculate risk statistics + month-count buckets for the color-key
+  // legend (Safe/Moderate/High Risk/Liquidation Risk). The thresholds
+  // here match the dot-color thresholds in the chart line below.
   const riskStats = useMemo(() => {
     if (chartData.length === 0) return null
 
@@ -58,13 +60,22 @@ export function DebtCollateralChart() {
     const avgLtv = chartData.reduce((sum, d) => sum + d.ltv, 0) / chartData.length
     const dangerousMonths = chartData.filter(d => d.ltv > 80).length
     const liquidationMonths = chartData.filter(d => d.ltv >= 100).length
-    
+
+    const safeMonths = chartData.filter(d => d.ltv <= 60).length
+    const moderateMonths = chartData.filter(d => d.ltv > 60 && d.ltv <= 80).length
+    const highRiskMonths = chartData.filter(d => d.ltv > 80 && d.ltv < 85).length
+    const liquidationRiskMonths = chartData.filter(d => d.ltv >= 85).length
+
     return {
       maxLtv,
       avgLtv,
       dangerousMonths,
       liquidationMonths,
-      riskLevel: maxLtv > 90 ? 'extreme' : maxLtv > 80 ? 'high' : maxLtv > 60 ? 'medium' : 'low'
+      safeMonths,
+      moderateMonths,
+      highRiskMonths,
+      liquidationRiskMonths,
+      riskLevel: maxLtv > 90 ? 'extreme' : maxLtv > 80 ? 'high' : maxLtv > 60 ? 'medium' : 'low',
     }
   }, [chartData])
 
@@ -158,17 +169,42 @@ export function DebtCollateralChart() {
                 tickFormatter={(value) => `${value}%`}
               />
               
-              <Tooltip 
-                formatter={(value: number, name: string) => [
-                  name === 'ltv' ? `${value.toFixed(1)}%` :
-                  name === 'loanCount' ? `${value} loans` :
-                  `${value.toFixed(1)}%`,
-                  name === 'ltv' ? 'Current LTV' :
-                  name === 'targetLtv' ? 'Target LTV' :
-                  name === 'liquidationLtv' ? 'Liquidation LTV' :
-                  name === 'loanCount' ? 'Active Loans' : name
-                ]}
-                labelFormatter={(month: number) => formatMonthAsDateFull(month)}
+              <Tooltip
+                content={({ active, payload, label }) => {
+                  if (!active || !payload || payload.length === 0) return null
+                  const row = payload[0]?.payload as ChartDataPoint | undefined
+                  if (!row) return null
+                  const ltv = row.ltv
+                  return (
+                    <div
+                      style={{
+                        backgroundColor: 'rgba(255, 255, 255, 0.96)',
+                        color: '#111',
+                        border: '1px solid #ccc',
+                        borderRadius: 6,
+                        padding: '8px 12px',
+                        fontSize: 12,
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      <div style={{ fontWeight: 600, marginBottom: 4 }}>
+                        {formatMonthAsDateFull(Number(label))}
+                      </div>
+                      <div>
+                        <strong>Current LTV:</strong> {ltv.toFixed(1)}%
+                      </div>
+                      <div style={{ marginTop: 6, color: '#22c55e' }}>
+                        Target LTV: {row.targetLtv}%
+                      </div>
+                      <div style={{ color: '#f59e0b' }}>
+                        Danger Zone: 80%
+                      </div>
+                      <div style={{ color: '#ef4444' }}>
+                        Liquidation LTV: {row.liquidationLtv}%
+                      </div>
+                    </div>
+                  )
+                }}
               />
 
               <Legend />
@@ -215,24 +251,42 @@ export function DebtCollateralChart() {
           </ResponsiveContainer>
         </div>
         
-        {/* Risk Level Indicators */}
+        {/* Risk Level Indicators (with month counts so you can see how
+            much time the strategy spent in each band — Safe vs Moderate
+            vs ... — at a glance) */}
         <div className="mt-4 space-y-2">
           <div className="flex flex-wrap gap-4 text-sm">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-green-500 rounded"></div>
-              <span>Safe (0-60%)</span>
+              <span>
+                Safe (0-60%){riskStats && (
+                  <span className="text-muted-foreground"> · {riskStats.safeMonths} months</span>
+                )}
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-yellow-500 rounded"></div>
-              <span>Moderate (60-80%)</span>
+              <span>
+                Moderate (60-80%){riskStats && (
+                  <span className="text-muted-foreground"> · {riskStats.moderateMonths} months</span>
+                )}
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-orange-500 rounded"></div>
-              <span>High Risk (80-85%)</span>
+              <span>
+                High Risk (80-85%){riskStats && (
+                  <span className="text-muted-foreground"> · {riskStats.highRiskMonths} months</span>
+                )}
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-red-500 rounded"></div>
-              <span>Liquidation Risk (85%+)</span>
+              <span>
+                Liquidation Risk (85%+){riskStats && (
+                  <span className="text-muted-foreground"> · {riskStats.liquidationRiskMonths} months</span>
+                )}
+              </span>
             </div>
           </div>
           

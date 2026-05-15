@@ -8,10 +8,11 @@ import { useSimulationRunner } from "../../hooks/useSimulationRunner"
 import { ResultsSummary } from "./ResultsSummary"
 import { DetailedResultsTable } from "./DetailedResultsTable"
 import { HeadlineComparison } from "./HeadlineComparison"
+import { StrategyResultsChart } from "./charts/StrategyResultsChart"
 import { PortfolioValueChart } from "./charts/PortfolioValueChart"
 import { DebtCollateralChart } from "./charts/DebtCollateralChart"
-import { LTVProgressionChart } from "./charts/LTVProgressionChart"
 import { CashFlowChart } from "./charts/CashFlowChart"
+import { useRollingLoanCalculations } from "../../hooks/useRollingLoanCalculations"
 import { RiskAssessment } from "./RiskAssessment"
 import { EventsAnalysis } from "./EventsAnalysis"
 import { ResultsExport } from "./ResultsExport"
@@ -27,6 +28,7 @@ export function ResultsPage() {
   const { t } = useTranslation()
   const { results, params, isLoading } = useSimulation()
   const { runSimulation, canRunSimulation, getSimulationStatus } = useSimulationRunner()
+  const { chartPoints } = useRollingLoanCalculations()
 
   // Show loading state
   if (isLoading) {
@@ -184,17 +186,21 @@ export function ResultsPage() {
       {/* Results Summary Cards */}
       <ResultsSummary />
 
-      {/* Core Charts */}
+      {/* Full-width comprehensive view: BTC price + collateral + debt +
+          liquidation prices + total/locked/net BTC, toggleable series.
+          Replaces the prior two-column "core charts" + "advanced charts"
+          grids; the per-aspect breakdowns (Portfolio Value Over Time,
+          Debt vs Collateral, Cash Flow) live below it. */}
+      <StrategyResultsChart data={chartPoints} />
+
+      {/* Per-aspect charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <PortfolioValueChart />
         <DebtCollateralChart />
       </div>
 
-      {/* Advanced Analysis Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <LTVProgressionChart />
-        <CashFlowChart />
-      </div>
+      {/* Cash Flow */}
+      <CashFlowChart />
 
       {/* Risk and Events Analysis */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

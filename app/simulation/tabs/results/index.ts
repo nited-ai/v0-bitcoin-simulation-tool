@@ -12,7 +12,7 @@ export { EventsAnalysis } from './EventsAnalysis'
 export { ResultsExport } from './ResultsExport'
 
 // Results charts
+export { StrategyResultsChart } from './charts/StrategyResultsChart'
 export { PortfolioValueChart } from './charts/PortfolioValueChart'
 export { DebtCollateralChart } from './charts/DebtCollateralChart'
-export { LTVProgressionChart } from './charts/LTVProgressionChart'
 export { CashFlowChart } from './charts/CashFlowChart'
