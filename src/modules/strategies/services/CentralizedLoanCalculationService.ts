@@ -187,9 +187,18 @@ export class CentralizedLoanCalculationService {
 
     let totalInterest = 0
     if (params.loanTermMonths === Infinity) {
-      // For infinite term loans, calculate interest for 12 months as reference
-      totalInterest = Math.round(monthlyInterest * 12)
+      // Infinite-term loans accrue interest monthly during the simulation,
+      // NOT once at origination. Initial debt = principal + origination fee
+      // only; the monthly accrual step in the simulation loop adds
+      // `monthlyRate × principal` to the outstanding balance each month.
+      // This matches reality: an interest-only / negative-amortization loan
+      // doesn't bake all future interest into the day-zero balance.
+      totalInterest = 0
     } else {
+      // Finite-term loans: simple interest baked in at origination, total
+      // repayment = principal × (1 + fee% + monthlyRate × termMonths).
+      // Approximation: between origination and maturity the displayed debt
+      // is the maturity-value, not the linearly-accruing midterm value.
       totalInterest = Math.round(monthlyInterest * params.loanTermMonths)
     }
 

@@ -247,7 +247,13 @@ function zeroOutput(reasoning: string): RolloverPolicyOutput {
 
 /**
  * Compute the canonical loan cost factor used throughout the strategy.
- * For a loan of principal P, the total owed at maturity is P * costFactor.
+ * For a finite-term loan of principal P, the total owed at maturity is
+ * P × costFactor (origination fee + simple interest over the term).
+ *
+ * For infinite-term loans the cost factor is just 1 + fee — interest is
+ * accrued monthly during the simulation loop, not baked in upfront. This
+ * matches the actual mechanics of an interest-only / negative-amortization
+ * loan (where future interest is not owed up front).
  */
 export function computeCostFactor(
   originationFeePercent: number,
@@ -256,7 +262,12 @@ export function computeCostFactor(
 ): number {
   const fee = (originationFeePercent || 0) / 100
   const monthlyRate = (annualInterestRate || 0) / 100 / 12
-  const term = loanTermMonths === Infinity ? 12 : (loanTermMonths || 0)
+  if (loanTermMonths === Infinity) {
+    // No maturity → no term-based interest baked in. Caller is responsible
+    // for accruing `monthlyRate × principal` each month.
+    return 1 + fee
+  }
+  const term = loanTermMonths || 0
   return 1 + fee + monthlyRate * term
 }
 

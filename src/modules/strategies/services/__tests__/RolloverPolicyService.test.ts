@@ -278,9 +278,10 @@ describe('RolloverPolicyService: helpers', () => {
       expect(factor).toBeCloseTo(1.08, 4)
     })
 
-    it('handles infinite-term loans by capping at 12 months', () => {
+    it('infinite-term loans get only origination fee in the factor (interest accrues monthly)', () => {
+      // 1.5% fee, no term-based interest baked in → factor = 1.015
       const factor = computeCostFactor(1.5, 6.5, Infinity)
-      expect(factor).toBeCloseTo(1.08, 4)
+      expect(factor).toBeCloseTo(1.015, 4)
     })
 
     it('handles zero fees and rate', () => {

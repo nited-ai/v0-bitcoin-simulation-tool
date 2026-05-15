@@ -50,6 +50,9 @@ export class StrategyExecutionService {
     }))
 
     // Main simulation loop
+    const isInfiniteTerm = params.loanTermMonths === Infinity
+    const monthlyInterestRate = (params.annualInterestRate || 0) / 100 / 12
+
     for (let month = 0; month < params.simulationMonths; month++) {
       const currentDate = new Date()
       currentDate.setMonth(currentDate.getMonth() + month)
@@ -59,6 +62,16 @@ export class StrategyExecutionService {
 
       // CRITICAL FIX: Use initialBtcPrice for Month 0, projected price for subsequent months
       const btcPrice = month === 0 ? params.initialBtcPrice : pricePoint.price
+
+      // Accrue monthly interest on infinite-term loans. For finite terms the
+      // entire term-interest is baked into repaymentAmount at origination
+      // (see CentralizedLoanCalculationService); accruing here would double-
+      // count. Simple interest on the original principal.
+      if (isInfiniteTerm && monthlyInterestRate > 0 && month > 0 && activeLoans.length > 0) {
+        for (const loan of activeLoans) {
+          loan.repaymentAmount += loan.principal * monthlyInterestRate
+        }
+      }
 
       // ═══════════════════════════════════════════════════════════════════════
       // APPLY MONTHLY SAVINGS/WITHDRAWALS (BEFORE STRATEGY DECISION)

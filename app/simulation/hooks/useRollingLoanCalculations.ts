@@ -289,6 +289,9 @@ export function useRollingLoanCalculations() {
       })
     }
 
+    const isInfiniteTerm = params.loanTermMonths === Infinity
+    const monthlyInterestRate = (params.annualInterestRate || 0) / 100 / 12
+
     for (let m = 1; m <= (params.simulationMonths || 0); m++) {
 
 
@@ -298,6 +301,19 @@ export function useRollingLoanCalculations() {
 
       const btcPrice = getBtcPriceForMonth(m)
 
+      // Accrue monthly interest on infinite-term loans. Finite-term loans
+      // already bake all term-interest into `repaymentAmount` at origination
+      // (see CentralizedLoanCalculationService), so this only fires when the
+      // loan has no fixed maturity. Simple interest on the ORIGINAL principal
+      // (matches the simulator's existing simple-interest convention used in
+      // computeCostFactor: 1 + fee + monthlyRate × term).
+      if (isInfiniteTerm && monthlyInterestRate > 0 && activeLoans.length > 0) {
+        for (const loan of activeLoans) {
+          const interestThisMonth = loan.principal * monthlyInterestRate
+          loan.repaymentAmount += interestThisMonth
+          currentTotalDebt += interestThisMonth
+        }
+      }
 
       // Sync unlocked collateral to available BTC before applying monthly flows
       unlockedBtc = Math.max(0, currentBtc - lockedBtc)
