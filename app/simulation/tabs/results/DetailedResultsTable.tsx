@@ -66,12 +66,12 @@ export function DetailedResultsTable() {
                 <th className={`py-2 pr-4 leading-snug ${col.combined}`}>Total&nbsp;Debt/
                   <br/>Locked&nbsp;BTC</th>
 
-                <th className={`py-2 pr-4 whitespace-nowrap ${col.percent}`}>LTV<br></br>(loan)</th>
-                <th className={`py-2 pr-4 whitespace-nowrap ${col.percent}`}>Debt/<br></br>Portf.</th>
+                <th className={`py-2 pr-4 whitespace-nowrap ${col.percent}`} title="Debt as percentage of locked collateral value (Loan-to-Value)">LTV<br></br>(locked)</th>
+                <th className={`py-2 pr-4 whitespace-nowrap ${col.percent}`} title="Debt as percentage of total BTC stack value">LTV<br></br>(total&nbsp;stack)</th>
                 {showSavings && (<th className={`py-2 pr-4 whitespace-nowrap ${col.usd}`}>Savings/<br></br>Withdrawal</th>)}
-                <th className={`py-2 pr-4 whitespace-nowrap ${col.usd}`}>Excess<br></br>Proceeds</th>
-                <th className={`py-2 pr-4 leading-snug ${col.combined}`}>Purchased/
-                  <br/>Total BTC</th>
+                <th className={`py-2 pr-4 whitespace-nowrap ${col.usd}`} title="Rollover months: excess from new loan + monthly flow. Other months: monthly savings/withdrawal only.">Cash<br></br>Flow</th>
+                <th className={`py-2 pr-4 leading-snug ${col.combined}`} title="Net BTC change this month (positive = bought, negative = sold) and resulting total stack.">BTC&nbsp;Δ&nbsp;/
+                  <br/>Total&nbsp;BTC</th>
                 <th className={`py-2 pr-4 ${col.usd}`}>Portfolio Value<br></br>(after&nbsp;purchase)</th>
                 <th className={`py-2 pr-4 whitespace-nowrap ${col.btc}`}>Net BTC<br></br>(after payoff)</th>
               </tr>
@@ -248,7 +248,7 @@ export function DetailedResultsTable() {
 
                       return (
                         <tr key={`monthly-${m.month}`} className="border-t text-muted-foreground">
-                          <td className="py-2 pr-4 pl-6">{mLabel} (Monthly)</td>
+                          <td className="py-2 pr-4 pl-6 text-muted-foreground">{mLabel}</td>
                           <td className="py-2 pr-4" title={`BTC before monthly flow`}>{formatBtc(m.totalBtcBefore)}</td>
                           <td className="py-2 pr-4" title={isMonthly ? `btcPrice_n = priceProjection[${m.month}]` : `btcPrice_n = priceProjection[${m.month} × 30]`}>{formatUsd(m.btcPrice)}</td>
                           <td className="py-2 pr-4" title={`Portfolio Value before = BTC × Price`}>{formatUsd(mCollateralBefore)}</td>

@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import { useSimulation } from "../../context/SimulationContext"
 import { useSimulationRunner } from "../../hooks/useSimulationRunner"
 import { ResultsSummary } from "./ResultsSummary"
-import { ResultsTable } from "./ResultsTable"
 import { DetailedResultsTable } from "./DetailedResultsTable"
 import { PortfolioValueChart } from "./charts/PortfolioValueChart"
 import { DebtCollateralChart } from "./charts/DebtCollateralChart"
@@ -199,40 +198,11 @@ export function ResultsPage() {
         <EventsAnalysis />
       </div>
 
-      {/* Export Functionality */}
-      <ResultsExport />
-
       {/* Detailed Rollover Table (with expandable monthly rows) */}
       <DetailedResultsTable />
 
-      {/* Legacy summary table */}
-      <ResultsTable />
-
-      {/* Placeholder for Phase 5 features */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('Results.advancedFeaturesTitle', '🚧 Advanced Features Coming Soon')}</CardTitle>
-          <CardDescription>
-            {t('Results.advancedFeaturesDescription', 'Phase 5 features will be added next')}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 border rounded-lg">
-              <h4 className="font-medium mb-2">{t('Results.scenarioComparison', 'Scenario Comparison')}</h4>
-              <p className="text-sm text-muted-foreground">
-                {t('Results.scenarioComparisonDescription', 'Compare different parameter sets side-by-side')}
-              </p>
-            </div>
-            <div className="p-4 border rounded-lg">
-              <h4 className="font-medium mb-2">{t('Results.stressTesting', 'Stress Testing')}</h4>
-              <p className="text-sm text-muted-foreground">
-                {t('Results.stressTestingDescription', 'Advanced stress testing and sensitivity analysis')}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Export Functionality (CSV / JSON download) */}
+      <ResultsExport />
     </div>
   )
 }
