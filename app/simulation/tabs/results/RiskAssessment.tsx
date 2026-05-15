@@ -80,19 +80,13 @@ export function RiskAssessment() {
     ]
   }, [analysis, params])
 
-  // Calculate overall risk score
-  const overallRiskScore = useMemo(() => {
-    if (riskMetrics.length === 0) return 0
-    return Math.round(riskMetrics.reduce((sum, metric) => sum + metric.value, 0) / riskMetrics.length)
-  }, [riskMetrics])
-
-  // Get overall risk level
-  const overallRiskLevel = useMemo(() => {
-    if (overallRiskScore >= 80) return 'extreme'
-    if (overallRiskScore >= 60) return 'high'
-    if (overallRiskScore >= 40) return 'medium'
-    return 'low'
-  }, [overallRiskScore])
+  // Use the single source of truth from useResultsAnalysis. Previously
+  // this component recomputed `overallRiskScore` from its own riskMetrics
+  // average, which produced a different number than the score shown by
+  // the summary card above. They now share the same calculation in
+  // useResultsAnalysis.
+  const overallRiskScore = analysis?.riskScore ?? 0
+  const overallRiskLevel = analysis?.riskLevel ?? 'low'
 
   // Risk recommendations
   const riskRecommendations = useMemo(() => {

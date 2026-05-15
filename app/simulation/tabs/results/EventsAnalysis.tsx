@@ -64,6 +64,39 @@ export function EventsAnalysis() {
     return events.sort((a, b) => a.month - b.month)
   }, [results])
 
+  // Group consecutive same-type events into runs so the timeline doesn't
+  // get spammed with 111 identical "withdrawal_skipped" rows. A run
+  // is a contiguous stretch of months with the same event type; a run
+  // of length 1 renders as a single event, longer runs render as a
+  // compact span ("Month 13-143: withdrawal skipped — 111 occurrences").
+  type EventRun = {
+    type: string
+    fromMonth: number
+    toMonth: number
+    count: number
+    representative: EventWithContext // first event in the run, for display defaults
+  }
+  const timelineRuns: EventRun[] = useMemo(() => {
+    if (eventsWithContext.length === 0) return []
+    const runs: EventRun[] = []
+    for (const ec of eventsWithContext) {
+      const last = runs[runs.length - 1]
+      if (last && last.type === ec.event.type && ec.month - last.toMonth <= 1) {
+        last.toMonth = ec.month
+        last.count++
+      } else {
+        runs.push({
+          type: ec.event.type,
+          fromMonth: ec.month,
+          toMonth: ec.month,
+          count: 1,
+          representative: ec,
+        })
+      }
+    }
+    return runs
+  }, [eventsWithContext])
+
   // Summarize events by type
   const eventSummaries: EventSummary[] = useMemo(() => {
     if (eventsWithContext.length === 0) return []
@@ -171,37 +204,46 @@ export function EventsAnalysis() {
           <h4 className="text-sm font-medium">Events Timeline</h4>
           <div className="h-64 w-full border rounded-lg p-3 overflow-y-auto">
             <div className="space-y-3">
-              {eventsWithContext.map((eventContext, index) => (
-                <div key={index} className="flex items-start gap-3 p-2 hover:bg-muted/50 rounded">
-                  <div className="flex-shrink-0 mt-1">
-                    {(() => {
-                      const IconComponent = getEventIcon(eventContext.event)
-                      return <IconComponent className="h-4 w-4" />
-                    })()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-medium">
-                        Month {eventContext.month}
-                      </span>
-                      <Badge
-                        variant="outline"
-                        className={getSeverityBadgeColor(getEventSeverity(eventContext.event))}
-                      >
-                        {eventContext.event.type.replace('_', ' ')}
-                      </Badge>
+              {timelineRuns.map((run, index) => {
+                const isRun = run.count > 1
+                const monthLabel = isRun
+                  ? `Month ${run.fromMonth}–${run.toMonth}`
+                  : `Month ${run.fromMonth}`
+                const IconComponent = getEventIcon(run.representative.event)
+                return (
+                  <div key={index} className="flex items-start gap-3 p-2 hover:bg-muted/50 rounded">
+                    <div className="flex-shrink-0 mt-1">
+                      <IconComponent className="h-4 w-4" />
                     </div>
-                    <p className="text-xs text-muted-foreground mb-1">
-                      {formatEventDetails(eventContext.event)}
-                    </p>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <span>BTC: ${eventContext.btcPrice.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>
-                      <span>LTV: {eventContext.ltv.toFixed(1)}%</span>
-                      <span>Debt: ${eventContext.totalDebt.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-medium">{monthLabel}</span>
+                        <Badge
+                          variant="outline"
+                          className={getSeverityBadgeColor(getEventSeverity(run.representative.event))}
+                        >
+                          {run.type.replace('_', ' ')}
+                        </Badge>
+                        {isRun && (
+                          <span className="text-xs text-muted-foreground">
+                            × {run.count} consecutive months
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground mb-1">
+                        {formatEventDetails(run.representative.event)}
+                      </p>
+                      {!isRun && (
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                          <span>BTC: ${run.representative.btcPrice.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>
+                          <span>LTV: {run.representative.ltv.toFixed(1)}%</span>
+                          <span>Debt: ${run.representative.totalDebt.toLocaleString("en-US", { maximumFractionDigits: 0 })}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         </div>

@@ -19,6 +19,10 @@ export interface ResultsAnalysis {
   // Risk metrics
   maxDrawdown: number
   maxDrawdownPercent: number
+  /** Net worth at the peak preceding the maximum drawdown */
+  maxDrawdownPeak: number
+  /** Net worth at the trough of the maximum drawdown */
+  maxDrawdownTrough: number
   liquidationCount: number
   firstLiquidationMonth: number | null
   
@@ -85,11 +89,14 @@ export function useResultsAnalysis(
       ? (Math.pow(finalNetWorth / initialValue, 1 / yearsElapsed) - 1) * 100 
       : 0
     
-    // Risk metrics - find maximum drawdown
+    // Risk metrics - find maximum drawdown (in USD) and remember which
+    // peak → trough produced it so we can label it clearly downstream.
     let maxDrawdown = 0
     let maxDrawdownPercent = 0
+    let maxDrawdownPeak = initialValue
+    let maxDrawdownTrough = initialValue
     let peak = initialValue
-    
+
     for (const result of results) {
       const currentValue = result.collateralValue - result.totalDebt
       if (currentValue > peak) {
@@ -97,10 +104,12 @@ export function useResultsAnalysis(
       }
       const drawdown = peak - currentValue
       const drawdownPercent = peak > 0 ? (drawdown / peak) * 100 : 0
-      
+
       if (drawdown > maxDrawdown) {
         maxDrawdown = drawdown
         maxDrawdownPercent = drawdownPercent
+        maxDrawdownPeak = peak
+        maxDrawdownTrough = currentValue
       }
     }
     
@@ -138,20 +147,36 @@ export function useResultsAnalysis(
     const averageMonthlyReinvestment = totalReinvestments / totalMonths
     const averagePortfolioValue = results.reduce((sum, r) => sum + r.collateralValue, 0) / totalMonths
     
-    // Risk assessment
+    // Risk assessment — 5-factor weighted average. Matches the breakdown
+    // shown in the RiskAssessment panel so both surfaces report the same
+    // headline score and level (previously: summary showed 30/100 while
+    // the panel showed 50/100 for the same simulation).
     let riskLevel: 'low' | 'medium' | 'high' | 'extreme' = 'low'
-    let riskScore = 0
-    
-    // Calculate risk score based on multiple factors
-    const liquidationRisk = liquidationCount > 0 ? 40 : 0
-    const ltvRisk = maxLTV > 80 ? 30 : maxLTV > 60 ? 20 : maxLTV > 40 ? 10 : 0
-    const drawdownRisk = maxDrawdownPercent > 50 ? 30 : maxDrawdownPercent > 30 ? 20 : maxDrawdownPercent > 15 ? 10 : 0
-    
-    riskScore = liquidationRisk + ltvRisk + drawdownRisk
-    
-    if (riskScore >= 70) riskLevel = 'extreme'
-    else if (riskScore >= 50) riskLevel = 'high'
-    else if (riskScore >= 25) riskLevel = 'medium'
+
+    const liquidationRiskValue =
+      liquidationCount > 0 ? 100 : maxLTV > 85 ? 80 : maxLTV > 80 ? 60 : maxLTV > 70 ? 40 : 20
+    const volatilityRiskValue = Math.min(100, maxDrawdownPercent * 2)
+    const debtExposureValue = Math.min(100, (maxDebt / (finalPortfolioValue || 1)) * 100)
+    const concentrationRiskValue =
+      initialBtcAmount > 10 ? 20 : initialBtcAmount > 5 ? 40 : initialBtcAmount > 1 ? 60 : 80
+    const strategyRiskValue =
+      params.investmentStrategy === 'default'
+        ? 30
+        : params.investmentStrategy === 'athBased'
+          ? 50
+          : 70
+
+    const riskScore = Math.round(
+      (liquidationRiskValue +
+        volatilityRiskValue +
+        debtExposureValue +
+        concentrationRiskValue +
+        strategyRiskValue) / 5
+    )
+
+    if (riskScore >= 80) riskLevel = 'extreme'
+    else if (riskScore >= 60) riskLevel = 'high'
+    else if (riskScore >= 40) riskLevel = 'medium'
     else riskLevel = 'low'
     
     // Performance rating
@@ -185,6 +210,8 @@ export function useResultsAnalysis(
       // Risk metrics
       maxDrawdown,
       maxDrawdownPercent,
+      maxDrawdownPeak,
+      maxDrawdownTrough,
       liquidationCount,
       firstLiquidationMonth,
       

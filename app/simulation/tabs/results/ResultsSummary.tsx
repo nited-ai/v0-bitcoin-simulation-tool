@@ -186,7 +186,10 @@ export function ResultsSummary() {
         {/* Max Drawdown */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <CardTitle
+              className="text-sm font-medium flex items-center gap-2"
+              title="Largest peak-to-trough decline in net worth (collateral minus debt) over the full simulation. Measured against the running peak, not the final value."
+            >
               <TrendingDown className="h-4 w-4" />
               Max Drawdown
             </CardTitle>
@@ -196,7 +199,9 @@ export function ResultsSummary() {
               -{analysis.maxDrawdownPercent.toFixed(1)}%
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              ${analysis.maxDrawdown.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+              ${analysis.maxDrawdownPeak.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+              {" → "}
+              ${analysis.maxDrawdownTrough.toLocaleString("en-US", { maximumFractionDigits: 0 })}
             </p>
           </CardContent>
         </Card>

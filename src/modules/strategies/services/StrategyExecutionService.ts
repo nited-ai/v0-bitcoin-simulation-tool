@@ -269,7 +269,7 @@ export class StrategyExecutionService {
         totalPrincipal,
         activeLoans: [...activeLoans],
         repaymentDue,
-        highestLtv: Math.round(highestLtv),
+        highestLtv,
         maxSafeDebt: decision.maxDebtOverride !== undefined ? Math.round(decision.maxDebtOverride) : undefined,
         monthlySavingsApplied, // Track monthly savings/withdrawals
         btcPurchased, // Track BTC purchased from loan proceeds
