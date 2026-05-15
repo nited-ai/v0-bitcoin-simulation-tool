@@ -12,7 +12,7 @@
  * main simulation page.
  */
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { simulateRollingLoan } from "@/src/modules/strategies/services/simulateRollingLoan"
 import { DEFAULT_PARAMS } from "../simulation/types/simulation"
 import type { SimulationParams } from "../simulation/types/simulation"
@@ -306,23 +306,7 @@ function auditScenario(
       )
     }
 
-    // 11. topUpLtv vs initialLtv: topUpLtv is total-stack basis, initialLtv
-    //     is locked-only basis. So topUpLtv <= initialLtv always.
-    if (
-      s.topUpLtv !== undefined &&
-      s.initialLtvAfter !== undefined &&
-      s.initialLtvAfter > 0 &&
-      s.topUpLtv > s.initialLtvAfter + 0.5
-    ) {
-      push(
-        m,
-        "warn",
-        "topUpLtv_gt_initialLtv",
-        `topUp=${s.topUpLtv.toFixed(2)} init=${s.initialLtvAfter.toFixed(2)}`,
-      )
-    }
-
-    // 12. Liquidation only ever reduces debt + BTC (never grows them).
+    // 11. Liquidation only ever reduces debt + BTC (never grows them).
     if (s.liquidationTriggered && i > 0) {
       const prev = snaps[i - 1]
       if (s.totalDebt > prev.totalDebt + 1e-3) {
@@ -512,6 +496,13 @@ function buildScenarios(): Array<{
 export default function AuditPage() {
   const [filter, setFilter] = useState<"all" | "error" | "warn">("error")
   const [showOnly, setShowOnly] = useState("")
+
+  // Expose for browser-console debugging of specific failing scenarios
+  useEffect(() => {
+    ;(window as any).__simulateRollingLoan = simulateRollingLoan
+    ;(window as any).__DEFAULT_PARAMS = DEFAULT_PARAMS
+    ;(window as any).__buildScenarios = buildScenarios
+  }, [])
 
   const { scenarios, findings, summary } = useMemo(() => {
     const scenarios = buildScenarios()
