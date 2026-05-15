@@ -249,57 +249,12 @@ export class StrategyExecutionService {
         totalBtcAmount += Math.abs(monthlyWithdrawal) / btcPrice
       }
 
-      // Monthly loan top-up to maintain target LTV (rolling loan accumulator).
-      // Mirrors the logic in useRollingLoanCalculations so the Summary cards
-      // and PortfolioValueChart (which read MonthlyResult[] from this
-      // service) stay in sync with the DetailedResultsTable + HeadlineComparison
-      // (which read from the hook directly). Without this, the two pipelines
-      // diverge by ~the cumulative monthly top-up amount over a long sim.
-      const targetLtvForTopUp = (params as any).loanAmountPercent as number | undefined
-      const isInfTerm = params.loanTermMonths === Infinity
-      const monthlyInterestRate = (params.annualInterestRate || 0) / 100 / 12
-      if (
-        targetLtvForTopUp !== undefined &&
-        targetLtvForTopUp > 0 &&
-        params.btcAccumulation &&
-        btcPrice > 0 &&
-        activeLoans.length > 0
-      ) {
-        const currentTotalRepayment = activeLoans.reduce((s, l) => s + l.repaymentAmount, 0)
-        const collateralForTopUp = totalBtcAmount * btcPrice
-        const targetDebt = (targetLtvForTopUp / 100) * collateralForTopUp
-        const debtGap = targetDebt - currentTotalRepayment
-        const MIN_TOP_UP_USD = 100
-
-        if (debtGap > MIN_TOP_UP_USD) {
-          const feeFrac = (params.loanOriginationFeePercent || 0) / 100
-          const primaryLoan = activeLoans[0]
-          let topUpCostFactor: number
-          if (isInfTerm) {
-            topUpCostFactor = 1 + feeFrac
-          } else {
-            const monthsRemaining = Math.max(
-              1,
-              (primaryLoan?.maturityMonth ?? month + (params.loanTermMonths || 12)) - month,
-            )
-            topUpCostFactor = 1 + feeFrac + monthlyInterestRate * monthsRemaining
-          }
-          const additionalPrincipal = debtGap / topUpCostFactor
-          if (additionalPrincipal > MIN_TOP_UP_USD) {
-            primaryLoan.principal += additionalPrincipal
-            primaryLoan.repaymentAmount += additionalPrincipal * topUpCostFactor
-            // Reinvest the additional principal into BTC (accumulation mode)
-            totalBtcAmount += additionalPrincipal / btcPrice
-            // Also surface the top-up as reinvestment activity for the
-            // CashFlowChart / MonthlyResult-driven analyses. Without this,
-            // Total Reinvestments and the cash-flow bars only reflect
-            // rollover-month excess and miss the bulk of accumulation.
-            principalForReinvestment += additionalPrincipal
-            totalPrincipal += additionalPrincipal
-            btcPurchased = (btcPurchased ?? 0) + additionalPrincipal / btcPrice
-          }
-        }
-      }
+      // (Rolling-loan monthly top-up logic used to live here as a stop-gap
+      // for the data-source split. It now lives in the single source of
+      // truth at src/modules/strategies/services/simulateRollingLoan.ts —
+      // `useSimulationRunner` routes rollingLoan strategies through that
+      // service directly, so the legacy execution path here only handles
+      // non-rolling-loan strategies and doesn't need the top-up hack.)
 
       // Calculate current metrics
       const totalDebt = activeLoans.reduce((sum, l) => sum + l.repaymentAmount, 0)
