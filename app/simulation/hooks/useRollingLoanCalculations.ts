@@ -7,7 +7,6 @@ import {
   decideRolloverAction,
   computeCostFactor,
   defaultRolloverMaxLtv,
-  solvePrincipalForPostPurchaseLtv,
 } from "@/src/modules/strategies/services/RolloverPolicyService"
 
 // Table-aligned result structures
@@ -126,37 +125,34 @@ export function useRollingLoanCalculations() {
     let activeLoans: Loan[] = []
     let currentBtc = params.initialBtcAmount
 
-    // Month 0: Initial loan sized so that LTV (total stack) AFTER buying BTC
-    // with the proceeds lands at the configured leverage target. The proceeds
-    // grow the collateral by their face value, so the principal that achieves
-    // post-purchase target LTV = r is `r × C / (k − r)` (not `r × C`).
+    // Month 0: Initial loan principal = `loanAmountPercent × pre-purchase
+    // collateral`. The user-facing label is "Percentage of your total BTC
+    // stack value to use as loan amount" — pre-purchase basis. The
+    // resulting LTV (total stack) AFTER the loan proceeds buy BTC will be
+    // lower than the configured percent (the collateral denominator grows);
+    // that's a mechanical consequence, not a bug.
+    //
+    // When loanAmountPercent isn't set, fall back to the target-LTV cap
+    // bounded by the user-supplied maxLoanAmount (dollar cap).
     const month0Price = getBtcPriceForMonth(0)
     const month0Collateral = currentBtc * month0Price
 
     const willUseLoanAmountPercent = params.loanAmountPercent !== undefined && params.loanAmountPercent > 0
     const loanPercent = willUseLoanAmountPercent ? params.loanAmountPercent! : (params.riskManagement?.targetLtv ?? 50)
 
-    const month0CostFactor = computeCostFactor(
-      params.originationFeePercent || 0,
-      params.annualInterestRate || 0,
-      params.loanTermMonths || 12,
-    )
-
-    // Use the post-purchase solver. Falls back to the naive `r × C` when
-    // the formula can't be solved (k ≤ r) — e.g. very expensive loan +
-    // very aggressive target.
-    const principalForTargetLtv = solvePrincipalForPostPurchaseLtv(
-      loanPercent,
-      month0Collateral,
-      0, // no prior debt at month 0
-      month0CostFactor,
-    )
-    const calculatedByPercent = principalForTargetLtv > 0
-      ? Math.round(principalForTargetLtv)
-      : Math.round(month0Collateral * (loanPercent / 100))
-
+    const calculatedByPercent = Math.round(month0Collateral * (loanPercent / 100))
     const maxLoanParam = params.maxLoanAmount ?? Number.POSITIVE_INFINITY
-    const finalLoanAmount = Math.min(calculatedByPercent, maxLoanParam)
+
+    const minimumForTarget = Math.round((params.riskManagement?.targetLtv ?? 50) / 100 * month0Collateral)
+    const calculatedByLtv = minimumForTarget
+
+    // When the user explicitly configured a loan-size percentage, honor it
+    // verbatim — do NOT clamp by `maxLoanAmount` (the legacy dollar cap that
+    // defaults to a small value like $15,000 and would otherwise truncate
+    // every realistic loan).
+    const finalLoanAmount = willUseLoanAmountPercent
+      ? calculatedByPercent
+      : Math.min(maxLoanParam, calculatedByLtv)
 
     const month0Loan = centralizedLoanCalculationService.calculateLoanDetails(
       finalLoanAmount,

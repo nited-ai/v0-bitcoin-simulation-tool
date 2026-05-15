@@ -22,7 +22,6 @@ import {
   decideRolloverAction,
   computeCostFactor,
   defaultRolloverMaxLtv,
-  solvePrincipalForPostPurchaseLtv,
   type RolloverPolicyInput,
 } from '../RolloverPolicyService'
 
@@ -38,28 +37,28 @@ const baseInput = (overrides: Partial<RolloverPolicyInput> = {}): RolloverPolicy
   ...overrides,
 })
 
-describe('RolloverPolicyService: refinance-only path (aim for targetLtv, post-purchase basis)', () => {
-  it('refinances UP to targetLtv POST-PURCHASE (accounts for BTC bought with excess)', () => {
+describe('RolloverPolicyService: refinance-only path (aim for targetLtv, pre-purchase basis)', () => {
+  it('refinances UP to targetLtv (pre-purchase) when old debt is below target', () => {
     // 1 BTC at $100k = $100k collateral. costFactor ≈ 1.08. targetLtv = 40%.
-    // Post-purchase formula: principal = 0.40 × ($100k − $10k) / (1.08 − 0.40)
-    //                                 = $36k / 0.68 = $52,941
-    // After buying with excess: newCollateral = $100k + ($52,941 − $10k) = $142,941
-    // resultingLtv = $52,941 × 1.08 / $142,941 = exactly 40.0%
+    // Pre-purchase: principal = 100,000 × 0.40 / 1.08 ≈ $37,037.
+    // Old debt $10k < $37k → refinance UP to $37k, excess ≈ $27k buys BTC.
+    // The observable LTV (total stack) after the purchase will be lower
+    // than 40% — that's a mechanical consequence; the policy targets the
+    // pre-purchase ratio.
     const out = decideRolloverAction(baseInput({ repaymentDue: 10_000 }))
 
     expect(out.forcedSale).toBe(false)
     expect(out.outcome).toBe('refinance-with-excess')
-    expect(out.newPrincipal).toBeGreaterThan(52_000)
-    expect(out.newPrincipal).toBeLessThan(53_500)
-    expect(out.resultingLtv).toBeCloseTo(40, 0) // post-purchase LTV = target
-    expect(out.excessProceeds).toBeGreaterThan(42_000)
+    expect(out.newPrincipal).toBeGreaterThan(36_000)
+    expect(out.newPrincipal).toBeLessThan(38_000)
+    expect(out.resultingLtv).toBeCloseTo(40, 0)
+    expect(out.excessProceeds).toBeGreaterThan(26_000)
   })
 
   it('refinances at the old debt size (above target) when forced by carried debt', () => {
-    // Old debt $50k on $100k collateral. principalAtTargetLtv (post-purchase)
-    // = 0.40 × $50k / 0.68 = $29,412 < $50k. We MUST cover old debt.
-    // Refinance at $50k, no purchase (no excess), no sale.
-    // LTV after = $50k × 1.08 / $100k = 54% (above target, below cap).
+    // Old debt $50k on $100k collateral. principalAtTargetLtv = $37k < $50k.
+    // We MUST cover old debt. Refinance at $50k, no purchase, no sale.
+    // LTV (pre-purchase) = $50k × 1.08 / $100k = 54% (above target, below cap).
     const out = decideRolloverAction(baseInput({ repaymentDue: 50_000 }))
 
     expect(out.forcedSale).toBe(false)
@@ -70,9 +69,8 @@ describe('RolloverPolicyService: refinance-only path (aim for targetLtv, post-pu
   })
 
   it('honors loanAmountPercent as a SMALLER cap (more conservative than targetLtv)', () => {
-    // User sets 15% LTV target. Post-purchase formula:
-    //   principal = 0.15 × $90k / (1.08 − 0.15) = $13,500 / 0.93 ≈ $14,516
-    // resultingLtv = $14,516 × 1.08 / ($100k + $4,516) = exactly 15.0%
+    // User sets 15% loan size. Pre-purchase: principal = 100,000 × 0.15 / 1.08
+    // ≈ $13,889. Excess = $3,889 buys BTC.
     const out = decideRolloverAction(baseInput({
       repaymentDue: 10_000,
       loanAmountPercent: 15,
@@ -80,9 +78,9 @@ describe('RolloverPolicyService: refinance-only path (aim for targetLtv, post-pu
 
     expect(out.forcedSale).toBe(false)
     expect(out.outcome).toBe('refinance-with-excess')
-    expect(out.newPrincipal).toBeGreaterThan(14_000)
-    expect(out.newPrincipal).toBeLessThan(15_000)
-    expect(out.resultingLtv).toBeCloseTo(15, 0) // post-purchase LTV
+    expect(out.newPrincipal).toBeGreaterThan(13_500)
+    expect(out.newPrincipal).toBeLessThan(14_500)
+    expect(out.resultingLtv).toBeCloseTo(15, 0)
   })
 
   it('ignores loanAmountPercent when it exceeds targetLtv (target wins)', () => {
@@ -93,62 +91,6 @@ describe('RolloverPolicyService: refinance-only path (aim for targetLtv, post-pu
 
     expect(out.resultingLtv).toBeCloseTo(40, 0)
     expect(out.forcedSale).toBe(false)
-  })
-
-  it('zero-cost loan (Strike) at 25% LTV produces 25% post-purchase, not 20%', () => {
-    // The exact scenario the user reported: cost factor = 1.0 (no fees, no
-    // interest), loanAmountPercent = 25%, no prior debt. Pre-purchase
-    // formula gave principal = 0.25C → LTV = 0.25C / 1.25C = 20%.
-    // Post-purchase formula: principal = 0.25C / 0.75 = 0.333C → LTV = 25%.
-    const out = decideRolloverAction({
-      repaymentDue: 0,
-      lockedBtc: 0,
-      unlockedBtc: 10, // 10 BTC at $100k = $1M collateral
-      btcPrice: 100_000,
-      costFactor: 1.0, // Strike: 0% fee, 0% interest
-      targetLtv: 40,
-      rolloverMaxLtv: 68,
-      liquidationLtv: 80,
-      loanAmountPercent: 25,
-    })
-
-    expect(out.forcedSale).toBe(false)
-    expect(out.resultingLtv).toBeCloseTo(25, 1)
-    expect(out.newPrincipal).toBeGreaterThan(330_000)
-    expect(out.newPrincipal).toBeLessThan(335_000)
-  })
-})
-
-describe('solvePrincipalForPostPurchaseLtv', () => {
-  it('produces a principal that EXACTLY lands at target LTV post-purchase', () => {
-    const C = 1_000_000
-    const D = 100_000
-    const k = 1.08
-    const r = 25
-    const principal = solvePrincipalForPostPurchaseLtv(r, C, D, k)
-    // post-purchase: newPortfolio = C + (principal - D), newDebt = principal × k
-    const newPortfolio = C + (principal - D)
-    const newDebt = principal * k
-    const ltvAfter = (newDebt / newPortfolio) * 100
-    expect(ltvAfter).toBeCloseTo(25, 4)
-  })
-
-  it('handles Strike (zero-cost): 25% target → principal = 0.25 × equity / 0.75', () => {
-    const principal = solvePrincipalForPostPurchaseLtv(25, 1_000_000, 0, 1.0)
-    expect(principal).toBeCloseTo(333_333, 0) // 1_000_000 × 0.25 / 0.75
-  })
-
-  it('returns 0 when underwater (equity ≤ 0)', () => {
-    expect(solvePrincipalForPostPurchaseLtv(25, 100_000, 200_000, 1.08)).toBe(0)
-  })
-
-  it('returns 0 when target LTV is unattainable (target ≥ costFactor)', () => {
-    expect(solvePrincipalForPostPurchaseLtv(120, 1_000_000, 0, 1.08)).toBe(0)
-  })
-
-  it('produces same result as pre-purchase formula when no accumulation context (D = C)', () => {
-    // Edge: when oldCollateral == repaymentDue, equity = 0, no room to grow
-    expect(solvePrincipalForPostPurchaseLtv(25, 100_000, 100_000, 1.08)).toBe(0)
   })
 })
 

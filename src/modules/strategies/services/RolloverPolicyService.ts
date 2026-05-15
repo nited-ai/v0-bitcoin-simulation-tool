@@ -122,17 +122,16 @@ export function decideRolloverAction(input: RolloverPolicyInput): RolloverPolicy
   const rolloverLtvDec = rolloverMaxLtv / 100
   const liquidationLtvDec = liquidationLtv / 100
 
-  // Maximum principal the full stack can support at rolloverMaxLtv, computed
-  // POST-PURCHASE: if accumulation is on, the excess proceeds buy more BTC
-  // and grow the LTV denominator, so the principal that lands the final
-  // LTV at the cap is bigger than the naive `collateral × cap / costFactor`.
-  // See solvePrincipalForPostPurchaseLtv for the derivation.
-  const principalCap = solvePrincipalForPostPurchaseLtv(
-    rolloverMaxLtv,
-    collateralUsd,
-    repaymentDue,
-    costFactor,
-  )
+  // Maximum principal the full stack can support at rolloverMaxLtv. The
+  // LTV here is the *pre-purchase* ratio: principal × costFactor / collateral
+  // ≤ rolloverMaxLtv. After accumulation buys BTC with the excess, the
+  // observable LTV (total stack) ends up lower than this — that's a
+  // mechanical consequence of using loan proceeds to grow collateral, not
+  // a bug. The user-configured `loanAmountPercent` is interpreted the same
+  // way: principal size = percent × pre-purchase collateral.
+  const principalCap = collateralUsd > 0
+    ? (collateralUsd * rolloverLtvDec) / costFactor
+    : 0
 
   // ─── Case A: Refinance only ─────────────────────────────────────────────
   // Target principal: aim for `targetLtv` (the strategic LTV goal). Only when
@@ -142,27 +141,19 @@ export function decideRolloverAction(input: RolloverPolicyInput): RolloverPolicy
   // at rollover (e.g. 15% LTV target), we cap there even if targetLtv would
   // allow more.
   if (repaymentDue <= principalCap) {
-    // Principal that would land us at the strategic target LTV (total stack)
-    // AFTER the excess proceeds buy more BTC.
-    const principalAtTargetLtv = solvePrincipalForPostPurchaseLtv(
-      targetLtv,
-      collateralUsd,
-      repaymentDue,
-      costFactor,
-    )
+    // Principal that would land at the strategic target LTV (pre-purchase
+    // basis): principal × costFactor / collateral = targetLtv.
+    const principalAtTargetLtv = collateralUsd > 0
+      ? (collateralUsd * (targetLtv / 100)) / costFactor
+      : 0
 
     // Principal at the user-set leverage preference (if configured). The
-    // user-set value typically REPLACES targetLtv as the operative leverage
-    // intent — "I want this much leverage, period". Whichever is more
-    // conservative wins below.
+    // user-set value is interpreted as the loan size as a percentage of
+    // PRE-PURCHASE collateral. Whichever target produces the smaller
+    // principal wins below — that's the more conservative choice.
     const principalAtUserCap =
       loanAmountPercent !== undefined && loanAmountPercent > 0
-        ? solvePrincipalForPostPurchaseLtv(
-            loanAmountPercent,
-            collateralUsd,
-            repaymentDue,
-            costFactor,
-          )
+        ? (collateralUsd * (loanAmountPercent / 100)) / costFactor
         : Infinity
 
     // Aim for targetLtv, but never exceed loanAmountPercent if user set it,
@@ -176,15 +167,12 @@ export function decideRolloverAction(input: RolloverPolicyInput): RolloverPolicy
 
     const newRepayment = newPrincipal * costFactor
     const excess = Math.max(0, newPrincipal - repaymentDue)
-    // Post-purchase collateral: when there's excess proceeds and accumulation
-    // is on, they buy BTC at face value and grow the LTV denominator. The
-    // resultingLtv we report is the LTV the user actually carries after the
-    // dust settles, not the pre-purchase ratio.
-    const postPurchaseCollateral = collateralUsd + excess
+    // Pre-purchase LTV: matches how `targetLtv` / `loanAmountPercent` are
+    // interpreted everywhere else. The observable LTV (total stack) after
+    // the excess buys BTC will be lower, but the strategy's loan-sizing
+    // contract is the pre-purchase ratio.
     const resultingLtv =
-      postPurchaseCollateral > 0
-        ? (newRepayment / postPurchaseCollateral) * 100
-        : 0
+      collateralUsd > 0 ? (newRepayment / collateralUsd) * 100 : 0
 
     const hasExcess = excess > 0
     const exceededTarget = resultingLtv > targetLtv + 0.5 // FP tolerance
@@ -193,7 +181,7 @@ export function decideRolloverAction(input: RolloverPolicyInput): RolloverPolicy
       usdRecovered: 0,
       remainingDebt: repaymentDue,
       newPrincipal,
-      newCollateral: postPurchaseCollateral,
+      newCollateral: collateralUsd,
       resultingLtv,
       excessProceeds: excess,
       forcedSale: false,
