@@ -336,13 +336,13 @@ export function useRollingLoanCalculations() {
       const yearsElapsed = Math.floor(m / 12)
       const adjustedMonthly = baseMonthly * Math.pow(1 + (annualInc / 100), yearsElapsed)
 
+      const totalBtcBeforeMonth = currentBtc
+      let cashFlowBtcDelta = 0
       if (adjustedMonthly !== 0 && btcPrice > 0) {
-        const totalBtcBeforeMonthly = currentBtc
-        let btcDelta = 0
         if (adjustedMonthly > 0) {
-          btcDelta = adjustedMonthly / btcPrice
-          currentBtc += btcDelta
-          unlockedBtc += btcDelta
+          cashFlowBtcDelta = adjustedMonthly / btcPrice
+          currentBtc += cashFlowBtcDelta
+          unlockedBtc += cashFlowBtcDelta
         } else {
           const btcNeeded = Math.abs(adjustedMonthly) / btcPrice
           // Recompute available unlocked defensively (avoid any drift)
@@ -352,27 +352,94 @@ export function useRollingLoanCalculations() {
           if (availableUnlocked <= BTC_ZERO_EPS || (availableUnlocked * btcPrice) <= USD_ZERO_EPS) {
             // Suspension: no unlocked BTC available (or effectively zero) -> skip withdrawal entirely
             withdrawalSuspended = true
-            btcDelta = 0
+            cashFlowBtcDelta = 0
             // no changes to currentBtc or unlockedBtc
           } else {
             const sellFromUnlocked = Math.min(availableUnlocked, btcNeeded)
             // Do NOT sell from locked collateral for monthly withdrawals
             const btcSold = sellFromUnlocked
-            btcDelta = -btcSold
-            currentBtc += btcDelta
+            cashFlowBtcDelta = -btcSold
+            currentBtc += cashFlowBtcDelta
             // Keep unlocked in sync with (currentBtc - lockedBtc)
             unlockedBtc = Math.max(0, currentBtc - lockedBtc)
           }
         }
-        const executedMonthly = (adjustedMonthly < 0 && withdrawalSuspended) ? 0 : adjustedMonthly
+      }
+      const executedMonthly = (adjustedMonthly < 0 && withdrawalSuspended) ? 0 : adjustedMonthly
+
+      // === Monthly loan top-up: raise LTV (pre-purchase) back to loanAmountPercent ===
+      //
+      // Continuous leverage maintenance. When BTC price rises (or cash-flow
+      // grows the stack), the LTV against the now-larger collateral drops
+      // below the user's configured `loanAmountPercent`. This step takes an
+      // additional draw on the active loan to bring LTV (pre-purchase, vs.
+      // CURRENT stack) back to target, and spends the principal on more BTC.
+      //
+      // The top-up inherits the active loan's maturity (single-loan model);
+      // its interest cost is pro-rated to the remaining term so we don't
+      // bake in 12 months of interest on a loan that matures in 2.
+      //
+      // Skipped when:
+      //   - loanAmountPercent is unset or zero
+      //   - btcAccumulation is off (no BTC purchase to make)
+      //   - the gap to target is below MIN_TOP_UP_USD (avoid noise)
+      //   - no active loan exists yet (initial loan still pending)
+      const userLeverageTarget = (params as any).loanAmountPercent as number | undefined
+      let topUpPrincipalUsd = 0
+      let topUpBtcDelta = 0
+      if (
+        userLeverageTarget !== undefined &&
+        userLeverageTarget > 0 &&
+        (params as any).btcAccumulation &&
+        btcPrice > 0 &&
+        activeLoans.length > 0
+      ) {
+        const collateralNow = currentBtc * btcPrice
+        const targetDebt = (userLeverageTarget / 100) * collateralNow
+        const debtGap = targetDebt - currentTotalDebt
+        const MIN_TOP_UP_USD = 100
+
+        if (debtGap > MIN_TOP_UP_USD) {
+          const feeFrac = (params.originationFeePercent || 0) / 100
+          const primaryLoan = activeLoans[0]
+          let topUpCostFactor: number
+          if (isInfiniteTerm) {
+            // No upfront interest baked in — accrues monthly via the loop above
+            topUpCostFactor = 1 + feeFrac
+          } else {
+            const monthsRemaining = Math.max(
+              1,
+              (primaryLoan?.maturityMonth ?? m + (params.loanTermMonths || 12)) - m,
+            )
+            topUpCostFactor = 1 + feeFrac + monthlyInterestRate * monthsRemaining
+          }
+
+          const additionalPrincipal = debtGap / topUpCostFactor
+          if (additionalPrincipal > MIN_TOP_UP_USD) {
+            const additionalRepayment = additionalPrincipal * topUpCostFactor
+            primaryLoan.principal += additionalPrincipal
+            primaryLoan.repaymentAmount += additionalRepayment
+            currentTotalDebt += additionalRepayment
+
+            const btcBought = additionalPrincipal / btcPrice
+            currentBtc += btcBought
+            unlockedBtc += btcBought
+            topUpPrincipalUsd = additionalPrincipal
+            topUpBtcDelta = btcBought
+          }
+        }
+      }
+
+      // Push the combined monthly row (cash flow + loan top-up) if anything changed
+      if (cashFlowBtcDelta !== 0 || topUpBtcDelta !== 0) {
         monthlyResults.push({
           month: m,
           btcPrice,
-          totalBtcBefore: totalBtcBeforeMonthly,
+          totalBtcBefore: totalBtcBeforeMonth,
           totalBtcAfter: currentBtc,
           usdFlow: adjustedMonthly,
-          btcDelta,
-          excessProceeds: executedMonthly,
+          btcDelta: cashFlowBtcDelta + topUpBtcDelta,
+          excessProceeds: executedMonthly + topUpPrincipalUsd,
           interest: 0,
           fees: 0,
           isMonthly: true,
