@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { FlaskConical, Trophy, AlertTriangle, Play, Check } from "lucide-react"
 import { useSimulation } from "../../context/SimulationContext"
+import { usePriceGeneration } from "../../hooks/usePriceGeneration"
 import {
   runStrategySweep,
   runRiskLevelComparison,
@@ -382,6 +383,11 @@ function ComparisonSection() {
 // ─── Page ─────────────────────────────────────────────────────────────────
 
 export function StrategyLab() {
+  // Ensure the price projection is generated even if the user lands here
+  // directly without visiting the Results tab first (which is the other
+  // place that opts into price generation).
+  usePriceGeneration(true)
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
