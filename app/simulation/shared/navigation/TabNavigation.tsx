@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label'
 import { HybridTooltip, HybridTooltipTrigger, HybridTooltipContent } from '@/components/ui/hybrid-tooltip'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
-import { DollarSign, Info, TrendingUp, Menu, Settings, BarChart3, Target, TrendingDown, Home, Globe, Sun, Moon } from 'lucide-react'
+import { DollarSign, Info, TrendingUp, Menu, Settings, BarChart3, Target, TrendingDown, Home, Globe, Sun, Moon, FlaskConical } from 'lucide-react'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { ModeToggle } from "@/components/mode-toggle"
 import { LocaleSwitcher } from "@/components/locale-switcher"
@@ -24,11 +24,12 @@ import { BasicParametersCard, ValidationSummary, RiskLevelSelector } from '../..
 import { CollateralVisualizationCard, LoanUsageVisualizationCard, PriceDropToleranceCard, LoanParametersCard, PlatformSelector } from '../../tabs/parameters'
 import { StrategySelectionCard, RollingLoanConfigCard, BtcAccumulationCard, StrategyPreviewCard } from '../../tabs/strategy'
 import { ResultsPage } from '../../tabs/results'
+import { StrategyLab } from '../../tabs/strategy-lab'
 import { useSimulation } from '../../context/SimulationContext'
 import type { PriceProjectionResult } from '../../price-models/types'
 // import { CsvUpdatePanel } from '../admin/CsvUpdatePanel' // Disabled for production
 
-export type TabValue = 'parameters' | 'price-projection' | 'strategy' | 'results'
+export type TabValue = 'parameters' | 'price-projection' | 'strategy' | 'results' | 'strategy-lab'
 
 interface TabNavigationProps {
   children?: React.ReactNode
@@ -76,6 +77,12 @@ export function TabNavigation({ children }: TabNavigationProps) {
       shortLabel: t('Navigation.results.shortLabel'),
       icon: TrendingDown,
       enabled: true
+    },
+    'strategy-lab': {
+      label: t('Navigation.strategyLab.label', 'Strategy Lab'),
+      shortLabel: t('Navigation.strategyLab.shortLabel', 'Lab'),
+      icon: FlaskConical,
+      enabled: true
     }
   }
 
@@ -119,7 +126,7 @@ export function TabNavigation({ children }: TabNavigationProps) {
   const getInitialTab = (): TabValue => {
     // First, try to get from URL parameters
     const urlTab = searchParams.get('tab') as TabValue
-    if (urlTab && ['parameters', 'price-projection', 'strategy', 'results'].includes(urlTab)) {
+    if (urlTab && ['parameters', 'price-projection', 'strategy', 'results', 'strategy-lab'].includes(urlTab)) {
       return urlTab
     }
 
@@ -127,7 +134,7 @@ export function TabNavigation({ children }: TabNavigationProps) {
     if (typeof window !== 'undefined') {
       try {
         const savedTab = localStorage.getItem('bitcoin-sim-active-tab') as TabValue
-        if (savedTab && ['parameters', 'price-projection', 'strategy', 'results'].includes(savedTab)) {
+        if (savedTab && ['parameters', 'price-projection', 'strategy', 'results', 'strategy-lab'].includes(savedTab)) {
           return savedTab
         }
       } catch (error) {
@@ -146,7 +153,7 @@ export function TabNavigation({ children }: TabNavigationProps) {
     const tabParam = searchParams.get('tab') as TabValue
 
     // If URL has a valid tab parameter, use it
-    if (tabParam && ['parameters', 'price-projection', 'strategy', 'results'].includes(tabParam)) {
+    if (tabParam && ['parameters', 'price-projection', 'strategy', 'results', 'strategy-lab'].includes(tabParam)) {
       setActiveTab(tabParam)
       // Save to localStorage for persistence
       if (typeof window !== 'undefined') {
@@ -173,7 +180,7 @@ export function TabNavigation({ children }: TabNavigationProps) {
     const tabValue = value as TabValue
 
     // Validate tab value
-    if (!['parameters', 'price-projection', 'strategy', 'results'].includes(tabValue)) {
+    if (!['parameters', 'price-projection', 'strategy', 'results', 'strategy-lab'].includes(tabValue)) {
       return
     }
 
@@ -335,7 +342,7 @@ export function TabNavigation({ children }: TabNavigationProps) {
         {!isMobile && (
           <TabsList className="
             grid w-full
-            grid-cols-2 sm:grid-cols-4
+            grid-cols-2 sm:grid-cols-5
             h-auto p-1
             bg-muted/50
           ">
@@ -526,6 +533,10 @@ export function TabNavigation({ children }: TabNavigationProps) {
         
         <TabsContent value="results" className={`${isMobile ? 'mt-0 px-4' : 'mt-6'}`}>
           <ResultsPage />
+        </TabsContent>
+
+        <TabsContent value="strategy-lab" className={`${isMobile ? 'mt-0 px-4' : 'mt-6'}`}>
+          <StrategyLab />
         </TabsContent>
       </Tabs>
     </div>
