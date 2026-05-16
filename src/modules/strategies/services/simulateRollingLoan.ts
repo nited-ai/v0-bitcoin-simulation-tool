@@ -82,6 +82,12 @@ export interface MonthlySnapshot {
   debtReducedByRolloverSale?: number
   monthlyExcessProceeds?: number
   withdrawalSuspended?: boolean
+  /**
+   * Set in the month a fatal liquidation occurs: stack fully sold, residual
+   * debt written off by the platform (Option A semantics, matches Firefish /
+   * HodlHodl etc.: lender takes the collateral, no further recourse).
+   */
+  insolvencyWriteOff?: number
 }
 
 export interface StrategyChartPoint {
@@ -152,6 +158,14 @@ export function simulateRollingLoan(
   type Loan = { principal: number; repaymentAmount: number; maturityMonth: number }
   let activeLoans: Loan[] = []
   let currentBtc = params.initialBtcAmount
+  // Once the platform has liquidated the stack and written off residual debt,
+  // we don't open new loans or run monthly top-ups. Stack accumulates from
+  // savings only, simulating "user is out of leverage after a bust" — matches
+  // real-world Bitcoin loan platform behavior (no recourse on shortfall).
+  let insolvent = false
+  // BTC minimum below which we treat the stack as exhausted (floating-point
+  // residue from sales can leave 1e-9 BTC even when "all sold").
+  const INSOLVENCY_BTC_EPS = 1e-5
 
   // ── Month 0: initial loan ──
   const month0Price = getBtcPriceForMonth(0)
@@ -383,6 +397,7 @@ export function simulateRollingLoan(
     let topUpPrincipalUsd = 0
     let topUpBtcDelta = 0
     if (
+      !insolvent &&
       userLeverageTarget !== undefined &&
       userLeverageTarget > 0 &&
       (params as any).btcAccumulation &&
@@ -546,6 +561,16 @@ export function simulateRollingLoan(
             )
           }
         }
+
+        // Option A: fatal liquidation = platform write-off. If the stack is
+        // exhausted AND debt remains, the lender absorbs the shortfall. Clear
+        // residual debt and freeze future loan activity for this sim.
+        if (currentBtc < INSOLVENCY_BTC_EPS && currentTotalDebt > 0) {
+          ;(monthlySnapshots as any)._pendingWriteOff = currentTotalDebt
+          currentTotalDebt = 0
+          activeLoans = []
+          insolvent = true
+        }
       }
 
       const effCollAfter = currentBtc * btcPrice * (platformMaxLtv / 100)
@@ -563,8 +588,9 @@ export function simulateRollingLoan(
       _initialAfter = initialLtvAfter
     }
 
-    // 2) Rollover at maturity
-    if (m % (params.loanTermMonths || 12) === 0) {
+    // 2) Rollover at maturity (skipped if insolvent — platform already wrote
+    // off the debt and we don't open new loans against accumulated savings BTC)
+    if (!insolvent && m % (params.loanTermMonths || 12) === 0) {
       const maturingLoan = activeLoans.find(l => l.maturityMonth === m)
       if (maturingLoan) {
         let repaymentDue = maturingLoan.repaymentAmount
@@ -612,6 +638,42 @@ export function simulateRollingLoan(
           _rolloverDebtReduced += policy.usdRecovered
           repaymentDue = policy.remainingDebt
         }
+
+        // Option A: if the rollover force-sale exhausted the stack and debt
+        // remains, the platform absorbs the residual (no recourse). Don't
+        // issue a new loan against ~$0 collateral. Mark insolvent so future
+        // months only accumulate savings BTC without new leverage.
+        if (
+          (policy.outcome === "liquidation-territory" ||
+            currentBtc < INSOLVENCY_BTC_EPS) &&
+          repaymentDue > 0
+        ) {
+          ;(monthlySnapshots as any)._pendingWriteOff = repaymentDue
+          currentTotalDebt = 0
+          activeLoans = activeLoans.filter(l => l.maturityMonth !== m)
+          lockedBtc = 0
+          unlockedBtc = currentBtc
+          insolvent = true
+          wasRollover = true
+          _initialAfter = 0
+          rolloverResults.push({
+            month: m,
+            btcPrice,
+            totalBtcBefore,
+            totalBtcAfter: currentBtc,
+            collateralValue: currentBtc * btcPrice,
+            loanPrincipal: 0,
+            loanRepayment: 0,
+            oldLoanRepayment: repaymentDue,
+            excessProceeds: 0,
+            btcPurchased: 0,
+            interest: 0,
+            fees: 0,
+            btcSoldForRollover: _rolloverBtcSold,
+            debtReducedByRolloverSale: _rolloverDebtReduced,
+            isInitial: false,
+          })
+        } else {
 
         const collateral = currentBtc * btcPrice
         const actualPrincipal = Math.round(policy.newPrincipal)
@@ -704,6 +766,7 @@ export function simulateRollingLoan(
           debtReducedByRolloverSale: _rolloverDebtReduced,
           isInitial: false,
         })
+        } // end else of insolvency branch
       }
     }
 
@@ -721,6 +784,12 @@ export function simulateRollingLoan(
               return effColl > 0 ? (currentTotalDebt / effColl) * 100 : 0
             })()
       const topUpLtvBefore = typeof _preTopUpLtv === "number" ? _preTopUpLtv : topUpLtvAfter
+      const pendingWriteOff = (monthlySnapshots as any)._pendingWriteOff as
+        | number
+        | undefined
+      if (pendingWriteOff !== undefined) {
+        delete (monthlySnapshots as any)._pendingWriteOff
+      }
       monthlySnapshots.push({
         month: m,
         totalBtc: currentBtc,
@@ -728,6 +797,7 @@ export function simulateRollingLoan(
         isRollover: wasRollover,
         lockedBtc,
         unlockedBtc,
+        insolvencyWriteOff: pendingWriteOff,
         monthlyExcessProceeds:
           adjustedMonthly < 0 && withdrawalSuspended ? 0 : adjustedMonthly,
         withdrawalSuspended,
