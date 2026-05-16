@@ -105,9 +105,17 @@ function loadParamsFromStorage(): SimulationParams {
       const parameterSources = { ...DEFAULT_PARAMS.parameterSources, ...parsed.parameterSources }
       const platformConfigs = { ...DEFAULT_PARAMS.platformConfigs, ...parsed.platformConfigs }
 
+      // JSON.stringify(Infinity) === "null", so an interest-only (infinite-
+      // term) loan round-trips through localStorage as null. Restore it to
+      // Infinity — otherwise `...parsed` clobbers the default 12 with null
+      // and the sim silently treats it as a 12-month rolling loan.
+      const loanTermMonths =
+        parsed.loanTermMonths === null ? Infinity : parsed.loanTermMonths
+
       return {
         ...DEFAULT_PARAMS,
         ...parsed,
+        loanTermMonths: loanTermMonths ?? DEFAULT_PARAMS.loanTermMonths,
         powerLawSettings,
         riskManagement,
         athBasedParams,
