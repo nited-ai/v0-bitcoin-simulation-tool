@@ -198,7 +198,7 @@ export function SimulationProvider({ children }: SimulationProviderProps) {
       const updated = typeof newParams === 'function' ? newParams(prev) : newParams
 
       // Shallow comparison to prevent unnecessary re-renders
-      const hasChanged = Object.keys(updated).some(key => {
+      const hasChanged = [...new Set([...Object.keys(prev), ...Object.keys(updated)])].some(key => {
         const typedKey = key as keyof SimulationParams
         return prev[typedKey] !== updated[typedKey]
       })

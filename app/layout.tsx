@@ -6,12 +6,10 @@ import { TouchProvider, HybridTooltipProvider } from "@/components/ui/hybrid-too
 import { cn } from "@/lib/utils"
 import { fontSans } from "@/lib/fonts"
 import { Suspense } from "react"
-import { Analytics } from "@vercel/analytics/next"
 
 export const metadata: Metadata = {
-  title: "FIRE hodl Simulator",
-  description: "Simulate savings, withdrawals and loans secured by Bitcoin.",
-  generator: "v0.dev",
+  title: "FireHODL | Bitcoin Investment Simulator",
+  description: "Bitcoin-Strategien mit gleichem Budget vergleichen: Sparplan, Entnahmen, Cashreserve und Kredite unter verschiedenen Marktszenarien.",
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: 'any' },
@@ -28,7 +26,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="de" suppressHydrationWarning>
       <body className={cn("min-h-screen bg-background font-sans antialiased", fontSans.variable)} suppressHydrationWarning>
         <TouchProvider>
           <HybridTooltipProvider>
@@ -41,7 +39,6 @@ export default function RootLayout({
         {/* {process.env.NODE_ENV === 'development' && (
           <script src="/test-price-switching.js" async />
         )} */}
-        <Analytics />
       </body>
     </html>
   )

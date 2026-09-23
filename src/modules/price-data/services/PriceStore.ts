@@ -4,7 +4,7 @@
 // Single place that knows how to query/write bitcoin_prices and system_meta.
 // No external API knowledge — pure DB.
 //
-import type { PrismaClient, BitcoinPrice } from '@/lib/generated/prisma'
+import type { PrismaClient, BitcoinPrice } from '@prisma/client'
 
 export interface UpsertDayInput {
   date: string         // YYYY-MM-DD
@@ -65,6 +65,7 @@ export function createPriceStore(prisma: PrismaClient): PriceStore {
           fetchedAt: input.fetchedAt,
         },
         update: {
+          open: input.open,
           close: input.close,
           high: input.high,
           low: input.low,

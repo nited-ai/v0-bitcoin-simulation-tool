@@ -1,3 +1,4 @@
+import { addCalendarMonths } from '../../../../app/simulation/price-models/models/cycleReplay'
 /**
  * simulateRollingLoan — single source of truth for the Rolling Loan strategy.
  *
@@ -131,24 +132,28 @@ export function simulateRollingLoan(
   params: SimulationParams | null,
   priceProjection: PriceProjectionResult | null,
 ): RollingLoanSimulationResult {
-  if (!params) return EMPTY_RESULT
+  if (!params || !priceProjection?.projectionPoints.length) return EMPTY_RESULT
 
   const pts = priceProjection?.projectionPoints || []
   const isMonthly = pts.length >= 2
     ? Math.abs((pts[1]?.timestamp || 0) - (pts[0]?.timestamp || 0)) > 2 * 24 * 60 * 60 * 1000
     : false
 
-  const idxFor = (m: number) =>
-    Math.max(0, Math.min(isMonthly ? m : m * 30, Math.max(pts.length - 1, 0)))
-  const getBtcPriceForMonth = (m: number): number => {
-    if (m === 0) return params.initialBtcPrice
-    const idx = idxFor(m)
-    return pts[idx]?.price || 0
-  }
-  const getTimestampForMonth = (m: number): number => {
-    if (m === 0) return pts[0]?.timestamp ?? Date.now()
-    const idx = idxFor(m)
-    return pts[idx]?.timestamp ?? Date.now()
+  const start = pts[0].timestamp
+  const getTimestampForMonth = (month: number) => addCalendarMonths(start, month)
+  const getBtcPriceForMonth = (month: number): number => {
+    if (month === 0) return params.initialBtcPrice
+    const target = getTimestampForMonth(month)
+    let low = 0, high = pts.length - 1
+    while (low < high) {
+      const middle = Math.floor((low + high) / 2)
+      if (pts[middle].timestamp < target) low = middle + 1
+      else high = middle
+    }
+    const right = pts[low], left = pts[Math.max(0, low - 1)]
+    if (right.timestamp <= target || right.timestamp === left.timestamp) return right.price
+    const fraction = Math.max(0, (target - left.timestamp) / (right.timestamp - left.timestamp))
+    return left.price * Math.pow(right.price / left.price, fraction)
   }
 
   const rolloverResults: RolloverResult[] = []
@@ -984,6 +989,9 @@ export function toLegacyMonthlyResults(
       freeBtc: Math.max(0, snap.totalBtc - (snap.lockedBtc ?? 0)),
       lockedBtc: snap.lockedBtc ?? 0,
       totalDebt: snap.totalDebt,
+      realTotalDebt: snap.totalDebt,
+      withdrawalAmount: Math.max(0, -monthlyWithdrawal),
+      newLoanPrincipal: totalPrincipalTaken,
       monthlyWithdrawal,
       monthlySavingsApplied,
       principalForNeeds,

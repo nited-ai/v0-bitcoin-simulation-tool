@@ -3,7 +3,7 @@
  * Manages Prisma client connections to prevent connection pool exhaustion
  */
 
-import { PrismaClient } from '../generated/prisma'
+import { PrismaClient } from '@prisma/client'
 
 class DatabaseConnectionManager {
   private static instance: DatabaseConnectionManager

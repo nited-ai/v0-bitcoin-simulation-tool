@@ -1,0 +1,798 @@
+.fh-app {
+  --ink: #182b43;
+  --muted: #617186;
+  --line: #dde4ec;
+  --accent: #db6b17;
+  color: var(--ink);
+  background: #f3f6fa;
+  min-height: 100vh;
+  font:
+    14px/1.5 Arial,
+    "Segoe UI",
+    sans-serif;
+  color-scheme: light;
+}
+.fh-app * {
+  box-sizing: border-box;
+}
+.fh-app h1,
+.fh-app h2,
+.fh-app h3,
+.fh-app p {
+  margin: 0;
+}
+.fh-app button,
+.fh-app input,
+.fh-app select {
+  font: inherit;
+}
+.fh-app button {
+  cursor: pointer;
+}
+.fh-app button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.fh-app a {
+  text-decoration: none;
+}
+.fh-app :focus-visible {
+  outline: 3px solid #ea893e;
+  outline-offset: 3px;
+}
+.fh-app button,
+.fh-app select {
+  color: var(--ink);
+}
+.fh-skip {
+  position: absolute;
+  left: 12px;
+  top: -100px;
+  padding: 12px;
+  background: white;
+  z-index: 100;
+}
+.fh-skip:focus {
+  top: 12px;
+}
+.fh-header {
+  height: 82px;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 max(28px, calc((100vw - 1384px) / 2));
+  gap: 16px;
+}
+.fh-brand {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  color: var(--ink);
+}
+.fh-mark {
+  display: grid;
+  place-items: center;
+  width: 39px;
+  height: 39px;
+  border-radius: 11px;
+  background: var(--accent);
+  color: white;
+  transform: rotate(-7deg);
+}
+.fh-brand strong {
+  font-size: 24px;
+  letter-spacing: -1px;
+  line-height: 1.2;
+}
+.fh-brand strong span {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 1px;
+  font-weight: normal;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.fh-header nav {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  font-size: 13px;
+}
+.fh-beta {
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #99530f;
+  background: #fff1df;
+  padding: 4px 9px;
+  border: 1px solid #f2d9ba;
+  border-radius: 4px;
+}
+.fh-main {
+  max-width: 1440px;
+  margin: auto;
+  padding: 34px 28px 50px;
+}
+.fh-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: center;
+}
+.fh-title h1 {
+  font-size: 30px;
+  letter-spacing: -1px;
+  font-weight: 700;
+}
+.fh-title p {
+  color: var(--muted);
+  margin-top: 7px;
+}
+.fh-actions {
+  display: flex;
+  gap: 8px;
+}
+.fh-actions button,
+.fh-detail-head button,
+.fh-pager button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 9px 12px;
+  background: white;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.fh-goals {
+  display: flex;
+  gap: 4px;
+  margin: 27px 0 24px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.fh-goals button {
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  padding: 9px 15px;
+  font-size: 13px;
+}
+.fh-goals button[aria-pressed="true"] {
+  background: var(--ink);
+  color: white;
+}
+.fh-goals > span {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--muted);
+}
+.fh-layout {
+  display: grid;
+  grid-template-columns: 286px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.fh-plan,
+.fh-chart-panel,
+.fh-journal {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+}
+.fh-plan {
+  padding: 21px;
+}
+.fh-panel-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.fh-panel-heading h2 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 700;
+  font-size: 15px;
+}
+.fh-panel-heading button {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  padding: 4px;
+}
+.fh-hint,
+.fh-data {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.65;
+}
+.fh-data {
+  margin: 12px 0 !important;
+}
+.fh-field {
+  display: block;
+  margin-top: 15px;
+  min-width: 0;
+}
+.fh-field > span {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+.fh-field > div {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 5px;
+  overflow: hidden;
+}
+.fh-field input {
+  background: white;
+  color: var(--ink);
+  border: 0;
+  padding: 9px 10px;
+  width: 100%;
+  min-width: 0;
+  height: 39px;
+  font-variant-numeric: tabular-nums;
+}
+.fh-field input[type="date"] {
+  border: 1px solid #cbd5e1;
+  border-radius: 5px;
+}
+.fh-field small {
+  padding-right: 10px;
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.fh-divider {
+  border-top: 1px solid var(--line);
+  margin-top: 22px;
+}
+.fh-text-button {
+  font-size: 11px !important;
+  background: transparent;
+  border: 0;
+  color: #a64a0b !important;
+  padding: 8px 0;
+  text-align: left;
+}
+.fh-plan details {
+  border-top: 1px solid var(--line);
+  margin-top: 18px;
+  padding-top: 15px;
+}
+.fh-app summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  list-style: none;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 12px;
+}
+.fh-app summary::-webkit-details-marker {
+  display: none;
+}
+.fh-plan details .fh-hint {
+  margin-top: 12px;
+}
+.fh-checkbox {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  font-size: 11px;
+  line-height: 1.5;
+  margin-top: 12px;
+}
+.fh-checkbox input,
+.fh-strategy input {
+  accent-color: var(--accent);
+}
+.fh-results {
+  min-width: 0;
+  scroll-margin-top: 24px;
+}
+.fh-scenario {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  gap: 12px 18px;
+  background: #eaf0f7;
+  border: 1px solid #d9e3f0;
+  border-radius: 9px;
+  padding: 17px 20px;
+}
+.fh-label {
+  display: block;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-weight: bold;
+}
+.fh-scenario select {
+  background: white;
+  border: 1px solid #c3cfdd;
+  border-radius: 5px;
+  padding: 9px 28px 9px 10px;
+  max-width: 100%;
+  font-size: 13px;
+}
+.fh-scenario .fh-field {
+  width: 170px;
+  margin: 0;
+}
+.fh-scenario .fh-field > span {
+  font-size: 10px;
+  margin-bottom: 5px;
+}
+.fh-scenario > p {
+  flex-basis: 100%;
+  color: var(--muted);
+  font-size: 11px;
+}
+.fh-strategies {
+  margin: 23px 0 20px;
+}
+.fh-strategies h2 {
+  font-size: 16px;
+  font-weight: 700;
+}
+.fh-strategies > p {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 5px 0 13px;
+}
+.fh-strategies > div {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+.fh-strategy {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  min-height: 83px;
+  padding: 13px 12px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.fh-strategy.selected {
+  background: white;
+  box-shadow: inset 3px 0 0 var(--strategy-color);
+}
+.fh-strategy input {
+  margin-top: 3px;
+  flex-shrink: 0;
+  accent-color: var(--strategy-color);
+}
+.fh-strategy strong {
+  display: block;
+  font-size: 12px;
+}
+.fh-strategy small {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.6;
+  margin-top: 4px;
+}
+.fh-chart-panel {
+  padding: 20px 20px 13px;
+}
+.fh-chart-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+.fh-chart-heading h3 {
+  font-size: 14px;
+  font-weight: 700;
+}
+.fh-chart-heading p {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.fh-chart-heading .fh-checkbox {
+  margin: 0;
+}
+.fh-chart {
+  height: 310px;
+  width: 100%;
+}
+.fh-table-wrap {
+  overflow-x: auto;
+  margin-top: 18px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fff;
+}
+.fh-app table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.fh-app caption {
+  text-align: left;
+  padding: 13px 16px;
+  font-weight: bold;
+  color: var(--ink);
+}
+.fh-app th,
+.fh-app td {
+  padding: 13px 12px;
+  border-top: 1px solid #e8edf3;
+  white-space: nowrap;
+}
+.fh-app thead th {
+  background: #f7f9fc;
+  font-size: 10px;
+  color: var(--muted);
+  font-weight: 500;
+}
+.fh-app tbody th {
+  font-weight: 500;
+}
+.fh-app td small {
+  display: block;
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.fh-comparison th button {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  text-align: left;
+  font-size: 11px;
+}
+.fh-comparison th button span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.fh-app .fh-positive {
+  color: #087969;
+}
+.fh-app .fh-negative {
+  color: #b63437;
+}
+.fh-risk {
+  color: #b63437;
+  background: #fff0ee;
+  border-radius: 4px;
+  padding: 3px 6px;
+}
+.fh-footnote {
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.7;
+  margin: 10px 0 21px !important;
+}
+.fh-stress {
+  border: 1px solid #d8e1ea;
+  border-radius: 8px;
+  background: #eef3f7;
+  padding: 18px;
+}
+.fh-stress > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+.fh-stress svg {
+  flex-shrink: 0;
+  color: #58748c;
+}
+.fh-stress h3 {
+  font-weight: 600;
+  font-size: 13px;
+}
+.fh-stress p {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.fh-primary {
+  border: 0;
+  border-radius: 5px;
+  color: white !important;
+  background: var(--ink);
+  padding: 10px 13px;
+  font-size: 11px !important;
+  white-space: nowrap;
+  margin-left: auto;
+}
+.fh-journal {
+  margin-top: 20px;
+  padding: 17px 19px;
+  scroll-margin-top: 24px;
+}
+.fh-journal > summary {
+  font-size: 13px;
+}
+.fh-detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 20px;
+  gap: 12px;
+}
+.fh-detail-head select {
+  border: 1px solid var(--line);
+  background: white;
+  border-radius: 5px;
+  padding: 8px;
+  max-width: 60%;
+  font-size: 12px;
+}
+.fh-totals {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin: 20px 0;
+}
+.fh-totals dt {
+  font-size: 10px;
+  color: var(--muted);
+}
+.fh-totals dd {
+  font-size: 14px;
+  font-weight: bold;
+  margin: 3px 0;
+}
+.fh-pager {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 14px;
+  font-size: 11px;
+}
+.fh-method-note {
+  display: flex;
+  gap: 12px;
+  margin-top: 22px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.fh-method-note svg {
+  flex-shrink: 0;
+}
+.fh-method-note a {
+  color: var(--ink);
+  text-decoration: underline;
+}
+.fh-notice {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border: 1px solid #c7d9ea;
+  background: #e8f0f9;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  font-size: 12px;
+}
+.fh-notice button {
+  border: 0;
+  background: transparent;
+}
+.fh-error {
+  padding: 24px;
+  border: 1px solid #ecc6c5;
+  background: #fff4f2;
+  border-radius: 8px;
+  color: #972d2d;
+}
+.fh-error p {
+  margin-top: 8px;
+}
+.fh-footer {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+  padding: 22px max(28px, calc((100vw - 1384px) / 2));
+  border-top: 1px solid var(--line);
+  background: white;
+  font-size: 10px;
+  color: var(--muted);
+}
+.fh-footer > span:last-child {
+  margin-left: auto;
+}
+.fh-methodik {
+  max-width: 820px;
+  padding: 48px 28px 70px;
+  margin: auto;
+}
+.fh-methodik h1 {
+  font-size: 30px;
+  font-weight: 700;
+  margin: 20px 0;
+}
+.fh-methodik h2 {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 28px 0 10px;
+}
+.fh-methodik p,
+.fh-methodik li {
+  color: #47586d;
+  line-height: 1.8;
+  margin: 10px 0;
+}
+.fh-methodik a {
+  text-decoration: underline;
+}
+.fh-methodik ul {
+  padding-left: 20px;
+  list-style: disc;
+}
+@media (max-width: 1100px) {
+  .fh-layout {
+    grid-template-columns: 265px minmax(0, 1fr);
+    gap: 18px;
+  }
+  .fh-strategies > div {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .fh-title {
+    align-items: flex-start;
+  }
+  .fh-stress > div:first-child {
+    flex-wrap: wrap;
+  }
+  .fh-stress > div:first-child > div {
+    flex: 1;
+  }
+  .fh-primary {
+    margin-left: 34px;
+  }
+  .fh-goals > span {
+    display: none;
+  }
+}
+@media (max-width: 760px) {
+  .fh-header {
+    height: 70px;
+    padding: 0 18px;
+  }
+  .fh-header nav {
+    gap: 14px;
+    font-size: 11px;
+  }
+  .fh-brand strong {
+    font-size: 22px;
+  }
+  .fh-brand strong span {
+    font-size: 8px;
+    letter-spacing: 0.5px;
+  }
+  .fh-mark {
+    width: 33px;
+    height: 33px;
+  }
+  .fh-header nav > a:first-child {
+    display: none;
+  }
+  .fh-main {
+    padding: 25px 16px;
+  }
+  .fh-title {
+    display: block;
+  }
+  .fh-title h1 {
+    font-size: 27px;
+  }
+  .fh-title p {
+    font-size: 12px;
+  }
+  .fh-actions {
+    margin-top: 18px;
+  }
+  .fh-goals {
+    margin: 22px 0 18px;
+  }
+  .fh-goals button {
+    font-size: 11px;
+    padding: 8px 10px;
+  }
+  .fh-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .fh-plan {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 16px;
+    padding: 17px;
+  }
+  .fh-plan > .fh-panel-heading,
+  .fh-plan > .fh-hint,
+  .fh-plan > .fh-divider,
+  .fh-plan > details,
+  .fh-plan > .fh-data,
+  .fh-plan > .fh-text-button {
+    grid-column: 1/-1;
+  }
+  .fh-scenario {
+    padding: 15px;
+    gap: 12px;
+  }
+  .fh-scenario > div:first-child {
+    width: 100%;
+  }
+  .fh-scenario select {
+    width: 100%;
+  }
+  .fh-scenario .fh-field {
+    flex: 1;
+    min-width: 120px;
+  }
+  .fh-chart {
+    height: 265px;
+  }
+  .fh-chart-panel {
+    padding: 15px 10px;
+  }
+  .fh-chart-heading {
+    padding: 0 5px;
+    align-items: start;
+    flex-wrap: wrap;
+  }
+  .fh-chart-heading h3 {
+    font-size: 13px;
+  }
+  .fh-strategy {
+    padding: 11px 9px;
+    min-height: 94px;
+  }
+  .fh-strategy strong {
+    font-size: 11px;
+  }
+  .fh-strategy small {
+    font-size: 10px;
+  }
+  .fh-totals {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .fh-detail-head button {
+    font-size: 10px;
+    padding: 8px;
+  }
+  .fh-footer {
+    padding: 22px 18px;
+    gap: 12px 20px;
+  }
+  .fh-footer > span {
+    width: 100%;
+  }
+  .fh-hide-small {
+    display: none;
+  }
+  .fh-methodik {
+    padding: 30px 20px;
+  }
+}

@@ -5,7 +5,6 @@ import { LegacyStrategyAdapter } from "@/src/modules/strategies/adapters/LegacyS
 import type { StrategyEngineParams, MonthlyResult as StrategyMonthlyResult } from "@/src/modules/strategies/types"
 import type { MonthlyResult } from "../types/simulation"
 import { useSimulation } from "../context/SimulationContext"
-import { usePriceGeneration } from "./usePriceGeneration"
 
 /**
  * Hook for running strategy simulations
@@ -30,7 +29,6 @@ export function useSimulationRunner() {
   // PR4 cut-over: historical data loading is now bridged into SimulationContext
   // by <PriceDataBridge> at the top of SimulationPage (via SWR usePriceData()).
   // The runner only needs to opt into price-projection generation here.
-  usePriceGeneration(true)
 
   /**
    * Run the strategy simulation with current parameters

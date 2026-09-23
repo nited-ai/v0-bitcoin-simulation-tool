@@ -123,11 +123,11 @@ export interface ATHDistanceMetrics {
  * Initial loan metrics and calculations for parameters tab
  */
 export interface LoanMetrics {
-  /** Initial current loan amount in USD */
+  /** Initial net cash advance in USD, after applying borrowing limits */
   initialCurrentLoanAmount: number
   /** Initial origination fee amount */
   initialOriginationFee: number
-  /** Initial total loan cost including fees */
+  /** Initial debt: net cash advance plus financed origination fees, before daily interest */
   initialTotalLoanCost: number
   /** Initial maximum loan capacity based on platform limits */
   initialMaxLoanCapacity: number
@@ -139,7 +139,7 @@ export interface LoanMetrics {
   initialAvailableCapacityPercent: number
   /** Initial monthly interest payment */
   initialMonthlyInterestPayment: number
-  /** Initial total interest over loan term */
+  /** Simple interest estimate on opening debt for the term (12-month reference for open terms) */
   initialTotalInterestPayment: number
 }
 
@@ -240,10 +240,8 @@ export class CalculationsService {
     }
 
     // Use shared basic calculation method to eliminate redundancy
-    const { totalStackValue, currentLoanAmount, originationFee, totalInterestPayment, totalLoanCost } = this.calculateBasicLoanValues(params)
+    const { currentLoanAmount, totalLoanCost, lockedCollateralBtc: btcLockedAsCollateral } = this.calculateBasicLoanValues(params)
 
-    // Calculate BTC locked as collateral for current loan
-    const btcLockedAsCollateral = totalLoanCost / (params.riskManagement.targetLtv / 100) / params.initialBtcPrice
 
     // Calculate free BTC available for collateral top-up
     const freeBtcAmount = Math.max(0, params.initialBtcAmount - btcLockedAsCollateral)
@@ -303,12 +301,7 @@ export class CalculationsService {
     }
 
     // Use shared basic calculation method to eliminate redundancy
-    const { totalStackValue, currentLoanAmount, originationFee, totalInterestPayment, totalLoanCost } = this.calculateBasicLoanValues(params)
-
-    // Calculate BTC locked as collateral for current loan (exact formula from component)
-    const lockedCollateralBtc = params.initialBtcAmount > 0 && totalLoanCost > 0
-      ? totalLoanCost / (params.riskManagement.targetLtv / 100) / params.initialBtcPrice
-      : 0
+    const { totalStackValue, lockedCollateralBtc } = this.calculateBasicLoanValues(params)
 
     // Calculate free collateral (remaining BTC available)
     const freeCollateralBtc = Math.max(0, params.initialBtcAmount - lockedCollateralBtc)
@@ -355,10 +348,7 @@ export class CalculationsService {
     }
 
     // Use shared basic calculation method to eliminate redundancy
-    const { totalStackValue, currentLoanAmount, originationFee, totalInterestPayment, totalLoanCost } = this.calculateBasicLoanValues(params)
-
-    // Calculate maximum loan capacity based on platform's initial LTV limit from simulation parameters
-    const maxLoanCapacity = totalStackValue * (params.maxInitialLtv / 100)
+    const { currentLoanAmount, originationFee, totalInterestPayment, totalLoanCost, maxLoanCapacity } = this.calculateBasicLoanValues(params)
 
     // Calculate available borrowing capacity (matching LoanUsageVisualizationCard)
     const availableBorrowingCapacity = Math.max(0, maxLoanCapacity - currentLoanAmount)
@@ -375,7 +365,7 @@ export class CalculationsService {
 
     // Calculate monthly interest payment
     const monthlyInterestRate = params.riskManagement.annualInterestRate / 100 / 12
-    const monthlyInterestPayment = currentLoanAmount * monthlyInterestRate
+    const monthlyInterestPayment = totalLoanCost * monthlyInterestRate
 
     const result: LoanMetrics = {
       initialCurrentLoanAmount: currentLoanAmount,
@@ -448,6 +438,9 @@ export class CalculationsService {
     const riskManagementValid = this.validateRiskManagement(params.riskManagement)
     if (!riskManagementValid.valid) {
       errors.push(...riskManagementValid.errors)
+    }
+    if (params.riskManagement.loanTermMonths === Infinity && params.originationFeeType === 'annual' && params.originationFeePercent > 0) {
+      errors.push('Open-ended loans require a one-time origination fee')
     }
 
     // Add warnings for edge cases
@@ -529,44 +522,38 @@ export class CalculationsService {
    */
   private calculateBasicLoanValues(params: SimulationParams) {
     const totalStackValue = params.initialBtcAmount * params.initialBtcPrice
-    const currentLoanAmount = (params.loanAmountPercent / 100) * totalStackValue
-
-    // Calculate origination fee based on fee type from simulation parameters
-    // FIX: Use platform config values from simulation parameters instead of localStorage
-    let originationFee = 0
-    if (params.originationFeeType === 'one-time') {
-      // Traditional one-time fee
-      originationFee = currentLoanAmount * (params.originationFeePercent / 100)
-    } else if (params.originationFeeType === 'annual') {
-      // Annual fee: calculate total fee over loan term
-      const annualOriginationFee = currentLoanAmount * (params.originationFeePercent / 100)
-      const loanTermYears = params.riskManagement.loanTermMonths === Infinity
-        ? 1 // For infinite loans, calculate 1 year of fees as reference
-        : params.riskManagement.loanTermMonths / 12
-      originationFee = annualOriginationFee * loanTermYears
+    const targetLtv = Math.min(params.riskManagement.targetLtv, params.maxInitialLtv) / 100
+    const term = params.riskManagement.loanTermMonths
+    if (term === Infinity && params.originationFeeType === 'annual' && params.originationFeePercent > 0) {
+      throw new Error('Open-ended loans require a one-time origination fee')
     }
+    const feeRate = params.originationFeePercent / 100 * (
+      params.originationFeeType === 'annual' && Number.isFinite(term) ? term / 12 : 1
+    )
 
-    // Calculate total interest over loan term
-    const monthlyInterestRate = params.riskManagement.annualInterestRate / 100 / 12
-    const monthlyInterestPayment = currentLoanAmount * monthlyInterestRate
+    // Both limits constrain opening debt, including financed fees.
+    const debtCapacity = Math.max(0, Math.min(totalStackValue * targetLtv, params.riskManagement.maxLoanAmount))
+    const maxLoanCapacity = debtCapacity / (1 + feeRate)
+    const currentLoanAmount = Math.max(0, Math.min((params.loanAmountPercent / 100) * totalStackValue, maxLoanCapacity))
+    const originationFee = currentLoanAmount * feeRate
+    const totalLoanCost = currentLoanAmount + originationFee
+    const lockedCollateralBtc = totalLoanCost > 0 && params.initialBtcPrice > 0 && targetLtv > 0
+      ? Math.min(params.initialBtcAmount, totalLoanCost / (params.initialBtcPrice * targetLtv))
+      : 0
 
-    let totalInterestPayment = 0
-    if (params.riskManagement.loanTermMonths === Infinity) {
-      // For infinite term loans, calculate interest for 12 months as reference
-      totalInterestPayment = monthlyInterestPayment * 12
-    } else {
-      totalInterestPayment = monthlyInterestPayment * params.riskManagement.loanTermMonths
-    }
-
-    // CORRECTED: Total loan cost includes principal + origination fee + total interest
-    const totalLoanCost = currentLoanAmount + originationFee + totalInterestPayment
+    // This is only a simple estimate. Actual interest accrues daily in the engine;
+    // it does not increase opening debt, pledged BTC, or initial liquidation prices.
+    const referenceMonths = term === Infinity ? 12 : term
+    const totalInterestPayment = totalLoanCost * params.riskManagement.annualInterestRate / 100 * referenceMonths / 12
 
     return {
       totalStackValue,
       currentLoanAmount,
       originationFee,
       totalInterestPayment,
-      totalLoanCost
+      totalLoanCost,
+      maxLoanCapacity,
+      lockedCollateralBtc
     }
   }
 
@@ -585,9 +572,7 @@ export class CalculationsService {
     warnings: string[]
   } {
     // Use shared basic calculation method to eliminate redundancy
-    const { totalStackValue, currentLoanAmount, originationFee, totalInterestPayment, totalLoanCost } = this.calculateBasicLoanValues(params)
-
-    const requiredCollateralBtc = totalLoanCost / (params.riskManagement.targetLtv / 100) / params.initialBtcPrice
+    const { lockedCollateralBtc: requiredCollateralBtc } = this.calculateBasicLoanValues(params)
     const availableCollateralBtc = params.initialBtcAmount
     const shortfallBtc = Math.max(0, requiredCollateralBtc - availableCollateralBtc)
     const shortfallUsd = shortfallBtc * params.initialBtcPrice
@@ -774,6 +759,10 @@ export function useCalculations(params: SimulationParams): CalculationResults | 
     params.initialBtcPrice,
     params.loanAmountPercent,
     params.platform,
+    params.originationFeePercent,
+    params.originationFeeType,
+    params.maxInitialLtv,
+    params.riskManagement.liquidationLtv,
     params.riskManagement.targetLtv,
     params.riskManagement.maxLoanAmount,
     params.riskManagement.annualInterestRate,
@@ -867,6 +856,10 @@ export function useCalculations(params: SimulationParams): CalculationResults | 
     params.initialBtcPrice,
     params.loanAmountPercent,
     params.platform,
+    params.originationFeePercent,
+    params.originationFeeType,
+    params.maxInitialLtv,
+    params.riskManagement.liquidationLtv,
     params.riskManagement.targetLtv,
     params.riskManagement.maxLoanAmount,
     params.riskManagement.annualInterestRate,

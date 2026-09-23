@@ -20,6 +20,7 @@ export interface UsePriceDataResult {
   ath: { value: number } | null
   lastUpdated: string | null
   isStale: boolean
+  sourceDescription?: string
   isLoading: boolean
   error: Error | undefined
   refresh: () => Promise<void>
@@ -57,6 +58,7 @@ export function usePriceData(options: UsePriceDataOptions = {}): UsePriceDataRes
     ath: data?.ath ?? null,
     lastUpdated: data?.lastUpdated ?? null,
     isStale: data?.isStale ?? false,
+    sourceDescription: data?.sourceDescription,
     isLoading,
     error,
     refresh: async () => {

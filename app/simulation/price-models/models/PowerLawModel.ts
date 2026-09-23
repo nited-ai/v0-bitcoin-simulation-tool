@@ -1,3 +1,4 @@
+import { addCalendarMonths } from './cycleReplay'
 /**
  * Power Law Model Microservice
  * 
@@ -142,7 +143,8 @@ export class PowerLawModel implements PriceProjectionModel {
     console.log('🔧 [PowerLawModel] Extracted volatility settings:', volatilitySettings)
     console.log('🔧 [PowerLawModel] Volatility enabled?', volatilitySettings?.enabled)
     const projectionPoints: ProjectionPoint[] = []
-    const startDate = new Date()
+    const startDate = new Date(new Date().toISOString().slice(0, 10))
+    projectionPoints.push({ timestamp: startDate.getTime(), price: params.startPrice, confidence: 0, support: this.getPowerLawPrice(startDate, 'support'), resistance: this.getPowerLawPrice(startDate, 'resistance') })
 
     // Prepare volatility if enabled
     let deviationPattern: number[] = []
@@ -209,9 +211,7 @@ export class PowerLawModel implements PriceProjectionModel {
 
     // Generate monthly projections
     for (let month = 1; month <= params.projectionMonths; month++) {
-      const currentDate = new Date(startDate)
-      currentDate.setMonth(currentDate.getMonth() + month - 1)
-      currentDate.setDate(15) // Mid-month for consistency
+      const currentDate = new Date(addCalendarMonths(startDate.getTime(), month))
 
       // Calculate base price for projection (using custom params if provided, otherwise prognosis line)
       let baseProjectionPrice: number

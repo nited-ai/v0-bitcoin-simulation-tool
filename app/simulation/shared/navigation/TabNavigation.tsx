@@ -24,7 +24,11 @@ import { BasicParametersCard, ValidationSummary, RiskLevelSelector } from '../..
 import { CollateralVisualizationCard, LoanUsageVisualizationCard, PriceDropToleranceCard, LoanParametersCard, PlatformSelector } from '../../tabs/parameters'
 import { StrategySelectionCard, RollingLoanConfigCard, BtcAccumulationCard, StrategyPreviewCard } from '../../tabs/strategy'
 import { ResultsPage } from '../../tabs/results'
-import { StrategyLab } from '../../tabs/strategy-lab'
+import { ResearchComparison } from '../../research/ResearchComparison'
+import { ResearchResults } from '../../research/ResearchResults'
+import { StrategyControls } from '../../research/StrategyControls'
+import { StressControls } from '../../research/StressControls'
+import { ScenarioLibrary } from '../../research/ScenarioLibrary'
 import { useSimulation } from '../../context/SimulationContext'
 import type { PriceProjectionResult } from '../../price-models/types'
 // import { CsvUpdatePanel } from '../admin/CsvUpdatePanel' // Disabled for production
@@ -79,8 +83,8 @@ export function TabNavigation({ children }: TabNavigationProps) {
       enabled: true
     },
     'strategy-lab': {
-      label: t('Navigation.strategyLab.label', 'Strategy Lab'),
-      shortLabel: t('Navigation.strategyLab.shortLabel', 'Lab'),
+      label: 'Vergleich',
+      shortLabel: 'Vergleich',
       icon: FlaskConical,
       enabled: true
     }
@@ -214,6 +218,7 @@ export function TabNavigation({ children }: TabNavigationProps) {
 
   return (
     <div className="w-full">
+      <ScenarioLibrary />
       {/* Mobile Navigation Header */}
       {isMobile && (
         <div className="flex items-center justify-between p-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-40">
@@ -240,9 +245,9 @@ export function TabNavigation({ children }: TabNavigationProps) {
                   className="justify-start gap-3 h-12"
                   onClick={() => setIsSheetOpen(false)}
                 >
-                  <Link href="/">
+                  <Link href="/methodik">
                     <Home className="w-5 h-5" />
-                    <span className="flex-1 text-left">{t("Navigation.backToLanding.button", "Back to Landing")}</span>
+                    <span className="flex-1 text-left">{t("Navigation.methodology", "Methodik & Modelle")}</span>
                   </Link>
                 </Button>
 
@@ -449,6 +454,8 @@ export function TabNavigation({ children }: TabNavigationProps) {
               <LogarithmicCurveControls />
             )} */}
 
+            <StressControls />
+
             {/* Universal Growth Rate Analysis (for all models) */}
             <GrowthRateAnalysis
               projection={projection}
@@ -468,75 +475,15 @@ export function TabNavigation({ children }: TabNavigationProps) {
         </TabsContent>
         
         <TabsContent value="strategy" className={`${isMobile ? 'mt-0 px-4' : 'mt-6'}`}>
-          <div className="space-y-6">
-            {/* Top Row: 50/50 Split */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Left Half: Investment Strategy */}
-              <StrategySelectionCard />
-
-              {/* Right Half: BTC Accumulation Strategy */}
-              <BtcAccumulationCard />
-            </div>
-
-            {/* Rolling Loan Strategy Configuration (conditional) */}
-            <RollingLoanConfigCard />
-
-            {/* Strategy Mechanics Preview */}
-            <StrategyPreviewCard />
-
-            {/* Monthly Savings/Withdrawal - Legacy Component */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="w-5 h-5 text-blue-500" />
-                  Monthly Cash Flow
-                </CardTitle>
-                <CardDescription>
-                  Configure additional monthly savings or withdrawals
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    Monthly Savings/Withdrawal
-                    <HybridTooltip>
-                      <HybridTooltipTrigger asChild>
-                        <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
-                      </HybridTooltipTrigger>
-                      <HybridTooltipContent>
-                        <p>Positive values: Monthly savings added to BTC stack. Negative values: Monthly withdrawals from BTC stack for living expenses.</p>
-                      </HybridTooltipContent>
-                    </HybridTooltip>
-                  </Label>
-                  <NumberInput
-                    value={params.monthlyWithdrawalAmount}
-                    onChange={(value) => setParams((p) => ({ ...p, monthlyWithdrawalAmount: value }))}
-                    min={-50000}
-                    max={50000}
-                    step={100}
-                    decimals={0}
-                    suffix="$"
-                    placeholder="150"
-                  />
-                </div>
-
-                {/* Investment Mode Description */}
-                <div className="p-3 bg-muted/50 rounded-lg">
-                  <p className="text-sm text-muted-foreground">
-                    {getInvestmentModeDescription()}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <StrategyControls />
         </TabsContent>
         
         <TabsContent value="results" className={`${isMobile ? 'mt-0 px-4' : 'mt-6'}`}>
-          <ResultsPage />
+          <ResearchResults />
         </TabsContent>
 
         <TabsContent value="strategy-lab" className={`${isMobile ? 'mt-0 px-4' : 'mt-6'}`}>
-          <StrategyLab />
+          <ResearchComparison />
         </TabsContent>
       </Tabs>
     </div>

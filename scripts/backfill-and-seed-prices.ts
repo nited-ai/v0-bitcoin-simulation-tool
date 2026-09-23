@@ -299,7 +299,7 @@ export async function runRestore(deps: RestoreDeps): Promise<{ deleted: number; 
 // === CLI entry ===
 
 async function main(): Promise<void> {
-  const { PrismaClient } = await import('@/lib/generated/prisma')
+  const { PrismaClient } = await import('@prisma/client')
   const { writeFile, readFile } = await import('node:fs/promises')
   const { fetchHistoricalKlines } = await import(
     '../src/modules/price-data/services/PriceSource/providers/binance'

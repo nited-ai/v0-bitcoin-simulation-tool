@@ -12,7 +12,7 @@ import { priceModelRegistry } from '../../price-models/PriceModelRegistry'
 import { usePriceData } from '@/src/modules/price-data/hooks/usePriceData'
 import { adaptManyToHistoricalDataPoints } from '@/src/modules/price-data/utils/adaptToHistoricalDataPoint'
 import { getPowerLawPrice, getDaysSinceGenesis } from '@/src/modules/price-data/models/powerLaw'
-import { useLiquidationCalculations } from '../../hooks/useCalculationsIntegration'
+import { useResearch } from '../../research/ResearchContext'
 import type { PriceProjectionResult, PriceModelParams } from '../../price-models/types'
 import type { HistoricalDataPoint } from '@/src/modules/price-data/types'
 
@@ -105,7 +105,7 @@ function calculateSupportLine(historicalData: HistoricalDataPoint[]): { timestam
 }
 
 function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartProps) {
-  const { params, setParams } = useSimulation()
+  const { params, setParams, priceProjection: projection, chartLoading, errors } = useSimulation()
   const { prices, isLoading } = usePriceData()
   const isLoaded = !isLoading
   // Adapter: map new shape to legacy HistoricalDataPoint shape that downstream code expects.
@@ -113,19 +113,20 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
     () => adaptManyToHistoricalDataPoints(prices),
     [prices]
   )
-  const liquidationData = useLiquidationCalculations()
+  const research = useResearch()
+  const dailyResults = research.results[research.selectedStrategy]?.journal
+  const dailyByDate = useMemo(() => new Map(dailyResults?.map(row => [row.date, row]) ?? []), [dailyResults])
   const searchParams = useSearchParams()
   const { theme } = useTheme()
 
 
 
-  const [projection, setProjection] = useState<PriceProjectionResult | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const error = errors.find(message => message.startsWith('Projektion: ')) ?? null
+
   const [isDownloading, setIsDownloading] = useState(false)
-  const [isGeneratingProjection, setIsGeneratingProjection] = useState(false)
+
   const [isLogScale, setIsLogScale] = useState(true) // Default to log scale for Bitcoin analysis
   const [isLogLogScale, setIsLogLogScale] = useState(false) // Log-log scale for Power Law visualization
-  const [hasInitialProjection, setHasInitialProjection] = useState(false) // Track if initial projection is generated
 
   // Legend visibility state for interactive controls
   const [showImmediateLiquidation, setShowImmediateLiquidation] = useState(true)
@@ -168,276 +169,16 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
 
 
 
-  // Generate initial projection when data becomes available (fixes race condition)
-  useEffect(() => {
-    const generateInitialProjection = async () => {
-      // Only generate initial projection once, when data is ready
-      if (hasInitialProjection || historicalData.length === 0 || isLoading || !isLoaded) {
-        return
-      }
+  const loading = chartLoading
+  useEffect(() => { onProjectionChange?.(projection) }, [projection, onProjectionChange])
 
-
-      setIsGeneratingProjection(true)
-      setError(null)
-
-      try {
-        // Use the same logic as the main projection generation
-        const modelParams: PriceModelParams = {
-          startPrice: params.initialBtcPrice,
-          projectionMonths: params.simulationMonths,
-          modelSpecificParams: {}
-        }
-
-        // Add model-specific parameters
-        if (params.priceModel === 'manual') {
-          modelParams.modelSpecificParams = {
-            annualGrowthRates: params.annualGrowthRates || [20, 15, 10, 8, 5]
-          }
-        } else if (params.priceModel === 'powerLaw') {
-          console.log('📊 [UnifiedPriceChart] Power Law settings from params:', params.powerLawSettings)
-          modelParams.modelSpecificParams = {
-            prognosisLine: params.powerLawSettings?.prognosisLine || 'fit',
-            priceProjectionParams: params.powerLawSettings?.priceProjectionParams,
-            cycleRepeatVolatility: params.powerLawSettings?.cycleRepeatVolatility
-          }
-          console.log('📊 [UnifiedPriceChart] Passing to model:', modelParams.modelSpecificParams)
-        } else if (params.priceModel === 'enhancedCycleRepeat') {
-          // Load diminishing returns parameters from sessionStorage
-          let diminishingReturns = null
-          try {
-            const saved = sessionStorage.getItem('bitcoin-sim-diminishing-returns-params')
-            if (saved) {
-              diminishingReturns = JSON.parse(saved)
-            }
-          } catch (error) {
-            console.warn('Failed to load diminishing returns params:', error)
-          }
-
-          // Use default moderate parameters if none are saved
-          if (!diminishingReturns) {
-            diminishingReturns = {
-              diminishingFactor: 0.25,
-              maturityThreshold: 2_000_000_000_000,
-              cycleDegradation: 0.15,
-              adoptionCurveType: 'sigmoid',
-              institutionalSaturation: 0.4,
-              regulatoryMaturity: 0.5,
-              liquidityConstraint: 0.4,
-              competitionFactor: 0.3
-            }
-          }
-
-          modelParams.modelSpecificParams = {
-            diminishingReturns
-          }
-        }
-
-        const result = await priceModelRegistry.generateProjection(
-          params.priceModel,
-          historicalData,
-          modelParams
-        )
-
-        if (result) {
-          setProjection(result)
-          setHasInitialProjection(true)
-          if (onProjectionChange) {
-            onProjectionChange(result)
-          }
-        }
-      } catch (err) {
-        console.error('Error generating initial projection:', err)
-        setError(err instanceof Error ? err.message : 'Failed to generate projection')
-      } finally {
-        setIsGeneratingProjection(false)
-      }
-    }
-
-    generateInitialProjection()
-  }, [
-    hasInitialProjection,
-    historicalData.length,
-    isLoaded,
-    isLoading,
-    params.priceModel,
-    params.initialBtcPrice,
-    params.simulationMonths
-    // Removed onProjectionChange to prevent infinite loops
-  ])
-
-  // Set loading state based on centralized data service and projection generation
-  const loading = isLoading || !isLoaded || isGeneratingProjection
-
-
-  // Generate projection when model or parameters change (debounced for performance)
-  useEffect(() => {
-    let timeoutId: NodeJS.Timeout
-
-    const generateProjection = async () => {
-      // Wait for historical data to be loaded and data loading to complete
-      if (historicalData.length === 0 || isLoading || !isLoaded) {
-        return
-      }
-
-      // Always generate projections when data is available and component is mounted
-      // This ensures the chart works regardless of tab state or race conditions
-      const currentTab = searchParams.get('tab') || 'parameters'
-
-      // Generate projections when on price-projection tab or when component is first loaded
-      // This fixes the issue where model selection wasn't working properly
-      if (currentTab !== 'price-projection' && hasInitialProjection) {
-        return
-      }
-
-
-
-      try {
-        setIsGeneratingProjection(true)
-        setError(null)
-        
-
-        
-        // Get the last known price (current price) as starting point for projections
-        // This should be the most recent price from our complete historical dataset (CSV + API gap data)
-        const lastKnownPrice = historicalData.length > 0
-          ? historicalData[historicalData.length - 1].close
-          : params.initialBtcPrice
-
-
-
-
-        // Prepare model parameters with current price as starting point
-        const modelParams = {
-          startPrice: lastKnownPrice,
-          projectionMonths: params.simulationMonths,
-          modelSpecificParams: {}
-        }
-        
-        // Add model-specific parameters
-        if (params.priceModel === 'manual') {
-          modelParams.modelSpecificParams = {
-            annualGrowthRates: params.annualGrowthRates
-          }
-        } else if (params.priceModel === 'powerLaw') {
-          console.log('📊 [UnifiedPriceChart-Sampled] Power Law settings from params:', params.powerLawSettings)
-          modelParams.modelSpecificParams = {
-            prognosisLine: params.powerLawSettings.prognosisLine,
-            priceProjectionParams: params.powerLawSettings.priceProjectionParams,
-            cycleRepeatVolatility: params.powerLawSettings.cycleRepeatVolatility
-          }
-          console.log('📊 [UnifiedPriceChart-Sampled] Passing to model:', modelParams.modelSpecificParams)
-        } else if (params.priceModel === 'enhancedCycleRepeat') {
-          // Get diminishing returns parameters asynchronously to prevent blocking
-          let diminishingReturns = null
-
-          try {
-            // Use setTimeout to make sessionStorage access non-blocking
-            await new Promise(resolve => {
-              setTimeout(() => {
-                const savedParams = sessionStorage.getItem('bitcoin-sim-diminishing-returns-params')
-                if (savedParams) {
-                  try {
-                    diminishingReturns = JSON.parse(savedParams)
-                  } catch (error) {
-                    console.warn('Failed to parse saved diminishing returns params:', error)
-                  }
-                }
-                resolve(void 0)
-              }, 0)
-            })
-          } catch (error) {
-            console.warn('Failed to access sessionStorage:', error)
-          }
-
-          // Use default moderate parameters if none are saved
-          if (!diminishingReturns) {
-            diminishingReturns = {
-              diminishingFactor: 0.25,
-              maturityThreshold: 2_000_000_000_000,
-              cycleDegradation: 0.15,
-              adoptionCurveType: 'sigmoid',
-              institutionalSaturation: 0.4,
-              regulatoryMaturity: 0.5,
-              liquidityConstraint: 0.4,
-              competitionFactor: 0.3
-            }
-          }
-
-          modelParams.modelSpecificParams = {
-            diminishingReturns
-          }
-        }
-
-        const result = await priceModelRegistry.generateProjection(
-          params.priceModel,
-          historicalData,
-          modelParams
-        )
-
-        setProjection(result)
-        setHasInitialProjection(true) // Mark that we have generated a projection
-        onProjectionChange?.(result)
-
-
-      } catch (err) {
-        console.error('❌ Error generating projection:', err)
-        setError('Failed to generate price projection')
-      } finally {
-        setIsGeneratingProjection(false)
-      }
-    }
-
-    // Debounce projection generation to prevent excessive calls
-    timeoutId = setTimeout(() => {
-      generateProjection()
-    }, 300) // 300ms debounce
-
-    // Cleanup function
-    return () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId)
-      }
-    }
-  }, [
-    historicalData.length, // Use length instead of full array to prevent unnecessary re-renders
-    isLoaded, // Add loading state to ensure data is ready
-    isLoading, // Add loading state to prevent race conditions
-    params.priceModel,
-    params.initialBtcPrice,
-    params.simulationMonths,
-    params.powerLawSettings?.prognosisLine, // Prognosis line selection
-    params.powerLawSettings?.cycleRepeatVolatility?.enabled, // Volatility toggle
-    params.powerLawSettings?.cycleRepeatVolatility?.patternLengthMonths, // Pattern length slider
-    params.powerLawSettings?.cycleRepeatVolatility?.diminishingFactor, // Diminishing factor slider
-    JSON.stringify(params.powerLawSettings?.priceProjectionParams), // Custom projection params
-    params.diminishingReturnsUpdated, // Trigger recalculation when diminishing returns params change
-    params.lastUpdated, // General trigger for any parameter updates
-    JSON.stringify(params.annualGrowthRates), // Manual growth model rates (JSON.stringify for array comparison)
-    searchParams.get('tab') // Only depend on the tab value, not the entire searchParams object
-  ])
-
-  // Calculate liquidation prices with bounds checking (unified calculation)
+  // Visibility metadata only; the actual lines use each day's simulated debt and collateral.
   const liquidationPrices = useMemo(() => {
-    if (!liquidationData) {
-      return null
-    }
-
-    const immediateLiquidationUsd = liquidationData.initialImmediateLiquidationPrice
-    const trueLiquidationUsd = liquidationData.initialTrueLiquidationPrice
-    const hasActiveLoan = immediateLiquidationUsd > 0
-
-    if (!hasActiveLoan) {
-      return null
-    }
-
-    const result = {
-      immediate: Math.round(immediateLiquidationUsd),
-      withTopUp: Math.round(trueLiquidationUsd),
-      hasFreeBtc: liquidationData.initialHasFreeCollateral
-    }
-
-    return result
-  }, [liquidationData])
+    const row = dailyResults?.find(row => row.liquidationPrice !== null)
+    if (!row) return null
+    return { immediate: row.liquidationPrice!, withTopUp: row.btc > 0 && research.plan ? row.debt / (row.btc * research.plan.liquidationLtv) : 0,
+      hasFreeBtc: dailyResults?.some(row => (row.freeBtc ?? 0) > 0) ?? false }
+  }, [dailyResults, research.plan])
 
   // Merge historical and projection data into continuous timeline
   const chartData = useMemo(() => {
@@ -476,16 +217,12 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
         const prevProjectedPoint = index > 0 ? projection.projectionPoints[index - 1] : null
         const prevPrice = prevProjectedPoint ? prevProjectedPoint.price : prevHistoricalPoint?.close || point.price
 
-        // Calculate realistic OHLC for projected data
-        const volatility = 0.02 // 2% daily volatility
-        const priceChange = (point.price - prevPrice) / prevPrice
-
-        // Open price (close to previous close with small gap)
-        const open = prevPrice * (1 + (Math.random() - 0.5) * 0.005)
-
-        // High and Low based on volatility and price direction
-        const high = Math.max(open, point.price) * (1 + Math.abs(priceChange) * 0.5 + Math.random() * volatility)
-        const low = Math.min(open, point.price) * (1 - Math.abs(priceChange) * 0.5 - Math.random() * volatility)
+        // Replay candles come from the model. A smooth scenario has no intraday data;
+        // leave those fields empty rather than generating random export-only wicks.
+        const row = dailyByDate.get(new Date(point.timestamp).toISOString().slice(0,10))
+        const open = point.metadata?.open
+        const high = point.metadata?.high
+        const low = point.metadata?.low
 
         data.push({
           date: new Date(point.timestamp).toLocaleDateString('de-DE', {
@@ -516,7 +253,7 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
 
 
     return sortedData
-  }, [historicalData, projection, liquidationPrices])
+  }, [historicalData, projection, dailyByDate, research.plan])
 
   // Generate model-specific overlay data (optimized for performance)
   const chartDataWithOverlays = useMemo(() => {
@@ -862,35 +599,10 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
         // Convert timestamp to proper YYYY-MM-DD format
         const date = new Date(point.timestamp).toISOString().split('T')[0]
 
-        // Use actual OHLC data if available, otherwise calculate
-        let openUSD: number, highUSD: number, lowUSD: number, closeUSD: number
-
-        if (point.isHistorical && point.open && point.high && point.low) {
-          // Use actual historical OHLC data (already in USD)
-          openUSD = point.open
-          highUSD = point.high
-          lowUSD = point.low
-          closeUSD = point.close
-        } else {
-          // For projected data or missing historical OHLC, use calculated values
-          closeUSD = point.price
-          openUSD = point.open || point.price
-          highUSD = point.high || point.price
-          lowUSD = point.low || point.price
-
-          // Ensure OHLC logic: Low <= Open,Close <= High
-          lowUSD = Math.min(lowUSD, openUSD, closeUSD)
-          highUSD = Math.max(highUSD, openUSD, closeUSD)
-        }
-
         const row = [
-          'BTC',
-          date,
-          closeUSD.toFixed(2),
-          openUSD.toFixed(2),
-          highUSD.toFixed(2),
-          lowUSD.toFixed(2),
-          point.isHistorical ? 'Historical' : 'Projected'
+          'BTC', date, point.close.toFixed(2),
+          point.open?.toFixed(2) ?? '', point.high?.toFixed(2) ?? '', point.low?.toFixed(2) ?? '',
+          point.isHistorical ? 'Historical' : projection?.metadata.candleKind === 'cycle-replay' ? 'Scenario replay OHLC' : 'Interpolated scenario OHLC',
         ]
         csvRows.push(row.join(','))
       })
@@ -1260,25 +972,25 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
                             {showImmediateLiquidation && data.immediateLiquidation && (
                               <div className="flex items-center gap-2">
                                 <div className="w-3 h-3 bg-yellow-500 rounded-full opacity-70"></div>
-                                <span className="text-sm text-foreground">Immediate Liquidation: <strong>${data.immediateLiquidation.toLocaleString('en-US')}</strong></span>
+                                <span className="text-sm text-foreground">Liquidationsschwelle der Strategie: <strong>${data.immediateLiquidation.toLocaleString('en-US')}</strong></span>
                               </div>
                             )}
                             {showLiquidationWithTopUp && data.liquidationWithTopUp && liquidationPrices.hasFreeBtc && (
                               <div className="flex items-center gap-2">
                                 <div className="w-3 h-3 bg-green-500 rounded-full opacity-70"></div>
-                                <span className="text-sm text-foreground">Liquidation with Top-up: <strong>${data.liquidationWithTopUp.toLocaleString('en-US')}</strong></span>
+                                <span className="text-sm text-foreground">Schwelle bei Einsatz aller BTC: <strong>${data.liquidationWithTopUp.toLocaleString('en-US')}</strong></span>
                               </div>
                             )}
                           </>
                         )}
 
                         {/* Liquidation Risk Warning */}
-                        {liquidationPrices && data.price <= liquidationPrices.immediate && (
+                        {liquidationPrices && data.low <= data.immediateLiquidation && (
                           <div className="mt-2 p-2 bg-red-100 border border-red-300 rounded text-red-800 text-sm">
                             🚨 <strong>LIQUIDATION RISK!</strong>
                           </div>
                         )}
-                        {liquidationPrices && data.price > liquidationPrices.immediate && data.price <= liquidationPrices.immediate * 1.1 && (
+                        {liquidationPrices && data.price > data.immediateLiquidation && data.price <= data.immediateLiquidation * 1.1 && (
                           <div className="mt-2 p-2 bg-yellow-100 border border-yellow-300 rounded text-yellow-800 text-sm">
                             ⚠️ <strong>Near Liquidation</strong>
                           </div>
@@ -1396,6 +1108,7 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
                 }
               />
 
+              <Line type="linear" dataKey="low" name="Tagestief (Szenario / Historie)" stroke="#a16207" strokeWidth={1} dot={false} isAnimationActive={false} connectNulls={false} />
               {/* Liquidation Line components - Always present for legend, but hidden when not applicable */}
               <Line
                 type="monotone"
@@ -1404,7 +1117,7 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
                 strokeWidth={1}
                 strokeDasharray="2 2"
                 dot={false}
-                name="Immediate Liquidation"
+                name="Liquidationsschwelle der Strategie"
                 connectNulls={false}
                 strokeOpacity={showImmediateLiquidation ? 1 : 0.3}
                 hide={!liquidationPrices || !showImmediateLiquidation}
@@ -1417,31 +1130,11 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
                 strokeWidth={1}
                 strokeDasharray="2 2"
                 dot={false}
-                name="Liquidation with Top-up"
+                name="Schwelle bei Einsatz aller BTC"
                 connectNulls={false}
                 strokeOpacity={showLiquidationWithTopUp ? 1 : 0.3}
                 hide={!liquidationPrices || !liquidationPrices?.hasFreeBtc || liquidationPrices?.withTopUp === liquidationPrices?.immediate || !showLiquidationWithTopUp}
               />
-
-              {/* Liquidation Price Reference Lines */}
-              {liquidationPricesForChart && showImmediateLiquidation && (
-                <ReferenceLine
-                  key="liquidation-immediate"
-                  y={liquidationPricesForChart.immediate}
-                  stroke="#eab308"
-                  strokeDasharray="2 2"
-                  strokeWidth={1}
-                />
-              )}
-              {liquidationPricesForChart && showLiquidationWithTopUp && liquidationPricesForChart.hasFreeBtc && liquidationPricesForChart.withTopUp !== liquidationPricesForChart.immediate && (
-                <ReferenceLine
-                  key="liquidation-topup"
-                  y={liquidationPricesForChart.withTopUp}
-                  stroke="#22c55e"
-                  strokeDasharray="2 2"
-                  strokeWidth={1}
-                />
-              )}
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -1449,6 +1142,4 @@ function UnifiedPriceChart({ className, onProjectionChange }: UnifiedPriceChartP
     </Card>
   )
 }
-
-// Memoize component to prevent unnecessary re-renders
 export default memo(UnifiedPriceChart)

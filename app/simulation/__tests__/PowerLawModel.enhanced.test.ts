@@ -44,7 +44,7 @@ describe('Enhanced PowerLawModel', () => {
 
       const result = await model.generateProjection(mockHistoricalData, params)
 
-      expect(result.projectionPoints).toHaveLength(12)
+      expect(result.projectionPoints).toHaveLength(13)
       expect(result.modelName).toBe('Power Law Model')
       expect(result.projectionPoints[0].price).toBeGreaterThan(0)
       
@@ -67,7 +67,7 @@ describe('Enhanced PowerLawModel', () => {
 
         const result = await model.generateProjection(mockHistoricalData, params)
         
-        expect(result.projectionPoints).toHaveLength(6)
+        expect(result.projectionPoints).toHaveLength(7)
         expect(result.metadata.prognosisLine).toBe(line)
       }
     })
@@ -89,7 +89,7 @@ describe('Enhanced PowerLawModel', () => {
 
       const result = await model.generateProjection(mockHistoricalData, params)
 
-      expect(result.projectionPoints).toHaveLength(6)
+      expect(result.projectionPoints).toHaveLength(7)
       expect(result.metadata.customProjectionParams).toEqual({
         slope: 6.0,
         intercept: -18.0
@@ -108,7 +108,7 @@ describe('Enhanced PowerLawModel', () => {
 
       const result = await model.generateProjection(mockHistoricalData, params)
 
-      expect(result.projectionPoints).toHaveLength(6)
+      expect(result.projectionPoints).toHaveLength(7)
       expect(result.metadata.customProjectionParams).toBeUndefined()
     })
   })
@@ -130,7 +130,7 @@ describe('Enhanced PowerLawModel', () => {
 
       const result = await model.generateProjection(mockHistoricalData, params)
 
-      expect(result.projectionPoints).toHaveLength(12)
+      expect(result.projectionPoints).toHaveLength(13)
       expect(result.metadata.volatilityApplied).toBe(true)
       expect(result.metadata.volatilitySettings).toEqual({
         enabled: true,
@@ -155,7 +155,7 @@ describe('Enhanced PowerLawModel', () => {
 
       const result = await model.generateProjection(mockHistoricalData, params)
 
-      expect(result.projectionPoints).toHaveLength(12)
+      expect(result.projectionPoints).toHaveLength(13)
       expect(result.metadata.volatilityApplied).toBe(false)
     })
 
@@ -177,7 +177,7 @@ describe('Enhanced PowerLawModel', () => {
 
       const result = await model.generateProjection(limitedData, params)
 
-      expect(result.projectionPoints).toHaveLength(6)
+      expect(result.projectionPoints).toHaveLength(7)
       // Should still work but with limited pattern
       expect(result.metadata.volatilityApplied).toBe(true)
     })
@@ -276,8 +276,8 @@ describe('Enhanced PowerLawModel', () => {
       // Second call with same parameters should use cached pattern
       const result2 = await model.generateProjection(mockHistoricalData, params)
 
-      expect(result1.projectionPoints).toHaveLength(6)
-      expect(result2.projectionPoints).toHaveLength(6)
+      expect(result1.projectionPoints).toHaveLength(7)
+      expect(result2.projectionPoints).toHaveLength(7)
       // Results should be identical due to caching
       expect(result1.projectionPoints[0].price).toBe(result2.projectionPoints[0].price)
     })

@@ -127,6 +127,8 @@ export type MonthlyEvent =
  * Main simulation parameters
  */
 export interface SimulationParams {
+  research?: Partial<import('../research/settings').ResearchSettings>
+  stress?: import('../research/settings').StressSettings
   initialBtcAmount: number
   initialBtcPrice: number
   monthlyWithdrawalAmount: number
@@ -203,6 +205,7 @@ export interface SimulationParams {
   // Chart regeneration triggers
   lastUpdated?: number
   diminishingReturnsUpdated?: number
+  cycleReplaySettings?: import('../price-models/models/EnhancedCycleRepeatModel').DiminishingReturnsParams
 }
 
 /**

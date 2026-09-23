@@ -13,11 +13,14 @@ import type {
 
 } from "../types"
 import type { HistoricalDataPoint } from "@/src/modules/price-data/types"
+import { replayHistoricalCycle } from './cycleReplay'
 
 /**
  * Diminishing Returns Parameters
  */
 export interface DiminishingReturnsParams {
+  referenceCycle?: 'trailing' | '2016-2020' | '2020-2024'
+  phaseMonths?: number
   diminishingFactor: number // 0-1, how strongly diminishing returns affect growth
   maturityThreshold: number // Market cap threshold where effects begin
   cycleDegradation: number // 0-1, how much each cycle degrades
@@ -106,307 +109,29 @@ export const DIMINISHING_RETURNS_PRESETS = {
  * Enhanced Cycle Repeat Model Implementation
  */
 export class EnhancedCycleRepeatModel implements PriceProjectionModel {
-  readonly name = "Enhanced Cycle Repeat Model"
-  readonly version = "2.0.0"
-  readonly description = "Advanced Bitcoin price prediction with economic maturation theory"
+  readonly name = "Historical Cycle Replay"
+  readonly version = "3.0.0"
+  readonly description = "Historische Tagesbewegungen und Zyklusphasen wiederholen"
 
-  /**
-   * Extract percentage movements from exactly 4 years ago (1460 days approach)
-   */
-  private extractPercentageMovements(historicalData: HistoricalDataPoint[]): number[] {
-    if (!historicalData || historicalData.length < 2) {
-      console.warn("Insufficient historical data")
-      return []
-    }
-
-    // Calculate exact 4-year lookback from today
-    const today = new Date()
-    const fourYearsAgo = new Date(today)
-    fourYearsAgo.setFullYear(fourYearsAgo.getFullYear() - 4)
-
-    // Convert to Unix timestamps for data filtering
-    const fourYearsAgoTimestamp = Math.floor(fourYearsAgo.getTime() / 1000)
-    const todayTimestamp = Math.floor(today.getTime() / 1000)
-
-    console.log(`📅 Today: ${today.toDateString()}`)
-    console.log(`📅 Four years ago: ${fourYearsAgo.toDateString()}`)
-
-    // Filter historical data to exact 4-year window
-    const fourYearData = historicalData.filter(point =>
-      point.time >= fourYearsAgoTimestamp && point.time <= todayTimestamp
-    ).sort((a, b) => a.time - b.time)
-
-    if (fourYearData.length < 2) {
-      console.warn("Insufficient data in 4-year period")
-      return []
-    }
-
-    // Calculate percentage movements between consecutive points
-    const percentageMovements: number[] = []
-    for (let i = 1; i < fourYearData.length; i++) {
-      const previousPrice = fourYearData[i - 1].close
-      const currentPrice = fourYearData[i].close
-
-      if (previousPrice > 0) {
-        const percentageChange = currentPrice / previousPrice
-        percentageMovements.push(percentageChange)
-      }
-    }
-
-    // Calculate movement statistics
-    const movements = percentageMovements.map(m => (m - 1) * 100)
-    const minMovement = Math.min(...movements).toFixed(1)
-    const maxMovement = Math.max(...movements).toFixed(1)
-
-    console.log(`📊 Extracted ${percentageMovements.length} percentage movements from ${fourYearData[0]?.date || 'start'} to ${fourYearData[fourYearData.length - 1]?.date || 'end'}`)
-    console.log(`📈 Movement range: ${minMovement}% to ${maxMovement}%`)
-
-    return percentageMovements
-  }
-
-  /**
-   * Apply diminishing returns to large gains while preserving losses
-   */
-  private applyDiminishingReturns(
-    originalMovement: number,
-    currentPrice: number,
-    cycleNumber: number,
-    params: DiminishingReturnsParams
-  ): number {
-    // Preserve losses completely (market crashes remain realistic)
-    if (originalMovement <= 1.0) {
-      return originalMovement
-    }
-
-    // Calculate gain percentage
-    const gainPercentage = (originalMovement - 1) * 100
-
-    // Preserve small gains below threshold
-    const threshold = params.cycleDegradation * 100 // Convert to percentage
-    if (gainPercentage <= threshold) {
-      return originalMovement
-    }
-
-    // Apply progressive dampening to large gains
-    const excessGain = gainPercentage - threshold
-    const dampenedExcessGain = excessGain * (1 - params.diminishingFactor)
-    const adjustedGainPercentage = threshold + dampenedExcessGain
-
-    // Ensure minimum gain ratio to prevent collapse
-    const minGainRatio = 0.1 // Minimum 10% of original gain preserved
-    const minAdjustedGain = gainPercentage * minGainRatio
-    const finalGainPercentage = Math.max(adjustedGainPercentage, minAdjustedGain)
-
-    // Convert back to multiplier
-    return 1 + (finalGainPercentage / 100)
-  }
-
-  /**
-   * Generate projection using cycle repeat methodology with daily processing
-   *
-   * Iterates one historical daily ratio per simulated day so the full 4-year
-   * window of ratios is consumed (and re-cycled) across the projection horizon.
-   * Output points are emitted on a monthly cadence (every ~30 days) for chart
-   * density.
-   */
-  private generateCycleRepeatProjection(
-    percentageMovements: number[],
-    startPrice: number,
-    projectionMonths: number,
-    params: DiminishingReturnsParams
-  ): ProjectionPoint[] {
-    if (percentageMovements.length === 0) {
-      console.warn("No percentage movements available for projection")
-      return []
-    }
-
-    // Calculate total days needed for projection (~30.4 days per month)
-    const totalDaysNeeded = Math.ceil(projectionMonths * 30.4)
-    const totalCycles = Math.ceil(totalDaysNeeded / percentageMovements.length)
-    const OUTPUT_CADENCE_DAYS = 30 // emit one projection point per ~month
-
-    console.log(`🔄 Starting projection loop: ${totalDaysNeeded} days to process (repeating ${percentageMovements.length} historical movements)`)
-
-    const allProjectionPoints: ProjectionPoint[] = []
-    const startDate = new Date()
-    let currentPrice = startPrice
-
-    // Add initial point at start price
-    const volatilityBand = 0.15 // 15% bands
-    allProjectionPoints.push({
-      timestamp: startDate.getTime(),
-      price: Math.round(startPrice),
-      support: Math.round(startPrice * (1 - volatilityBand)),
-      resistance: Math.round(startPrice * (1 + volatilityBand)),
-      confidence: 1.0,
-      metadata: {
-        dayIndex: 0,
-        movementIndex: 0,
-        cycleNumber: 1,
-        originalMovement: 1.0,
-        adjustedMovement: 1.0,
-        approach: "cycle-repeat-percentage-movements",
-        diminishingReturnsApplied: true,
-        diminishingParams: {
-          diminishingFactor: params.diminishingFactor,
-          cycleDegradation: params.cycleDegradation,
-          adoptionCurveType: params.adoptionCurveType
-        }
-      }
-    })
-
-    // Process day by day, applying historical daily movements sequentially.
-    // The historical ratios are daily, so iterating daily naturally cycles
-    // through the full 4-year window every `percentageMovements.length` days.
-    for (let dayIndex = 0; dayIndex < totalDaysNeeded; dayIndex++) {
-      // Cycle through historical movements using modulo
-      const movementIndex = dayIndex % percentageMovements.length
-      const movement = percentageMovements[movementIndex]
-      const cycleNumber = Math.floor(dayIndex / percentageMovements.length) + 1
-
-      // Apply diminishing returns if enabled
-      let adjustedMovement = movement
-      try {
-        adjustedMovement = this.applyDiminishingReturns(
-          movement,
-          currentPrice,
-          cycleNumber,
-          params
-        )
-      } catch (error) {
-        console.error("Error in applyDiminishingReturns:", error)
-        adjustedMovement = movement // Use original movement as fallback
-      }
-
-      // Apply movement to current price
-      currentPrice *= adjustedMovement
-
-      // Emit a projection point on monthly cadence (and at the final day).
-      if (dayIndex % OUTPUT_CADENCE_DAYS === 0 || dayIndex === totalDaysNeeded - 1) {
-        const currentDate = new Date(startDate)
-        currentDate.setDate(startDate.getDate() + dayIndex)
-
-        // Calculate support and resistance bands
-        const volatilityBand = 0.15 // 15% bands
-        const support = currentPrice * (1 - volatilityBand)
-        const resistance = currentPrice * (1 + volatilityBand)
-
-        // Calculate confidence (decreases over time)
-        const confidence = Math.max(0.1, 1 - (dayIndex / totalDaysNeeded) * 0.5)
-
-        allProjectionPoints.push({
-          timestamp: currentDate.getTime(),
-          price: Math.round(currentPrice),
-          support: Math.round(support),
-          resistance: Math.round(resistance),
-          confidence,
-          metadata: {
-            dayIndex,
-            movementIndex,
-            cycleNumber,
-            originalMovement: movement,
-            adjustedMovement,
-            approach: "cycle-repeat-percentage-movements",
-            diminishingReturnsApplied: true,
-            diminishingParams: {
-              diminishingFactor: params.diminishingFactor,
-              cycleDegradation: params.cycleDegradation,
-              adoptionCurveType: params.adoptionCurveType
-            }
-          }
-        })
-      }
-    }
-
-    console.log(`✅ Projection loop complete: Generated ${allProjectionPoints.length} points over ${totalCycles} cycles`)
-    console.log(`   📊 Projection period: ${totalDaysNeeded} days (${(totalDaysNeeded / 365.25).toFixed(1)} years)`)
-    console.log(`   🔄 Repeated 4-year pattern ${totalCycles} times`)
-
-    return allProjectionPoints
-  }
-
-  /**
-   * Generate price projection using Enhanced Cycle Repeat model
-   */
   async generateProjection(
     historicalData: HistoricalDataPoint[],
     params: PriceModelParams
   ): Promise<PriceProjectionResult> {
-
-    console.log(`🚀 Enhanced Cycle Repeat Model: Generating projection for ${params.projectionMonths} months`)
-
-    // Extract diminishing returns parameters
-    const diminishingReturns = params.modelSpecificParams?.diminishingReturns as DiminishingReturnsParams
-    if (!diminishingReturns) {
-      throw new Error("Enhanced Cycle Repeat Model: Missing diminishing returns parameters")
-    }
-
-    // Extract percentage movements from exactly 4 years ago
-    const percentageMovements = this.extractPercentageMovements(historicalData)
-
-    if (percentageMovements.length === 0) {
-      throw new Error("Enhanced Cycle Repeat Model: Unable to extract percentage movements from historical data")
-    }
-
-    // Generate projection using cycle repeat methodology
-    const projectionPoints = this.generateCycleRepeatProjection(
-      percentageMovements,
-      params.startPrice,
-      params.projectionMonths,
-      diminishingReturns
-    )
-
-    // Calculate projection metadata
-    const startPrice = projectionPoints[0]?.price || params.startPrice
-    const endPrice = projectionPoints[projectionPoints.length - 1]?.price || params.startPrice       
-    const totalGrowth = ((endPrice - startPrice) / startPrice) * 100
-    const averageMonthlyGrowth = totalGrowth / params.projectionMonths
-
-    console.log(`✅ Enhanced Cycle Repeat Model: Generated ${projectionPoints.length} points using ${percentageMovements.length} percentage movements`)
-    console.log(`   📊 Price range: €${startPrice.toFixed(0)} → €${endPrice.toFixed(0)} (${totalGrowth.toFixed(1)}% total)`)
-
-    return {
-      modelName: this.name,
-      modelVersion: this.version,
-      projectionPoints,
-      metadata: {
-        totalMonths: params.projectionMonths,
-        totalGrowth,
-        averageMonthlyGrowth,
-        confidence: this.calculateOverallConfidence(projectionPoints),
-        generatedAt: new Date().toISOString(),
-        historicalMovementsCount: percentageMovements.length,
-        cycleLengthDays: 1460,
-        baseDiminishingReturnsParams: diminishingReturns,
-        parameters: {
-          startPrice: params.startPrice,
-          projectionMonths: params.projectionMonths,
-          historicalDataPoints: historicalData.length
-        }
-      }
-    }
-  }
-
-  /**
-   * Calculate overall confidence based on projection points
-   */
-  private calculateOverallConfidence(projectionPoints: ProjectionPoint[]): number {
-    if (projectionPoints.length === 0) return 0
-
-    const totalConfidence = projectionPoints.reduce((sum, point) => sum + point.confidence, 0)
-    return totalConfidence / projectionPoints.length
+    if (!this.validateParams(params)) throw new Error('Ungültige Zyklusparameter.')
+    const settings = params.modelSpecificParams?.diminishingReturns ?? DIMINISHING_RETURNS_PRESETS.moderate.params
+    return replayHistoricalCycle(historicalData, params, settings)
   }
 
   /**
    * Validate model parameters
    */
   validateParams(params: PriceModelParams): boolean {
-    if (!params.startPrice || params.startPrice <= 0) {
+    if (!Number.isFinite(params.startPrice) || params.startPrice <= 0) {
       console.error("Enhanced Cycle Repeat Model: Invalid start price")
       return false
     }
 
-    if (!params.projectionMonths || params.projectionMonths <= 0) {
+    if (!Number.isInteger(params.projectionMonths) || params.projectionMonths <= 0 || params.projectionMonths > 300) {
       console.error("Enhanced Cycle Repeat Model: Invalid projection months")
       return false
     }
@@ -414,12 +139,12 @@ export class EnhancedCycleRepeatModel implements PriceProjectionModel {
     // Validate diminishing returns parameters if provided
     const diminishingReturns = params.modelSpecificParams?.diminishingReturns as DiminishingReturnsParams
     if (diminishingReturns) {
-      if (diminishingReturns.diminishingFactor < 0 || diminishingReturns.diminishingFactor > 1) {
+      if (!Number.isFinite(diminishingReturns.diminishingFactor) || diminishingReturns.diminishingFactor < 0 || diminishingReturns.diminishingFactor > 1) {
         console.error("Enhanced Cycle Repeat Model: Invalid diminishing factor (must be 0-1)")
         return false
       }
 
-      if (diminishingReturns.cycleDegradation < 0 || diminishingReturns.cycleDegradation > 1) {
+      if (!Number.isFinite(diminishingReturns.cycleDegradation) || diminishingReturns.cycleDegradation < 0 || diminishingReturns.cycleDegradation > 1) {
         console.error("Enhanced Cycle Repeat Model: Invalid cycle degradation (must be 0-1)")
         return false
       }
@@ -445,25 +170,12 @@ export class EnhancedCycleRepeatModel implements PriceProjectionModel {
       version: this.version,
       description: this.description,
       author: "Bitcoin Simulation Team",
-      tags: ["cycle", "historical", "enhanced", "diminishing-returns", "economic-theory"],
-      riskLevel: "medium",
-      complexity: "advanced",
-      timeHorizon: "long-term",
-      dataRequirements: "historical-price-data",
-      confidenceRange: "10-90%",
-      typicalCycleLength: "4 years (1458 days)",
-      volatilityHandling: "preserves natural volatility with economic adjustments",
-      strengths: [
-        "Incorporates economic maturation theory",
-        "Accounts for diminishing returns",
-        "Cycle degradation modeling",
-        "Multiple economic scenarios"
-      ],
-      limitations: [
-        "Assumes historical patterns continue",
-        "Economic theory may not hold",
-        "Sensitive to parameter selection"
-      ],
+      tags: ['cycle', 'historical', 'diminishing-returns'],
+      complexity: 'advanced',
+      dataRequirements: 'complete-daily-historical-price-data',
+      confidenceRange: 'not-estimated',
+      volatilityHandling: 'replayed historical daily movements',
+      limitations: ['Historical patterns need not recur', 'Dampening is a user assumption'],
       presets: Object.keys(DIMINISHING_RETURNS_PRESETS)
     }
   }

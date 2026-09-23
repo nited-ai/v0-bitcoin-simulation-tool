@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // Mock the dependencies so we can test the route's auth + orchestration logic
 // without hitting real DB/external APIs.
-vi.mock('@/lib/generated/prisma', () => ({
+vi.mock('@prisma/client', () => ({
   PrismaClient: vi.fn().mockImplementation(() => ({
     $disconnect: vi.fn().mockResolvedValue(undefined),
   })),
@@ -62,6 +62,35 @@ describe('POST /api/cron/update-prices auth', () => {
 })
 
 describe('POST /api/cron/update-prices behavior', () => {
+  it('supports authenticated GET used by Vercel Cron', async () => {
+    const mod = await import('../route')
+    expect(typeof mod.GET).toBe('function')
+    const res = await mod.GET(new Request('https://example.com/api/cron/update-prices', { headers: { Authorization: 'Bearer test-secret-12345' } }))
+    expect(res.status).toBe(200)
+  })
+
+  it('does not record success when upstream prices fail', async () => {
+    const { createPriceUpdater } = await import('@/src/modules/price-data/services/PriceUpdater')
+    vi.mocked(createPriceUpdater).mockReturnValueOnce({
+      updateCurrent: vi.fn().mockResolvedValue({ skipped: true, reason: 'fetch failed: upstream error' }),
+      fillGaps: vi.fn().mockResolvedValue({ gapDays: 0 }),
+    })
+    const res = await callRoute({ Authorization: 'Bearer test-secret-12345' })
+    expect(res.status).toBe(503)
+    expect(mockStoreInstance.setMeta).not.toHaveBeenCalled()
+  })
+
+  it('does not record success when historical repair fails', async () => {
+    const { createPriceUpdater } = await import('@/src/modules/price-data/services/PriceUpdater')
+    const updateCurrent=vi.fn()
+    vi.mocked(createPriceUpdater).mockReturnValueOnce({updateCurrent,fillGaps:vi.fn().mockRejectedValue(new Error('incomplete history'))})
+    const response=await callRoute({ Authorization:'Bearer test-secret-12345' })
+    expect(response.status).toBe(500)
+    expect(updateCurrent).not.toHaveBeenCalled()
+    expect(mockStoreInstance.setMeta).not.toHaveBeenCalled()
+    expect(await response.json()).toEqual({ok:false,error:'price_update_failed'})
+  })
+
   it('returns JSON summary of fillGaps + updateCurrent', async () => {
     const res = await callRoute({ Authorization: 'Bearer test-secret-12345' })
     expect(res.status).toBe(200)

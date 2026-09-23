@@ -1,387 +1,123 @@
-/**
- * Loan Cost Metrics Tests
- * 
- * Tests for the enhanced loan cost calculations in CalculationsService
- * to verify accuracy of total interest, origination fee, and total repayment calculations.
- */
-
 import { describe, it, expect, beforeEach } from 'vitest'
-import { CalculationsService, type SimulationParams } from '../calculationsService'
+import { renderHook } from '@testing-library/react'
+import { CalculationsService, useCalculations, type SimulationParams } from '../calculationsService'
 
-describe('Loan Cost Metrics', () => {
-  let service: CalculationsService
-  
-  beforeEach(() => {
-    service = new CalculationsService()
+const defaults: SimulationParams = {
+  initialBtcAmount: 1,
+  initialBtcPrice: 100_000,
+  loanAmountPercent: 15,
+  platform: 'firefish',
+  originationFeePercent: 1.5,
+  originationFeeType: 'annual',
+  maxInitialLtv: 50,
+  availableLoanTerms: [6, 12, 24],
+  riskManagement: {
+    targetLtv: 50,
+    maxLoanAmount: 50_000,
+    annualInterestRate: 6.5,
+    loanTermMonths: 12,
+    liquidationFeePercent: 5,
+    liquidationLtv: 80,
+  },
+}
+
+describe('Initial credit preview', () => {
+  const service = new CalculationsService()
+  beforeEach(() => service.clearCache())
+
+  it('finances origination fees but not future interest in opening debt and collateral', () => {
+    const result = service.calculateAll(defaults, 125_000)
+    expect(result.loan.initialCurrentLoanAmount).toBe(15_000)
+    expect(result.loan.initialOriginationFee).toBe(225)
+    expect(result.loan.initialTotalLoanCost).toBe(15_225)
+    expect(result.collateral.initialLockedCollateralBtc).toBeCloseTo(0.3045)
+    expect(result.collateral.initialFreeCollateralBtc).toBeCloseTo(0.6955)
+    expect(result.liquidation.initialImmediateLiquidationPrice).toBeCloseTo(62_500)
+    expect(result.liquidation.initialTrueLiquidationPrice).toBeCloseTo(19_031.25)
+    expect(result.loan.initialTotalInterestPayment).toBeCloseTo(989.625)
+    expect(result.loan.initialMonthlyInterestPayment).toBeCloseTo(82.46875)
   })
 
-  describe('Total Interest Calculation', () => {
-    it('should calculate total interest correctly for standard loan', () => {
-      const params: SimulationParams = {
-        initialBtcAmount: 1.0,
-        initialBtcPrice: 100000,
-        loanAmountPercent: 15, // $15,000 loan
-        platform: 'firefish',
-        riskManagement: {
-          targetLtv: 50,
-          maxLoanAmount: 50000,
-          annualInterestRate: 6.5, // 6.5% annual
-          loanTermMonths: 12, // 12 months
-          liquidationFeePercent: 5
-        }
-      }
-
-      const result = service.calculateLoanMetrics(params)
-      
-      // Expected calculation:
-      // Loan Amount: $100,000 * 15% = $15,000
-      // Monthly Interest Rate: 6.5% / 12 = 0.5417%
-      // Monthly Interest Payment: $15,000 * 0.5417% = $81.25
-      // Total Interest: $81.25 * 12 = $975
-      
-      expect(result.initialCurrentLoanAmount).toBe(15000)
-      expect(result.initialTotalInterestPayment).toBeCloseTo(975, 0)
-    })
-
-    it('should calculate total interest correctly for longer term loan', () => {
-      const params: SimulationParams = {
-        initialBtcAmount: 2.0,
-        initialBtcPrice: 80000,
-        loanAmountPercent: 20, // $32,000 loan
-        platform: 'strike',
-        riskManagement: {
-          targetLtv: 60,
-          maxLoanAmount: 100000,
-          annualInterestRate: 8.0, // 8% annual
-          loanTermMonths: 24, // 24 months
-          liquidationFeePercent: 4
-        }
-      }
-
-      const result = service.calculateLoanMetrics(params)
-      
-      // Expected calculation:
-      // Loan Amount: $160,000 * 20% = $32,000
-      // Monthly Interest Rate: 8% / 12 = 0.6667%
-      // Monthly Interest Payment: $32,000 * 0.6667% = $213.33
-      // Total Interest: $213.33 * 24 = $5,120
-      
-      expect(result.initialCurrentLoanAmount).toBe(32000)
-      expect(result.initialTotalInterestPayment).toBeCloseTo(5120, 0)
-    })
+  it('does not change initial debt or liquidation thresholds when only interest changes', () => {
+    const highInterest = { ...defaults, riskManagement: { ...defaults.riskManagement, annualInterestRate: 40 } }
+    expect(service.calculateCollateralMetrics(highInterest)).toEqual(service.calculateCollateralMetrics(defaults))
+    expect(service.calculateLiquidationMetrics(highInterest, 125_000)).toEqual(service.calculateLiquidationMetrics(defaults, 125_000))
+    expect(service.calculateLoanMetrics(highInterest).initialTotalLoanCost).toBe(15_225)
   })
 
-  describe('Origination Fee Calculation', () => {
-    it('should calculate one-time origination fee correctly for Strike platform', () => {
-      const params: SimulationParams = {
-        initialBtcAmount: 1.5,
-        initialBtcPrice: 90000,
-        loanAmountPercent: 10, // $13,500 loan
-        platform: 'strike',
-        riskManagement: {
-          targetLtv: 45,
-          maxLoanAmount: 40000,
-          annualInterestRate: 7.0,
-          loanTermMonths: 6,
-          liquidationFeePercent: 5
-        }
-      }
-
-      const result = service.calculateLoanMetrics(params)
-
-      // Expected calculation:
-      // Loan Amount: $135,000 * 10% = $13,500
-      // Origination Fee: $13,500 * 0% = $0 (Strike has no origination fee)
-
-      expect(result.initialCurrentLoanAmount).toBe(13500)
-      expect(result.initialOriginationFee).toBe(0)
-    })
-
-    it('should calculate annual origination fee correctly for Firefish platform', () => {
-      const params: SimulationParams = {
-        initialBtcAmount: 1.5,
-        initialBtcPrice: 90000,
-        loanAmountPercent: 10, // $13,500 loan
-        platform: 'firefish',
-        originationFeePercent: 1.5, // Firefish platform fee
-        originationFeeType: 'annual', // Firefish uses annual fees
-        maxInitialLtv: 50,
-        availableLoanTerms: [3, 6, 12, 18, 24],
-        monthlyWithdrawalAmount: 0,
-        annualInterestRate: 7.0,
-        liquidationFeePercent: 5.0,
-        loanTermMonths: 12,
-        simulationMonths: 144,
-        maxLoanAmount: 40000,
-        annualGrowthRates: [0],
-        priceModel: "manual",
-        powerLawSettings: { prognosisLine: "fit" },
-        btcAccumulation: false,
-        riskLevel: "moderate",
-        investmentStrategy: "default",
-        athBasedParams: { athThresholdPercent: 80 },
-        movingAverageParams: { movingAveragePeriod: 200, investmentMultiplier: 1.5 },
-        athCollateralParams: { maxDrawdownPercent: 80, collateralMultiplier: 2.0, athLookbackMonths: 36, emergencyCollateralBuffer: 1.2 },
-        parameterSources: {
-          loanAmountPercent: 'manual',
-          targetLtv: 'manual',
-          annualInterestRate: 'manual',
-          loanTermMonths: 'manual',
-          originationFeePercent: 'platform',
-          originationFeeType: 'platform',
-          liquidationLtv: 'platform',
-          liquidationFeePercent: 'platform',
-          maxInitialLtv: 'platform',
-          availableLoanTerms: 'platform'
-        },
-        riskManagement: {
-          targetLtv: 45,
-          liquidationLtv: 95,
-          annualInterestRate: 7.0,
-          loanTermMonths: 12,
-          maxLoanAmount: 40000,
-          liquidationFeePercent: 5
-        }
-      }
-
-      const result = service.calculateLoanMetrics(params)
-
-      // Expected calculation:
-      // Loan Amount: $135,000 * 10% = $13,500
-      // Annual Origination Fee: $13,500 * 1.5% = $202.5
-      // Loan Term: 12 months = 1 year
-      // Total Origination Fee: $202.5 * 1 = $202.5
-
-      expect(result.initialCurrentLoanAmount).toBe(13500)
-      expect(result.initialOriginationFee).toBe(202.5)
-    })
-
-    it('should calculate annual origination fee correctly for multi-year loans', () => {
-      const params: SimulationParams = {
-        initialBtcAmount: 1.0,
-        initialBtcPrice: 100000,
-        loanAmountPercent: 20, // $20,000 loan
-        platform: 'firefish',
-        originationFeePercent: 1.5, // Firefish platform fee
-        originationFeeType: 'annual', // Firefish uses annual fees
-        maxInitialLtv: 50,
-        availableLoanTerms: [3, 6, 12, 18, 24],
-        monthlyWithdrawalAmount: 0,
-        annualInterestRate: 7.0,
-        liquidationFeePercent: 5.0,
-        loanTermMonths: 24,
-        simulationMonths: 144,
-        maxLoanAmount: 40000,
-        annualGrowthRates: [0],
-        priceModel: "manual",
-        powerLawSettings: { prognosisLine: "fit" },
-        btcAccumulation: false,
-        riskLevel: "moderate",
-        investmentStrategy: "default",
-        athBasedParams: { athThresholdPercent: 80 },
-        movingAverageParams: { movingAveragePeriod: 200, investmentMultiplier: 1.5 },
-        athCollateralParams: { maxDrawdownPercent: 80, collateralMultiplier: 2.0, athLookbackMonths: 36, emergencyCollateralBuffer: 1.2 },
-        parameterSources: {
-          loanAmountPercent: 'manual',
-          targetLtv: 'manual',
-          annualInterestRate: 'manual',
-          loanTermMonths: 'manual',
-          originationFeePercent: 'platform',
-          originationFeeType: 'platform',
-          liquidationLtv: 'platform',
-          liquidationFeePercent: 'platform',
-          maxInitialLtv: 'platform',
-          availableLoanTerms: 'platform'
-        },
-        riskManagement: {
-          targetLtv: 45,
-          liquidationLtv: 95,
-          annualInterestRate: 7.0,
-          loanTermMonths: 24,
-          maxLoanAmount: 40000,
-          liquidationFeePercent: 5
-        }
-      }
-
-      const result = service.calculateLoanMetrics(params)
-
-      // Expected calculation:
-      // Loan Amount: $100,000 * 20% = $20,000
-      // Annual Origination Fee: $20,000 * 1.5% = $300
-      // Loan Term: 24 months = 2 years
-      // Total Origination Fee: $300 * 2 = $600
-
-      expect(result.initialCurrentLoanAmount).toBe(20000)
-      expect(result.initialOriginationFee).toBe(600)
-    })
+  it.each([[6, 112.5], [24, 450]])('prorates annual fees for %s months', (term, fee) => {
+    const params = { ...defaults, riskManagement: { ...defaults.riskManagement, loanTermMonths: term } }
+    expect(service.calculateLoanMetrics(params).initialOriginationFee).toBe(fee)
   })
 
-  describe('Total Loan Cost Calculation', () => {
-    it('should calculate total repayment amount correctly', () => {
-      const params: SimulationParams = {
-        initialBtcAmount: 1.0,
-        initialBtcPrice: 100000,
-        loanAmountPercent: 15, // $15,000 loan
-        platform: 'firefish',
-        originationFeePercent: 1.5, // Firefish platform fee
-        originationFeeType: 'annual', // Firefish uses annual fees
-        maxInitialLtv: 50,
-        availableLoanTerms: [3, 6, 12, 18, 24],
-        monthlyWithdrawalAmount: 0,
-        annualInterestRate: 6.5,
-        liquidationFeePercent: 5.0,
-        loanTermMonths: 12,
-        simulationMonths: 144,
-        maxLoanAmount: 50000,
-        annualGrowthRates: [0],
-        priceModel: "manual",
-        powerLawSettings: { prognosisLine: "fit" },
-        btcAccumulation: false,
-        riskLevel: "moderate",
-        investmentStrategy: "default",
-        athBasedParams: { athThresholdPercent: 80 },
-        movingAverageParams: { movingAveragePeriod: 200, investmentMultiplier: 1.5 },
-        athCollateralParams: { maxDrawdownPercent: 80, collateralMultiplier: 2.0, athLookbackMonths: 36, emergencyCollateralBuffer: 1.2 },
-        parameterSources: {
-          loanAmountPercent: 'manual',
-          targetLtv: 'manual',
-          annualInterestRate: 'manual',
-          loanTermMonths: 'manual',
-          originationFeePercent: 'platform',
-          originationFeeType: 'platform',
-          liquidationLtv: 'platform',
-          liquidationFeePercent: 'platform',
-          maxInitialLtv: 'platform',
-          availableLoanTerms: 'platform'
-        },
-        riskManagement: {
-          targetLtv: 50,
-          liquidationLtv: 95,
-          annualInterestRate: 6.5,
-          loanTermMonths: 12,
-          maxLoanAmount: 50000,
-          liquidationFeePercent: 5
-        }
-      }
-
-      const result = service.calculateLoanMetrics(params)
-      
-      // Expected calculation:
-      // Loan Principal: $15,000
-      // Origination Fee: $15,000 * 1.5% = $225 (Firefish has 1.5% origination fee)
-      // Total Interest: ~$975 (calculated above)
-      // Total Repayment: $15,000 + $225 + $975 = $16,200
-
-      expect(result.initialCurrentLoanAmount).toBe(15000)
-      expect(result.initialOriginationFee).toBe(225)
-      expect(result.initialTotalInterestPayment).toBeCloseTo(975, 0)
-      expect(result.initialTotalLoanCost).toBeCloseTo(16200, 0)
-    })
-
-    it('should handle infinite term loans correctly', () => {
-      const params: SimulationParams = {
-        initialBtcAmount: 1.0,
-        initialBtcPrice: 100000,
-        loanAmountPercent: 10,
-        platform: 'custom',
-        riskManagement: {
-          targetLtv: 40,
-          maxLoanAmount: 30000,
-          annualInterestRate: 5.0,
-          loanTermMonths: Infinity, // Infinite term
-          liquidationFeePercent: 3
-        }
-      }
-
-      const result = service.calculateLoanMetrics(params)
-      
-      // For infinite term loans, should calculate 12 months of interest as reference
-      // Loan Amount: $10,000
-      // Monthly Interest: $10,000 * (5% / 12) = $41.67
-      // Reference Interest (12 months): $41.67 * 12 = $500
-      
-      expect(result.initialCurrentLoanAmount).toBe(10000)
-      expect(result.initialTotalInterestPayment).toBeCloseTo(500, 0)
-    })
+  it('applies a one-time fee only once regardless of term', () => {
+    const params: SimulationParams = { ...defaults, originationFeeType: 'one-time', riskManagement: { ...defaults.riskManagement, loanTermMonths: 24 } }
+    expect(service.calculateLoanMetrics(params).initialOriginationFee).toBe(225)
   })
 
-  describe('Edge Cases', () => {
-    it('should handle zero loan amount', () => {
-      const params: SimulationParams = {
-        initialBtcAmount: 1.0,
-        initialBtcPrice: 100000,
-        loanAmountPercent: 0, // No loan
-        platform: 'firefish',
-        riskManagement: {
-          targetLtv: 50,
-          maxLoanAmount: 50000,
-          annualInterestRate: 6.5,
-          loanTermMonths: 12,
-          liquidationFeePercent: 5
-        }
-      }
+  it('caps the advance so financed fees remain inside the maximum debt amount', () => {
+    const params = { ...defaults, riskManagement: { ...defaults.riskManagement, maxLoanAmount: 10_000 } }
+    const result = service.calculateAll(params, 125_000)
+    expect(result.loan.initialCurrentLoanAmount).toBeCloseTo(10_000 / 1.015)
+    expect(result.loan.initialTotalLoanCost).toBeCloseTo(10_000)
+    expect(result.loan.initialMaxLoanCapacity).toBeCloseTo(10_000 / 1.015)
+    expect(result.loan.initialAvailableBorrowingCapacity).toBe(0)
+    expect(result.collateral.initialLockedCollateralBtc).toBeCloseTo(0.2)
+  })
 
-      const result = service.calculateLoanMetrics(params)
-      
-      expect(result.initialCurrentLoanAmount).toBe(0)
-      expect(result.initialOriginationFee).toBe(0)
-      expect(result.initialTotalInterestPayment).toBe(0)
-      expect(result.initialTotalLoanCost).toBe(0)
-    })
+  it.each([[30, 50, 30_000], [70, 40, 40_000]])('caps debt at target %s%% and platform maximum %s%%', (target, maxLtv, debt) => {
+    const params = { ...defaults, loanAmountPercent: 100, maxInitialLtv: maxLtv, riskManagement: { ...defaults.riskManagement, targetLtv: target } }
+    const result = service.calculateAll(params, 125_000)
+    expect(result.loan.initialTotalLoanCost).toBeCloseTo(debt)
+    expect(result.collateral.initialLockedCollateralBtc).toBeCloseTo(1)
+    expect(result.collateral.initialFreeCollateralBtc).toBeCloseTo(0)
+    expect(result.liquidation.initialImmediateLiquidationPrice).toBeCloseTo(debt / 0.8)
+    expect(result.liquidation.initialTrueLiquidationPrice).toBeCloseTo(debt / 0.8)
+    expect(service.validateCollateralSufficiency(params).isSufficient).toBe(true)
+  })
 
-    it('should handle zero interest rate', () => {
-      const params: SimulationParams = {
-        initialBtcAmount: 1.0,
-        initialBtcPrice: 100000,
-        loanAmountPercent: 10,
-        platform: 'firefish',
-        originationFeePercent: 1.5, // Firefish platform fee
-        originationFeeType: 'annual', // Firefish uses annual fees
-        maxInitialLtv: 50,
-        availableLoanTerms: [3, 6, 12, 18, 24],
-        monthlyWithdrawalAmount: 0,
-        annualInterestRate: 0, // No interest
-        liquidationFeePercent: 5.0,
-        loanTermMonths: 12,
-        simulationMonths: 144,
-        maxLoanAmount: 50000,
-        annualGrowthRates: [0],
-        priceModel: "manual",
-        powerLawSettings: { prognosisLine: "fit" },
-        btcAccumulation: false,
-        riskLevel: "moderate",
-        investmentStrategy: "default",
-        athBasedParams: { athThresholdPercent: 80 },
-        movingAverageParams: { movingAveragePeriod: 200, investmentMultiplier: 1.5 },
-        athCollateralParams: { maxDrawdownPercent: 80, collateralMultiplier: 2.0, athLookbackMonths: 36, emergencyCollateralBuffer: 1.2 },
-        parameterSources: {
-          loanAmountPercent: 'manual',
-          targetLtv: 'manual',
-          annualInterestRate: 'manual',
-          loanTermMonths: 'manual',
-          originationFeePercent: 'platform',
-          originationFeeType: 'platform',
-          liquidationLtv: 'platform',
-          liquidationFeePercent: 'platform',
-          maxInitialLtv: 'platform',
-          availableLoanTerms: 'platform'
-        },
-        riskManagement: {
-          targetLtv: 50,
-          liquidationLtv: 95,
-          annualInterestRate: 0,
-          loanTermMonths: 12,
-          maxLoanAmount: 50000,
-          liquidationFeePercent: 5
-        }
-      }
+  it('supports open terms with one-time fees and a separate one-year interest reference', () => {
+    const params: SimulationParams = { ...defaults, originationFeeType: 'one-time', riskManagement: { ...defaults.riskManagement, loanTermMonths: Infinity } }
+    expect(service.validateParameters(params).isValid).toBe(true)
+    expect(service.calculateLoanMetrics(params).initialTotalLoanCost).toBe(15_225)
+    expect(service.calculateLoanMetrics(params).initialTotalInterestPayment).toBeCloseTo(989.625)
+    expect(service.calculateCollateralMetrics(params).initialLockedCollateralBtc).toBeCloseTo(0.3045)
+  })
 
-      const result = service.calculateLoanMetrics(params)
-      
-      expect(result.initialCurrentLoanAmount).toBe(10000)
-      expect(result.initialOriginationFee).toBe(150) // 1.5% of $10,000 (Firefish)
-      expect(result.initialTotalInterestPayment).toBe(0)
-      expect(result.initialTotalLoanCost).toBe(10150) // Principal + origination fee only
-    })
+  it('rejects nonzero annual fees without a finite term but permits zero fees', () => {
+    const params = { ...defaults, riskManagement: { ...defaults.riskManagement, loanTermMonths: Infinity } }
+    expect(service.validateParameters(params).isValid).toBe(false)
+    expect(() => service.calculateLoanMetrics(params)).toThrow('Open-ended loans require a one-time origination fee')
+    expect(service.calculateLoanMetrics({ ...params, originationFeePercent: 0 }).initialTotalLoanCost).toBe(15_000)
+  })
+
+  it('leaves all BTC free and both liquidation thresholds zero without borrowing', () => {
+    const params = { ...defaults, loanAmountPercent: 0 }
+    const result = service.calculateAll(params, 125_000)
+    expect(result.loan.initialTotalLoanCost).toBe(0)
+    expect(result.loan.initialTotalInterestPayment).toBe(0)
+    expect(result.collateral.initialLockedCollateralBtc).toBe(0)
+    expect(result.collateral.initialFreeCollateralBtc).toBe(1)
+    expect(result.liquidation.initialImmediateLiquidationPrice).toBe(0)
+    expect(result.liquidation.initialTrueLiquidationPrice).toBe(0)
+  })
+
+  it('keeps financed fees when the interest rate is zero', () => {
+    const params = { ...defaults, riskManagement: { ...defaults.riskManagement, annualInterestRate: 0 } }
+    const result = service.calculateLoanMetrics(params)
+    expect(result.initialTotalInterestPayment).toBe(0)
+    expect(result.initialTotalLoanCost).toBe(15_225)
+  })
+
+  it('reacts to fee, maximum LTV, and liquidation threshold edits without changing other inputs', () => {
+    const { result, rerender } = renderHook(({ params }) => useCalculations(params), { initialProps: { params: defaults } })
+    const newFee = { ...defaults, originationFeePercent: 3 }
+    rerender({ params: newFee })
+    expect(result.current?.loan.initialTotalLoanCost).toBe(15_450)
+    const newLimit = { ...newFee, maxInitialLtv: 10 }
+    rerender({ params: newLimit })
+    expect(result.current?.loan.initialTotalLoanCost).toBeCloseTo(10_000)
+    rerender({ params: { ...newLimit, riskManagement: { ...newLimit.riskManagement, liquidationLtv: 90 } } })
+    expect(result.current?.liquidation.initialImmediateLiquidationPrice).toBeCloseTo(10_000 / 0.9)
   })
 })

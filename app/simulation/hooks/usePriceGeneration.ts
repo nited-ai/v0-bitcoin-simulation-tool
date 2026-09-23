@@ -1,124 +1,41 @@
-import { useEffect } from "react"
-import { useSearchParams } from "next/navigation"
-import { priceDataService } from "@/src/modules/price-data"
-import { getPowerLawPrice } from "@/src/modules/price-data/models/powerLaw"
-import { useSimulation } from "../context/SimulationContext"
-import type { PriceEngineParams } from "@/src/modules/price-data"
-import { unifiedPriceProjectionService } from "@/src/modules/shared"
-import { PriceProjectionAdapter } from "@/src/modules/shared/adapters/PriceProjectionAdapter"
+import { useEffect } from 'react'
+import { useSimulation } from '../context/SimulationContext'
+import { priceModelRegistry } from '../price-models/PriceModelRegistry'
+import { scenarioModelParams } from '../price-models/scenarioParams'
+import { dailyProjection } from '../research/projectionPath'
+import { PriceProjectionAdapter } from '@/src/modules/shared/adapters/PriceProjectionAdapter'
 
-/**
- * Hook for generating price chart data with lazy loading
- *
- * Phase 4 Migration: Now generates both new format (priceProjection) and legacy format (priceChartData)
- * for backward compatibility.
- *
- * Handles the generation of complete price chart data by calling the Price Engine
- * whenever chart-relevant parameters change. This includes historical data processing
- * and price model calculations.
- *
- * @param enabled - Whether to enable price generation (default: false for lazy loading)
- */
-export function usePriceGeneration(enabled: boolean = false) {
-  const {
-    params,
-    historicalPriceData,
-    initialDataLoaded,
-    setChartLoading,
-    setPriceChartData,
-    setPriceProjection, // Phase 4 Migration: Set new format
-    setErrors,
-  } = useSimulation()
-
-  const searchParams = useSearchParams()
-
+/** One owner in SimulationPage; all tabs consume the same generated scenario. */
+export function usePriceGeneration(enabled = false) {
+  const { params, historicalPriceData, setChartLoading, setPriceProjection,
+    setPriceChartData, setErrors } = useSimulation()
+  const modelKey = JSON.stringify(scenarioModelParams(params))
+  const stressKey = JSON.stringify(params.stress ?? null)
   useEffect(() => {
-    // Skip if not enabled (lazy loading)
-    if (!enabled) {
-      console.log(`⚡ Price generation disabled - lazy loading mode`)
-      return
-    }
-
-    if (historicalPriceData.length === 0) return
-    if (!initialDataLoaded) return // Wait for initial data loading to complete
-
-    // Skip chart generation on price-projection tab to avoid duplicate generation
-    // The UnifiedPriceChart component handles projections for that tab
-    const currentTab = searchParams.get('tab') || 'parameters'
-    if (currentTab === 'price-projection') {
-      console.log(`⚡ Skipping price engine chart generation on price-projection tab (handled by UnifiedPriceChart)`)
-      return
-    }
-
-    console.log(`🔄 Chart generation useEffect triggered for model: ${params.priceModel}`)
-
-    const generateData = async () => {
-      // Show loading for chart generation
-      setChartLoading(true)
-
-      console.log(`🔄 Regenerating chart data for price model: ${params.priceModel}`)
-      if (params.priceModel === 'powerLaw') {
-        console.log(`   📊 Power Law prognosis line: ${params.powerLawSettings?.prognosisLine || 'fit'}`)
-      }
-
+    if (!enabled) return
+    let cancelled = false
+    setChartLoading(true)
+    setPriceProjection(null)
+    setPriceChartData([])
+    const timer = setTimeout(async () => {
       try {
-        // Calculate historical patterns needed for specific models
-        const historicalDailyMultipliers = historicalPriceData
-          .slice(-1458)
-          .map((p, i, arr) => (i > 0 ? p.close / arr[i - 1].close : 1))
-          .slice(1)
-
-        const historicalChannelPositions = historicalPriceData.slice(-1458).map((dataPoint) => {
-          const date = new Date(dataPoint.time * 1000) // time is in seconds, convert to milliseconds
-          const price = dataPoint.close
-          const support = getPowerLawPrice(date, "support")
-          const resistance = getPowerLawPrice(date, "resistance")
-          const channelWidth = resistance - support
-          if (channelWidth <= 0) return 0.5
-          return Math.max(0, Math.min(1, (price - support) / channelWidth))
-        })
-
-        // Prepare parameters for the engine using the full params object
-        const engineParams: PriceEngineParams = {
-          ...params,
-          historicalDailyMultipliers,
-          historicalChannelPositions,
-        }
-
-        // Phase 4 Migration: Generate new format using UnifiedPriceProjectionService
-        console.log(`🎯 [Phase 4] Generating price projection in new format for model: ${params.priceModel}`)
-        const priceProjection = await unifiedPriceProjectionService.generateProjectionFromLegacyParams(
-          engineParams,
-          historicalPriceData
-        )
-
-        // Set the new format
-        setPriceProjection(priceProjection)
-        console.log(`✅ [Phase 4] Price projection generated: ${priceProjection.projectionPoints.length} points for model ${params.priceModel}`)
-
-        // Phase 4 Migration: Also generate legacy format for backward compatibility
-        const chartData = PriceProjectionAdapter.toLegacyFormat(priceProjection, historicalPriceData)
-        setPriceChartData(chartData)
-        console.log(`✅ [Phase 4] Legacy chart data generated: ${chartData.length} points (backward compatibility)`)
+        const model = priceModelRegistry.getModel(params.priceModel)
+        if (!model) throw new Error('Das gewählte Kursmodell ist nicht verfügbar.')
+        const input = JSON.parse(modelKey)
+        if (!model.validateParams(input)) throw new Error('Bitte die Einstellungen des Kursmodells prüfen.')
+        const result = dailyProjection(await model.generateProjection(historicalPriceData, input), JSON.parse(stressKey) ?? undefined)
+        if (cancelled) return
+        setPriceProjection(result)
+        setPriceChartData(PriceProjectionAdapter.toLegacyFormat(result, historicalPriceData))
+        setErrors(previous => previous.filter(message => !message.startsWith('Projektion: ')))
       } catch (error) {
-        console.error("Error generating price chart data:", error)
-        setErrors((prev) => [...prev, "Failed to generate price model data."])
+        if (!cancelled) setErrors(previous => [...previous.filter(message => !message.startsWith('Projektion: ')),
+          'Projektion: ' + (error instanceof Error ? error.message : 'Berechnung fehlgeschlagen.')])
       } finally {
-        setChartLoading(false)
+        if (!cancelled) setChartLoading(false)
       }
-    }
-
-    generateData()
-  }, [
-    enabled, // Add enabled flag to dependencies
-    params.priceModel,
-    params.initialBtcPrice,
-    params.simulationMonths,
-    params.powerLawSettings?.prognosisLine,
-    JSON.stringify(params.annualGrowthRates || []), // Stable string representation
-    historicalPriceData.length,
-    initialDataLoaded,
-    searchParams, // Add searchParams to detect tab changes
-    // Remove setter functions from dependencies to prevent infinite loops
-  ])
+    }, 200)
+    return () => { cancelled = true; clearTimeout(timer) }
+  }, [enabled, params.priceModel, modelKey, stressKey, historicalPriceData,
+    setChartLoading, setPriceProjection, setPriceChartData, setErrors])
 }

@@ -1,47 +1,12 @@
-import path from 'path'
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  outputFileTracingRoot: process.cwd(),
   eslint: {
     ignoreDuringBuilds: true,
   },
   typescript: {
-    ignoreBuildErrors: true,
-  },
-  // Enhanced webpack configuration for stable development and performance
-  webpack: (config, { dev, isServer }) => {
-    // Apply optimizations for development stability only
-    if (dev) {
-      // Enhanced file watching optimization
-      config.watchOptions = {
-        ...config.watchOptions,
-        ignored: [
-          '**/node_modules/**',
-          '**/.git/**',
-          '**/.next/**',
-          '**/dist/**',
-          '**/build/**'
-        ],
-        aggregateTimeout: 500, // Increased debounce time to reduce excessive rebuilds
-        poll: false, // Disable polling to prevent continuous file system checks
-      };
-
-      // Optimize caching to prevent cache failures (development only)
-      if (process.platform === 'win32') {
-        config.cache = {
-          type: 'filesystem',
-          cacheDirectory: path.resolve(process.cwd(), '.next/cache/webpack')
-        };
-      }
-
-      // Reduce module resolution overhead (development only)
-      config.resolve = {
-        ...config.resolve,
-        symlinks: false, // Disable symlink resolution for performance
-      };
-    }
-
-    return config;
+    ignoreBuildErrors: false,
   },
   // Production-ready configuration
   images: {

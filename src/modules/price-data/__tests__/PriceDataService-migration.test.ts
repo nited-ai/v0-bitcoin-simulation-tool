@@ -103,6 +103,11 @@ describe('PriceDataService Migration - Phase 1', () => {
 
       for (const model of models) {
         const params = { ...mockParams, priceModel: model }
+        if (model === 'enhancedCycleRepeat') {
+          // A partial fixture must not silently become a complete Bitcoin cycle.
+          await expect(priceDataService.generatePriceProjection(params, mockHistoricalData)).rejects.toThrow(/vollständig/)
+          continue
+        }
         const result = await priceDataService.generatePriceProjection(params, mockHistoricalData)
 
         expect(result.length).toBeGreaterThan(0)

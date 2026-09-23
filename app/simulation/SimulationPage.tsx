@@ -1,14 +1,17 @@
 "use client"
 
 
-import { useEffect, useMemo } from "react"
+import { useEffect, useMemo, useRef } from "react"
+import { usePriceGeneration } from './hooks/usePriceGeneration'
+import { LegalFooter } from "@/components/legal-footer"
+import { DEFAULT_PARAMS, PARAMS_STORAGE_KEY } from "./types/simulation"
 import { SimulationProvider, useSimulation } from "./context/SimulationContext"
 import { SimulationHeader, TabNavigation } from "./shared"
 import { usePriceData } from "@/src/modules/price-data/hooks/usePriceData"
 import { adaptManyToHistoricalDataPoints } from "@/src/modules/price-data/utils/adaptToHistoricalDataPoint"
 import type { HistoricalDataPoint } from "@/src/modules/price-data/types"
-import { useRollingLoanCalculations } from "./hooks/useRollingLoanCalculations"
-import { toLegacyMonthlyResults } from "@/src/modules/strategies/services/simulateRollingLoan"
+import { ResearchProvider } from "./research/ResearchContext"
+
 
 /**
  * Bridge: keeps SimulationContext in sync with the SWR cache.
@@ -21,6 +24,7 @@ import { toLegacyMonthlyResults } from "@/src/modules/strategies/services/simula
  * useSimulationRunner, usePriceGeneration, etc.) keep working unchanged.
  */
 function PriceDataBridge() {
+  const priceSeeded = useRef(false)
   const { prices, currentPrice, isLoading, error } = usePriceData()
   const {
     setHistoricalPriceData,
@@ -48,9 +52,13 @@ function PriceDataBridge() {
       // clobbering user edits via render loops).
       const latestClose = historicalData[historicalData.length - 1]?.close
       const initialPrice = currentPrice?.value ?? latestClose
-      if (initialPrice) {
+      if (initialPrice && !priceSeeded.current) {
+        priceSeeded.current = true
+        let savedPrice = false
+        try { savedPrice = !!JSON.parse(localStorage.getItem(PARAMS_STORAGE_KEY) || "null")?.initialBtcPrice } catch {}
+        if (savedPrice) return
         setParams((prev) =>
-          prev.initialBtcPrice !== initialPrice
+          prev.initialBtcPrice === DEFAULT_PARAMS.initialBtcPrice
             ? { ...prev, initialBtcPrice: initialPrice }
             : prev,
         )
@@ -66,49 +74,11 @@ function PriceDataBridge() {
   // Mirror error state.
   useEffect(() => {
     if (error) {
-      setErrors([error.message ?? String(error)])
+      setErrors(previous => [...previous.filter(message => !message.startsWith('Kursdaten: ')), `Kursdaten: ${error.message ?? String(error)}`])
     } else {
-      setErrors([])
+      setErrors(previous => previous.filter(message => !message.startsWith('Kursdaten: ')))
     }
   }, [error, setErrors])
-
-  return null
-}
-
-/**
- * Bridge: keeps `context.results` (legacy `MonthlyResult[]`) in sync with the
- * reactive `useRollingLoanCalculations` hook output for the rollingLoan strategy.
- *
- * Before PR6, two pipelines ran in parallel: the hook (driving DetailedResultsTable
- * / HeadlineComparison / StrategyResultsChart) and the imperative
- * `useSimulationRunner.runSimulation` (driving Summary cards / per-aspect charts
- * via context.results). Both already called the same `simulateRollingLoan`
- * function — but the simulation was executed TWICE per parameter change and a
- * "Run Simulation" click was required to refresh `results`.
- *
- * This bridge collapses that: for rollingLoan, the hook's memoized output is
- * projected into `context.results` via `toLegacyMonthlyResults`. Sim runs once,
- * all consumers update reactively, no button-click needed.
- *
- * Non-rollingLoan strategies (default / ATH / movingAverage / athCollateral)
- * still use the imperative `useSimulationRunner` → `LegacyStrategyAdapter`
- * path; this bridge is a no-op for them.
- */
-function SimulationDataBridge() {
-  const { params, setResults } = useSimulation()
-  const sim = useRollingLoanCalculations()
-
-  const legacyResults = useMemo(
-    () =>
-      params.investmentStrategy === "rollingLoan"
-        ? toLegacyMonthlyResults(sim, params)
-        : null,
-    [sim, params],
-  )
-
-  useEffect(() => {
-    if (legacyResults) setResults(legacyResults)
-  }, [legacyResults, setResults])
 
   return null
 }
@@ -117,20 +87,25 @@ function SimulationDataBridge() {
  * Internal component that uses business logic hooks
  */
 function SimulationContent() {
+  usePriceGeneration(true)
+  const data = usePriceData()
   return (
     <div className="w-full">
       <div className="container mx-auto p-4">
         {/* PR4 cut-over: keeps SimulationContext in sync with SWR cache */}
         <PriceDataBridge />
 
-        {/* PR6: keeps context.results in sync with the unified rollingLoan sim */}
-        <SimulationDataBridge />
-
         {/* Header with title and controls */}
         <SimulationHeader />
 
+        {(data.error || data.isStale) && <p role="status" className="mb-4 text-sm text-muted-foreground">
+          {data.error ? 'Historische Kursdaten sind derzeit nicht verfügbar. Eigene Jahresszenarien funktionieren weiterhin.'
+            : `${data.sourceDescription ?? 'Kursdaten sind nicht aktuell'}${data.prices.length ? ` (letzter Tag: ${data.prices[data.prices.length - 1].date})` : ''}. Der Startkurs bleibt frei editierbar.`}
+        </p>}
+
         {/* Main content with modular tab navigation */}
-        <TabNavigation />
+        <ResearchProvider><TabNavigation /></ResearchProvider>
+        <LegalFooter className="mt-12 border-t pt-6 pb-4 flex flex-wrap gap-x-6 gap-y-3 text-xs text-muted-foreground" />
       </div>
     </div>
   )

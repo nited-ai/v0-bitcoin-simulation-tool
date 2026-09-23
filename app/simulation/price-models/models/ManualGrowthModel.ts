@@ -13,6 +13,7 @@ import type {
   ProjectionPoint
 } from "../types"
 import type { HistoricalDataPoint } from "@/src/modules/price-data/types"
+import { addCalendarMonths } from './cycleReplay'
 
 /**
  * Manual Growth Model Implementation
@@ -118,7 +119,8 @@ export class ManualGrowthModel implements PriceProjectionModel {
     const projectionPoints: ProjectionPoint[] = []
 
     // Start projection from today (current date) for future projections
-    const startDate = new Date()
+    const startDate = new Date(new Date().toISOString().slice(0, 10))
+    projectionPoints.push({ timestamp: startDate.getTime(), price: params.startPrice, confidence: 0 })
 
     console.log(`📅 Manual Growth Model: Starting projection from ${startDate.toISOString().split('T')[0]} (current date)`)
     console.log(`💰 Manual Growth Model: Starting price: $${params.startPrice.toLocaleString()}`)
@@ -127,9 +129,7 @@ export class ManualGrowthModel implements PriceProjectionModel {
     
     // Generate monthly projections starting from next month (future projections)
     for (let month = 1; month <= params.projectionMonths; month++) {
-      const currentDate = new Date(startDate)
-      currentDate.setMonth(currentDate.getMonth() + month) // Start from next month for future projections
-      currentDate.setDate(15) // Mid-month for consistency
+      const currentDate = new Date(addCalendarMonths(startDate.getTime(), month))
       
       // Get the annual growth rate for this month
       const annualGrowthRate = this.getGrowthRateForMonth(month, annualGrowthRates)

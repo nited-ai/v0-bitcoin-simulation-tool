@@ -31,10 +31,10 @@ export function SimulationHeader() {
       {/* Left: Navigation */}
       <div className="flex-1">
         <Button variant="ghost" asChild className="gap-2">
-          <Link href="/">
+          <Link href="/methodik">
             <Home className="w-4 h-4" />
             <span suppressHydrationWarning>
-              {safeT("Navigation.backToLanding.button", "Back to Landing")}
+              {t("Navigation.methodology", "Methodik & Modelle")}
             </span>
           </Link>
         </Button>

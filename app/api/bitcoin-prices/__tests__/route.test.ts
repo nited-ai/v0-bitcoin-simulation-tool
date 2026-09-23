@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+vi.mock('node:fs/promises', async importOriginal => {
+  const actual = await importOriginal<typeof import('node:fs/promises')>()
+  const readFile = vi.fn()
+  return { ...actual, readFile, default: { ...actual, readFile } }
+})
 
-vi.mock('@/lib/generated/prisma', () => ({
+vi.mock('@prisma/client', () => ({
   PrismaClient: vi.fn().mockImplementation(() => ({
     $disconnect: vi.fn().mockResolvedValue(undefined),
   })),
@@ -53,6 +58,31 @@ async function callGet(url = 'https://example.com/api/bitcoin-prices') {
 }
 
 describe('GET /api/bitcoin-prices', () => {
+  it('serves a clearly stale local preview without creating a database connection', async () => {
+    vi.stubEnv('FIREHODL_READ_ONLY_DATA', '1')
+    vi.stubEnv('FIREHODL_PREVIEW_PRICE_FILE', 'preview.json')
+    try {
+      const { readFile } = await import('node:fs/promises')
+      vi.mocked(readFile).mockResolvedValue(JSON.stringify([{ date: '2024-01-01', close: 100, open: 95, high: 110, low: 90 }]))
+      const res = await callGet()
+      const body = await res.json()
+      expect(body.currentPrice).toBeNull()
+      expect(body.isStale).toBe(true)
+      expect(body.sourceDescription).toContain('Datensicherung')
+      expect(body.prices).toHaveLength(1)
+      expect(mockStoreInstance.getRange).not.toHaveBeenCalled()
+      expect(mockUpdater.updateCurrent).not.toHaveBeenCalled()
+    } finally { vi.unstubAllEnvs() }
+  })
+
+  it('does not refresh an old database row in read-only mode', async () => {
+    vi.stubEnv('FIREHODL_READ_ONLY_DATA', '1')
+    mockStoreInstance.getLatest.mockResolvedValue({ date: '2020-01-01', close: 100, fetchedAt: new Date('2020-01-01') })
+    try {
+      await callGet()
+      expect(mockUpdater.updateCurrent).not.toHaveBeenCalled()
+    } finally { vi.unstubAllEnvs() }
+  })
   it('returns prices, currentPrice, ath, lastUpdated, isStale', async () => {
     const res = await callGet()
     const body = await res.json()
@@ -97,13 +127,13 @@ describe('GET /api/bitcoin-prices', () => {
     expect(mockUpdater.updateCurrent).not.toHaveBeenCalled()
   })
 
-  it('?refresh=force triggers updateCurrent regardless of cooldown', async () => {
+  it('public refresh cannot bypass upstream cooldown', async () => {
     const fresh = new Date(Date.now() - 60_000)
     mockStoreInstance.getLatest.mockResolvedValue({
       date: '2026-05-04', close: 100000, high: 100000, low: 100000, open: 100000, fetchedAt: fresh,
     })
     await callGet('https://example.com/api/bitcoin-prices?refresh=force')
-    expect(mockUpdater.updateCurrent).toHaveBeenCalledWith(true)  // force=true
+    expect(mockUpdater.updateCurrent).not.toHaveBeenCalled()
   })
 
   it('returns 503 on DB connection error', async () => {
@@ -112,10 +142,30 @@ describe('GET /api/bitcoin-prices', () => {
     expect(res.status).toBe(503)
     const body = await res.json()
     expect(body.error).toBe('db_unavailable')
+    expect(body).not.toHaveProperty('detail')
+  })
+
+  it('marks old actual prices stale despite a fresh heartbeat', async () => {
+    mockStoreInstance.getLatest.mockResolvedValue({close:100000, fetchedAt:new Date(Date.now()-2*60*60*1000)})
+    const res = await callGet()
+    expect((await res.json()).isStale).toBe(true)
+  })
+
+  it('rejects malformed and reversed date ranges', async () => {
+    expect((await callGet('https://example.com/api/bitcoin-prices?from=not-a-date')).status).toBe(400)
+    expect((await callGet('https://example.com/api/bitcoin-prices?from=2026-02-30')).status).toBe(400)
+    expect((await callGet('https://example.com/api/bitcoin-prices?from=2026-05-01&to=2026-04-01')).status).toBe(400)
   })
 
   it('parses ?from= and ?to= query params', async () => {
     await callGet('https://example.com/api/bitcoin-prices?from=2026-01-01&to=2026-05-04')
     expect(mockStoreInstance.getRange).toHaveBeenCalledWith('2026-01-01', '2026-05-04')
+  })
+
+  it('excludes the incomplete current day from historical candles', async()=>{
+    const today=new Date().toISOString().slice(0,10)
+    const yesterday=new Date(Date.now()-86400000).toISOString().slice(0,10)
+    mockStoreInstance.getRange.mockResolvedValue([yesterday,today].map(date=>({date,open:100,close:100,low:100,high:100})))
+    expect((await (await callGet()).json()).prices.map((p:any)=>p.date)).toEqual([yesterday])
   })
 })

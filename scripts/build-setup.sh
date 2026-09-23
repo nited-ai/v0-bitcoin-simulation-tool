@@ -26,8 +26,8 @@ else
 fi
 
 # Verify the generated client exists
-if [ -d "lib/generated/prisma" ]; then
-  echo "✅ Prisma Client files found in lib/generated/prisma"
+if node -e "require('@prisma/client')"; then
+  echo "✅ Prisma Client package available"
 else
   echo "❌ Prisma Client files not found"
   exit 1

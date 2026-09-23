@@ -179,7 +179,7 @@ export function LoanParametersCard() {
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <Percent className="w-4 h-4" />
-                {t('LoanParameters.initialLtv.label', 'Initial LTV')} (max {platformConfig.maxInitialLtv}%)
+                {t('LoanParameters.initialLtv.label', 'Initial LTV')} (max {params.maxInitialLtv}%)
                 <HybridTooltip>
                   <HybridTooltipTrigger asChild>
                     <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
@@ -188,7 +188,7 @@ export function LoanParametersCard() {
                     <p>{t('LoanParameters.tooltips.initialLtv', 'Loan-to-Value ratio - percentage of collateral value that can be borrowed')}</p>
                     <p>{t('LoanParameters.tooltips.initialLtvMax', 'Maximum allowed by {{platform}} platform: {{maxLtv}}%', {
                       platform: platformConfig.name,
-                      maxLtv: platformConfig.maxInitialLtv
+                      maxLtv: params.maxInitialLtv
                     })}</p>
                   </HybridTooltipContent>
                 </HybridTooltip>
@@ -197,7 +197,7 @@ export function LoanParametersCard() {
                 value={params.riskManagement.targetLtv}
                 onChange={(value) => updateParam("riskManagement.targetLtv", value)}
                 min={1}
-                max={platformConfig.maxInitialLtv}
+                max={params.maxInitialLtv}
                 step={1}
                 decimals={1}
                 placeholder="50"
@@ -217,7 +217,7 @@ export function LoanParametersCard() {
                     <Info className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
                   </HybridTooltipTrigger>
                   <HybridTooltipContent>
-                    <p>{t('LoanParameters.tooltips.interestRate', 'Yearly interest rate charged on the loan amount, compounded over the loan term')}</p>
+                    <p>{t('LoanParameters.tooltips.dailyInterest', 'Interest accrues daily on outstanding debt, including financed fees. Future interest is not included in the opening debt or initial collateral.')}</p>
                   </HybridTooltipContent>
                 </HybridTooltip>
               </Label>
@@ -280,13 +280,13 @@ export function LoanParametersCard() {
               <div className="space-y-2">
                 <Label className="flex items-center gap-2 text-xs">
                   <DollarSign className="w-3 h-3 text-green-500" />
-                  {t('LoanParameters.loanAmountBreakdown', 'Loan Amount')}
+                  {t('LoanParameters.netCashAdvance', 'Net Cash Advance')}
                   <HybridTooltip>
                     <HybridTooltipTrigger asChild>
                       <Info className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-help" />
                     </HybridTooltipTrigger>
                     <HybridTooltipContent>
-                      <p>{t('LoanParameters.tooltips.loanAmountBreakdown', 'Initial loan principal amount')}</p>
+                      <p>{t('LoanParameters.tooltips.netCashAdvance', 'Cash available at the start. Borrowing limits apply to debt including financed origination fees, so the advance may be below the requested amount.')}</p>
                       <p className="text-xs text-muted-foreground">
                         {params.loanAmountPercent.toFixed(2)}{t('LoanParameters.percentOf', '% of')} {formatCurrency(params.initialBtcAmount * params.initialBtcPrice, 0)}
                       </p>
@@ -298,7 +298,7 @@ export function LoanParametersCard() {
                     {formatCurrency(loanData?.initialCurrentLoanAmount || 0, 0)}
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    {params.loanAmountPercent.toFixed(2)}{t('LoanParameters.percentOf', '% of')} {formatCurrency(params.initialBtcAmount * params.initialBtcPrice, 0)}
+                    {t('LoanParameters.requestedAmount', 'Requested: {{amount}}', { amount: formatCurrency(convertPercentageToUsd(params.loanAmountPercent), 0) })}
                   </div>
                 </div>
               </div>
@@ -307,15 +307,17 @@ export function LoanParametersCard() {
               <div className="space-y-2">
                 <Label className="flex items-center gap-2 text-xs">
                   <TrendingUp className="w-3 h-3 text-blue-500" />
-                  {t('LoanParameters.totalInterest', 'Total Interest')}
+                  {params.loanTermMonths === Infinity
+                    ? t('LoanParameters.referenceInterest', 'Interest Estimate (1 Year)')
+                    : t('LoanParameters.estimatedInterest', 'Interest Estimate (Term)')}
                   <HybridTooltip>
                     <HybridTooltipTrigger asChild>
                       <Info className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-help" />
                     </HybridTooltipTrigger>
                     <HybridTooltipContent>
-                      <p>{t('LoanParameters.tooltips.totalInterest', 'Total interest paid over the loan term')}</p>
+                      <p>{t('LoanParameters.tooltips.estimatedInterest', 'Simple estimate assuming opening debt stays constant. Actual daily interest depends on repayments, additional borrowing and capitalization in the simulation.')}</p>
                       <p className="text-xs text-muted-foreground">
-                        {t('LoanParameters.tooltips.totalInterestFormula', 'Formula: Loan Amount × Annual Rate × Term (months) ÷ 12')}
+                        {t('LoanParameters.tooltips.estimatedInterestFormula', 'Opening Debt × Annual Rate × Reference Months ÷ 12')}
                       </p>
                     </HybridTooltipContent>
                   </HybridTooltip>
@@ -325,7 +327,7 @@ export function LoanParametersCard() {
                     {formatCurrency(loanData?.initialTotalInterestPayment || 0, 0)}
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    {formatCurrency(loanData?.initialMonthlyInterestPayment || 0, 0)} {params.loanTermMonths === Infinity ? '∞' : t('LoanParameters.forMonths', 'for {{count}} months', { count: params.loanTermMonths })}
+                    {t('LoanParameters.monthlyInterestEstimate', '{{amount}} per month initially', { amount: formatCurrency(loanData?.initialMonthlyInterestPayment || 0, 0) })}
                   </div>
                 </div>
               </div>
@@ -341,17 +343,17 @@ export function LoanParametersCard() {
                     </HybridTooltipTrigger>
                     <HybridTooltipContent>
                       <p>
-                        {platformConfig.originationFeeType === 'one-time'
+                        {params.originationFeeType === 'one-time'
                           ? t('LoanParameters.tooltips.originationFeeOneTime', 'One-time fee charged when the loan is originated')
                           : t('LoanParameters.tooltips.originationFeeAnnual', 'Annual fee charged throughout the loan term')
                         }
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {t('LoanParameters.tooltips.originationFeeFormula', 'Formula: Loan Amount × Platform Origination Fee %')}
-                        {platformConfig.originationFeeType === 'annual' && t('LoanParameters.tooltips.originationFeeFormulaAnnual', ' × Loan Term (years)')}
+                        {params.originationFeeType === 'annual' && t('LoanParameters.tooltips.originationFeeFormulaAnnual', ' × Loan Term (years)')}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {t('LoanParameters.tooltips.feeType', 'Fee Type')}: {platformConfig.originationFeeType === 'one-time' ? t('LoanParameters.tooltips.oneTime', 'One-time') : t('LoanParameters.tooltips.annualPA', 'Annual (p.a.)')}
+                        {t('LoanParameters.tooltips.feeType', 'Fee Type')}: {params.originationFeeType === 'one-time' ? t('LoanParameters.tooltips.oneTime', 'One-time') : t('LoanParameters.tooltips.annualPA', 'Annual (p.a.)')}
                       </p>
                     </HybridTooltipContent>
                   </HybridTooltip>
@@ -361,24 +363,24 @@ export function LoanParametersCard() {
                     {formatCurrency(loanData?.initialOriginationFee || 0, 0)}
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    {platformConfig.originationFeePercent}% {platformConfig.originationFeeType === 'annual' ? t('LoanParameters.tooltips.annualPA', 'p.a.') : ''} of {formatCurrency(loanData?.initialCurrentLoanAmount || 0, 0)}
+                    {params.originationFeePercent}% {params.originationFeeType === 'annual' ? t('LoanParameters.tooltips.annualPA', 'p.a.') : ''} of {formatCurrency(loanData?.initialCurrentLoanAmount || 0, 0)}
                   </div>
                 </div>
               </div>
 
-              {/* Total Repayment Amount */}
+              {/* Opening debt, before interest accrues */}
               <div className="space-y-2">
                 <Label className="flex items-center gap-2 text-xs">
                   <CreditCard className="w-3 h-3 text-red-500" />
-                  {t('LoanParameters.totalRepayment', 'Total Repayment')}
+                  {t('LoanParameters.openingDebt', 'Opening Debt')}
                   <HybridTooltip>
                     <HybridTooltipTrigger asChild>
                       <Info className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-help" />
                     </HybridTooltipTrigger>
                     <HybridTooltipContent>
-                      <p>{t('LoanParameters.tooltips.totalRepayment', "Total amount you'll pay back over the loan term")}</p>
+                      <p>{t('LoanParameters.tooltips.openingDebt', 'Debt at the start, before daily interest accrues. This balance determines the initial collateral and liquidation thresholds.')}</p>
                       <p className="text-xs text-muted-foreground">
-                        {t('LoanParameters.tooltips.totalRepaymentFormula', 'Formula: Loan Principal + Origination Fee + Total Interest')}
+                        {t('LoanParameters.tooltips.openingDebtFormula', 'Net Cash Advance + Financed Origination Fee')}
                       </p>
                     </HybridTooltipContent>
                   </HybridTooltip>
@@ -388,8 +390,8 @@ export function LoanParametersCard() {
                     {formatCurrency(loanData?.initialTotalLoanCost || 0, 0)}
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    {t('LoanParameters.loanPlusCosts', 'Loan + {{costs}} costs', {
-                      costs: formatCurrency(((loanData?.initialOriginationFee || 0) + (loanData?.initialTotalInterestPayment || 0)), 0)
+                    {t('LoanParameters.advancePlusFees', 'Advance + {{costs}} fees', {
+                      costs: formatCurrency(loanData?.initialOriginationFee || 0, 0)
                     })}
                   </div>
                 </div>
